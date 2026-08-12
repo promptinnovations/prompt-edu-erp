@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "academic": "Academic Setup",
+    "students": "Students",
+    "signOut": "Sign out",
+    "examinations": "Examinations",
+    "attendance": "Attendance",
+    "analytics": "Analytics",
+    "skills": "Skills",
+    "achievements": "Achievements",
+    "scoring": "Scoring",
+    "library": "Library",
+    "staff": "Staff",
+    "discipline": "Discipline",
+    "mentoring": "Mentoring",
+    "reports": "Reports",
+    "importExport": "Import / Export",
+    "announcements": "Announcements",
+    "storage": "Storage",
+    "users": "Users & Roles",
+    "settings": "Settings",
+    "superAdmin": "Super Admin"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {name}",
+    "institution": "Institution",
+    "classes": "Classes",
+    "sections": "Sections",
+    "subjects": "Subjects",
+    "students": "Students"
+  },
+  "academic": {
+    "title": "Academic Setup",
+    "classesHeading": "Classes",
+    "sectionsHeading": "Sections",
+    "subjectsHeading": "Subjects",
+    "className": "Class name",
+    "sectionName": "Section name",
+    "subjectName": "Subject name",
+    "selectClass": "Select class",
+    "add": "Add"
+  },
+  "students": {
+    "title": "Students",
+    "admissionNumber": "Admission number",
+    "fullName": "Full name",
+    "add": "Add student",
+    "view": "View",
+    "backToList": "Back to students",
+    "notFound": "Student not found"
+  },
+  "login": {
+    "title": "PROMPT EDU ERP",
+    "subtitle": "Sign in to continue",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "firstTimeNotice": "First time? Your institution admin must create your account before you can sign up."
+  },
+  "language": {
+    "label": "Language"
+  }
+}

@@ -1,0 +1,34 @@
+-- =============================================================================
+-- PROMPT EDU ERP — Migration 0019: grant app_user membership to the
+-- connecting/owner role.
+--
+-- Bug this fixes: 0002_app_runtime_role.sql created the `app_user` role
+-- (nosuperuser, nobypassrls — the whole point is that RLS actually applies
+-- to it) and granted IT privileges on tables/sequences, but never granted
+-- the CONNECTING role membership IN app_user. `SET LOCAL ROLE app_user`
+-- (services/db/client.ts, every withInstitutionContext call) only succeeds
+-- if the current role is either a superuser or an explicit member of the
+-- target role (standard Postgres behavior for SET ROLE).
+--
+-- This was invisible in every prior verification path:
+--   - PGlite (240 tests, local dev quickstart) connects as an effectively
+--     superuser role, which can SET ROLE to anything with no membership
+--     grant needed at all.
+--   - `npm run db:migrate`/`db:seed` never call withInstitutionContext —
+--     migrations/seeds intentionally run on the privileged/owner
+--     connection directly (see migrate.ts's own header comment), so this
+--     gap was never exercised even against a real Postgres host until the
+--     first real end-user request actually hit the app.
+-- Supabase's own `postgres` role is NOT a true Postgres superuser (managed
+-- hosting), so it hit exactly this: "permission denied to set role
+-- app_user" on the very first real sign-in.
+--
+-- `grant app_user to current_user` (rather than hardcoding `postgres`) is
+-- deliberately portable — self-adapts to whatever role actually runs
+-- migrations on any host (Supabase, Neon, self-hosted, or a fresh local
+-- Postgres someone sets DATABASE_URL to), matching this file's own
+-- migration-runner convention of never hardcoding a specific deployment's
+-- role names (see 0001_foundation.sql/§V).
+-- =============================================================================
+
+grant app_user to current_user;

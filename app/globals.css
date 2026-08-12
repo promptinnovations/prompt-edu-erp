@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/* Old-Android/older-browser compatibility. Tailwind v4's default palette is
+ * defined in OKLCH — an unsupported CSS colour function on any browser
+ * older than Chrome 111 / Safari 16.4 (both March 2023), which an
+ * unpredictable share of real Android devices in the field still are, either
+ * running an old OS's bundled WebView or a Chrome build that was never
+ * auto-updated. An unsupported color() value doesn't fall back gracefully —
+ * the browser drops the whole declaration, so text/backgrounds render as
+ * transparent/unstyled ("looks broken", not just "looks different").
+ *
+ * Tailwind's own compatibility docs are explicit that v4 "is designed for
+ * and tested on modern browsers" and specifically depends on Chrome
+ * 111+/Safari 16.4+/Firefox 128+ (https://tailwindcss.com/docs/compatibility)
+ * — there's no built-in downlevel switch for this. Rather than dropping to
+ * Tailwind v3 (a full framework migration), this block redefines just the
+ * theme color families actually used anywhere in this codebase (verified via
+ * `grep -roE "(bg|text|border|ring|from|to|via)-(zinc|red|emerald|amber|
+ * green|blue)-[0-9]+"` across app/) back to their exact-equivalent plain hex
+ * values — computed from this build's own compiled oklch() output via the
+ * standard OKLCH→linear-sRGB→sRGB math, not eyeballed. Every existing
+ * bg-zinc-900/text-red-600/etc. utility class keeps working completely
+ * unchanged; it's the CSS variable *definition* underneath that's now a
+ * universally-supported hex value instead of oklch(). Any new colour
+ * utility added later from a family not listed here would still emit
+ * oklch() and need the same treatment. */
+@theme {
+  --color-zinc-50: #fafafa;
+  --color-zinc-100: #f4f4f5;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #9f9fa9;
+  --color-zinc-500: #71717b;
+  --color-zinc-600: #52525c;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  --color-red-600: #e7000b;
+  --color-red-700: #c10007;
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-200: #a4f4cf;
+  --color-emerald-600: #009966;
+  --color-emerald-700: #007a55;
+  --color-emerald-800: #006045;
+  --color-amber-100: #fef3c6;
+  --color-amber-500: #fe9a00;
+  --color-amber-700: #bb4d00;
+  --color-green-100: #dcfce7;
+  --color-green-700: #008236;
+  --color-blue-600: #155dfc;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  /* Fallback only — (institution)/layout.tsx and (portals)/portal/layout.tsx
+   * always set these inline from the institution's own primary_color
+   * (services/institution/institution-service.ts's getBrandColors(), §137).
+   * These root defaults just mean an un-themed institution (or any page
+   * that somehow renders outside those layouts, e.g. (auth)/(super-admin))
+   * still gets the app's original zinc-900 look, never an unset variable. */
+  --brand: #18181b;
+  --brand-hover: #27272a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Noto Sans", "Noto Sans Malayalam", "Noto Sans Arabic", Arial, sans-serif;
+}

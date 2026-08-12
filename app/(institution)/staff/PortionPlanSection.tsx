@@ -1,0 +1,108 @@
+"use client";
+
+import { useActionState } from "react";
+import { createPortionPlanAction, recordPortionCompletionAction } from "./actions";
+
+export interface PortionPlanRow {
+  id: string; class_name: string; subject_name: string; teacher_name: string;
+  chapter_name: string; planned_date: string | null;
+  latest_completion_percent: number | null; latest_completed_date: string | null;
+}
+
+function RecordCompletionForm({ portionPlanId }: { portionPlanId: string }) {
+  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(recordPortionCompletionAction, { error: null });
+  return (
+    <form action={formAction} className="flex flex-wrap items-end gap-1">
+      <input type="hidden" name="portionPlanId" value={portionPlanId} />
+      <input type="date" name="completedDate" required className="rounded-md border border-zinc-300 px-2 py-1 text-xs" />
+      <input type="number" name="completionPercent" min={0} max={100} placeholder="%" required className="w-16 rounded-md border border-zinc-300 px-2 py-1 text-xs" />
+      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
+        Log
+      </button>
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
+    </form>
+  );
+}
+
+export default function PortionPlanSection({
+  plans, classes, subjects, teachers, academicYearId, canManage,
+}: {
+  plans: PortionPlanRow[];
+  classes: Array<{ id: string; name: string }>;
+  subjects: Array<{ id: string; name: string }>;
+  teachers: Array<{ id: string; full_name: string }>;
+  academicYearId: string;
+  canManage: boolean;
+}) {
+  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(createPortionPlanAction, { error: null });
+
+  return (
+    <div className="space-y-4">
+      {canManage ? (
+        <form action={formAction} className="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="academicYearId" value={academicYearId} />
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Class</label>
+            <select name="classId" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+              {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Subject</label>
+            <select name="subjectId" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+              {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Teacher</label>
+            <select name="teacherId" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+              {teachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="mb-1 block text-xs text-zinc-500">Chapter</label>
+            <input name="chapterName" required className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Planned date</label>
+            <input type="date" name="plannedDate" className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
+          </div>
+          <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+            Create plan
+          </button>
+          {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
+        </form>
+      ) : null}
+
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <tr>
+            <th className="py-1.5">Chapter</th>
+            <th className="py-1.5">Class / Subject</th>
+            <th className="py-1.5">Teacher</th>
+            <th className="py-1.5">Progress</th>
+            {canManage ? <th className="py-1.5">Log progress</th> : null}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-100">
+          {plans.map((p) => (
+            <tr key={p.id}>
+              <td className="py-1.5">{p.chapter_name}</td>
+              <td className="py-1.5 text-zinc-500">{p.class_name} — {p.subject_name}</td>
+              <td className="py-1.5">{p.teacher_name}</td>
+              <td className="py-1.5">
+                {p.latest_completion_percent === null ? "Not started" : `${p.latest_completion_percent}% (as of ${p.latest_completed_date})`}
+              </td>
+              {canManage ? <td className="py-1.5"><RecordCompletionForm portionPlanId={p.id} /></td> : null}
+            </tr>
+          ))}
+          {plans.length === 0 ? (
+            <tr><td colSpan={canManage ? 5 : 4} className="py-4 text-center text-zinc-400">No portion plans yet.</td></tr>
+          ) : null}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  );
+}

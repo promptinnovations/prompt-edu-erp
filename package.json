@@ -1,0 +1,52 @@
+{
+  "name": "prompt-edu-erp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PROMPT EDU ERP \u2014 a multi-tenant educational technology platform. A product of Prompt Innovations.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:migrate": "tsx database/scripts/migrate.ts",
+    "db:seed": "tsx database/scripts/seed.ts",
+    "test": "vitest run",
+    "test:tenant-isolation": "vitest run tests/integration/tenant-isolation.test.ts",
+    "test:e2e": "playwright test",
+    "check:secrets": "node scripts/check-no-client-secrets.mjs",
+    "check:audit": "npm audit --omit=dev --audit-level=high",
+    "typecheck": "next typegen && tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run check:secrets && npm test"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.45.0",
+    "@upstash/redis": "^1.38.2",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pdfkit": "^0.17.6",
+    "exceljs": "^4.4.0",
+    "next": "^15.4.0",
+    "next-intl": "^3.26.5",
+    "nodemailer": "^9.0.5",
+    "pdfkit": "^0.19.1",
+    "pg": "^8.13.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.13",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^20",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^15.4.0",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5",
+    "vitest": "^2.1.0"
+  }
+}

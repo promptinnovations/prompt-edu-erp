@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "dashboard": "ഡാഷ്ബോർഡ്",
+    "academic": "അക്കാദമിക് ക്രമീകരണം",
+    "students": "വിദ്യാർത്ഥികൾ",
+    "signOut": "സൈൻ ഔട്ട്",
+    "examinations": "പരീക്ഷകൾ",
+    "attendance": "ഹാജർ",
+    "analytics": "അനലിറ്റിക്സ്",
+    "skills": "കഴിവുകൾ",
+    "achievements": "നേട്ടങ്ങള്‍",
+    "scoring": "സ്‌കോറിംഗ്",
+    "library": "ലൈബ്രറി",
+    "staff": "ജീവനക്കാർ",
+    "discipline": "അച്ചടക്കം",
+    "mentoring": "മെന്റോറിംഗ്",
+    "reports": "റിപ്പോർട്ടുകൾ",
+    "importExport": "ഇറക്കുമതി / കയറ്റുമതി",
+    "announcements": "അറിയിപ്പുകൾ",
+    "storage": "സ്റ്റോറേജ്",
+    "users": "ഉപയോക്താക്കളും റോളുകളും",
+    "settings": "ക്രമീകരണങ്ങൾ",
+    "superAdmin": "സൂപ്പർ അഡ്മിൻ"
+  },
+  "dashboard": {
+    "title": "ഡാഷ്ബോർഡ്",
+    "welcome": "സ്വാഗതം, {name}",
+    "institution": "സ്ഥാപനം",
+    "classes": "ക്ലാസുകൾ",
+    "sections": "സെക്ഷനുകൾ",
+    "subjects": "വിഷയങ്ങൾ",
+    "students": "വിദ്യാർത്ഥികൾ"
+  },
+  "academic": {
+    "title": "അക്കാദമിക് ക്രമീകരണം",
+    "classesHeading": "ക്ലാസുകൾ",
+    "sectionsHeading": "സെക്ഷനുകൾ",
+    "subjectsHeading": "വിഷയങ്ങൾ",
+    "className": "ക്ലാസിന്റെ പേര്",
+    "sectionName": "സെക്ഷന്റെ പേര്",
+    "subjectName": "വിഷയത്തിന്റെ പേര്",
+    "selectClass": "ക്ലാസ് തിരഞ്ഞെടുക്കുക",
+    "add": "ചേർക്കുക"
+  },
+  "students": {
+    "title": "വിദ്യാർത്ഥികൾ",
+    "admissionNumber": "അഡ്മിഷൻ നമ്പർ",
+    "fullName": "പൂർണ്ണ നാമം",
+    "add": "വിദ്യാർത്ഥിയെ ചേർക്കുക",
+    "view": "കാണുക",
+    "backToList": "വിദ്യാർത്ഥികളുടെ പട്ടികയിലേക്ക്",
+    "notFound": "വിദ്യാർത്ഥിയെ കണ്ടെത്തിയില്ല"
+  },
+  "login": {
+    "title": "PROMPT EDU ERP",
+    "subtitle": "തുടരാൻ സൈൻ ഇൻ ചെയ്യുക",
+    "email": "ഇമെയിൽ",
+    "password": "പാസ്‌വേഡ്",
+    "signIn": "സൈൻ ഇൻ",
+    "signUp": "അക്കൗണ്ട് സൃഷ്ടിക്കുക",
+    "firstTimeNotice": "ആദ്യമായാണോ? സൈൻ അപ്പ് ചെയ്യുന്നതിന് മുമ്പ് നിങ്ങളുടെ സ്ഥാപന അഡ്മിൻ നിങ്ങളുടെ അക്കൗണ്ട് സൃഷ്ടിക്കണം."
+  },
+  "language": {
+    "label": "ഭാഷ"
+  }
+}
