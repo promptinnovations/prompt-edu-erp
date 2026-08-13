@@ -108,10 +108,16 @@ Login → Institution context → Dashboard → Create class → Create section
   → The app now renders correctly on older Android/browser versions, not
     just the newest ones — a colour-format incompatibility that could
     silently break styling on older devices has been fixed
+  → As an institution admin, see a "Finish setting up" checklist on your
+    dashboard (add a class, enroll a student, invite a colleague, ...) —
+    each item disappears the moment the real data behind it exists, no
+    separate "mark complete" step, and anything not applicable can be set
+    aside with "Not applicable / later" (still revisitable, never lost)
+    until the whole checklist quietly disappears once everything's done
 ```
 
 with full tenant isolation enforced by PostgreSQL Row Level Security,
-verified by an automated test suite (`npm test`, 288 tests) that includes an
+verified by an automated test suite (`npm test`, 296 tests) that includes an
 ID-enumeration fuzz test proving Institution A can never read, edit, or
 delete Institution B's data, a full examination-workflow test proving the
 mark approval pipeline, permission boundaries (a teacher can enter marks but

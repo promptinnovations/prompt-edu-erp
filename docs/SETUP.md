@@ -163,7 +163,7 @@ that is the entire point of the `StorageProvider` abstraction.
   config array). Lint runs on every build again (`next.config.ts` no
   longer sets `ignoreDuringBuilds`) and is wired into `npm run verify`/CI.
 - ~~**Browser/e2e testing**~~ — **added.** `tests/integration/*.test.ts`
-  (288 tests, run against real Postgres via PGlite) prove the data layer,
+  (296 tests, run against real Postgres via PGlite) prove the data layer,
   tenant isolation, and service layer exhaustively, but exercise no real
   browser or React form. `tests/e2e/*.spec.ts` (Playwright, `npm run
   test:e2e`) closes that gap: `global-setup.ts` wipes and re-migrates+seeds

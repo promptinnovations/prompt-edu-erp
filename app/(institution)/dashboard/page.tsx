@@ -3,6 +3,9 @@ import { requireRequestContext } from "../../../services/request-context";
 import { getInstitution } from "../../../services/institution/institution-service";
 import { listClasses, listSections, listSubjects } from "../../../modules/academic/service";
 import { listStudents } from "../../../modules/students/service";
+import { getOnboardingChecklist } from "../../../services/onboarding/onboarding-service";
+import { can } from "../../../services/permissions/permission-service";
+import OnboardingChecklist from "./OnboardingChecklist";
 
 const CARD_ACCENTS = [
   "from-indigo-500 to-violet-500",
@@ -15,13 +18,18 @@ export default async function DashboardPage() {
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const t = await getTranslations("dashboard");
+  // Setup checklist is about configuring the institution, so it's only
+  // fetched/shown to whoever can already reach Settings — same gate, same
+  // reasoning as that page.
+  const canSeeChecklist = can(ctx.permissions, "settings.manage");
 
-  const [institution, classes, sections, subjects, students] = await Promise.all([
+  const [institution, classes, sections, subjects, students, checklist] = await Promise.all([
     getInstitution(institutionId, ctx.session.authUserId),
     listClasses(institutionId, ctx.session.authUserId),
     listSections(institutionId, ctx.session.authUserId),
     listSubjects(institutionId, ctx.session.authUserId),
     listStudents(institutionId, ctx.session.authUserId),
+    canSeeChecklist ? getOnboardingChecklist(institutionId, ctx.session.authUserId) : Promise.resolve([]),
   ]);
 
   const cards: Array<[string, number]> = [
@@ -42,6 +50,8 @@ export default async function DashboardPage() {
           <p className="mt-2 max-w-lg text-sm text-white/80">{t("title")}</p>
         </div>
       </div>
+
+      {canSeeChecklist ? <OnboardingChecklist items={checklist} /> : null}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {cards.map(([label, value], i) => (
