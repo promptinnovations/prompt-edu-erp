@@ -63,11 +63,26 @@ export async function getOnboardingChecklist(institutionId: string, authUserId: 
     enabledModules.has("library") ? listBooks(institutionId, authUserId) : Promise.resolve([]),
     listInstitutionUsers(institutionId, authUserId),
     db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-      const { rows } = await scoped.query<{ item_code: string }>(
-        "select item_code from onboarding_skips where institution_id = $1",
-        [institutionId]
-      );
-      return new Set(rows.map((r) => r.item_code));
+      try {
+        const { rows } = await scoped.query<{ item_code: string }>(
+          "select item_code from onboarding_skips where institution_id = $1",
+          [institutionId]
+        );
+        return new Set(rows.map((r) => r.item_code));
+      } catch (err) {
+        // Defensive only: a deployment whose migration 0021 hasn't been
+        // applied yet (e.g. the brief window right after a deploy, before
+        // `npm run db:migrate` is re-run against production) would
+        // otherwise take the whole dashboard down on every load. Same
+        // "degrade, don't crash" philosophy as the dual dev/prod auth and
+        // storage providers elsewhere in this codebase — worst case here
+        // is just "nothing shows as skipped yet".
+        const message = err instanceof Error ? err.message : String(err);
+        if (/relation .*onboarding_skips.* does not exist/i.test(message)) {
+          return new Set<string>();
+        }
+        throw err;
+      }
     }),
   ]);
 
