@@ -24,16 +24,20 @@ export default async function PortalLayout({ children }: { children: React.React
 
   // Design refresh (see globals.css): one fixed brand palette everywhere —
   // no more per-institution CSS variable override here.
+  //
+  // "Separate apps for each institution ... only their thing should be
+  // highlighted" follow-up: the header now shows only the institution's own
+  // name/logo, nothing else — "PROMPT EDU ERP" branding moved down to a
+  // small credit line in the page footer instead.
   return (
-    <div className="min-h-full bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6 sm:py-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-xs font-bold text-white">
             {(institution?.appName || institution?.name || "P").trim().charAt(0).toUpperCase()}
           </span>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">PROMPT EDU ERP — Portal</div>
-            <div className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{institution?.appName || institution?.name}</div>
+          <div className="min-w-0 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            {institution?.appName || institution?.name}
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2.5">
@@ -46,7 +50,10 @@ export default async function PortalLayout({ children }: { children: React.React
           </form>
         </div>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <footer className="py-4 text-center text-[10px] uppercase tracking-wide text-zinc-400 dark:text-zinc-600">
+        PROMPT EDU ERP · Prompt Innovations
+      </footer>
     </div>
   );
 }

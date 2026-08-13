@@ -92,11 +92,17 @@ Login → Institution context → Dashboard → Create class → Create section
     assignments later, or deactivate their access entirely (which actually
     blocks sign-in, not just a cosmetic flag) — self-service is blocked for
     your own account, so you can never accidentally lock yourself out
-  → As an institution admin, pick your own brand colour from Settings — it
-    immediately re-colours every button/accent across your own console and
-    your students'/parents' portals, with no effect on any other
-    institution (or the Super Admin console, which stays neutral) → reset
-    back to the app's default colour at any time
+  → Every institution runs the same fixed indigo/violet/fuchsia gradient
+    look, switchable between light and dark mode from the sidebar (or
+    portal header) — no per-institution colour picker to maintain, one
+    consistent, polished app for everyone
+  → Each institution's own console is installable as its own app — visit
+    your institution's URL (e.g. https://prompt-edu-erp.vercel.app/kemhs),
+    sign in, then "Add to Home Screen"/"Install" from the browser, and it's
+    added to your phone or desktop under your institution's own name and
+    short code, not "PROMPT EDU ERP" → inside your console, only your own
+    institution's name/logo is shown up top — "PROMPT EDU ERP" and
+    "Prompt Innovations" appear only as a small credit line at the bottom
   → As a Super Admin, every institution row now shows its own shareable
     URL (e.g. https://prompt-edu-erp.vercel.app/kemhs) as soon as it's
     created, with a one-click Copy button and an Edit link to change the

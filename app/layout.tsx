@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { getRequestContext } from "../services/request-context";
+import { getInstitution } from "../services/institution/institution-service";
 import "./globals.css";
 
 // System font stack (no next/font/google network dependency, §80 "optimize
@@ -8,11 +10,31 @@ import "./globals.css";
 // instantly with zero extra requests).
 const fontClass = "font-sans";
 
-export const metadata: Metadata = {
-  title: "PROMPT EDU ERP",
-  description: "PROMPT EDU ERP — Technology with Purpose. A product of Prompt Innovations.",
-  manifest: "/manifest.webmanifest",
-};
+// Dynamic (not a static `export const metadata`) so the browser tab title
+// and, critically, `apple-mobile-web-app-title` (the name iOS actually uses
+// for the home-screen icon label when a user taps Share → Add to Home
+// Screen — it does not reliably read manifest.webmanifest's `name` the way
+// Android/Chrome does) reflect the signed-in institution, matching
+// app/manifest.ts. Falls back to generic PROMPT EDU ERP branding with no
+// active institution (e.g. the public /login page).
+export async function generateMetadata(): Promise<Metadata> {
+  const ctx = await getRequestContext().catch(() => null);
+  const institution = ctx?.institutionId
+    ? await getInstitution(ctx.institutionId, ctx.session.authUserId).catch(() => null)
+    : null;
+  const name = institution?.appName || institution?.name || "PROMPT EDU ERP";
+
+  return {
+    title: name,
+    description: "PROMPT EDU ERP — Technology with Purpose. A product of Prompt Innovations.",
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: name,
+    },
+  };
+}
 
 // Explicit rather than relying on Next.js's implicit default — old Android
 // WebViews are inconsistent about applying an implicit viewport correctly,

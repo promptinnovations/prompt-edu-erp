@@ -17,6 +17,14 @@ import ThemeToggle from "./ThemeToggle";
  * modern dashboards (Vercel, Linear, Discord). A gradient logo badge and
  * the light/dark ThemeToggle live in the rail itself.
  *
+ * "Separate apps for each institution ... only their thing should be
+ * highlighted" follow-up: the institution's own name/logo is the only
+ * identity shown at the top of the rail now — "Prompt Innovations" /
+ * "PROMPT EDU ERP" moved out of that prominent spot entirely, down to a
+ * single small credit line at the very bottom of the rail (see footer
+ * below `children`), the same way a white-labelled product would credit
+ * its underlying platform.
+ *
  * Deliberately takes the existing aside content as `children` (a Server
  * Component can pass already-rendered JSX into a Client Component this
  * way) rather than re-implementing the nav here, so every permission-gated
@@ -88,10 +96,7 @@ export default function ResponsiveSidebar({
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-sm font-bold text-white shadow-lg shadow-violet-900/40">
             {logoLetter}
           </span>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-white">{brandLabel}</div>
-            <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Prompt Innovations</div>
-          </div>
+          <div className="min-w-0 truncate text-base font-semibold text-white">{brandLabel}</div>
         </div>
 
         {children}
@@ -99,6 +104,10 @@ export default function ResponsiveSidebar({
         <div className="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
           <span className="text-[11px] text-zinc-600">Appearance</span>
           <ThemeToggle compact />
+        </div>
+
+        <div className="mt-3 truncate text-center text-[10px] uppercase tracking-wide text-zinc-700">
+          PROMPT EDU ERP · Prompt Innovations
         </div>
       </aside>
     </>
