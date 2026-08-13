@@ -17,7 +17,7 @@ export default function ChildPicker({
       <select
         defaultValue={selectedChildId}
         onChange={(e) => router.push(`/portal/parent?childId=${e.target.value}`)}
-        className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm"
+        className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
       >
         {options.map((c) => (
           <option key={c.id} value={c.id}>{c.full_name}{c.relationship ? ` (${c.relationship})` : ""}</option>

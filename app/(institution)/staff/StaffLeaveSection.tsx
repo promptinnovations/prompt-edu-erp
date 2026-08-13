@@ -13,7 +13,7 @@ function ReviewButton({ action, label, leaveId }: { action: typeof approveStaffL
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="leaveId" value={leaveId} />
-      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
       {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -34,7 +34,7 @@ export default function StaffLeaveSection({
         <form action={formAction} className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Staff member</label>
-            <select name="staffId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+            <select name="staffId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>{s.full_name}</option>
               ))}
@@ -42,17 +42,17 @@ export default function StaffLeaveSection({
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">From</label>
-            <input type="date" name="startDate" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input type="date" name="startDate" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">To</label>
-            <input type="date" name="endDate" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input type="date" name="endDate" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Reason</label>
-            <input name="reason" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="reason" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
-          <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Apply
           </button>
           {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}

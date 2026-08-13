@@ -17,12 +17,12 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
             type="email"
             required
             placeholder="person@example.com"
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
+            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Full name</label>
-          <input name="fullName" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" />
+          <input name="fullName" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
       </div>
 
@@ -31,7 +31,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
         <div className="flex flex-wrap gap-3">
           {roleOptions.map((r) => (
             <label key={r.id} className="flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300">
-              <input type="checkbox" name="roleCodes" value={r.code} className="rounded border-zinc-300 dark:border-zinc-700" />
+              <input type="checkbox" name="roleCodes" value={r.code} className="rounded border-zinc-300 dark:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
               {r.name}
             </label>
           ))}
@@ -41,7 +41,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-[var(--brand)] px-4 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-lg bg-[var(--brand)] px-4 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         Create login
       </button>

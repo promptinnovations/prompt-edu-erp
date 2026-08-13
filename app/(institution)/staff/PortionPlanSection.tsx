@@ -14,9 +14,9 @@ function RecordCompletionForm({ portionPlanId }: { portionPlanId: string }) {
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-1">
       <input type="hidden" name="portionPlanId" value={portionPlanId} />
-      <input type="date" name="completedDate" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs" />
-      <input type="number" name="completionPercent" min={0} max={100} placeholder="%" required className="w-16 rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs" />
-      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+      <input type="date" name="completedDate" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input type="number" name="completionPercent" min={0} max={100} placeholder="%" required className="w-16 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Log
       </button>
       {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -43,31 +43,31 @@ export default function PortionPlanSection({
           <input type="hidden" name="academicYearId" value={academicYearId} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class</label>
-            <select name="classId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+            <select name="classId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Subject</label>
-            <select name="subjectId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+            <select name="subjectId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Teacher</label>
-            <select name="teacherId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+            <select name="teacherId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {teachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
             </select>
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Chapter</label>
-            <input name="chapterName" required className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="chapterName" required className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Planned date</label>
-            <input type="date" name="plannedDate" className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input type="date" name="plannedDate" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
-          <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Create plan
           </button>
           {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}

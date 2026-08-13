@@ -23,23 +23,23 @@ export default function TeacherObservationForm({
         <form action={formAction} className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Teacher</label>
-            <select name="teacherId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+            <select name="teacherId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {teachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Date</label>
-            <input type="date" name="date" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input type="date" name="date" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Notes</label>
-            <input name="overallNotes" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="overallNotes" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Follow-up</label>
-            <input name="followUpNotes" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="followUpNotes" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
-          <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Record
           </button>
           {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}

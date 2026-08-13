@@ -12,19 +12,19 @@ export function AddExamSubjectForm({
       <input type="hidden" name="examinationId" value={examinationId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Subject</label>
-        <select name="subjectId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+        <select name="subjectId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Max marks</label>
-        <input name="maxMarks" type="number" defaultValue={100} className="w-24 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+        <input name="maxMarks" type="number" defaultValue={100} className="w-24 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Pass marks</label>
-        <input name="passMarks" type="number" defaultValue={35} className="w-24 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+        <input name="passMarks" type="number" defaultValue={35} className="w-24 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
-      <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Add subject
       </button>
       {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -41,13 +41,13 @@ export function AddExamClassForm({
       <input type="hidden" name="examinationId" value={examinationId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Section</label>
-        <select name="sectionAndClass" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+        <select name="sectionAndClass" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {sections.map((s) => (
             <option key={s.id} value={`${s.classId}|${s.id}`}>{s.label}</option>
           ))}
         </select>
       </div>
-      <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Link class
       </button>
       {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -60,7 +60,7 @@ export function ComputeResultsButton({ examinationId }: { examinationId: string 
   return (
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
-      <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Compute results
       </button>
       {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}

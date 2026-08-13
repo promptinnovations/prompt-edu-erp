@@ -47,7 +47,7 @@ export default function ResponsiveSidebar({
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="shrink-0 rounded-md p-2 hover:bg-zinc-800"
+          className="shrink-0 rounded-lg p-2 hover:bg-zinc-800"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
@@ -77,7 +77,7 @@ export default function ResponsiveSidebar({
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Close menu"
-          className="mb-2 self-end rounded-md p-1.5 text-zinc-400 hover:bg-zinc-800 md:hidden"
+          className="mb-2 self-end rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 md:hidden"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

@@ -14,7 +14,7 @@ export default function UserStatusForm({ userId, currentStatus }: { userId: stri
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
       >
         {currentStatus === "active" ? "Deactivate" : "Reactivate"}
       </button>

@@ -70,7 +70,7 @@ export default async function ImportExportPage() {
         {canExport ? (
           <div className="flex flex-wrap gap-3">
             {Object.entries(exportDefinitions).map(([key, def]) => (
-              <div key={key} className="flex items-center gap-2 rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm">
+              <div key={key} className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2 text-sm">
                 <span className="text-zinc-700 dark:text-zinc-300">{def.label}</span>
                 <a href={`/api/export/${key}?format=csv`} className="text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-900 dark:hover:text-white">CSV</a>
                 <a href={`/api/export/${key}?format=xlsx`} className="text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-900 dark:hover:text-white">Excel</a>

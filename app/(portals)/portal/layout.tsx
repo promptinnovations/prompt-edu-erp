@@ -40,7 +40,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <ThemeToggle />
           <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
           <form action={signOutAction}>
-            <button type="submit" className="rounded-md px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:px-3">
+            <button type="submit" className="rounded-lg px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:px-3">
               Sign out
             </button>
           </form>

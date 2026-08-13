@@ -59,7 +59,7 @@ export default function AttendanceGridForm({
                   name={`status_${s.student_id}`}
                   defaultValue={s.status_id ?? defaultStatusId}
                   disabled={!canEnter}
-                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100"
+                  className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                 >
                   {statuses.map((st) => (
                     <option key={st.id} value={st.id}>{st.label}</option>
@@ -76,7 +76,7 @@ export default function AttendanceGridForm({
                   name={`lateMinutes_${s.student_id}`}
                   defaultValue={s.late_minutes ?? ""}
                   disabled={!canEnter}
-                  className="w-20 rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100"
+                  className="w-20 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                 />
               </td>
             </tr>
@@ -90,7 +90,7 @@ export default function AttendanceGridForm({
       </table>
       </div>
       {canEnter && students.length > 0 ? (
-        <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Save attendance
         </button>
       ) : null}

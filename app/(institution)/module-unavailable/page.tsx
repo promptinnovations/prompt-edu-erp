@@ -24,7 +24,7 @@ export default async function ModuleUnavailablePage({
         </p>
         <Link
           href="/dashboard"
-          className="mt-6 inline-block rounded-md bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)]"
+          className="mt-6 inline-block rounded-lg bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)]"
         >
           Back to dashboard
         </Link>

@@ -17,9 +17,9 @@ function ProvisionParentAccountForm({ parentId, studentId, defaultEmail, default
     <form action={formAction} className="mt-1 flex flex-wrap items-end gap-1">
       <input type="hidden" name="parentId" value={parentId} />
       <input type="hidden" name="redirectStudentId" value={studentId} />
-      <input name="email" type="email" defaultValue={defaultEmail} placeholder="login email" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs" />
+      <input name="email" type="email" defaultValue={defaultEmail} placeholder="login email" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       <input type="hidden" name="fullName" value={defaultName} />
-      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Create parent portal login
       </button>
       {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -41,24 +41,24 @@ export default function ParentSection({
           <input type="hidden" name="studentId" value={studentId} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Name</label>
-            <input name="fullName" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="fullName" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Relationship</label>
-            <input name="relationship" placeholder="Father / Mother / Guardian" className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="relationship" placeholder="Father / Mother / Guardian" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Phone</label>
-            <input name="phone" className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="phone" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Email</label>
-            <input name="email" type="email" className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="email" type="email" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <label className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
             <input type="checkbox" name="isPrimaryContact" /> Primary contact
           </label>
-          <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Add parent/guardian
           </button>
           {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -114,10 +114,10 @@ export function ProvisionStudentAccountForm({
       <input type="hidden" name="studentId" value={studentId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Login email</label>
-        <input name="email" type="email" defaultValue={defaultEmail} required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+        <input name="email" type="email" defaultValue={defaultEmail} required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <input type="hidden" name="fullName" value={defaultName} />
-      <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Create student portal login
       </button>
       {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}

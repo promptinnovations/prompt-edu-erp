@@ -14,14 +14,14 @@ export default function SubjectForm() {
         <input
           name="name"
           required
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm"
+          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           placeholder="e.g. Arabic Language"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         {t("add")}
       </button>

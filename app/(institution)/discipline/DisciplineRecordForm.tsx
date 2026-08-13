@@ -13,8 +13,8 @@ function FollowUpForm({ disciplineRecordId }: { disciplineRecordId: string }) {
   return (
     <form action={formAction} className="flex items-center gap-1">
       <input type="hidden" name="disciplineRecordId" value={disciplineRecordId} />
-      <input name="followUpNotes" placeholder="Follow-up note" className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs" />
-      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+      <input name="followUpNotes" placeholder="Follow-up note" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Save
       </button>
       {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -38,25 +38,25 @@ export default function DisciplineRecordForm({
         <form action={formAction} className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Student</label>
-            <select name="studentId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+            <select name="studentId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Category</label>
-            <select name="categoryId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+            <select name="categoryId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name} {c.is_positive ? "(+)" : "(-)"}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Date</label>
-            <input type="date" name="date" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input type="date" name="date" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Description</label>
-            <input name="description" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
+            <input name="description" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
-          <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Record
           </button>
           {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}

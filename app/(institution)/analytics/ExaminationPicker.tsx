@@ -23,14 +23,14 @@ export default function ExaminationPicker({
       <input type="hidden" name="toMonth" value={toMonth} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Examination</label>
-        <select name="examinationId" defaultValue={examinationId} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+        <select name="examinationId" defaultValue={examinationId} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="">Select…</option>
           {examinations.map((e) => (
             <option key={e.id} value={e.id}>{e.name}</option>
           ))}
         </select>
       </div>
-      <button type="submit" className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+      <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
         Load
       </button>
     </form>

@@ -95,7 +95,7 @@ export default function LoginPage() {
                 name="intent"
                 value="signup"
                 disabled={pending}
-                className="flex-1 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                className="flex-1 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
               >
                 {t("signUp")}
               </button>

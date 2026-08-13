@@ -29,7 +29,7 @@ export default async function SuspendedPage({
             : "This institution is not currently active. Please contact Prompt Innovations for assistance."}
         </p>
         <form action={signOutAction} className="mt-6">
-          <button type="submit" className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">
+          <button type="submit" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">
             Sign out
           </button>
         </form>

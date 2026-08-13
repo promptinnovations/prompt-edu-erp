@@ -40,7 +40,7 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        className="relative rounded-lg px-2 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         aria-label="Notifications"
       >
         🔔
@@ -52,7 +52,7 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-10 mt-1 w-80 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg">
+        <div className="absolute right-0 z-10 mt-1 w-80 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg">
           <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 px-3 py-2">
             <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Notifications</span>
             {initialUnreadCount > 0 ? (

@@ -127,3 +127,17 @@ body {
     "Noto Sans", "Noto Sans Malayalam", "Noto Sans Arabic", Arial, sans-serif;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+
+/* Data-table polish (plain rgba, not color-mix() — same old-Android
+ * compatibility reasoning as the rest of this file: color-mix() shipped
+ * in the same 2023 browser wave as oklch(), so it gets the same
+ * treatment of "just use a plain, universally-supported value"). */
+table tbody tr:nth-child(even) {
+  background-color: var(--surface-muted);
+}
+table tbody tr:hover {
+  background-color: rgba(79, 70, 229, 0.06);
+}
+.dark table tbody tr:hover {
+  background-color: rgba(129, 140, 248, 0.08);
+}

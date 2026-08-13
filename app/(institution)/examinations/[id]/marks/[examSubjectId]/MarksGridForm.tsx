@@ -18,7 +18,7 @@ function WorkflowButton({
     <form action={formAction} className="inline-flex items-center gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
       <input type="hidden" name="examSubjectId" value={examSubjectId} />
-      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
       {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
@@ -68,7 +68,7 @@ export default function MarksGridForm({
                     step="0.01"
                     defaultValue={s.marks_obtained ?? ""}
                     disabled={!canEnter || (s.entry_status !== null && s.entry_status !== "draft")}
-                    className="w-24 rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100"
+                    className="w-24 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
                 <td className="py-1.5">
@@ -86,7 +86,7 @@ export default function MarksGridForm({
         </table>
         </div>
         {canEnter ? (
-          <button type="submit" disabled={pending} className="mt-3 rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="mt-3 rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Save marks
           </button>
         ) : null}

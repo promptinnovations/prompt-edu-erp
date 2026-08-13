@@ -28,7 +28,7 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
           <select
             value={entityType}
             onChange={(e) => setEntityType(e.target.value)}
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
+            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             {entities.map((e) => (
               <option key={e.entityType} value={e.entityType}>{e.label}</option>
@@ -37,7 +37,7 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
         </div>
         <a
           href={`/api/import-template/${entityType}`}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           Download template (.xlsx)
         </a>
@@ -49,21 +49,21 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
           <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Upload filled file (.xlsx or .csv)</label>
           <input type="file" name="file" accept=".xlsx,.csv" required className="text-sm" />
         </div>
-        <button type="submit" disabled={staging} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={staging} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {staging ? "Validating…" : "Preview"}
         </button>
       </form>
       {stageState.error ? <p className="text-sm text-red-600 dark:text-red-400">{stageState.error}</p> : null}
 
       {confirmState.confirmed ? (
-        <div className="rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950 p-4 text-sm text-emerald-800 dark:text-emerald-300">
+        <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950 p-4 text-sm text-emerald-800 dark:text-emerald-300">
           Import confirmed: {confirmState.confirmed.importedRows} row(s) imported, {confirmState.confirmed.skippedRows} skipped.
         </div>
       ) : null}
       {confirmState.error ? <p className="text-sm text-red-600 dark:text-red-400">{confirmState.error}</p> : null}
 
       {staged ? (
-        <div className="rounded-md border border-zinc-200 dark:border-zinc-800 p-4">
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm text-zinc-700 dark:text-zinc-300">
               {staged.totalRows} row(s) total — <span className="text-emerald-700 dark:text-emerald-400">{staged.validRows} valid</span>,{" "}
@@ -73,7 +73,7 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
             {staged.validRows > 0 ? (
               <form action={confirmAction}>
                 <input type="hidden" name="batchId" value={staged.batchId} />
-                <button type="submit" disabled={confirming} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+                <button type="submit" disabled={confirming} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
                   {confirming ? "Importing…" : `Confirm import (${staged.validRows} row${staged.validRows === 1 ? "" : "s"})`}
                 </button>
               </form>

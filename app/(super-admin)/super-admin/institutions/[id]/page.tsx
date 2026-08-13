@@ -33,7 +33,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           <input type="hidden" name="institutionId" value={id} />
           <button
             type="submit"
-            className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800"
+            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800"
           >
             Open this institution&apos;s console
           </button>

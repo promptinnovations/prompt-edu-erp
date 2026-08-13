@@ -17,7 +17,7 @@ export default function BrandingForm({ currentColor, defaultColor }: { currentCo
           type="color"
           value={validHex ? color : defaultColor}
           onChange={(e) => setColor(e.target.value)}
-          className="h-10 w-14 cursor-pointer rounded-md border border-zinc-300 dark:border-zinc-700 p-1"
+          className="h-10 w-14 cursor-pointer rounded-lg border border-zinc-300 dark:border-zinc-700 p-1 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           aria-label="Pick a brand colour"
         />
         <input
@@ -26,12 +26,12 @@ export default function BrandingForm({ currentColor, defaultColor }: { currentCo
           onChange={(e) => setColor(e.target.value)}
           placeholder="#2563eb"
           maxLength={7}
-          className="w-32 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-mono"
+          className="w-32 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
         <button
           type="submit"
           disabled={pending || !validHex}
-          className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+          className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
         >
           Save colour
         </button>

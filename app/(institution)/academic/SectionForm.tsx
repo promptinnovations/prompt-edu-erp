@@ -11,7 +11,7 @@ export default function SectionForm({ classes }: { classes: Array<{ id: string; 
     <form action={formAction} className="flex items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{t("selectClass")}</label>
-        <select name="classId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
+        <select name="classId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {classes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -21,12 +21,12 @@ export default function SectionForm({ classes }: { classes: Array<{ id: string; 
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{t("sectionName")}</label>
-        <input name="name" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" placeholder="e.g. A" />
+        <input name="name" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" placeholder="e.g. A" />
       </div>
       <button
         type="submit"
         disabled={pending || classes.length === 0}
-        className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         {t("add")}
       </button>
