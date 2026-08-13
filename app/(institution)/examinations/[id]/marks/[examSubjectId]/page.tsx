@@ -30,15 +30,15 @@ export default async function MarksEntryPage({
 
   return (
     <div className="space-y-4">
-      <Link href={`/examinations/${id}`} className="text-sm text-zinc-500 underline">
+      <Link href={`/examinations/${id}`} className="text-sm text-zinc-500 dark:text-zinc-400 underline">
         ← Back to {examination.name}
       </Link>
-      <h1 className="text-2xl font-semibold text-zinc-900">
+      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
         {subjectName} — marks entry
       </h1>
-      <p className="text-sm text-zinc-500">Max {examSubject.max_marks}, pass {examSubject.pass_marks}</p>
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">Max {examSubject.max_marks}, pass {examSubject.pass_marks}</p>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <MarksGridForm
           students={grid}
           examinationId={id}

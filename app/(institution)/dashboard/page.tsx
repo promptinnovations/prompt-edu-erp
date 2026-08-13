@@ -4,6 +4,13 @@ import { getInstitution } from "../../../services/institution/institution-servic
 import { listClasses, listSections, listSubjects } from "../../../modules/academic/service";
 import { listStudents } from "../../../modules/students/service";
 
+const CARD_ACCENTS = [
+  "from-indigo-500 to-violet-500",
+  "from-violet-500 to-fuchsia-500",
+  "from-fuchsia-500 to-pink-500",
+  "from-sky-500 to-indigo-500",
+];
+
 export default async function DashboardPage() {
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
@@ -25,17 +32,28 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        {t("institution")}: {institution?.name}
-      </p>
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-6 text-white shadow-lg shadow-violet-900/20 sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
+        <div className="relative">
+          <div className="text-xs font-medium uppercase tracking-wide text-white/70">{t("institution")}</div>
+          <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">{institution?.appName || institution?.name}</h1>
+          <p className="mt-2 max-w-lg text-sm text-white/80">{t("title")}</p>
+        </div>
+      </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {cards.map(([label, value]) => (
-          <div key={label} className="rounded-xl border border-zinc-200 bg-white p-5">
-            <div className="text-2xl font-semibold text-zinc-900">{value}</div>
-            <div className="mt-1 text-sm text-zinc-500">{label}</div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {cards.map(([label, value], i) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br ${CARD_ACCENTS[i % CARD_ACCENTS.length]} text-sm font-bold text-white`}>
+              {value > 99 ? "99+" : value}
+            </div>
+            <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{value}</div>
+            <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{label}</div>
           </div>
         ))}
       </div>

@@ -11,23 +11,23 @@ export function AddExamSubjectForm({
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Subject</label>
-        <select name="subjectId" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Subject</label>
+        <select name="subjectId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
           {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Max marks</label>
-        <input name="maxMarks" type="number" defaultValue={100} className="w-24 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Max marks</label>
+        <input name="maxMarks" type="number" defaultValue={100} className="w-24 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Pass marks</label>
-        <input name="passMarks" type="number" defaultValue={35} className="w-24 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Pass marks</label>
+        <input name="passMarks" type="number" defaultValue={35} className="w-24 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
       </div>
       <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Add subject
       </button>
-      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
     </form>
   );
 }
@@ -40,8 +40,8 @@ export function AddExamClassForm({
     <form action={formAction} className="flex items-end gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Class / Section</label>
-        <select name="sectionAndClass" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Section</label>
+        <select name="sectionAndClass" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
           {sections.map((s) => (
             <option key={s.id} value={`${s.classId}|${s.id}`}>{s.label}</option>
           ))}
@@ -50,7 +50,7 @@ export function AddExamClassForm({
       <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Link class
       </button>
-      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
     </form>
   );
 }
@@ -63,7 +63,7 @@ export function ComputeResultsButton({ examinationId }: { examinationId: string 
       <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Compute results
       </button>
-      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
     </form>
   );
 }

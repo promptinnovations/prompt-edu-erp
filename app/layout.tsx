@@ -25,14 +25,24 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Runs synchronously before first paint (blocking <head> script, not a
+// module) so a visitor whose last choice — or OS preference, on a first
+// visit — was dark mode never sees a flash of the light theme while
+// React hydrates. app/components/ThemeToggle.tsx reads/writes the exact
+// same localStorage key afterward.
+const NO_FLASH_THEME_SCRIPT = `(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   const messages = await getMessages();
   const dir = locale === "ar" || locale === "ur" ? "rtl" : "ltr"; // §S.4 RTL-ready, unused in v1
 
   return (
-    <html lang={locale} dir={dir} className={`${fontClass} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
+    <html lang={locale} dir={dir} className={`${fontClass} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME_SCRIPT }} />
+      </head>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

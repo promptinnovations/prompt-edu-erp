@@ -23,19 +23,19 @@ export default function IssueBookForm({
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Student</label>
-        <select name="studentId" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Student</label>
+        <select name="studentId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
           {students.map((s) => (
             <option key={s.id} value={s.id}>{s.full_name}</option>
           ))}
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Book</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Book</label>
         <select
           value={bookId}
           onChange={(e) => setBookId(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm"
         >
           {issuableBooks.map((b) => (
             <option key={b.id} value={b.id}>{b.title} ({b.available_copies} available)</option>
@@ -43,8 +43,8 @@ export default function IssueBookForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Copy</label>
-        <select name="bookCopyId" required className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Copy</label>
+        <select name="bookCopyId" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
           {copies.map((c) => (
             <option key={c.id} value={c.id}>{c.copy_code}</option>
           ))}
@@ -53,7 +53,7 @@ export default function IssueBookForm({
       <button type="submit" disabled={pending || issuableBooks.length === 0} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Issue
       </button>
-      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
     </form>
   );
 }

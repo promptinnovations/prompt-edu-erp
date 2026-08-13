@@ -16,8 +16,8 @@ export default function ClassSectionPicker({
   return (
     <form method="get" className="flex flex-wrap items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Class</label>
-        <select name="classId" defaultValue={classId} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class</label>
+        <select name="classId" defaultValue={classId} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
           <option value="">Select…</option>
           {classes.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
@@ -25,8 +25,8 @@ export default function ClassSectionPicker({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Section</label>
-        <select name="sectionId" defaultValue={sectionId} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Section</label>
+        <select name="sectionId" defaultValue={sectionId} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
           <option value="">Select…</option>
           {sections.filter((s) => !classId || s.class_id === classId).map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
@@ -34,8 +34,8 @@ export default function ClassSectionPicker({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Date</label>
-        <input type="date" name="date" defaultValue={date} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm" />
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Date</label>
+        <input type="date" name="date" defaultValue={date} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm" />
       </div>
       <button type="submit" className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
         Load

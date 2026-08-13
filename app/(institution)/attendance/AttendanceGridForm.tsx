@@ -37,7 +37,7 @@ export default function AttendanceGridForm({
       <input type="hidden" name="date" value={date} />
       <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           <tr>
             <th className="py-1.5">Admission #</th>
             <th className="py-1.5">Student</th>
@@ -46,7 +46,7 @@ export default function AttendanceGridForm({
             <th className="py-1.5">Late (min)</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {students.map((s) => (
             <tr key={s.student_id}>
               <td className="py-1.5">
@@ -59,7 +59,7 @@ export default function AttendanceGridForm({
                   name={`status_${s.student_id}`}
                   defaultValue={s.status_id ?? defaultStatusId}
                   disabled={!canEnter}
-                  className="rounded-md border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100"
+                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100"
                 >
                   {statuses.map((st) => (
                     <option key={st.id} value={st.id}>{st.label}</option>
@@ -76,14 +76,14 @@ export default function AttendanceGridForm({
                   name={`lateMinutes_${s.student_id}`}
                   defaultValue={s.late_minutes ?? ""}
                   disabled={!canEnter}
-                  className="w-20 rounded-md border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100"
+                  className="w-20 rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100"
                 />
               </td>
             </tr>
           ))}
           {students.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-6 text-center text-zinc-400">No students enrolled in this section.</td>
+              <td colSpan={5} className="py-6 text-center text-zinc-400 dark:text-zinc-500">No students enrolled in this section.</td>
             </tr>
           ) : null}
         </tbody>
@@ -94,8 +94,8 @@ export default function AttendanceGridForm({
           Save attendance
         </button>
       ) : null}
-      {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
-      {typeof state.marked === "number" ? <p className="text-sm text-zinc-500">{state.marked} record(s) saved.</p> : null}
+      {state.error ? <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
+      {typeof state.marked === "number" ? <p className="text-sm text-zinc-500 dark:text-zinc-400">{state.marked} record(s) saved.</p> : null}
     </form>
   );
 }

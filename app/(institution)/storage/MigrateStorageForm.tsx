@@ -13,8 +13,8 @@ export default function MigrateStorageForm({ activeProvider }: { activeProvider:
     <div className="space-y-3">
       <form action={formAction} className="flex flex-wrap items-end gap-2">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Move every file to</label>
-          <select name="targetProvider" defaultValue={activeProvider} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Move every file to</label>
+          <select name="targetProvider" defaultValue={activeProvider} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
             <option value="local">Local</option>
             <option value="supabase">Supabase</option>
           </select>
@@ -24,16 +24,16 @@ export default function MigrateStorageForm({ activeProvider }: { activeProvider:
         </button>
       </form>
 
-      {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
+      {state.error ? <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
 
       {state.result ? (
-        <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+        <div className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 p-3 text-sm text-zinc-700 dark:text-zinc-300">
           <p>
             Considered {state.result.totalConsidered} file(s): {state.result.migrated} migrated,{" "}
             {state.result.alreadyOnTarget} already on target, {state.result.failed.length} failed.
           </p>
           {state.result.failed.length > 0 ? (
-            <ul className="mt-2 list-disc pl-5 text-red-600">
+            <ul className="mt-2 list-disc pl-5 text-red-600 dark:text-red-400">
               {state.result.failed.map((f) => (
                 <li key={f.fileId}>{f.fileName}: {f.error}</li>
               ))}

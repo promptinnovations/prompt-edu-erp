@@ -22,7 +22,7 @@ export default function StaffAttendanceGrid({
   return (
     <div className="space-y-3">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Date</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Date</label>
         <input
           type="date"
           value={selectedDate}
@@ -30,21 +30,21 @@ export default function StaffAttendanceGrid({
             setSelectedDate(e.target.value);
             router.push(`/staff?date=${e.target.value}`);
           }}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm"
         />
       </div>
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="date" value={date} />
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <tr>
               <th className="py-1.5">Code</th>
               <th className="py-1.5">Staff</th>
               <th className="py-1.5">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {rows.map((r) => (
               <tr key={r.staff_id}>
                 <td className="py-1.5">
@@ -57,7 +57,7 @@ export default function StaffAttendanceGrid({
                     name={`status_${r.staff_id}`}
                     defaultValue={r.status_id ?? defaultStatusId}
                     disabled={!canEnter}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100"
+                    className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100"
                   >
                     {statuses.map((st) => (
                       <option key={st.id} value={st.id}>{st.label}</option>
@@ -67,7 +67,7 @@ export default function StaffAttendanceGrid({
               </tr>
             ))}
             {rows.length === 0 ? (
-              <tr><td colSpan={3} className="py-4 text-center text-zinc-400">No active staff yet.</td></tr>
+              <tr><td colSpan={3} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No active staff yet.</td></tr>
             ) : null}
           </tbody>
         </table>
@@ -77,8 +77,8 @@ export default function StaffAttendanceGrid({
             Save attendance
           </button>
         ) : null}
-        {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
-        {typeof state.marked === "number" ? <p className="text-sm text-zinc-500">{state.marked} record(s) saved.</p> : null}
+        {state.error ? <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
+        {typeof state.marked === "number" ? <p className="text-sm text-zinc-500 dark:text-zinc-400">{state.marked} record(s) saved.</p> : null}
       </form>
     </div>
   );

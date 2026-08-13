@@ -58,8 +58,8 @@ export default async function AnalyticsPage({
   if (!canView) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900">Analytics</h1>
-        <p className="text-sm text-zinc-500">You don&apos;t have permission to view analytics.</p>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Analytics</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">You don&apos;t have permission to view analytics.</p>
       </div>
     );
   }
@@ -67,16 +67,16 @@ export default async function AnalyticsPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900">Analytics</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Analytics</h1>
         <RefreshButton />
       </div>
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-400 dark:text-zinc-500">
         Figures are read from a periodically-refreshed rollup, not computed live on every load — use
         &ldquo;Refresh analytics&rdquo; after bulk mark approval or attendance close-out to see the latest data immediately.
       </p>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Examination performance</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Examination performance</h2>
         <ExaminationPicker
           examinations={examinations}
           examinationId={examinationId}
@@ -89,10 +89,10 @@ export default async function AnalyticsPage({
         {examinationId ? (
           <div className="mt-4 space-y-6">
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subject comparison</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Subject comparison</h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   <tr>
                     <th className="py-1.5">Subject</th>
                     <th className="py-1.5">Marked</th>
@@ -100,7 +100,7 @@ export default async function AnalyticsPage({
                     <th className="py-1.5">Pass %</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {subjectComparison.map((s) => (
                     <tr key={s.subject_id}>
                       <td className="py-1.5">{s.subject_name}</td>
@@ -110,7 +110,7 @@ export default async function AnalyticsPage({
                     </tr>
                   ))}
                   {subjectComparison.length === 0 ? (
-                    <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No approved marks yet for this examination.</td></tr>
+                    <tr><td colSpan={4} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No approved marks yet for this examination.</td></tr>
                   ) : null}
                 </tbody>
               </table>
@@ -118,24 +118,24 @@ export default async function AnalyticsPage({
             </div>
 
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 Subject-level performance indicators
               </h3>
-              <p className="mb-2 text-xs text-zinc-400">
+              <p className="mb-2 text-xs text-zinc-400 dark:text-zinc-500">
                 Performance indicator — requires management interpretation. Not attributed to an individual
                 teacher (per-teacher attribution needs the staff/subject-assignment mapping, planned for a
                 later phase).
               </p>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   <tr>
                     <th className="py-1.5">Subject</th>
                     <th className="py-1.5">Section avg</th>
                     <th className="py-1.5">Section pass %</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {indicators.map((i, idx) => (
                     <tr key={`${i.subject_id}-${i.class_id}-${i.section_id}-${idx}`}>
                       <td className="py-1.5">{i.subject_name}</td>
@@ -144,7 +144,7 @@ export default async function AnalyticsPage({
                     </tr>
                   ))}
                   {indicators.length === 0 ? (
-                    <tr><td colSpan={3} className="py-4 text-center text-zinc-400">—</td></tr>
+                    <tr><td colSpan={3} className="py-4 text-center text-zinc-400 dark:text-zinc-500">—</td></tr>
                   ) : null}
                 </tbody>
               </table>
@@ -152,19 +152,19 @@ export default async function AnalyticsPage({
             </div>
 
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 Student classification {rule ? `(≥${rule.high_threshold}% high, <${rule.low_threshold}% low)` : "(no rule configured)"}
               </h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   <tr>
                     <th className="py-1.5">Student</th>
                     <th className="py-1.5">Percentage</th>
                     <th className="py-1.5">Band</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {classification.map((c) => (
                     <tr key={c.student_id}>
                       <td className="py-1.5">{c.student_name}</td>
@@ -173,7 +173,7 @@ export default async function AnalyticsPage({
                     </tr>
                   ))}
                   {classification.length === 0 ? (
-                    <tr><td colSpan={3} className="py-4 text-center text-zinc-400">No computed results for this examination yet.</td></tr>
+                    <tr><td colSpan={3} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No computed results for this examination yet.</td></tr>
                   ) : null}
                 </tbody>
               </table>
@@ -181,12 +181,12 @@ export default async function AnalyticsPage({
             </div>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400">Select an examination to see subject and student analytics.</p>
+          <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">Select an examination to see subject and student analytics.</p>
         )}
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Class attendance trend</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Class attendance trend</h2>
         <AttendanceTrendPicker
           classes={classes}
           sections={sections}
@@ -199,7 +199,7 @@ export default async function AnalyticsPage({
         {trendClassId && trendSectionId ? (
           <div className="overflow-x-auto">
           <table className="mt-4 w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               <tr>
                 <th className="py-1.5">Month</th>
                 <th className="py-1.5">Present days</th>
@@ -208,7 +208,7 @@ export default async function AnalyticsPage({
                 <th className="py-1.5">Present %</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {attendanceTrend.map((t) => (
                 <tr key={t.month}>
                   <td className="py-1.5">{t.month}</td>
@@ -219,19 +219,19 @@ export default async function AnalyticsPage({
                 </tr>
               ))}
               {attendanceTrend.length === 0 ? (
-                <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No attendance data in this range.</td></tr>
+                <tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No attendance data in this range.</td></tr>
               ) : null}
             </tbody>
           </table>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400">Select a class and section to see the attendance trend.</p>
+          <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">Select a class and section to see the attendance trend.</p>
         )}
       </section>
 
       {canManage ? (
-        <section className="rounded-xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Classification thresholds (percentage)</h2>
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Classification thresholds (percentage)</h2>
           <ClassificationRuleForm
             highThreshold={rule?.high_threshold ?? 75}
             lowThreshold={rule?.low_threshold ?? 40}

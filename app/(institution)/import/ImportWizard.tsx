@@ -24,11 +24,11 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
     <div className="space-y-4">
       <div className="flex items-end gap-4">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Entity type</label>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Entity type</label>
           <select
             value={entityType}
             onChange={(e) => setEntityType(e.target.value)}
-            className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
           >
             {entities.map((e) => (
               <option key={e.entityType} value={e.entityType}>{e.label}</option>
@@ -37,7 +37,7 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
         </div>
         <a
           href={`/api/import-template/${entityType}`}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           Download template (.xlsx)
         </a>
@@ -46,29 +46,29 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
       <form action={stageAction} className="flex items-end gap-2">
         <input type="hidden" name="entityType" value={entityType} />
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Upload filled file (.xlsx or .csv)</label>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Upload filled file (.xlsx or .csv)</label>
           <input type="file" name="file" accept=".xlsx,.csv" required className="text-sm" />
         </div>
         <button type="submit" disabled={staging} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {staging ? "Validating…" : "Preview"}
         </button>
       </form>
-      {stageState.error ? <p className="text-sm text-red-600">{stageState.error}</p> : null}
+      {stageState.error ? <p className="text-sm text-red-600 dark:text-red-400">{stageState.error}</p> : null}
 
       {confirmState.confirmed ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div className="rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950 p-4 text-sm text-emerald-800 dark:text-emerald-300">
           Import confirmed: {confirmState.confirmed.importedRows} row(s) imported, {confirmState.confirmed.skippedRows} skipped.
         </div>
       ) : null}
-      {confirmState.error ? <p className="text-sm text-red-600">{confirmState.error}</p> : null}
+      {confirmState.error ? <p className="text-sm text-red-600 dark:text-red-400">{confirmState.error}</p> : null}
 
       {staged ? (
-        <div className="rounded-md border border-zinc-200 p-4">
+        <div className="rounded-md border border-zinc-200 dark:border-zinc-800 p-4">
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-sm text-zinc-700">
-              {staged.totalRows} row(s) total — <span className="text-emerald-700">{staged.validRows} valid</span>,{" "}
-              <span className="text-red-700">{staged.invalidRows} invalid</span>,{" "}
-              <span className="text-amber-700">{staged.duplicateRows} duplicate</span>
+            <div className="text-sm text-zinc-700 dark:text-zinc-300">
+              {staged.totalRows} row(s) total — <span className="text-emerald-700 dark:text-emerald-400">{staged.validRows} valid</span>,{" "}
+              <span className="text-red-700 dark:text-red-400">{staged.invalidRows} invalid</span>,{" "}
+              <span className="text-amber-700 dark:text-amber-400">{staged.duplicateRows} duplicate</span>
             </div>
             {staged.validRows > 0 ? (
               <form action={confirmAction}>
@@ -84,7 +84,7 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
             <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-zinc-400">
+                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-left text-zinc-400 dark:text-zinc-500">
                   <th className="pb-1 pr-2 font-medium">Row</th>
                   <th className="pb-1 pr-2 font-medium">Status</th>
                   <th className="pb-1 font-medium">Errors</th>
@@ -92,12 +92,12 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
               </thead>
               <tbody>
                 {invalidOrDuplicate.map((r) => (
-                  <tr key={r.rowNumber} className="border-b border-zinc-100">
-                    <td className="py-1 pr-2 text-zinc-500">{r.rowNumber}</td>
+                  <tr key={r.rowNumber} className="border-b border-zinc-100 dark:border-zinc-800">
+                    <td className="py-1 pr-2 text-zinc-500 dark:text-zinc-400">{r.rowNumber}</td>
                     <td className="py-1 pr-2">
-                      <span className={r.status === "invalid" ? "text-red-700" : "text-amber-700"}>{r.status}</span>
+                      <span className={r.status === "invalid" ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"}>{r.status}</span>
                     </td>
-                    <td className="py-1 text-zinc-700">{r.errors.join("; ")}</td>
+                    <td className="py-1 text-zinc-700 dark:text-zinc-300">{r.errors.join("; ")}</td>
                   </tr>
                 ))}
               </tbody>

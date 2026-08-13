@@ -54,12 +54,12 @@ export default function InstitutionUrlCell({
           required
           pattern="[a-z0-9-]+"
           title="Lowercase letters, numbers, and hyphens only."
-          className="w-28 rounded-md border border-zinc-300 px-2 py-1 text-xs font-mono"
+          className="w-28 rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs font-mono"
         />
-        <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
           Save
         </button>
-        <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">
+        <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200">
           Cancel
         </button>
       </form>
@@ -69,15 +69,15 @@ export default function InstitutionUrlCell({
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1.5">
-        <span className="truncate font-mono text-xs text-zinc-500" title={url}>{url}</span>
-        <button type="button" onClick={copyUrl} className="shrink-0 rounded-md border border-zinc-300 px-1.5 py-0.5 text-xs text-zinc-600 hover:bg-zinc-100">
+        <span className="truncate font-mono text-xs text-zinc-500 dark:text-zinc-400" title={url}>{url}</span>
+        <button type="button" onClick={copyUrl} className="shrink-0 rounded-md border border-zinc-300 dark:border-zinc-700 px-1.5 py-0.5 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
           {copied ? "Copied" : "Copy"}
         </button>
-        <button type="button" onClick={() => setEditing(true)} className="shrink-0 text-xs text-zinc-400 underline hover:text-zinc-700">
+        <button type="button" onClick={() => setEditing(true)} className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500 underline hover:text-zinc-700 dark:hover:text-zinc-200">
           Edit
         </button>
       </div>
-      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
+      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
     </div>
   );
 }

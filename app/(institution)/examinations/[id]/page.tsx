@@ -32,43 +32,43 @@ export default async function ExaminationDetailPage({ params }: { params: Promis
 
   return (
     <div className="space-y-6">
-      <Link href="/examinations" className="text-sm text-zinc-500 underline">
+      <Link href="/examinations" className="text-sm text-zinc-500 dark:text-zinc-400 underline">
         ← Back to examinations
       </Link>
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">{examination.name}</h1>
-        <p className="mt-1 text-sm text-zinc-500">{examTypeName} · {examination.status}</p>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{examination.name}</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{examTypeName} · {examination.status}</p>
       </div>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Exam subjects</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Exam subjects</h2>
         <AddExamSubjectForm examinationId={id} subjects={subjects} />
-        <ul className="mt-4 divide-y divide-zinc-100 text-sm">
+        <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
           {examSubjects.map((es) => (
             <li key={es.id} className="flex items-center justify-between py-2">
               <span>{subjectById.get(es.subject_id) ?? "—"} (max {es.max_marks}, pass {es.pass_marks})</span>
-              <Link href={`/examinations/${id}/marks/${es.id}`} className="text-sm text-zinc-600 underline">
+              <Link href={`/examinations/${id}/marks/${es.id}`} className="text-sm text-zinc-600 dark:text-zinc-400 underline">
                 Enter marks
               </Link>
             </li>
           ))}
-          {examSubjects.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
+          {examSubjects.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
         </ul>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Classes covered</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Classes covered</h2>
         <AddExamClassForm examinationId={id} sections={sectionOptions} />
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700">Results</h2>
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Results</h2>
           <ComputeResultsButton examinationId={id} />
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <tr>
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Total</th>
@@ -76,7 +76,7 @@ export default async function ExaminationDetailPage({ params }: { params: Promis
               <th className="py-1.5">Grade</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {results.map((r) => (
               <tr key={r.student_id}>
                 <td className="py-1.5">{r.student_name}</td>
@@ -86,7 +86,7 @@ export default async function ExaminationDetailPage({ params }: { params: Promis
               </tr>
             ))}
             {results.length === 0 ? (
-              <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No results computed yet.</td></tr>
+              <tr><td colSpan={4} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No results computed yet.</td></tr>
             ) : null}
           </tbody>
         </table>

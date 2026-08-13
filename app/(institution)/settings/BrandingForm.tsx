@@ -17,7 +17,7 @@ export default function BrandingForm({ currentColor, defaultColor }: { currentCo
           type="color"
           value={validHex ? color : defaultColor}
           onChange={(e) => setColor(e.target.value)}
-          className="h-10 w-14 cursor-pointer rounded-md border border-zinc-300 p-1"
+          className="h-10 w-14 cursor-pointer rounded-md border border-zinc-300 dark:border-zinc-700 p-1"
           aria-label="Pick a brand colour"
         />
         <input
@@ -26,7 +26,7 @@ export default function BrandingForm({ currentColor, defaultColor }: { currentCo
           onChange={(e) => setColor(e.target.value)}
           placeholder="#2563eb"
           maxLength={7}
-          className="w-32 rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-mono"
+          className="w-32 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-mono"
         />
         <button
           type="submit"
@@ -47,14 +47,14 @@ export default function BrandingForm({ currentColor, defaultColor }: { currentCo
             value="true"
             disabled={pending}
             formNoValidate
-            className="text-xs text-zinc-500 underline hover:text-zinc-900 disabled:opacity-50"
+            className="text-xs text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-900 dark:hover:text-white disabled:opacity-50"
           >
             Reset to default ({defaultColor})
           </button>
         ) : null}
       </div>
-      {!validHex ? <p className="text-xs text-red-600">Enter a 6-digit hex colour, e.g. #2563eb.</p> : null}
-      {state.error ? <p className="text-xs text-red-600">{state.error}</p> : null}
+      {!validHex ? <p className="text-xs text-red-600 dark:text-red-400">Enter a 6-digit hex colour, e.g. #2563eb.</p> : null}
+      {state.error ? <p className="text-xs text-red-600 dark:text-red-400">{state.error}</p> : null}
     </form>
   );
 }

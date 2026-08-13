@@ -18,11 +18,11 @@ function WorkflowButton({
     <form action={formAction} className="inline-flex items-center gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
       <input type="hidden" name="examSubjectId" value={examSubjectId} />
-      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
         {label}
       </button>
-      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
-      {typeof state.count === "number" ? <span className="text-xs text-zinc-400">({state.count} updated)</span> : null}
+      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {typeof state.count === "number" ? <span className="text-xs text-zinc-400 dark:text-zinc-500">({state.count} updated)</span> : null}
     </form>
   );
 }
@@ -44,7 +44,7 @@ export default function MarksGridForm({
         <input type="hidden" name="examSubjectId" value={examSubjectId} />
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <tr>
               <th className="py-1.5">Admission #</th>
               <th className="py-1.5">Student</th>
@@ -53,7 +53,7 @@ export default function MarksGridForm({
               <th className="py-1.5">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {students.map((s) => (
               <tr key={s.student_id}>
                 <td className="py-1.5">
@@ -68,7 +68,7 @@ export default function MarksGridForm({
                     step="0.01"
                     defaultValue={s.marks_obtained ?? ""}
                     disabled={!canEnter || (s.entry_status !== null && s.entry_status !== "draft")}
-                    className="w-24 rounded-md border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100"
+                    className="w-24 rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100"
                   />
                 </td>
                 <td className="py-1.5">
@@ -79,7 +79,7 @@ export default function MarksGridForm({
                     disabled={!canEnter || (s.entry_status !== null && s.entry_status !== "draft")}
                   />
                 </td>
-                <td className="py-1.5 text-xs text-zinc-500">{s.entry_status ?? "—"}</td>
+                <td className="py-1.5 text-xs text-zinc-500 dark:text-zinc-400">{s.entry_status ?? "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -90,10 +90,10 @@ export default function MarksGridForm({
             Save marks
           </button>
         ) : null}
-        {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
+        {state.error ? <p className="mt-2 text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
       </form>
 
-      <div className="flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
+      <div className="flex flex-wrap gap-2 border-t border-zinc-100 dark:border-zinc-800 pt-4">
         {canEnter ? <WorkflowButton action={submitMarksAction} label="Submit" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
         {canVerify ? <WorkflowButton action={verifyMarksAction} label="Verify" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
         {canApprove ? <WorkflowButton action={approveMarksAction} label="Approve" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}

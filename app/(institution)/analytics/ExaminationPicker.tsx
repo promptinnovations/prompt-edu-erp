@@ -22,8 +22,8 @@ export default function ExaminationPicker({
       <input type="hidden" name="fromMonth" value={fromMonth} />
       <input type="hidden" name="toMonth" value={toMonth} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Examination</label>
-        <select name="examinationId" defaultValue={examinationId} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Examination</label>
+        <select name="examinationId" defaultValue={examinationId} className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm">
           <option value="">Select…</option>
           {examinations.map((e) => (
             <option key={e.id} value={e.id}>{e.name}</option>

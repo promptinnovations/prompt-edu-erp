@@ -21,11 +21,11 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <Link href="/super-admin" className="text-xs text-zinc-400 hover:text-zinc-600">
+          <Link href="/super-admin" className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600">
             ← All institutions
           </Link>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900">{institution.name}</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{institution.name}</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {institution.code} · {institution.type} · status: {institution.status}
           </p>
         </div>
@@ -39,22 +39,22 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           </button>
         </form>
       </div>
-      <p className="-mt-4 text-xs text-zinc-400">
+      <p className="-mt-4 text-xs text-zinc-400 dark:text-zinc-500">
         Opens the exact admin app any real user of this institution sees — every enabled module, fully functional
         (create, edit, approve, everything), so you can try it out or fix something. A banner while you&apos;re in
         there lets you exit back here at any time.
       </p>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Modules</h2>
-        <p className="mb-4 text-xs text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Modules</h2>
+        <p className="mb-4 text-xs text-zinc-400 dark:text-zinc-500">
           Core modules (Academic Structure, Student Management) are always on — every institution needs them to
           function. Everything else can be turned on or off here; a disabled module disappears from that
           institution&apos;s navigation and its pages become unreachable.
         </p>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <tr>
               <th className="py-1.5">Module</th>
               <th className="py-1.5">Category</th>
@@ -62,23 +62,23 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
               <th className="py-1.5"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {modules.map((m) => (
               <tr key={m.code}>
                 <td className="py-2">
-                  <div className="font-medium text-zinc-900">{m.name}</div>
-                  {m.description ? <div className="text-xs text-zinc-400">{m.description}</div> : null}
+                  <div className="font-medium text-zinc-900 dark:text-zinc-50">{m.name}</div>
+                  {m.description ? <div className="text-xs text-zinc-400 dark:text-zinc-500">{m.description}</div> : null}
                 </td>
-                <td className="py-2 text-zinc-500">{m.category ?? "—"}</td>
+                <td className="py-2 text-zinc-500 dark:text-zinc-400">{m.category ?? "—"}</td>
                 <td className="py-2">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
-                      m.isEnabled ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-500"
+                      m.isEnabled ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
                     }`}
                   >
                     {m.isEnabled ? "Enabled" : "Disabled"}
                   </span>
-                  {m.isCore ? <span className="ml-1 text-xs text-zinc-400">(core)</span> : null}
+                  {m.isCore ? <span className="ml-1 text-xs text-zinc-400 dark:text-zinc-500">(core)</span> : null}
                 </td>
                 <td className="py-2 text-right">
                   {m.isCore ? null : (

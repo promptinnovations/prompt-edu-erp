@@ -16,29 +16,29 @@ export default async function AnnouncementsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Announcements (§D.13)</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Announcements (§D.13)</h1>
 
       {canPublish ? (
-        <section className="rounded-xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Publish a new announcement</h2>
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Publish a new announcement</h2>
           <PublishAnnouncementForm roles={roles} />
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent announcements</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Recent announcements</h2>
         {announcements.length === 0 ? (
-          <p className="text-sm text-zinc-400">No announcements published yet.</p>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No announcements published yet.</p>
         ) : (
           <ul className="space-y-4">
             {announcements.map((a) => (
-              <li key={a.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
+              <li key={a.id} className="border-b border-zinc-100 dark:border-zinc-800 pb-4 last:border-0 last:pb-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-zinc-900">{a.title}</h3>
-                  <span className="text-xs text-zinc-400">{new Date(a.published_at).toLocaleString()}</span>
+                  <h3 className="font-medium text-zinc-900 dark:text-zinc-50">{a.title}</h3>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{new Date(a.published_at).toLocaleString()}</span>
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">{a.body}</p>
-                <p className="mt-1 text-xs text-zinc-400">
+                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">{a.body}</p>
+                <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
                   By {a.published_by_name ?? "—"} · Audience: {a.audience_jsonb.type === "all" ? "Everyone" : `Role(s): ${a.audience_jsonb.roleCodes.join(", ")}`}
                 </p>
               </li>

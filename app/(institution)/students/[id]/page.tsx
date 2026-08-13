@@ -35,61 +35,61 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-4">
-      <Link href="/students" className="text-sm text-zinc-500 underline">
+      <Link href="/students" className="text-sm text-zinc-500 dark:text-zinc-400 underline">
         ← {t("backToList")}
       </Link>
-      <div className="rounded-xl border border-zinc-200 bg-white p-6">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-zinc-900">{student.full_name}</h1>
-          <Link href={`/students/${student.id}/portfolio`} className="text-sm text-zinc-600 underline">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{student.full_name}</h1>
+          <Link href={`/students/${student.id}/portfolio`} className="text-sm text-zinc-600 dark:text-zinc-400 underline">
             View Student 360°
           </Link>
         </div>
         <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div>
-            <dt className="text-zinc-400">{t("admissionNumber")}</dt>
-            <dd className="mt-0.5 text-zinc-900">{student.admission_number}</dd>
+            <dt className="text-zinc-400 dark:text-zinc-500">{t("admissionNumber")}</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.admission_number}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Status</dt>
-            <dd className="mt-0.5 text-zinc-900">{student.status}</dd>
+            <dt className="text-zinc-400 dark:text-zinc-500">Status</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.status}</dd>
           </div>
           {student.date_of_birth ? (
             <div>
-              <dt className="text-zinc-400">Date of birth</dt>
-              <dd className="mt-0.5 text-zinc-900">{student.date_of_birth}</dd>
+              <dt className="text-zinc-400 dark:text-zinc-500">Date of birth</dt>
+              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.date_of_birth}</dd>
             </div>
           ) : null}
           {student.gender ? (
             <div>
-              <dt className="text-zinc-400">Gender</dt>
-              <dd className="mt-0.5 text-zinc-900">{student.gender}</dd>
+              <dt className="text-zinc-400 dark:text-zinc-500">Gender</dt>
+              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.gender}</dd>
             </div>
           ) : null}
         </dl>
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Class enrollment</h2>
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Class enrollment</h2>
         {enrollment ? (
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">
             Enrolled in {classById.get(enrollment.class_id) ?? "—"} for the current academic year.
           </p>
         ) : academicYear ? (
           <EnrollForm studentId={student.id} academicYearId={academicYear.id} sections={sectionOptions} />
         ) : (
-          <p className="text-sm text-zinc-400">No current academic year configured.</p>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No current academic year configured.</p>
         )}
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Parents / guardians (§D.4)</h2>
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Parents / guardians (§D.4)</h2>
         <ParentSection studentId={student.id} parents={parents} canManage={can(ctx.permissions, "student.edit")} />
       </div>
 
       {can(ctx.permissions, "users.manage") ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Student portal account (§Z)</h2>
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Student portal account (§Z)</h2>
           <ProvisionStudentAccountForm
             studentId={student.id}
             defaultEmail={student.contact_email ?? ""}

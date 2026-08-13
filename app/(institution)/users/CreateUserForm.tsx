@@ -11,27 +11,27 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
     <form action={formAction} className="space-y-3">
       <div className="flex flex-wrap gap-3">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Email</label>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Email</label>
           <input
             name="email"
             type="email"
             required
             placeholder="person@example.com"
-            className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-          <input name="fullName" required className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm" />
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Full name</label>
+          <input name="fullName" required className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Roles</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Roles</label>
         <div className="flex flex-wrap gap-3">
           {roleOptions.map((r) => (
-            <label key={r.id} className="flex items-center gap-1.5 text-sm text-zinc-700">
-              <input type="checkbox" name="roleCodes" value={r.code} className="rounded border-zinc-300" />
+            <label key={r.id} className="flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+              <input type="checkbox" name="roleCodes" value={r.code} className="rounded border-zinc-300 dark:border-zinc-700" />
               {r.name}
             </label>
           ))}
@@ -45,7 +45,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
       >
         Create login
       </button>
-      {state.error ? <p className="text-xs text-red-600">{state.error}</p> : null}
+      {state.error ? <p className="text-xs text-red-600 dark:text-red-400">{state.error}</p> : null}
     </form>
   );
 }

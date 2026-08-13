@@ -50,10 +50,10 @@ export default async function StaffPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Staff</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Staff</h1>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Directory</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Directory</h2>
         {can(ctx.permissions, "staff.create") ? (
           <div className="mb-4">
             <AddStaffForm roleOptions={["teacher", "management", "librarian", "staff"]} />
@@ -61,7 +61,7 @@ export default async function StaffPage({
         ) : null}
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <tr>
               <th className="py-1.5">Code</th>
               <th className="py-1.5">Name</th>
@@ -70,26 +70,26 @@ export default async function StaffPage({
               <th className="py-1.5">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {staff.map((s) => (
               <tr key={s.id}>
                 <td className="py-1.5">{s.staff_code}</td>
                 <td className="py-1.5">{s.full_name}</td>
-                <td className="py-1.5 text-zinc-500">{s.designation ?? "—"}</td>
-                <td className="py-1.5 text-zinc-500">{s.department ?? "—"}</td>
+                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{s.designation ?? "—"}</td>
+                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{s.department ?? "—"}</td>
                 <td className="py-1.5 capitalize">{s.employment_status.replace("_", " ")}</td>
               </tr>
             ))}
             {staff.length === 0 ? (
-              <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No staff members yet.</td></tr>
+              <tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No staff members yet.</td></tr>
             ) : null}
           </tbody>
         </table>
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Staff attendance</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff attendance</h2>
         <StaffAttendanceGrid
           rows={attendanceGrid}
           statuses={statuses}
@@ -98,8 +98,8 @@ export default async function StaffPage({
         />
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Staff leave</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff leave</h2>
         <StaffLeaveSection
           leaves={leaveRows}
           staff={staff.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -108,8 +108,8 @@ export default async function StaffPage({
         />
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Portion plans (§D.12)</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Portion plans (§D.12)</h2>
         {academicYear ? (
           <PortionPlanSection
             plans={portionPlans}
@@ -120,12 +120,12 @@ export default async function StaffPage({
             canManage={can(ctx.permissions, "staff.portion.manage")}
           />
         ) : (
-          <p className="text-sm text-zinc-400">No current academic year configured.</p>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No current academic year configured.</p>
         )}
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Teacher observations</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Teacher observations</h2>
         <TeacherObservationForm
           teachers={staff.map((s) => ({ id: s.id, full_name: s.full_name }))}
           observations={observations}
@@ -133,8 +133,8 @@ export default async function StaffPage({
         />
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Teacher assignments (§D.3)</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Teacher assignments (§D.3)</h2>
         {academicYear ? (
           <TeacherAssignmentForm
             teachers={staff.map((s) => ({ userId: s.user_id, full_name: s.full_name }))}
@@ -146,7 +146,7 @@ export default async function StaffPage({
             canManage={can(ctx.permissions, "staff.assignment.manage")}
           />
         ) : (
-          <p className="text-sm text-zinc-400">No current academic year configured.</p>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No current academic year configured.</p>
         )}
       </section>
     </div>

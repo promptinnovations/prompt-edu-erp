@@ -12,15 +12,15 @@ export default function PublishAnnouncementForm({ roles }: { roles: RoleOption[]
   return (
     <form action={formAction} className="space-y-3">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Title</label>
-        <input name="title" required maxLength={300} className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm" />
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Title</label>
+        <input name="title" required maxLength={300} className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Message</label>
-        <textarea name="body" required rows={3} className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm" />
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Message</label>
+        <textarea name="body" required rows={3} className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500">Audience</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Audience</label>
         <div className="flex items-center gap-4 text-sm">
           <label className="flex items-center gap-1.5">
             <input type="radio" name="audienceType" value="all" checked={audienceType === "all"} onChange={() => setAudienceType("all")} />
@@ -45,7 +45,7 @@ export default function PublishAnnouncementForm({ roles }: { roles: RoleOption[]
       <button type="submit" disabled={pending} className="rounded-md bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         {pending ? "Publishing…" : "Publish announcement"}
       </button>
-      {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
+      {state.error ? <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
     </form>
   );
 }

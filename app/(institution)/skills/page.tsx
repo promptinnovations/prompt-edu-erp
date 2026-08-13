@@ -21,11 +21,11 @@ export default async function SkillsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Skills</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Skills</h1>
 
       {can(ctx.permissions, "skills.submit") ? (
-        <section className="rounded-xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Submit an activity</h2>
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submit an activity</h2>
           <SubmitSkillForm
             students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
             skillTypes={skillTypes}
@@ -34,8 +34,8 @@ export default async function SkillsPage() {
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Submissions</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submissions</h2>
         <SubmissionsTable
           submissions={submissions}
           canReview={can(ctx.permissions, "skills.review")}

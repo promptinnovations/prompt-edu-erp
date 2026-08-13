@@ -27,11 +27,11 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
     <form action={`/api/reports/${reportType}`} method="get" className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Report</label>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Report</label>
           <select
             value={reportType}
             onChange={(e) => setReportType(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+            className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
           >
             {definitions.map((d) => (
               <option key={d.code} value={d.code}>{d.name}</option>
@@ -39,8 +39,8 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Format</label>
-          <select name="format" defaultValue="pdf" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm">
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Format</label>
+          <select name="format" defaultValue="pdf" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm">
             <option value="pdf">PDF</option>
             <option value="xlsx">Excel (.xlsx)</option>
           </select>
@@ -49,8 +49,8 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
 
       {reportType === "examination_results" ? (
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Examination</label>
-          <select name="examinationId" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm" required>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Examination</label>
+          <select name="examinationId" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" required>
             <option value="">Select an examination…</option>
             {examinations.map((e) => (
               <option key={e.id} value={e.id}>{e.name}</option>
@@ -62,12 +62,12 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
       {reportType === "attendance_summary" ? (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">Class</label>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class</label>
             <select
               name="classId"
               value={classId}
               onChange={(e) => setClassId(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+              className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
               required
             >
               <option value="">Select a class…</option>
@@ -77,8 +77,8 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">Section</label>
-            <select name="sectionId" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm" required>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Section</label>
+            <select name="sectionId" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" required>
               <option value="">Select a section…</option>
               {filteredSections.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -86,24 +86,24 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">From date</label>
-            <input type="date" name="fromDate" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm" required />
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">From date</label>
+            <input type="date" name="fromDate" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" required />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">To date</label>
-            <input type="date" name="toDate" className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm" required />
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">To date</label>
+            <input type="date" name="toDate" className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" required />
           </div>
         </div>
       ) : null}
 
       {reportType === "consolidated_performance" ? (
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Period</label>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Period</label>
           <input
             type="text"
             name="period"
             placeholder="e.g. Term 1 2026"
-            className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+            className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
             required
           />
         </div>

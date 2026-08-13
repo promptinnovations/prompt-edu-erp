@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../services/request-context";
-import { getInstitution, getBrandColors } from "../../../services/institution/institution-service";
+import { getInstitution } from "../../../services/institution/institution-service";
 import { listMyNotifications, getUnreadNotificationCount } from "../../../services/notification/notification-service";
 import NotificationBell from "../../components/NotificationBell";
+import ThemeToggle from "../../components/ThemeToggle";
 import { signOutAction } from "../../(institution)/actions";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -21,19 +22,25 @@ export default async function PortalLayout({ children }: { children: React.React
     getUnreadNotificationCount(ctx.institutionId, ctx.session.authUserId, ctx.userId),
   ]);
 
-  const { brand, brandHover } = getBrandColors(institution?.primaryColor ?? null);
-
+  // Design refresh (see globals.css): one fixed brand palette everywhere —
+  // no more per-institution CSS variable override here.
   return (
-    <div className="min-h-full bg-zinc-50" style={{ "--brand": brand, "--brand-hover": brandHover } as React.CSSProperties}>
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
-        <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wide text-zinc-400">PROMPT EDU ERP — Portal</div>
-          <div className="mt-0.5 truncate text-sm font-semibold text-zinc-900">{institution?.appName || institution?.name}</div>
+    <div className="min-h-full bg-zinc-50 dark:bg-zinc-950">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6 sm:py-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-xs font-bold text-white">
+            {(institution?.appName || institution?.name || "P").trim().charAt(0).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">PROMPT EDU ERP — Portal</div>
+            <div className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{institution?.appName || institution?.name}</div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <ThemeToggle />
           <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
           <form action={signOutAction}>
-            <button type="submit" className="rounded-md px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100 sm:px-3">
+            <button type="submit" className="rounded-md px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:px-3">
               Sign out
             </button>
           </form>

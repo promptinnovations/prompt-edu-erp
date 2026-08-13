@@ -39,10 +39,10 @@ export default async function LibraryPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Library</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Library</h1>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Catalogue</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Catalogue</h2>
         {canManage ? (
           <div className="mb-4">
             <AddBookForm authors={authors} publishers={publishers} categories={categories} shelves={shelves} />
@@ -50,7 +50,7 @@ export default async function LibraryPage() {
         ) : null}
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <tr>
               <th className="py-1.5">Title</th>
               <th className="py-1.5">Author</th>
@@ -59,18 +59,18 @@ export default async function LibraryPage() {
               <th className="py-1.5">Available</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {books.map((b) => (
               <tr key={b.id}>
                 <td className="py-1.5">{b.title}</td>
-                <td className="py-1.5 text-zinc-500">{b.author_name ?? "—"}</td>
-                <td className="py-1.5 text-zinc-500">{b.category_name ?? "—"}</td>
-                <td className="py-1.5 text-zinc-500">{b.shelf_name ?? "—"}</td>
+                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{b.author_name ?? "—"}</td>
+                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{b.category_name ?? "—"}</td>
+                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{b.shelf_name ?? "—"}</td>
                 <td className="py-1.5">{b.available_copies} / {b.total_copies}</td>
               </tr>
             ))}
             {books.length === 0 ? (
-              <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No books yet.</td></tr>
+              <tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No books yet.</td></tr>
             ) : null}
           </tbody>
         </table>
@@ -78,8 +78,8 @@ export default async function LibraryPage() {
       </section>
 
       {canIssue ? (
-        <section className="rounded-xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Issue a book</h2>
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Issue a book</h2>
           <IssueBookForm
             students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
             books={books.map((b) => ({ id: b.id, title: b.title, available_copies: b.available_copies }))}
@@ -88,11 +88,11 @@ export default async function LibraryPage() {
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Currently issued</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Currently issued</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <tr>
               <th className="py-1.5">Book</th>
               <th className="py-1.5">Student</th>
@@ -100,25 +100,25 @@ export default async function LibraryPage() {
               <th className="py-1.5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {issued.map((i) => (
               <tr key={i.id}>
                 <td className="py-1.5">{i.book_title}</td>
                 <td className="py-1.5">{i.student_name}</td>
-                <td className="py-1.5 text-zinc-500">{i.due_date}</td>
+                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{i.due_date}</td>
                 <td className="py-1.5">{canReturn ? <ReturnBookForm bookIssueId={i.id} isOverdue={i.is_overdue} /> : null}</td>
               </tr>
             ))}
             {issued.length === 0 ? (
-              <tr><td colSpan={4} className="py-4 text-center text-zinc-400">Nothing currently issued.</td></tr>
+              <tr><td colSpan={4} className="py-4 text-center text-zinc-400 dark:text-zinc-500">Nothing currently issued.</td></tr>
             ) : null}
           </tbody>
         </table>
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Reading reviews</h2>
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading reviews</h2>
         <ReadingReviewQueue records={pendingReviews} canReview={canManage} />
       </section>
     </div>

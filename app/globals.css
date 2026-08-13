@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (Tailwind v4): by default `dark:` responds to the
+ * OS-level prefers-color-scheme media query, which this app doesn't want —
+ * the design refresh added an explicit, user-controlled light/dark toggle
+ * (app/components/ThemeToggle.tsx) that writes a `dark` class onto <html>
+ * and persists the choice in localStorage + a cookie (for no-flash SSR).
+ * This line repoints every `dark:` utility at that class instead of the
+ * media query. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Old-Android/older-browser compatibility. Tailwind v4's default palette is
  * defined in OKLCH — an unsupported CSS colour function on any browser
  * older than Chrome 111 / Safari 16.4 (both March 2023), which an
@@ -13,17 +22,16 @@
  * and tested on modern browsers" and specifically depends on Chrome
  * 111+/Safari 16.4+/Firefox 128+ (https://tailwindcss.com/docs/compatibility)
  * — there's no built-in downlevel switch for this. Rather than dropping to
- * Tailwind v3 (a full framework migration), this block redefines just the
- * theme color families actually used anywhere in this codebase (verified via
- * `grep -roE "(bg|text|border|ring|from|to|via)-(zinc|red|emerald|amber|
- * green|blue)-[0-9]+"` across app/) back to their exact-equivalent plain hex
- * values — computed from this build's own compiled oklch() output via the
- * standard OKLCH→linear-sRGB→sRGB math, not eyeballed. Every existing
- * bg-zinc-900/text-red-600/etc. utility class keeps working completely
- * unchanged; it's the CSS variable *definition* underneath that's now a
- * universally-supported hex value instead of oklch(). Any new colour
- * utility added later from a family not listed here would still emit
- * oklch() and need the same treatment. */
+ * Tailwind v3 (a full framework migration), this block redefines every
+ * theme colour family actually used anywhere in this codebase back to
+ * plain, universally-supported hex values (Tailwind's own long-published
+ * reference swatches — the same hex values Tailwind v3 shipped for years).
+ * Every existing bg-zinc-900/text-red-600/etc. utility class keeps working
+ * completely unchanged; it's the CSS variable *definition* underneath
+ * that's a hex value instead of oklch(). The indigo/violet/fuchsia/sky/pink
+ * families were added for the gradient design refresh — any new colour
+ * family added later needs the same treatment or it'll silently vanish on
+ * older Android. */
 @theme {
   --color-zinc-50: #fafafa;
   --color-zinc-100: #f4f4f5;
@@ -35,6 +43,7 @@
   --color-zinc-700: #3f3f46;
   --color-zinc-800: #27272a;
   --color-zinc-900: #18181b;
+  --color-zinc-950: #09090b;
   --color-red-600: #e7000b;
   --color-red-700: #c10007;
   --color-emerald-50: #ecfdf5;
@@ -48,19 +57,67 @@
   --color-green-100: #dcfce7;
   --color-green-700: #008236;
   --color-blue-600: #155dfc;
+  /* Gradient/accent families for the design refresh */
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
+  --color-fuchsia-400: #e879f9;
+  --color-fuchsia-500: #d946ef;
+  --color-fuchsia-600: #c026d3;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-pink-500: #ec4899;
+  /* Extra stops pulled in by the mechanical dark-mode pass + hero
+     gradients/badges — same reasoning as the rest of this block. */
+  --color-amber-400: #fbbf24;
+  --color-amber-900: #78350f;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-950: #022c22;
+  --color-green-400: #4ade80;
+  --color-green-900: #14532d;
+  --color-indigo-950: #1e1b4b;
+  --color-orange-500: #f97316;
+  --color-red-400: #f87171;
+  --color-violet-900: #4c1d95;
+  --color-violet-950: #2e1065;
 }
 
+/* Semantic tokens — one fixed palette for the whole app (the earlier
+ * per-institution colour picker has been retired; see (institution)/
+ * layout.tsx and (portals)/portal/layout.tsx, which no longer inject a
+ * per-tenant override here). Every primary button in the app is styled
+ * with bg-[var(--brand)]/hover:bg-[var(--brand-hover)], so changing these
+ * two lines re-colours every button in the product at once. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  /* Fallback only — (institution)/layout.tsx and (portals)/portal/layout.tsx
-   * always set these inline from the institution's own primary_color
-   * (services/institution/institution-service.ts's getBrandColors(), §137).
-   * These root defaults just mean an un-themed institution (or any page
-   * that somehow renders outside those layouts, e.g. (auth)/(super-admin))
-   * still gets the app's original zinc-900 look, never an unset variable. */
-  --brand: #18181b;
-  --brand-hover: #27272a;
+  --background: #fafafa;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --surface-muted: #f4f4f5;
+  --border-subtle: #e4e4e7;
+  --brand: #4f46e5;
+  --brand-hover: #4338ca;
+  --brand-from: #4f46e5;
+  --brand-via: #7c3aed;
+  --brand-to: #d946ef;
+}
+
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --surface: #18181b;
+  --surface-muted: #27272a;
+  --border-subtle: #27272a;
+  --brand: #818cf8;
+  --brand-hover: #a78bfa;
+  --brand-from: #6366f1;
+  --brand-via: #8b5cf6;
+  --brand-to: #e879f9;
 }
 
 body {
@@ -68,4 +125,5 @@ body {
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Noto Sans", "Noto Sans Malayalam", "Noto Sans Arabic", Arial, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }

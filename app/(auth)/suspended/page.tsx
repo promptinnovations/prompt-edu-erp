@@ -18,12 +18,12 @@ export default async function SuspendedPage({
   const isSuspended = reason === "suspended";
 
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 text-center">
-        <h1 className="text-lg font-semibold text-zinc-900">
+    <div className="flex min-h-full flex-1 items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
+        <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           {isSuspended ? "Institution suspended" : "Institution inactive"}
         </h1>
-        <p className="mt-3 text-sm text-zinc-600">
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
           {isSuspended
             ? "This institution's access has been suspended. Please contact Prompt Innovations for assistance."
             : "This institution is not currently active. Please contact Prompt Innovations for assistance."}
@@ -33,7 +33,7 @@ export default async function SuspendedPage({
             Sign out
           </button>
         </form>
-        <Link href="/login" className="mt-3 block text-xs text-zinc-400 hover:text-zinc-600">
+        <Link href="/login" className="mt-3 block text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600">
           Back to sign in
         </Link>
       </div>
