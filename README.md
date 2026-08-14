@@ -99,8 +99,11 @@ Login → Institution context → Dashboard → Create class → Create section
   → Each institution's own console is installable as its own app — visit
     your institution's URL (e.g. https://prompt-edu-erp.vercel.app/kemhs),
     sign in, then "Add to Home Screen"/"Install" from the browser, and it's
-    added to your phone or desktop under your institution's own name and
-    short code, not "PROMPT EDU ERP" → inside your console, only your own
+    added to your phone or desktop under your institution's own name, short
+    code, AND its own generated icon (a monogram of that short code on the
+    brand gradient) — not the shared generic "P" icon every institution
+    used to get → the Super Admin console gets its own distinct "SA"
+    icon too, for the same reason → inside your console, only your own
     institution's name/logo is shown up top — "PROMPT EDU ERP" and
     "Prompt Innovations" appear only as a small credit line at the bottom
   → As a Super Admin, every institution row now shows its own shareable

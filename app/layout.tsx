@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { getRequestContext } from "../services/request-context";
-import { getInstitution } from "../services/institution/institution-service";
+import { resolveAppIdentity } from "../services/branding/app-identity";
 import "./globals.css";
 
 // System font stack (no next/font/google network dependency, §80 "optimize
@@ -10,28 +10,37 @@ import "./globals.css";
 // instantly with zero extra requests).
 const fontClass = "font-sans";
 
-// Dynamic (not a static `export const metadata`) so the browser tab title
-// and, critically, `apple-mobile-web-app-title` (the name iOS actually uses
-// for the home-screen icon label when a user taps Share → Add to Home
-// Screen — it does not reliably read manifest.webmanifest's `name` the way
-// Android/Chrome does) reflect the signed-in institution, matching
-// app/manifest.ts. Falls back to generic PROMPT EDU ERP branding with no
-// active institution (e.g. the public /login page).
+// Dynamic (not a static `export const metadata`) so the browser tab title,
+// favicon, and — critically — `apple-mobile-web-app-title` /
+// `apple-touch-icon` (what iOS actually uses for the home-screen name and
+// icon when a user taps Share → Add to Home Screen; it does not reliably
+// read manifest.webmanifest the way Android/Chrome does) all reflect the
+// signed-in institution (or "SA" for a pure Super Admin session), matching
+// app/manifest.ts and app/icon-badge/[size]/route.tsx. See
+// services/branding/app-identity.ts for the shared resolver. Falls back to
+// generic PROMPT EDU ERP branding with no active institution (e.g. the
+// public /login page).
 export async function generateMetadata(): Promise<Metadata> {
   const ctx = await getRequestContext().catch(() => null);
-  const institution = ctx?.institutionId
-    ? await getInstitution(ctx.institutionId, ctx.session.authUserId).catch(() => null)
-    : null;
-  const name = institution?.appName || institution?.name || "PROMPT EDU ERP";
+  const identity = await resolveAppIdentity(ctx);
 
   return {
-    title: name,
+    title: identity.name,
     description: "PROMPT EDU ERP — Technology with Purpose. A product of Prompt Innovations.",
     manifest: "/manifest.webmanifest",
+    icons: identity.dynamicIcon
+      ? {
+          icon: [{ url: "/icon-badge/192", sizes: "192x192", type: "image/png" }],
+          apple: [{ url: "/icon-badge/512", sizes: "512x512", type: "image/png" }],
+        }
+      : {
+          icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+          apple: [{ url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }],
+        },
     appleWebApp: {
       capable: true,
       statusBarStyle: "black-translucent",
-      title: name,
+      title: identity.name,
     },
   };
 }
