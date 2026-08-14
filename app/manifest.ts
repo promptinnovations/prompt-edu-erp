@@ -27,7 +27,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       ? `${identity.name} — powered by PROMPT EDU ERP, a product of Prompt Innovations.`
       : "PROMPT EDU ERP — Technology with Purpose. A product of Prompt Innovations.",
     start_url: identity.startUrl,
-    scope: "/",
+    scope: identity.scope,
     display: "standalone",
     background_color: "#09090b",
     theme_color: "#4f46e5",

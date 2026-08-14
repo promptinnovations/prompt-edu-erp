@@ -12,13 +12,17 @@
  * same origin means "same app" to Chrome/Edge/etc, no matter how different
  * the name/icon look, so a second institution's "Install" simply
  * overwrote the first one's home-screen entry instead of adding a second.
- * The Web App Manifest spec's `id` member exists specifically to solve
- * this ("same origin, several independently-installable apps") without
- * needing separate scopes, subdomains, or URL restructuring — each
- * identity below gets its own `appId` (→ manifest `id`) and a
- * textually-distinct `startUrl` (a harmless query string on "/", which
- * the root page/session logic already ignores) as a belt-and-braces
- * measure for older browsers that key off start_url instead of `id`.
+ * Two independent fixes now stack:
+ *   1. The Web App Manifest spec's `id` member exists specifically for
+ *      "same origin, several independently-installable apps" — each
+ *      identity gets its own `appId` (→ manifest `id`).
+ *   2. middleware.ts now gives each institution a REAL, distinct URL
+ *      prefix (/<code>/...), so `scope`/`startUrl` below can be genuinely
+ *      different per identity too — not just an `id` field and a
+ *      belt-and-braces query string, but an actually-different, properly
+ *      scoped install target, which is both more correct per spec and a
+ *      second, independent signal for browsers that don't yet support
+ *      `id`.
  */
 import { getInstitution } from "../institution/institution-service";
 import type { RequestContext } from "../../types/context";
@@ -34,8 +38,11 @@ export interface AppIdentity {
   /** Unique per identity → manifest.json's `id` (the actual "is this a
    *  different installable app" key, per the Web App Manifest spec). */
   appId: string;
-  /** Textually distinct per identity, purely so older browsers that key
-   *  off start_url (pre-`id`-support) still see these as different apps. */
+  /** manifest.json's `scope` — what part of the site counts as "this app".
+   *  Real, distinct per institution now that middleware.ts routes
+   *  /<code>/... as its own URL prefix. */
+  scope: string;
+  /** manifest.json's `start_url` — always inside `scope` above. */
   startUrl: string;
 }
 
@@ -45,6 +52,7 @@ const GENERIC: AppIdentity = {
   badgeText: "P",
   dynamicIcon: false,
   appId: "/app/platform",
+  scope: "/",
   startUrl: "/",
 };
 
@@ -62,7 +70,8 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
         badgeText: label,
         dynamicIcon: true,
         appId: `/app/${slug}`,
-        startUrl: `/?pwa=${encodeURIComponent(slug)}`,
+        scope: `/${slug}/`,
+        startUrl: `/${slug}`,
       };
     }
   }
@@ -73,7 +82,8 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
       badgeText: "SA",
       dynamicIcon: true,
       appId: "/app/super-admin",
-      startUrl: "/?pwa=super-admin",
+      scope: "/super-admin/",
+      startUrl: "/super-admin",
     };
   }
   return GENERIC;

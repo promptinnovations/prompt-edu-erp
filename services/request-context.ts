@@ -10,9 +10,9 @@ import { getAuthService } from "./auth/auth-service";
 import { resolveActiveInstitution, resolveUserByAuthId, getMembershipsForUser } from "./tenant/tenant-service";
 import { getPermissionsForUser, getAllInstitutionPermissionCodes } from "./permissions/permission-service";
 import { getInstitutionForSuperAdmin } from "./super-admin/super-admin-service";
+import { ACTIVE_INSTITUTION_COOKIE } from "./tenant/institution-cookie";
 import type { RequestContext } from "../types/context";
 
-const ACTIVE_INSTITUTION_COOKIE = "perp_active_institution_code";
 /** Set only via setSuperAdminViewInstitution() below, from the "Open this
  *  institution's console" action on /super-admin/institutions/[id] —
  *  see RequestContext.viewingInstitutionAsSuperAdmin's own doc comment for

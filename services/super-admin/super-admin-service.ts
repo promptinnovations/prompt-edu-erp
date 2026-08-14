@@ -25,6 +25,9 @@ import type { DbClient } from "../db/client";
 import { resolveUserByAuthId } from "../tenant/tenant-service";
 import { recordPlatformAudit } from "../audit/audit-service";
 import { getAuthService } from "../auth/auth-service";
+import { RESERVED_INSTITUTION_CODES } from "./reserved-codes";
+
+export { RESERVED_INSTITUTION_CODES };
 
 export interface InstitutionRecord {
   id: string;
@@ -39,22 +42,19 @@ export interface InstitutionRecord {
 
 const INSTITUTION_STATUSES = ["active", "inactive", "suspended", "trial"] as const;
 
-/** An institution's code doubles as its shareable deep-link path
- *  (app/[code]/route.ts, §137 follow-up "url should be different for each
- *  institution") — every real top-level app route (plus a few defensive
- *  extras for static assets) is reserved so a code can never shadow one.
- *  Checked at both creation (createInstitutionSchema below) and later edits
- *  (updateInstitutionCode). Keep in sync with app/'s actual top-level
- *  page.tsx/route.ts segments if new ones are ever added. */
-export const RESERVED_INSTITUTION_CODES = new Set([
-  "academic", "achievements", "analytics", "announcements", "attendance",
-  "dashboard", "discipline", "examinations", "import", "library", "login",
-  "mentoring", "module-unavailable", "reports", "scoring", "settings",
-  "skills", "staff", "storage", "students", "super-admin", "suspended",
-  "users", "portal", "api", "icons", "favicon.ico", "manifest.webmanifest",
-  "robots.txt", "sitemap.xml", "sw.js", "_next",
-]);
-
+/** An institution's code doubles as its own real URL prefix
+ *  (middleware.ts rewrites /<code>/... to the app's normal routes, §137
+ *  follow-up "url should be different for each institution", extended by
+ *  "I can't download different apps separately" into a real per-
+ *  institution route namespace, not just a one-time deep-link redirect) —
+ *  every real top-level app route (plus a few defensive extras for static
+ *  assets) is reserved so a code can never shadow one. Checked at both
+ *  creation (createInstitutionSchema below) and later edits
+ *  (updateInstitutionCode). The actual Set now lives in ./reserved-codes.ts
+ *  (no db/auth imports) so middleware.ts, which runs on the Edge runtime,
+ *  can import it directly too — keep both in sync with app/'s actual
+ *  top-level page.tsx/route.ts segments if new ones are ever added.
+ */
 const institutionCodeSchema = z
   .string()
   .min(2)
@@ -268,7 +268,8 @@ export async function updateInstitutionStatus(
 const updateCodeSchema = z.object({ code: institutionCodeSchema });
 
 /** Changes an institution's code — and therefore its shareable deep-link
- *  URL (app/[code]/route.ts) — after creation (§137 follow-up: "area ...
+ *  URL and its own /<code>/... route prefix (middleware.ts) — after
+ *  creation (§137 follow-up: "area ...
  *  should be editable"). Uniqueness is enforced by the same `institutions
  *  .code` unique constraint creation already relies on; caught here and
  *  turned into a friendly message instead of a raw Postgres error leaking

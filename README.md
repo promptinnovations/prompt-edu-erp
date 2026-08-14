@@ -96,16 +96,19 @@ Login → Institution context → Dashboard → Create class → Create section
     look, switchable between light and dark mode from the sidebar (or
     portal header) — no per-institution colour picker to maintain, one
     consistent, polished app for everyone
-  → Each institution's own console is installable as its own separate app
-    — visit your institution's URL (e.g.
-    https://prompt-edu-erp.vercel.app/kemhs), sign in, then "Add to Home
-    Screen"/"Install" from the browser, and it's added to your phone or
-    desktop as its own distinct entry, under your institution's own name,
-    short code, and its own generated icon (a monogram of that short code
-    on the brand gradient) — installing a second institution adds a
-    second, separate app rather than overwriting the first one (the
-    manifest's `id` field, one per institution, is what tells the browser
-    these are genuinely different apps sharing one site, not the same app
+  → Every institution's URL (e.g. https://prompt-edu-erp.vercel.app/kemhs)
+    is a real, separate route prefix, not just a one-time redirect — visit
+    it and every page you use stays under that same address
+    (.../kemhs/login, .../kemhs/dashboard, .../kemhs/students, ...), with
+    its own personalised sign-in screen (your institution's name front and
+    centre, "PROMPT EDU ERP"/"Prompt Innovations" only in small print) →
+    "Add to Home Screen"/"Install" from there adds your institution to
+    your phone or desktop as its own distinct entry — its own name, short
+    code, and generated icon (a monogram of that code on the brand
+    gradient) — and installing a second institution adds a second,
+    separate app rather than overwriting the first one (both a distinct
+    manifest `id` and a distinct, real URL scope tell the browser these
+    are genuinely different apps sharing one site, not the same app
     reinstalled) → the Super Admin console gets its own distinct "SA" app
     too, for the same reason → inside your console, only your own
     institution's name/logo is shown up top — "PROMPT EDU ERP" and

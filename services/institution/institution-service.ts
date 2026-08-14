@@ -41,6 +41,45 @@ export async function getInstitution(institutionId: string, authUserId: string):
   });
 }
 
+export interface InstitutionPublicSummary {
+  code: string;
+  name: string;
+  appName: string | null;
+}
+
+/**
+ * Intentionally-public, pre-authentication lookup (§137 follow-up: "it
+ * should show an interface to login to mmp") — used only by
+ * app/(auth)/login/page.tsx to show which institution's login screen a
+ * visitor is on, from the active-institution cookie middleware.ts already
+ * set from their /<code> URL, before they've signed in at all. There is no
+ * signed-in user yet to run `getInstitution()`'s ordinary
+ * withInstitutionContext(institutionId, authUserId) RLS check as, so this
+ * runs with an explicit `isSuperAdmin: true` DB context instead — NOT
+ * because the caller is a Super Admin, but because that is the only
+ * context the RLS policy on `institutions` (§E) grants unrestricted SELECT
+ * to, and this function is the one deliberately-narrow, deliberately-safe
+ * place in the codebase that uses it that way. Kept safe by what it
+ * returns, not by who's asking: exactly three non-sensitive columns
+ * (code/name/app_name) — the same code and display name already shown
+ * un-authenticated in that institution's own shareable URL and on its
+ * Super Admin listing row. Never exposes primary_color, status,
+ * deployment_mode, or anything else on the row. A code that doesn't match
+ * any institution returns null — the login page just falls back to
+ * generic branding, exactly as if no institution cookie were set at all.
+ */
+export async function getInstitutionPublicSummaryByCode(code: string): Promise<InstitutionPublicSummary | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId: null, isSuperAdmin: true }, async (scoped) => {
+    const { rows } = await scoped.query<{ code: string; name: string; app_name: string | null }>(
+      "select code, name, app_name from institutions where code = $1",
+      [code]
+    );
+    if (!rows[0]) return null;
+    return { code: rows[0].code, name: rows[0].name, appName: rows[0].app_name };
+  });
+}
+
 export async function getEnabledUiLanguages(institutionId: string, authUserId: string): Promise<string[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {

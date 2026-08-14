@@ -4,8 +4,10 @@ import { useActionState, useState } from "react";
 import { updateInstitutionCodeAction } from "./actions";
 
 /** §137 follow-up: each institution's shareable URL (baseUrl + "/" + code,
- *  e.g. https://prompt-edu-erp.vercel.app/kemhs — see app/[code]/route.ts),
- *  shown only here (after the institution already exists), copyable, and
+ *  e.g. https://prompt-edu-erp.vercel.app/kemhs — see middleware.ts, which
+ *  now treats that whole path as a real, separately-installable route
+ *  prefix, not just a one-time redirect), shown only here (after the
+ *  institution already exists), copyable, and
  *  the code itself editable in place. baseUrl is computed server-side from
  *  the actual request host (super-admin/page.tsx), so this works
  *  identically on prompt-edu-erp.vercel.app, a custom domain, or
