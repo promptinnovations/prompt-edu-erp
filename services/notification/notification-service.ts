@@ -8,16 +8,19 @@
  * call always creates an 'in_app' row (§R.4: in-app delivery can never
  * silently fail — it's just a database insert) and, unless the caller
  * opts out, an 'email' row whose actual delivery depends on which
- * EmailProvider is configured (see email-provider.ts). 'sms'/'whatsapp'/
- * 'push' channels are schema-ready (the channel check constraint in
- * migration 0017 already allows them) but have no provider built in this
- * phase — requesting them always records status='skipped', an honest,
- * documented placeholder for real Twilio/WhatsApp Business API/web-push
- * integration later, not a silent no-op.
+ * EmailProvider is configured (see email-provider.ts). 'sms'/'push'
+ * channels are schema-ready (the channel check constraint in migration
+ * 0017 already allows them) but have no provider built yet — requesting
+ * them always records status='skipped', an honest, documented placeholder
+ * for real Twilio SMS/web-push integration later, not a silent no-op.
+ * 'whatsapp' DOES have a real provider (see whatsapp-provider.ts, §D.6
+ * attendance alerts follow-up) — same "skipped until configured, real once
+ * it is" shape as 'email', not a permanent placeholder.
  */
 import { getDbClient } from "../db/client";
 import type { DbClient } from "../db/client";
 import { getEmailProvider } from "./email-provider";
+import { getWhatsAppProvider } from "./whatsapp-provider";
 
 export type NotificationChannel = "in_app" | "email" | "sms" | "whatsapp" | "push";
 export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
@@ -32,7 +35,7 @@ export interface NotifyInput {
   relatedEntityId?: string | null;
 }
 
-const CHANNELS_WITHOUT_A_PROVIDER: NotificationChannel[] = ["sms", "whatsapp", "push"];
+const CHANNELS_WITHOUT_A_PROVIDER: NotificationChannel[] = ["sms", "push"];
 
 /** Notifies ONE user. Fan-out to many users (e.g. an announcement's
  *  audience) is the CALLER's job — looping this per recipient, inside the
@@ -56,6 +59,14 @@ export async function notifyUser(
       );
       recipientEmail = rows[0]?.email ?? null;
     }
+    let recipientPhone: string | null = null;
+    if (channels.includes("whatsapp")) {
+      const { rows } = await scoped.query<{ phone: string | null }>(
+        "select phone from users where id = $1",
+        [targetUserId]
+      );
+      recipientPhone = rows[0]?.phone ?? null;
+    }
 
     for (const channel of channels) {
       let status: NotificationStatus = "pending";
@@ -73,6 +84,19 @@ export async function notifyUser(
             status = "skipped";
           } else {
             const result = await provider.sendEmail(recipientEmail, input.title, input.body);
+            status = result.ok ? "sent" : "failed";
+            if (result.ok) sentAt = new Date().toISOString();
+          }
+        }
+      } else if (channel === "whatsapp") {
+        if (!recipientPhone) {
+          status = "skipped"; // no phone on file for this user — nothing to send to
+        } else {
+          const provider = getWhatsAppProvider();
+          if (!provider.isConfigured) {
+            status = "skipped"; // §R.4 — real provider exists (GREEN-API) but no instance configured yet
+          } else {
+            const result = await provider.sendMessage(recipientPhone, input.body);
             status = result.ok ? "sent" : "failed";
             if (result.ok) sentAt = new Date().toISOString();
           }

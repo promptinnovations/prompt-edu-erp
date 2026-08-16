@@ -22,6 +22,7 @@ import {
   getOwnStudentId, getOwnParentId, listChildrenForParent, isOwnChild,
   provisionStudentPortalAccount, provisionParentPortalAccount, resolvePortalDestination,
 } from "../../modules/portal/service";
+import { applyForLeave, listLeaveApplicationsForStudent } from "../../modules/attendance/service";
 
 let institutionA: string;
 let institutionB: string;
@@ -142,6 +143,19 @@ describe("Portal routing resolution (§Z)", () => {
     expect(resolvePortalDestination(new Set(["teacher"]))).toBe("institution");
     expect(resolvePortalDestination(new Set(["student", "teacher"]))).toBe("institution"); // any non-portal role wins
     expect(resolvePortalDestination(new Set())).toBe("institution");
+  });
+});
+
+describe("Parent leave applications (§D.6 follow-up 'parents log in need an option to apply for leave')", () => {
+  it("listLeaveApplicationsForStudent() scopes to exactly one student's own applications", async () => {
+    const leave = await applyForLeave(institutionA, adminAuth, adminUserId, {
+      applicantType: "student", applicantId: student1, startDate: "2026-09-01", endDate: "2026-09-02", reason: "Portal test",
+    });
+    const forStudent1 = await listLeaveApplicationsForStudent(institutionA, adminAuth, student1);
+    expect(forStudent1.some((l) => l.id === leave.id)).toBe(true);
+
+    const forStudent2 = await listLeaveApplicationsForStudent(institutionA, adminAuth, student2);
+    expect(forStudent2.some((l) => l.id === leave.id)).toBe(false);
   });
 });
 

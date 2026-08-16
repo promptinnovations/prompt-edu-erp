@@ -6,6 +6,11 @@ import { applyForLeaveAction, approveLeaveAction, rejectLeaveAction } from "./ac
 export interface LeaveRow {
   id: string; applicant_type: string; applicant_id: string; applicant_name: string;
   start_date: string; end_date: string; reason: string | null; status: string;
+  /** Per-row, not blanket — an institution_admin/management reviewer sees
+   *  true on every row; a class-teacher reviewer sees true only on rows for
+   *  their own assigned class (§D.6 follow-up "class teacher can sanction
+   *  it" — computed server-side in page.tsx via canReviewLeaveApplication()). */
+  canReview: boolean;
 }
 
 function ReviewButton({ action, label, leaveId }: { action: typeof approveLeaveAction; label: string; leaveId: string }) {
@@ -25,12 +30,10 @@ export default function LeaveApplications({
   leaves,
   students,
   canApply,
-  canReview,
 }: {
   leaves: LeaveRow[];
   students: Array<{ id: string; full_name: string }>;
   canApply: boolean;
-  canReview: boolean;
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(applyForLeaveAction, { error: null });
 
@@ -85,7 +88,7 @@ export default function LeaveApplications({
               <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{l.reason || "—"}</td>
               <td className="py-1.5 capitalize">{l.status}</td>
               <td className="py-1.5">
-                {canReview && l.status === "pending" ? (
+                {l.canReview && l.status === "pending" ? (
                   <div className="flex gap-1">
                     <ReviewButton action={approveLeaveAction} label="Approve" leaveId={l.id} />
                     <ReviewButton action={rejectLeaveAction} label="Reject" leaveId={l.id} />

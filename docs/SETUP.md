@@ -751,15 +751,15 @@ that is the entire point of the `StorageProvider` abstraction.
   Supabase credentials were connected: the code exists and follows the
   established provider-swap pattern, but is untested against a real
   mailbox in this build's environment.
-- **SMS / WhatsApp / push notification channels have no provider at all**:
-  the `channel` check constraint on `notifications` (migration 0017)
-  already allows `sms`/`whatsapp`/`push` (§R.4 "push is a progressive
+- **SMS / push notification channels have no provider at all**: the
+  `channel` check constraint on `notifications` (migration 0017) already
+  allows `sms`/`whatsapp`/`push` (§R.4 "push is a progressive
   enhancement"), and `notifyUser()` will happily accept a request for any
-  of them, but every such request is recorded as `status='skipped'` —
-  there is no Twilio/WhatsApp Business API/web-push integration in this
-  build. Requesting one of these credentials from the user was out of
-  scope for this phase; wiring a real provider in means adding a new
-  file mirroring `email-provider.ts`'s shape, not a redesign.
+  of them, but `sms`/`push` requests are always recorded as
+  `status='skipped'` — there is no Twilio SMS/web-push integration in this
+  build. `whatsapp` DOES have a real provider now (GREEN-API, see the
+  attendance-alerts entry below) — wiring a real SMS/push provider in means
+  adding a new file mirroring `email-provider.ts`'s shape, not a redesign.
 - **Announcement audience targeting is "everyone" or "by role" only**:
   the master spec's `audience_jsonb` column can in principle hold any
   targeting shape, but this build's `AnnouncementAudience` type only
@@ -784,6 +784,95 @@ that is the entire point of the `StorageProvider` abstraction.
   mechanical (see that function's diff) once it's clear which approval
   events institutions actually want notified; wiring every workflow
   pre-emptively risked over-notifying without real usage feedback.
+
+## Attendance alerts + leave workflow (§D.6 follow-up)
+
+Built in response to: "attendance must present by default... if someone
+marked for late coming that also should go as a message... once attendance
+is saved, a preview of absentee and latecoming alert will be shown, should
+be editable, cancellable, then press confirm whatsapp message will be
+sent... each class should show applied leaves for that day at the bottom...
+for parents log in they need to have an option for apply for leave — class
+teacher can sanction it... daily attendance + absentee list must be visible
+to principal."
+
+- **Two real, previously-undiscovered production bugs found and fixed
+  while building this**, both in `createInstitution()`
+  (`services/super-admin/super-admin-service.ts`) — the real,
+  production institution-creation path, as opposed to
+  `database/scripts/seed.ts`'s demo-only `seedInstitutionDefaults()`:
+  1. It never seeded `attendance_statuses` — every institution created
+     through it (KEMHS, MMP; Badrudhuja had been backfilled by hand
+     earlier) had a completely EMPTY "Take attendance" status dropdown
+     (zero `<option>`s) until an admin manually added statuses through the
+     database. Now provisions the same 5-status default set
+     (Present/Absent/Late/Half Day/On Leave, Present as default) every
+     institution needs.
+  2. It created the `management`/`teacher`/`librarian`/`parent`/`student`/
+     `staff` role ROWS but granted them ZERO `role_permissions` — every
+     non-`institution_admin` user at KEMHS and MMP (including the 3 real
+     teacher accounts provisioned in the previous phase) could log in but
+     do nothing at all in the app. Now grants the same default permission
+     sets `seed.ts` already gave its demo institutions
+     (`DEFAULT_ROLE_PERMISSION_GRANTS`, kept in sync with `seed.ts`'s own
+     `roleGrants`). Both gaps were backfilled directly in production for
+     Badrudhuja/KEMHS/MMP (see git history / audit log for the exact SQL);
+     new institutions get both automatically from here on.
+- **"Present by default" needed no new logic** — `AttendanceGridForm`
+  already defaulted every student with no existing record to whichever
+  `attendance_statuses` row has `is_default=true`; the dropdown just had
+  no rows to default TO until bug #1 above was fixed.
+- **New permissions**: `attendance.leave.apply` (parent/student — apply
+  for leave) and `attendance.leave.review_own_class` (teacher — approve/
+  reject leave ONLY for students in their own assigned class, enforced by
+  `canReviewLeaveApplication()`/`isClassTeacherOfStudent()` in
+  `modules/attendance/service.ts`, the same application-layer scoping
+  shape as mentoring's "assigned mentor only" rule). `attendance.edit`
+  (institution_admin/management) remains unrestricted.
+- **Alert preview/edit/cancel/confirm flow**: `markAttendanceAction`
+  saves attendance (unconditionally — data persistence never depends on
+  whether an alert is ever sent) and returns
+  `getAttendanceAlertCandidates()`'s list of every absent/late student for
+  that class/section/date, each with a ready-to-edit default WhatsApp
+  message. `AttendanceGridForm.tsx` renders this as an editable/
+  per-row-excludable preview; "Cancel" just hides it (nothing to undo);
+  "Confirm & send" calls `sendAttendanceAlertsAction` →
+  `sendAttendanceAlerts()`, which sends exactly the (possibly hand-edited)
+  messages via `notifyUser(..., channels:["whatsapp"])`.
+- **WhatsApp sending — GREEN-API, not Meta Cloud API/Twilio**: chosen
+  because it needs no business-account verification to start sending
+  (pairs to a real WhatsApp number by QR code, like WhatsApp Web). New
+  provider files (`services/notification/whatsapp-provider.ts` +
+  `console-whatsapp-provider.ts` + `green-api-whatsapp-provider.ts`) mirror
+  `email-provider.ts`'s exact provider-swap shape. **Not yet configured in
+  this environment** — `GREEN_API_ID_INSTANCE`/`GREEN_API_TOKEN_INSTANCE`
+  are unset, so every WhatsApp send currently records
+  `notifications.status='skipped'` (logged to console instead) until real
+  credentials are added as Vercel env vars — see `.env.example`. A
+  student's WhatsApp target number is `users.phone`, resolved via
+  `students.user_id` — i.e. only students with a portal login (§137
+  follow-up "parent phone as password") can currently receive alerts;
+  students without one show "No phone on file" in the preview and can't
+  be sent to.
+- **Per-class leave list**: `listLeaveApplicationsForClassOnDate()`
+  replaces the old institution-wide leave list on the Attendance page once
+  a class is selected — only leaves whose date range covers the selected
+  date, for students currently enrolled in that class.
+- **Parent portal "Apply for leave"**: new
+  `app/(portals)/portal/parent/actions.ts` + `ApplyLeaveForm.tsx`. Resolves
+  the caller's own `parentId` and re-verifies `isOwnChild()` server-side
+  before ever calling `applyForLeave()` — same §Z portal-identity rule
+  every other parent-portal action already follows; a parent can never
+  apply leave for a child that isn't their own, even by guessing a
+  studentId.
+- **Principal/daily-overview visibility**: a new "Daily overview" section
+  on the Attendance page, visible only to `attendance.edit` holders
+  (institution_admin, and `management` — the "Principal / Management"
+  system role, once it holds `attendance.edit` per
+  `DEFAULT_ROLE_PERMISSION_GRANTS` above), from
+  `getDailyAttendanceOverview()`: every class/section's
+  enrolled/marked/present/absent/late counts for the day, plus a
+  consolidated absentee name list.
 
 ## Environment variables reference
 

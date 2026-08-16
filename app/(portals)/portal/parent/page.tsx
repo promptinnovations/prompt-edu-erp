@@ -1,7 +1,10 @@
 import { requireRequestContext } from "../../../../services/request-context";
+import { can } from "../../../../services/permissions/permission-service";
 import { getOwnParentId, listChildrenForParent, isOwnChild } from "../../../../modules/portal/service";
 import { getStudent360 } from "../../../../modules/portfolio/service";
+import { listLeaveApplicationsForStudent } from "../../../../modules/attendance/service";
 import ChildPicker from "./ChildPicker";
+import ApplyLeaveForm from "./ApplyLeaveForm";
 
 export default async function ParentPortalPage({
   searchParams,
@@ -41,7 +44,12 @@ export default async function ParentPortalPage({
       ? childId
       : children.find((c) => c.is_primary_contact)?.id ?? children[0].id;
 
-  const summary = await getStudent360(institutionId, authUserId, selectedChildId);
+  const [summary, childLeaves] = await Promise.all([
+    getStudent360(institutionId, authUserId, selectedChildId),
+    can(ctx.permissions, "attendance.leave.apply")
+      ? listLeaveApplicationsForStudent(institutionId, authUserId, selectedChildId)
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -87,6 +95,14 @@ export default async function ParentPortalPage({
           {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
         </ul>
       </div>
+
+      {can(ctx.permissions, "attendance.leave.apply") ? (
+        <ApplyLeaveForm
+          studentId={selectedChildId}
+          studentName={children.find((c) => c.id === selectedChildId)?.full_name ?? "your child"}
+          leaves={childLeaves}
+        />
+      ) : null}
     </div>
   );
 }

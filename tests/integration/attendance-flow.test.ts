@@ -14,9 +14,13 @@ import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../dat
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
 import { createClass, createSection, getCurrentAcademicYear } from "../../modules/academic/service";
 import { createStudent } from "../../modules/students/service";
+import { createTeacherAssignment } from "../../modules/staff/service";
+import { provisionStudentPortalAccount } from "../../modules/portal/service";
 import {
   listAttendanceStatuses, getAttendanceGrid, markAttendance,
   getStudentAttendanceSummary, applyForLeave, listLeaveApplications, reviewLeaveApplication,
+  getAttendanceAlertCandidates, sendAttendanceAlerts, isClassTeacherOfStudent, canReviewLeaveApplication,
+  getDailyAttendanceOverview, listLeaveApplicationsForClassOnDate,
 } from "../../modules/attendance/service";
 
 let institutionA: string;
@@ -29,6 +33,7 @@ let presentStatusId: string, absentStatusId: string, lateStatusId: string;
 
 const DAY1 = "2026-06-02";
 const DAY2 = "2026-06-03";
+const DAY3 = "2026-06-04";
 
 beforeAll(async () => {
   __resetDbClientForTests();
@@ -196,5 +201,107 @@ describe("Attendance tenant isolation (§E, extended to migration 0006 tables)",
     const adminB = await seedDemoUser(await getDbClient(), institutionB, "admin2@att-b.example", "Attendance B Admin 2");
     const grid = await getAttendanceGrid(institutionB, adminB.authUserId, classId, sectionId, DAY1);
     expect(grid).toHaveLength(0);
+  });
+});
+
+describe("Attendance alerts (§D.6 follow-up: absentee/late-coming WhatsApp preview + confirm)", () => {
+  let student1UserId: string;
+
+  it("getAttendanceAlertCandidates() only returns absent/late students, with phone resolved from a linked portal login", async () => {
+    // student1 gets a portal login (and therefore a phone, via
+    // set_login_credentials — mirrors createStudentLoginAccount's real
+    // shape) so it can be an alert TARGET; student2 stays login-less on
+    // purpose, to exercise the "no phone on file" branch below.
+    const provisioned = await provisionStudentPortalAccount(institutionA, adminAuth, adminUserId, {
+      studentId: student1, email: "student1-alerts@att-a.example", fullName: "Student One",
+    });
+    student1UserId = provisioned.userId;
+    const db = await getDbClient();
+    await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, async (scoped) => {
+      await scoped.query("select set_login_credentials($1, null, $2)", [student1UserId, "9999900001"]);
+    });
+
+    // DAY1 already has student1=present, student2=late (15 min) from the
+    // earlier describe block — exactly one alert candidate expected.
+    const candidates = await getAttendanceAlertCandidates(institutionA, adminAuth, classId, sectionId, DAY1);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].studentId).toBe(student2);
+    expect(candidates[0].isLate).toBe(true);
+    expect(candidates[0].phone).toBeNull(); // student2 has no portal login
+    expect(candidates[0].defaultMessage).toMatch(/LATE/);
+  });
+
+  it("marking student1 absent produces a candidate with its resolved phone number", async () => {
+    await markAttendance(institutionA, teacherAuth, teacherUserId, {
+      classId, sectionId, date: DAY3,
+      entries: [
+        { studentId: student1, statusId: absentStatusId, isLate: false },
+        { studentId: student2, statusId: presentStatusId, isLate: false },
+      ],
+    });
+    const candidates = await getAttendanceAlertCandidates(institutionA, adminAuth, classId, sectionId, DAY3);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].studentId).toBe(student1);
+    expect(candidates[0].countsAsPresent).toBe(false);
+    expect(candidates[0].phone).toBe("9999900001");
+    expect(candidates[0].defaultMessage).toMatch(/ABSENT/);
+  });
+
+  it("sendAttendanceAlerts() sends for a student with a linked phone, and reports (not throws) for one without", async () => {
+    const results = await sendAttendanceAlerts(institutionA, adminAuth, adminUserId, {
+      alerts: [
+        { studentId: student1, message: "Test alert for student1" },
+        { studentId: student2, message: "Test alert for student2" },
+      ],
+    });
+    const r1 = results.find((r) => r.studentId === student1)!;
+    const r2 = results.find((r) => r.studentId === student2)!;
+    expect(r1.ok).toBe(true);
+    expect(r2.ok).toBe(false);
+    expect(r2.reason).toMatch(/No portal login/);
+  });
+
+  it("class-teacher scoping: isClassTeacherOfStudent()/canReviewLeaveApplication() are false before an assignment exists, true after", async () => {
+    expect(await isClassTeacherOfStudent(institutionA, teacherAuth, teacherUserId, student1)).toBe(false);
+
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    await createTeacherAssignment(institutionA, adminAuth, adminUserId, {
+      userId: teacherUserId, classId, academicYearId: year!.id, roleType: "class_teacher",
+    });
+    expect(await isClassTeacherOfStudent(institutionA, teacherAuth, teacherUserId, student1)).toBe(true);
+
+    // A student with no enrollment at all is never "in" any class teacher's class.
+    const unenrolled = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "AT-3", fullName: "Student Three" });
+    expect(await isClassTeacherOfStudent(institutionA, teacherAuth, teacherUserId, unenrolled.id)).toBe(false);
+
+    const leave = await applyForLeave(institutionA, adminAuth, adminUserId, {
+      applicantType: "student", applicantId: student1, startDate: "2026-07-01", endDate: "2026-07-02", reason: "Test",
+    });
+    expect(await canReviewLeaveApplication(institutionA, teacherAuth, teacherUserId, false, leave.id)).toBe(true);
+
+    const outsideLeave = await applyForLeave(institutionA, adminAuth, adminUserId, {
+      applicantType: "student", applicantId: unenrolled.id, startDate: "2026-07-01", endDate: "2026-07-02", reason: "Test",
+    });
+    expect(await canReviewLeaveApplication(institutionA, teacherAuth, teacherUserId, false, outsideLeave.id)).toBe(false);
+    // Unrestricted (attendance.edit) callers can always review, regardless of class.
+    expect(await canReviewLeaveApplication(institutionA, adminAuth, adminUserId, true, outsideLeave.id)).toBe(true);
+  });
+
+  it("listLeaveApplicationsForClassOnDate() only returns leaves whose date range covers the given date, for that class", async () => {
+    const inRange = await listLeaveApplicationsForClassOnDate(institutionA, adminAuth, classId, "2026-07-01");
+    expect(inRange.some((l) => l.applicant_id === student1)).toBe(true);
+
+    const outOfRange = await listLeaveApplicationsForClassOnDate(institutionA, adminAuth, classId, "2026-08-01");
+    expect(outOfRange.some((l) => l.applicant_id === student1)).toBe(false);
+  });
+
+  it("getDailyAttendanceOverview() rolls up enrolled/marked/present/absent/late per section and lists absentees", async () => {
+    const overview = await getDailyAttendanceOverview(institutionA, adminAuth, DAY3);
+    const row = overview.classes.find((c) => c.sectionId === sectionId)!;
+    expect(row.enrolled).toBe(2); // student1 + student2 — "Student Three" from the previous test was never enrolled anywhere
+    expect(row.marked).toBe(2);
+    expect(row.absent).toBe(1);
+    expect(row.present).toBe(1);
+    expect(overview.absentees.some((a) => a.studentId === student1)).toBe(true);
   });
 });

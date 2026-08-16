@@ -219,6 +219,298 @@ export async function listLeaveApplications(
   });
 }
 
+/** A student applicant's own leave history — used by the parent portal
+ *  (§D.6 follow-up "parents log in need an option to apply for leave"),
+ *  scoped to one already-verified-as-own-child studentId rather than the
+ *  institution-wide listLeaveApplications() above, so a parent action never
+ *  needs (and is never granted) the broad attendance.view/edit permission
+ *  just to see their own child's leave requests. */
+export async function listLeaveApplicationsForStudent(
+  institutionId: string, authUserId: string, studentId: string
+): Promise<LeaveApplicationRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<LeaveApplicationRecord>(
+      `select id, applicant_type, applicant_id, start_date, end_date, reason, status, reviewed_by, reviewed_at
+         from leave_applications
+        where applicant_type = 'student' and applicant_id = $1
+        order by created_at desc`,
+      [studentId]
+    );
+    return rows;
+  });
+}
+
+/** Leave applications whose [start_date, end_date] range covers `date`,
+ *  restricted to student applicants currently enrolled in `classId` — the
+ *  Attendance page's "leaves applied for THIS class, today" list (§D.6
+ *  follow-up), rather than the institution-wide list every class used to
+ *  share. */
+export async function listLeaveApplicationsForClassOnDate(
+  institutionId: string, authUserId: string, classId: string, date: string
+): Promise<LeaveApplicationRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<LeaveApplicationRecord>(
+      `select la.id, la.applicant_type, la.applicant_id, la.start_date, la.end_date, la.reason, la.status,
+              la.reviewed_by, la.reviewed_at
+         from leave_applications la
+         join student_enrollments se on se.student_id = la.applicant_id and se.status = 'active'
+         join academic_years ay on ay.id = se.academic_year_id and ay.is_current = true
+        where la.applicant_type = 'student' and se.class_id = $1
+          and $2 between la.start_date and la.end_date
+        order by la.created_at desc`,
+      [classId, date]
+    );
+    return rows;
+  });
+}
+
+/** Is `callerUserId` the class teacher (teacher_assignments.role_type =
+ *  'class_teacher') of the class/section a student applicant is CURRENTLY
+ *  enrolled in? The application-layer scoping gate that lets the
+ *  attendance.leave.review_own_class permission mean "only MY class", not
+ *  "any class" — same shape as mentoring's "assigned mentor only" rule
+ *  (migration 0013) and portal's isOwnChild() self-scoping. A class-teacher
+ *  assignment with section_id = null covers the whole class (every
+ *  section); one with a section_id only covers that section. */
+export async function isClassTeacherOfStudent(
+  institutionId: string, authUserId: string, callerUserId: string, studentId: string
+): Promise<boolean> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ ok: boolean }>(
+      `select exists (
+         select 1
+           from student_enrollments se
+           join academic_years ay on ay.id = se.academic_year_id and ay.is_current = true
+           join teacher_assignments ta on ta.class_id = se.class_id
+                and ta.role_type = 'class_teacher'
+                and (ta.section_id is null or ta.section_id = se.section_id)
+          where se.student_id = $1 and se.status = 'active' and ta.user_id = $2
+       ) as ok`,
+      [studentId, callerUserId]
+    );
+    return rows[0]?.ok ?? false;
+  });
+}
+
+/** Whether `callerUserId` may approve/reject THIS leave application —
+ *  unrestricted for attendance.edit holders (institution_admin/management),
+ *  scoped to "my own class only" for attendance.leave.review_own_class
+ *  holders (class teachers). The caller (server action) checks this AFTER
+ *  requirePermission("attendance.edit") OR requirePermission
+ *  ("attendance.leave.review_own_class") already confirmed the caller has
+ *  ONE of the two permissions — this function decides which rule applies. */
+export async function canReviewLeaveApplication(
+  institutionId: string, authUserId: string, callerUserId: string, hasUnrestrictedEdit: boolean, leaveId: string
+): Promise<boolean> {
+  if (hasUnrestrictedEdit) return true;
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ applicant_type: string; applicant_id: string }>(
+      "select applicant_type, applicant_id from leave_applications where id = $1",
+      [leaveId]
+    );
+    if (rows.length === 0 || rows[0].applicant_type !== "student") return false;
+    return isClassTeacherOfStudent(institutionId, authUserId, callerUserId, rows[0].applicant_id);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Attendance alerts — absentee/late-coming WhatsApp notifications (§D.6
+// follow-up: "attendance must present by default... if someone marked for
+// late coming that also should go as a message... once attendance is
+// saved, a preview of absentee and latecoming alert will be shown, should
+// be editable, cancellable, then press confirm whatsapp message will be
+// sent"). Two-step by design: markAttendance() above already persisted the
+// records (attendance data must be saved regardless of whether any alert
+// is ever confirmed/sent); these two functions are the separate,
+// explicitly-confirmed second step.
+// ---------------------------------------------------------------------------
+export interface AttendanceAlertCandidate {
+  studentId: string;
+  studentName: string;
+  admissionNumber: string;
+  statusLabel: string;
+  countsAsPresent: boolean;
+  isLate: boolean;
+  lateMinutes: number | null;
+  /** null when the student has no linked portal login (see
+   *  modules/portal/service.ts's createStudentLoginAccount — the login's
+   *  password IS the parent's phone number, so users.phone doubles as the
+   *  parent contact number for messaging). No phone means this row can be
+   *  previewed but not sent. */
+  phone: string | null;
+  defaultMessage: string;
+}
+
+/** Builds the preview list — every student marked absent or late for this
+ *  class/section/date, with a ready-to-edit default WhatsApp message per
+ *  row. Read-only; sends nothing (see sendAttendanceAlerts() below for the
+ *  confirm step). */
+export async function getAttendanceAlertCandidates(
+  institutionId: string, authUserId: string, classId: string, sectionId: string, date: string
+): Promise<AttendanceAlertCandidate[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: instRows } = await scoped.query<{ name: string }>("select name from institutions limit 1");
+    const institutionName = instRows[0]?.name ?? "your institution";
+
+    const { rows } = await scoped.query<{
+      student_id: string; student_name: string; admission_number: string;
+      status_label: string; counts_as_present: boolean; is_late: boolean; late_minutes: number | null;
+      phone: string | null;
+    }>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number,
+              ast.label as status_label, ast.counts_as_present, coalesce(ar.is_late, false) as is_late,
+              ar.late_minutes, u.phone
+         from attendance_records ar
+         join students s on s.id = ar.student_id
+         join attendance_statuses ast on ast.id = ar.status_id
+         left join users u on u.id = s.user_id
+        where ar.class_id = $1 and ar.section_id = $2 and ar.date = $3
+          and (ast.counts_as_present = false or coalesce(ar.is_late, false) = true)
+        order by s.full_name`,
+      [classId, sectionId, date]
+    );
+
+    return rows.map((r): AttendanceAlertCandidate => {
+      const defaultMessage = !r.counts_as_present
+        ? `Dear Parent, ${r.student_name} was marked ABSENT today (${date}) at ${institutionName}. Please contact the class teacher if this is unexpected.`
+        : `Dear Parent, ${r.student_name} arrived LATE${r.late_minutes ? ` (${r.late_minutes} min)` : ""} today (${date}) at ${institutionName}.`;
+      return {
+        studentId: r.student_id,
+        studentName: r.student_name,
+        admissionNumber: r.admission_number,
+        statusLabel: r.status_label,
+        countsAsPresent: r.counts_as_present,
+        isLate: r.is_late,
+        lateMinutes: r.late_minutes,
+        phone: r.phone,
+        defaultMessage,
+      };
+    });
+  });
+}
+
+const sendAlertsSchema = z.object({
+  alerts: z.array(z.object({
+    studentId: z.string().uuid(),
+    message: z.string().min(1).max(1000),
+  })).min(1),
+});
+
+export interface SendAttendanceAlertsResult {
+  studentId: string;
+  ok: boolean;
+  reason?: string;
+}
+
+/** The confirm step — sends exactly the (possibly hand-edited) alerts the
+ *  caller submits, one WhatsApp notifyUser() call per student, via each
+ *  student's own linked users row (§D.6 follow-up "confirm, whatsapp
+ *  message will be sent"). Students with no portal login (no linked
+ *  users.id) are skipped with an explicit reason rather than silently
+ *  dropped, so the UI can show exactly which alerts didn't go out and why. */
+export async function sendAttendanceAlerts(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof sendAlertsSchema>
+): Promise<SendAttendanceAlertsResult[]> {
+  const data = sendAlertsSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const results: SendAttendanceAlertsResult[] = [];
+    for (const alert of data.alerts) {
+      const { rows } = await scoped.query<{ user_id: string | null }>(
+        "select user_id from students where id = $1", [alert.studentId]
+      );
+      const studentUserId = rows[0]?.user_id ?? null;
+      if (!studentUserId) {
+        results.push({ studentId: alert.studentId, ok: false, reason: "No portal login (and phone number) on file for this student." });
+        continue;
+      }
+      await notifyUser(institutionId, authUserId, studentUserId, {
+        type: "attendance_alert",
+        title: "Attendance alert",
+        body: alert.message,
+        channels: ["whatsapp"],
+        relatedEntityType: "students",
+        relatedEntityId: alert.studentId,
+      }, scoped);
+      results.push({ studentId: alert.studentId, ok: true });
+    }
+    await recordAudit(scoped, {
+      institutionId, userId, action: "send_alerts", module: "attendance", entityType: "attendance_records",
+      entityId: null, after: { count: data.alerts.length, sent: results.filter((r) => r.ok).length },
+    });
+    return results;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Daily attendance overview (§D.6 follow-up: "daily attendance + absentee
+// list must be visible to principal") — an institution-wide, per-date
+// rollup across every class/section, for whoever holds the unrestricted
+// attendance.edit permission (institution_admin, and the "management"/
+// Principal role once granted it — see services/super-admin/
+// super-admin-service.ts's DEFAULT_ROLE_PERMISSION_GRANTS).
+// ---------------------------------------------------------------------------
+export interface DailyClassAttendanceRow {
+  classId: string; className: string; sectionId: string; sectionName: string;
+  enrolled: number; marked: number; present: number; absent: number; late: number;
+}
+export interface DailyAttendanceOverview {
+  classes: DailyClassAttendanceRow[];
+  absentees: Array<{ studentId: string; studentName: string; className: string; sectionName: string }>;
+}
+
+export async function getDailyAttendanceOverview(
+  institutionId: string, authUserId: string, date: string
+): Promise<DailyAttendanceOverview> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: classRows } = await scoped.query<DailyClassAttendanceRow & { enrolled: string; marked: string; present: string; absent: string; late: string }>(
+      `select se.class_id as "classId", c.name as "className", se.section_id as "sectionId", sec.name as "sectionName",
+              count(distinct se.student_id) as enrolled,
+              count(distinct ar.student_id) as marked,
+              count(distinct ar.student_id) filter (where ast.counts_as_present) as present,
+              count(distinct ar.student_id) filter (where not ast.counts_as_present) as absent,
+              count(distinct ar.student_id) filter (where ar.is_late) as late
+         from student_enrollments se
+         join academic_years ay on ay.id = se.academic_year_id and ay.is_current = true
+         join classes c on c.id = se.class_id
+         join sections sec on sec.id = se.section_id
+         left join attendance_records ar on ar.student_id = se.student_id and ar.date = $1
+         left join attendance_statuses ast on ast.id = ar.status_id
+        where se.status = 'active'
+        group by se.class_id, c.name, se.section_id, sec.name, c.sort_order
+        order by c.sort_order, sec.name`,
+      [date]
+    );
+
+    const { rows: absenteeRows } = await scoped.query<{ studentId: string; studentName: string; className: string; sectionName: string }>(
+      `select s.id as "studentId", s.full_name as "studentName", c.name as "className", sec.name as "sectionName"
+         from attendance_records ar
+         join students s on s.id = ar.student_id
+         join attendance_statuses ast on ast.id = ar.status_id
+         join classes c on c.id = ar.class_id
+         join sections sec on sec.id = ar.section_id
+        where ar.date = $1 and ast.counts_as_present = false
+        order by c.sort_order, sec.name, s.full_name`,
+      [date]
+    );
+
+    return {
+      classes: classRows.map((r) => ({
+        classId: r.classId, className: r.className, sectionId: r.sectionId, sectionName: r.sectionName,
+        enrolled: Number(r.enrolled), marked: Number(r.marked), present: Number(r.present),
+        absent: Number(r.absent), late: Number(r.late),
+      })),
+      absentees: absenteeRows,
+    };
+  });
+}
+
 /** Approve/reject a leave application (§D.6). Caller (server action) must
  *  check the attendance.edit permission before invoking this. */
 export async function reviewLeaveApplication(

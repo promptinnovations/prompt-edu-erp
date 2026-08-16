@@ -110,14 +110,14 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     ],
     teacher: [
       "student.view", "marks.view", "marks.enter", "marks.verify",
-      "attendance.view", "attendance.enter", "skills.review",
+      "attendance.view", "attendance.enter", "attendance.leave.review_own_class", "skills.review",
       "achievements.submit", "portfolio.view_own", "discipline.record",
       "staff.view", "staff.portion.manage",
       "mentoring.view_own", "mentoring.create", "announcements.view",
     ],
     librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view"],
-    parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view"],
-    student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view"],
+    parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply"],
+    student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply"],
     staff: ["staff.view", "announcements.view"],
   };
   for (const [roleCode, permCodes] of Object.entries(roleGrants)) {

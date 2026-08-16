@@ -90,6 +90,55 @@ const SYSTEM_ROLES: Array<[string, string]> = [
   ["student", "Student"],
 ];
 
+/** Default permission grants for every non-institution_admin system role
+ *  (§F.4). Found missing entirely for real, production-created institutions
+ *  while building the §D.6 attendance-alerts follow-up: createInstitution()
+ *  previously created these role ROWS but never granted them any
+ *  role_permissions at all (only database/scripts/seed.ts's DEMO-only
+ *  seedInstitutionDefaults() did) — every non-admin user at every
+ *  institution created through this real, production path (Badrudhuja was
+ *  the one exception, backfilled by hand earlier) had zero permissions and
+ *  could do nothing in the app after logging in. Kept in exact sync with
+ *  seed.ts's own `roleGrants` (same defaults, demo or real) — if one
+ *  changes, update the other. */
+const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
+  management: [
+    "student.view_all", "marks.view", "marks.approve", "attendance.view", "attendance.edit",
+    "achievements.verify", "achievements.approve", "skills.approve",
+    "discipline.view", "portfolio.view_all", "reports.view", "reports.export", "audit.view",
+    "staff.view", "staff.edit", "staff.portion.manage", "staff.observation.manage", "staff.assignment.manage",
+    "mentoring.view_all", "data.import", "data.export", "announcements.publish", "announcements.view",
+    "files.manage",
+  ],
+  teacher: [
+    "student.view", "marks.view", "marks.enter", "marks.verify",
+    "attendance.view", "attendance.enter", "attendance.leave.review_own_class", "skills.review",
+    "achievements.submit", "portfolio.view_own", "discipline.record",
+    "staff.view", "staff.portion.manage",
+    "mentoring.view_own", "mentoring.create", "announcements.view",
+  ],
+  librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view"],
+  parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply"],
+  student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply"],
+  staff: ["staff.view", "announcements.view"],
+};
+
+/** Default attendance statuses (§D.6, §36 "one status per institution must
+ *  be is_default=true") — found missing entirely for real, production-
+ *  created institutions during the same audit that found
+ *  DEFAULT_ROLE_PERMISSION_GRANTS missing: createInstitution() never seeded
+ *  attendance_statuses, so the "Take attendance" status dropdown had zero
+ *  options (rendered as an empty select) at every institution created
+ *  through this path until an admin manually added statuses. Same 5-status
+ *  set as seed.ts's demo institutions and the one Badrudhuja already had. */
+const DEFAULT_ATTENDANCE_STATUSES: Array<[string, string, boolean, boolean]> = [
+  ["present",   "Present",   true,  true],
+  ["absent",    "Absent",    false, false],
+  ["late",      "Late",      true,  false],
+  ["half_day",  "Half Day",  true,  false],
+  ["on_leave",  "On Leave",  false, false],
+];
+
 export async function listInstitutions(authUserId: string): Promise<InstitutionRecord[]> {
   return withSuperAdminContext(authUserId, async (scoped) => {
     const { rows } = await scoped.query<InstitutionRecord>(
@@ -213,6 +262,27 @@ export async function createInstitution(
        on conflict do nothing`,
       [institution.id]
     );
+    // Every other system role's default grant — see DEFAULT_ROLE_PERMISSION_GRANTS's
+    // own doc comment for why this was missing entirely before.
+    for (const [roleCode, permCodes] of Object.entries(DEFAULT_ROLE_PERMISSION_GRANTS)) {
+      await scoped.query(
+        `insert into role_permissions (role_id, permission_id)
+         select r.id, p.id from roles r, permissions p
+          where r.institution_id = $1 and r.code = $2 and p.code = any($3::text[])
+         on conflict do nothing`,
+        [institution.id, roleCode, permCodes]
+      );
+    }
+    // Default attendance statuses — see DEFAULT_ATTENDANCE_STATUSES's own
+    // doc comment for why this was missing entirely before.
+    for (const [code, label, countsAsPresent, isDefault] of DEFAULT_ATTENDANCE_STATUSES) {
+      await scoped.query(
+        `insert into attendance_statuses (institution_id, code, label, counts_as_present, is_default)
+         values ($1, $2, $3, $4, $5)
+         on conflict (institution_id, code) do nothing`,
+        [institution.id, code, label, countsAsPresent, isDefault]
+      );
+    }
 
     if (data.adminEmail && data.adminFullName && data.adminPassword) {
       const authService = await getAuthService();
