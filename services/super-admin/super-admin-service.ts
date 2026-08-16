@@ -163,6 +163,51 @@ export async function getInstitutionForSuperAdmin(authUserId: string, institutio
   });
 }
 
+export interface InstitutionWhatsAppConfig {
+  idInstance: string | null;
+  apiTokenInstance: string | null;
+}
+
+/** §D.6 follow-up: "message for each institution should go from a number
+ *  which is related to the institution which I will add for each
+ *  institution" — one GREEN-API instance per institution (its own paired
+ *  WhatsApp number), set by the platform owner here, not by the
+ *  institution itself (see migration 0027's own doc comment for why this
+ *  lives in Super Admin, not institution Settings). */
+export async function getInstitutionWhatsAppConfig(authUserId: string, institutionId: string): Promise<InstitutionWhatsAppConfig> {
+  return withSuperAdminContext(authUserId, async (scoped) => {
+    const { rows } = await scoped.query<{ id_instance: string | null; token_instance: string | null }>(
+      `select whatsapp_green_api_id_instance as id_instance, whatsapp_green_api_token_instance as token_instance
+         from institutions where id = $1`,
+      [institutionId]
+    );
+    return { idInstance: rows[0]?.id_instance ?? null, apiTokenInstance: rows[0]?.token_instance ?? null };
+  });
+}
+
+const updateWhatsAppConfigSchema = z.object({
+  idInstance: z.string().trim().max(100).nullable(),
+  apiTokenInstance: z.string().trim().max(200).nullable(),
+});
+
+export async function updateInstitutionWhatsAppConfig(
+  authUserId: string, institutionId: string, input: z.infer<typeof updateWhatsAppConfigSchema>
+): Promise<void> {
+  const data = updateWhatsAppConfigSchema.parse(input);
+  return withSuperAdminContext(authUserId, async (scoped, callerUserId) => {
+    await scoped.query(
+      `update institutions
+          set whatsapp_green_api_id_instance = $1, whatsapp_green_api_token_instance = $2, updated_at = now()
+        where id = $3`,
+      [data.idInstance || null, data.apiTokenInstance || null, institutionId]
+    );
+    await recordPlatformAudit(scoped, {
+      actorUserId: callerUserId, institutionId, action: "update", entityType: "institutions",
+      entityId: institutionId, after: { whatsappConfigured: !!(data.idInstance && data.apiTokenInstance) },
+    });
+  });
+}
+
 const createInstitutionSchema = z.object({
   code: institutionCodeSchema,
   name: z.string().min(1).max(200),

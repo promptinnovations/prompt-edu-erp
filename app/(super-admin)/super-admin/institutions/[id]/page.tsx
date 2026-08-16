@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSuperAdminContext } from "../../../../../services/request-context";
-import { listInstitutions } from "../../../../../services/super-admin/super-admin-service";
+import { listInstitutions, getInstitutionWhatsAppConfig } from "../../../../../services/super-admin/super-admin-service";
 import { listInstitutionModuleStatus } from "../../../../../services/modules/module-service";
 import ModuleToggleForm from "./ModuleToggleForm";
+import WhatsAppConfigForm from "./WhatsAppConfigForm";
 import { openInstitutionAction } from "./actions";
 
 export default async function InstitutionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requireSuperAdminContext();
 
-  const [institutions, modules] = await Promise.all([
+  const [institutions, modules, whatsappConfig] = await Promise.all([
     listInstitutions(ctx.session.authUserId),
     listInstitutionModuleStatus(ctx.session.authUserId, id),
+    getInstitutionWhatsAppConfig(ctx.session.authUserId, id),
   ]);
   const institution = institutions.find((i) => i.id === id);
   if (!institution) notFound();
@@ -90,6 +92,20 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           </tbody>
         </table>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">WhatsApp (GREEN-API)</h2>
+        <p className="mb-4 text-xs text-zinc-400 dark:text-zinc-500">
+          Each institution sends attendance alerts from its own WhatsApp number — enter the ID Instance and API
+          Token Instance from this institution&apos;s own GREEN-API console. Leave both blank to disable WhatsApp
+          sending for this institution (alerts still log to the console/notifications table as skipped).
+        </p>
+        <WhatsAppConfigForm
+          institutionId={id}
+          idInstance={whatsappConfig.idInstance}
+          apiTokenInstance={whatsappConfig.apiTokenInstance}
+        />
       </section>
     </div>
   );

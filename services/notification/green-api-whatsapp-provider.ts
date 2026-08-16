@@ -6,10 +6,10 @@
  * pairs to a real WhatsApp number via QR code (like WhatsApp Web) rather
  * than requiring Meta Business verification — chosen for this build because
  * it needs no business-account approval process to start sending. Untested
- * against a real instance in this environment (GREEN_API_ID_INSTANCE /
- * GREEN_API_TOKEN_INSTANCE are not set here yet — see docs/SETUP.md); once
- * set on the real deployment (Vercel env vars), sending goes live with no
- * further code changes.
+ * against a real instance in this environment; once real credentials are
+ * set (per-institution, via Super Admin -> institution detail — see
+ * whatsapp-provider.ts's own doc comment for why per-institution, not a
+ * single global env var), sending goes live with no further code changes.
  *
  * API shape (https://green-api.com/en/docs/api/sending/SendMessage/):
  *   POST {apiUrl}/waInstance{idInstance}/sendMessage/{apiTokenInstance}
@@ -23,7 +23,7 @@
  * India) prepended; anything else is assumed to already include a country
  * code and is passed through digits-only, unmodified.
  */
-import type { WhatsAppProvider } from "./whatsapp-provider";
+import type { WhatsAppProvider, GreenApiCredentials } from "./whatsapp-provider";
 
 function toChatId(phone: string): string {
   const digits = phone.replace(/\D/g, "").replace(/^0+/, "");
@@ -32,14 +32,13 @@ function toChatId(phone: string): string {
   return `${withCountryCode}@c.us`;
 }
 
-export function createGreenApiWhatsAppProvider(): WhatsAppProvider {
+export function createGreenApiWhatsAppProvider(credentials: GreenApiCredentials): WhatsAppProvider {
   return {
     isConfigured: true,
     async sendMessage(phone, message) {
       try {
-        const apiUrl = process.env.GREEN_API_URL ?? "https://api.green-api.com";
-        const idInstance = process.env.GREEN_API_ID_INSTANCE;
-        const apiTokenInstance = process.env.GREEN_API_TOKEN_INSTANCE;
+        const apiUrl = credentials.apiUrl || "https://api.green-api.com";
+        const { idInstance, apiTokenInstance } = credentials;
         const res = await fetch(`${apiUrl}/waInstance${idInstance}/sendMessage/${apiTokenInstance}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

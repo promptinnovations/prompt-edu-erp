@@ -844,16 +844,29 @@ to principal."
   (pairs to a real WhatsApp number by QR code, like WhatsApp Web). New
   provider files (`services/notification/whatsapp-provider.ts` +
   `console-whatsapp-provider.ts` + `green-api-whatsapp-provider.ts`) mirror
-  `email-provider.ts`'s exact provider-swap shape. **Not yet configured in
-  this environment** — `GREEN_API_ID_INSTANCE`/`GREEN_API_TOKEN_INSTANCE`
-  are unset, so every WhatsApp send currently records
-  `notifications.status='skipped'` (logged to console instead) until real
-  credentials are added as Vercel env vars — see `.env.example`. A
-  student's WhatsApp target number is `users.phone`, resolved via
-  `students.user_id` — i.e. only students with a portal login (§137
-  follow-up "parent phone as password") can currently receive alerts;
-  students without one show "No phone on file" in the preview and can't
-  be sent to.
+  `email-provider.ts`'s exact provider-swap shape.
+- **Per-institution, not one shared platform number** ("message for each
+  institution should go from a number which is related to the institution
+  which I will add for each institution"): GREEN-API ID
+  Instance/API Token Instance are stored on `institutions` (migration
+  0027: `whatsapp_green_api_id_instance`/`_token_instance`), set by the
+  platform owner via Super Admin → institution detail (`WhatsAppConfigForm`
+  — new "WhatsApp (GREEN-API)" section), NOT institution self-service —
+  these are Prompt Innovations' own purchased instances, one per
+  institution. `notifyUser()` resolves the CALLER's own institution's
+  credentials and passes them explicitly into `getWhatsAppProvider()`,
+  so institutions can never share or cross-send from each other's number.
+  `GREEN_API_ID_INSTANCE`/`GREEN_API_TOKEN_INSTANCE` env vars remain only
+  as a platform-wide FALLBACK (local dev/testing with one shared instance)
+  — never used once an institution has its own configured. **Not yet
+  configured for any real institution as of this writing** — every
+  WhatsApp send currently records `notifications.status='skipped'`
+  (logged to console instead) until real credentials are entered for each
+  institution. A student's WhatsApp target number is `users.phone`,
+  resolved via `students.user_id` — i.e. only students with a portal
+  login (§137 follow-up "parent phone as password") can currently receive
+  alerts; students without one show "No phone on file" in the preview and
+  can't be sent to.
 - **Per-class leave list**: `listLeaveApplicationsForClassOnDate()`
   replaces the old institution-wide leave list on the Attendance page once
   a class is selected — only leaves whose date range covers the selected

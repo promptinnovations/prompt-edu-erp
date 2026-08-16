@@ -60,12 +60,28 @@ export async function notifyUser(
       recipientEmail = rows[0]?.email ?? null;
     }
     let recipientPhone: string | null = null;
+    // §D.6 follow-up: each institution sends from its OWN GREEN-API
+    // instance/number, not a shared platform one — resolved here (institution
+    // is already the caller's own scoped context) and passed explicitly to
+    // getWhatsAppProvider() rather than read from a single global env var
+    // (see whatsapp-provider.ts's own doc comment).
+    let greenApiCredentials: { idInstance: string; apiTokenInstance: string; apiUrl: string | null } | null = null;
     if (channels.includes("whatsapp")) {
       const { rows } = await scoped.query<{ phone: string | null }>(
         "select phone from users where id = $1",
         [targetUserId]
       );
       recipientPhone = rows[0]?.phone ?? null;
+      const { rows: instRows } = await scoped.query<{ id_instance: string | null; token_instance: string | null }>(
+        "select whatsapp_green_api_id_instance as id_instance, whatsapp_green_api_token_instance as token_instance from institutions limit 1"
+      );
+      if (instRows[0]?.id_instance && instRows[0]?.token_instance) {
+        greenApiCredentials = {
+          idInstance: instRows[0].id_instance,
+          apiTokenInstance: instRows[0].token_instance,
+          apiUrl: process.env.GREEN_API_URL ?? null,
+        };
+      }
     }
 
     for (const channel of channels) {
@@ -92,7 +108,7 @@ export async function notifyUser(
         if (!recipientPhone) {
           status = "skipped"; // no phone on file for this user — nothing to send to
         } else {
-          const provider = getWhatsAppProvider();
+          const provider = getWhatsAppProvider(greenApiCredentials);
           if (!provider.isConfigured) {
             status = "skipped"; // §R.4 — real provider exists (GREEN-API) but no instance configured yet
           } else {
