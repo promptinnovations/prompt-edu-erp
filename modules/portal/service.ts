@@ -205,16 +205,27 @@ function slugifyForEmail(text: string): string {
  *  on collision (§137 follow-up, confirmed behavior) — checked inside the
  *  same transaction as the insert that will claim it, so two admins
  *  provisioning two same-named students back to back can't race each
- *  other onto the same login id. */
+ *  other onto the same login id.
+ *
+ *  Collision is checked by comparing the SLUGIFIED form (what actually
+ *  becomes the synthetic email's local part), not the raw name — two
+ *  names that differ only in punctuation/spacing (e.g. "Nasha Fathima .K"
+ *  vs "Nasha Fathima. K") are otherwise "different" strings but collapse
+ *  to the exact same slug, which the unique login_id INDEX (case- but not
+ *  punctuation-insensitive) would still allow, but the email it produces
+ *  would then collide and fail account creation. Fetches all of the
+ *  institution's existing login_ids once (small — bounded by student
+ *  count) rather than one query per attempt. */
 async function generateUniqueLoginId(scoped: DbClient, institutionId: string, fullName: string): Promise<string> {
+  const { rows } = await scoped.query<{ login_id: string }>(
+    "select login_id from students where institution_id = $1 and login_id is not null",
+    [institutionId]
+  );
+  const takenSlugs = new Set(rows.map((r) => slugifyForEmail(r.login_id)));
   const base = fullName.trim();
   let candidate = base;
   for (let suffix = 2; ; suffix++) {
-    const { rows } = await scoped.query<{ id: string }>(
-      "select id from students where institution_id = $1 and lower(login_id) = lower($2)",
-      [institutionId, candidate]
-    );
-    if (rows.length === 0) return candidate;
+    if (!takenSlugs.has(slugifyForEmail(candidate))) return candidate;
     candidate = `${base} ${suffix}`;
   }
 }
