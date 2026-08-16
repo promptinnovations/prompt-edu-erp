@@ -9,7 +9,7 @@
  */
 export const RESERVED_INSTITUTION_CODES = new Set([
   "academic", "achievements", "analytics", "announcements", "attendance",
-  "dashboard", "discipline", "examinations", "import", "library", "login",
+  "classes", "dashboard", "discipline", "examinations", "import", "library", "login",
   "mentoring", "module-unavailable", "reports", "scoring", "settings",
   "skills", "staff", "storage", "students", "super-admin", "suspended",
   "users", "portal", "api", "icons", "icon-badge", "favicon.ico",

@@ -112,7 +112,7 @@ const RULES: RateLimitRule[] = [
 // sitemap.xml, sw.js, _next, super-admin) — those always stay exactly
 // where they are, cookie or no cookie.
 const INSTITUTION_APP_PAGES = new Set([
-  "dashboard", "academic", "students", "examinations", "attendance",
+  "dashboard", "academic", "classes", "students", "examinations", "attendance",
   "analytics", "skills", "achievements", "scoring", "library", "staff",
   "discipline", "mentoring", "reports", "import", "announcements",
   "storage", "users", "settings", "login", "portal", "suspended",

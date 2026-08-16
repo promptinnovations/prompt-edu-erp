@@ -609,6 +609,73 @@ that is the entire point of the `StorageProvider` abstraction.
   activities offer deactivation (`isActive: false`) as the safe alternative
   once something is in use. Covered by
   `tests/integration/institution-config-flow.test.ts`.
+- **§137 follow-up: Badrudhuja's `type` was wrong in production** — it was
+  seeded as `madrasa`; it's a college. Corrected directly in the DB
+  (`update institutions set type = 'college' where lower(code) =
+  'badrudhuja'`). No code change was needed, but it's the reason
+  `createInstitutionSchema`'s madrasa-only board validation (below) only
+  fires for genuinely-madrasa institutions.
+- **§137 follow-up: separate installable PWAs per institution, actually
+  fixed** — `id`/`scope`/`start_url` differing per institution inside the
+  manifest JSON was necessary but not sufficient; `app/layout.tsx`'s
+  metadata and `app/manifest.webmanifest/route.ts`'s icon URLs were
+  **literal, identical strings** (`/manifest.webmanifest`, `/icon-badge/
+  192`) for every institution, and browsers key install/cache behavior off
+  the request URL itself, not just the parsed JSON. Fixed by adding
+  `assetBasePath` to `services/branding/app-identity.ts`'s `AppIdentity`
+  (`/<code>` for an institution, `""` for generic/super-admin) and
+  prefixing every manifest/icon URL with it — reusing the already-existing
+  `/<code>/<rest>` middleware rewrite, so no new routes were needed.
+- **§137 follow-up: institution-scoped login now rejects other
+  institutions' accounts** — `/mmp/login` previously accepted any
+  institution's valid staff credentials and silently routed the user to
+  their real institution's dashboard (RLS still prevented any actual data
+  leak, but it broke the "install MMP's app, only MMP logins work there"
+  expectation). `app/(auth)/login/actions.ts` now reads the
+  `ACTIVE_INSTITUTION_COOKIE`-set institution code and rejects (signing the
+  user back out) when a non-super-admin's real institution doesn't match
+  it, via `resolveActiveInstitution()`'s existing (previously unused)
+  `requestedInstitutionCode` parameter.
+- **§137 follow-up: "Classes" sidebar hub** (`/classes`,
+  `/classes/[classId]`) — a single overview pulling together data that
+  used to live scattered across `/academic` (names only), `/students`,
+  `/staff` (`teacher_assignments`), and `/attendance`: every class grouped
+  by phase (LP 1–4 / UP 5–7 / HS 8–10 / HSS 11–12, presentational only,
+  computed from numeric class names — a class named anything else falls
+  into "Other"), its divisions (the existing `sections` table — labelled
+  "Division" here per the platform owner's own vocabulary: "A, B, C, D are
+  divisions, section is like LP, UP, HS, HSS"), assigned class teacher,
+  student count, and a deep link into that division's attendance for
+  today. Deliberately a read-only hub with links out to the existing
+  create/edit forms rather than a duplicate of each one.
+- **§137 follow-up: Educational Board for madrasa institutions (SKSVB /
+  SKIMVB)** — Super Admin's institution-creation form now shows an
+  "Educational board" selector whenever type = madrasa (required; rejected
+  for any other type). `institutions.board` (migration
+  `0024_institution_board.sql`) records the choice. Selecting **SKSVB**
+  auto-provisions, inside the same creation transaction
+  (`provisionSksvbDefaults()` in `services/super-admin/
+  super-admin-service.ts`): classes 1–12, every subject from the given
+  SKSVB syllabus, and `class_subjects` linking each class to its own
+  subject list. "Qur'an & Hifz" (present from class 2 onward) is flagged
+  `subjects.category = 'practical'` and `class_subjects.is_core = false` —
+  it's graded out of 20 marks with **no** TE/CE split, unlike every other
+  subject, which uses TE(80) + CE(20) = 100 (per the platform owner:
+  "practical only 20, other subjects 80+20"). **Scoped out of this pass**:
+  actually computing a combined TE+CE result per subject. `exam_types`/
+  `examinations`/`exam_subjects` are per-academic-year instances an
+  Institution Admin creates later (an institution has no academic year yet
+  at Super Admin creation time), and the existing results engine
+  (`computeResults()` in `modules/examination/service.ts`) computes one
+  examination at a time — it has no notion of "combine these two
+  examinations' marks into one subject total" yet. When an Institution
+  Admin sets up TE and CE examinations for a board = 'sksvb' institution,
+  they should give Qur'an & Hifz a single 20-mark component (in either
+  exam, not both) and every other subject 80 marks under TE + 20 under CE;
+  a real combined-result feature is a follow-up, not built here.
+  **SKIMVB** is accepted by the form and recorded, but has no
+  auto-provisioning yet — the platform owner said its syllabus/rules would
+  follow later.
 - **CSV import uses a hand-rolled RFC4180-ish parser, not a library**:
   `modules/bulk/service.ts`'s `parseCsv()` handles quoted fields, escaped
   quotes, and CRLF/LF line endings, but hasn't been fuzz-tested against

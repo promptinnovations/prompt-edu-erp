@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createInstitutionAction } from "./actions";
 
 export default function CreateInstitutionForm() {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(createInstitutionAction, { error: null });
+  const [type, setType] = useState("madrasa");
 
   return (
     <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2">
@@ -18,7 +19,12 @@ export default function CreateInstitutionForm() {
       </div>
       <div className="w-full sm:w-auto">
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Type</label>
-        <select name="type" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select
+          name="type"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+        >
           <option value="madrasa">Madrasa</option>
           <option value="islamic_school">Islamic School</option>
           <option value="school">School</option>
@@ -27,6 +33,23 @@ export default function CreateInstitutionForm() {
           <option value="other">Other</option>
         </select>
       </div>
+      {type === "madrasa" ? (
+        <div className="w-full sm:w-auto">
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Educational board</label>
+          <select
+            name="board"
+            defaultValue="sksvb"
+            required
+            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          >
+            <option value="sksvb">SKSVB</option>
+            <option value="skimvb">SKIMVB</option>
+          </select>
+          <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500 sm:w-40">
+            SKSVB auto-creates classes 1–12 and their subjects. SKIMVB just records the choice for now.
+          </p>
+        </div>
+      ) : null}
       <div className="w-full sm:w-auto">
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Default locale</label>
         <select name="defaultLocale" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">

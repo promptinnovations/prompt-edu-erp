@@ -27,11 +27,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: identity.name,
     description: "PROMPT EDU ERP — Technology with Purpose. A product of Prompt Innovations.",
-    manifest: "/manifest.webmanifest",
+    // §137 follow-up — a genuinely distinct URL per institution, not just a
+    // shared one serving different content (see assetBasePath's own doc
+    // comment in services/branding/app-identity.ts for why that distinction
+    // is what actually makes "Install" create a separate app).
+    manifest: `${identity.assetBasePath}/manifest.webmanifest`,
     icons: identity.dynamicIcon
       ? {
-          icon: [{ url: "/icon-badge/192", sizes: "192x192", type: "image/png" }],
-          apple: [{ url: "/icon-badge/512", sizes: "512x512", type: "image/png" }],
+          icon: [{ url: `${identity.assetBasePath}/icon-badge/192`, sizes: "192x192", type: "image/png" }],
+          apple: [{ url: `${identity.assetBasePath}/icon-badge/512`, sizes: "512x512", type: "image/png" }],
         }
       : {
           icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],

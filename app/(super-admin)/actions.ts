@@ -10,10 +10,12 @@ export async function createInstitutionAction(_prevState: { error: string | null
     const adminEmail = String(formData.get("adminEmail") ?? "") || undefined;
     const adminFullName = String(formData.get("adminFullName") ?? "") || undefined;
     const adminPassword = String(formData.get("adminPassword") ?? "") || undefined;
+    const board = String(formData.get("board") ?? "") || undefined;
     await createInstitution(ctx.session.authUserId, {
       code: String(formData.get("code") ?? ""),
       name: String(formData.get("name") ?? ""),
       type: (String(formData.get("type") ?? "other")) as "madrasa" | "islamic_school" | "school" | "college" | "dars" | "other",
+      board: board as "sksvb" | "skimvb" | undefined,
       defaultLocale: (String(formData.get("defaultLocale") ?? "en")) as "en" | "ml",
       adminEmail, adminFullName, adminPassword,
     });

@@ -41,8 +41,8 @@ export async function GET() {
     theme_color: "#4f46e5",
     icons: identity.dynamicIcon
       ? [
-          { src: "/icon-badge/192", sizes: "192x192", type: "image/png" },
-          { src: "/icon-badge/512", sizes: "512x512", type: "image/png" },
+          { src: `${identity.assetBasePath}/icon-badge/192`, sizes: "192x192", type: "image/png" },
+          { src: `${identity.assetBasePath}/icon-badge/512`, sizes: "512x512", type: "image/png" },
         ]
       : [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

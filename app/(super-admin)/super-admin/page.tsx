@@ -94,7 +94,10 @@ export default async function SuperAdminOverviewPage() {
                     <td className="py-1.5 pr-4">
                       <InstitutionUrlCell institutionId={inst.id} code={inst.code} baseUrl={baseUrl} />
                     </td>
-                    <td className="py-1.5 pr-4 text-zinc-500 dark:text-zinc-400">{inst.type}</td>
+                    <td className="py-1.5 pr-4 text-zinc-500 dark:text-zinc-400">
+                      {inst.type}
+                      {inst.board ? <span className="ml-1 uppercase text-[10px] text-indigo-500 dark:text-indigo-400">({inst.board})</span> : null}
+                    </td>
                     <td className="py-1.5 pr-4 dark:text-zinc-300">{u?.student_count ?? 0}</td>
                     <td className="py-1.5 pr-4 dark:text-zinc-300">{u?.staff_count ?? 0}</td>
                     <td className="py-1.5 pr-4 dark:text-zinc-300">{u?.user_count ?? 0}</td>

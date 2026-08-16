@@ -44,6 +44,26 @@ export interface AppIdentity {
   scope: string;
   /** manifest.json's `start_url` — always inside `scope` above. */
   startUrl: string;
+  /** §137 follow-up ("still not able to download different apps
+   *  separately") — root cause found: app/layout.tsx's <link rel=
+   *  "manifest"> and the icon <link>/<meta> tags all pointed at the exact
+   *  same literal URLs ("/manifest.webmanifest", "/icon-badge/192") for
+   *  EVERY institution. `scope`/`start_url`/`id` differing INSIDE the
+   *  manifest body was real progress (§172/173) but browsers' install
+   *  pipelines key "have I already seen this manifest/icon" heavily off
+   *  the REQUEST URL itself, not just its parsed content — a shared URL
+   *  serving different JSON per request is exactly the pattern that made
+   *  Chrome/Android treat a second institution's install as "update the
+   *  one I already have" rather than "here's a new app", and (worse) let
+   *  the icon-badge route's `Cache-Control: public, max-age=3600` serve
+   *  one institution's cached icon PNG to another's install attempt.
+   *  `assetBasePath` is prepended to every manifest/icon URL below so each
+   *  institution gets a genuinely distinct, independently-cacheable URL
+   *  (middleware.ts's existing /<code>/<rest> rewrite handles the
+   *  routing — no new route files needed, just different URLs pointing at
+   *  the same handlers). Empty string for the generic/no-institution case,
+   *  where there's nothing institution-specific to keep separate anyway. */
+  assetBasePath: string;
 }
 
 const GENERIC: AppIdentity = {
@@ -54,6 +74,7 @@ const GENERIC: AppIdentity = {
   appId: "/app/platform",
   scope: "/",
   startUrl: "/",
+  assetBasePath: "",
 };
 
 export async function resolveAppIdentity(ctx: RequestContext | null): Promise<AppIdentity> {
@@ -72,10 +93,15 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
         appId: `/app/${slug}`,
         scope: `/${slug}/`,
         startUrl: `/${slug}`,
+        assetBasePath: `/${slug}`,
       };
     }
   }
   if (ctx?.isSuperAdmin) {
+    // No /<code>/<rest> rewrite exists for "super-admin" (it's a reserved
+    // top-level route, not an institution code) — left on the shared
+    // manifest/icon URLs. Not a multi-tenancy concern the way institutions
+    // are: there is only ever one Super Admin console to install.
     return {
       name: "Super Admin Console",
       shortName: "ADMIN",
@@ -84,6 +110,7 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
       appId: "/app/super-admin",
       scope: "/super-admin/",
       startUrl: "/super-admin",
+      assetBasePath: "",
     };
   }
   return GENERIC;

@@ -34,11 +34,18 @@ export interface InstitutionRecord {
   code: string;
   name: string;
   type: string;
+  board: string | null;
   status: string;
   deployment_mode: string;
   default_locale: string;
   created_at: string;
 }
+
+/** Educational boards with modeled configuration (§137 follow-up). Only
+ *  meaningful when type = 'madrasa'. SKIMVB is accepted here (so the form
+ *  can offer it and record the choice) but has no auto-provisioning yet —
+ *  see provisionSksvbDefaults() below, which only runs for 'sksvb'. */
+const EDUCATIONAL_BOARDS = ["sksvb", "skimvb"] as const;
 
 const INSTITUTION_STATUSES = ["active", "inactive", "suspended", "trial"] as const;
 
@@ -86,7 +93,7 @@ const SYSTEM_ROLES: Array<[string, string]> = [
 export async function listInstitutions(authUserId: string): Promise<InstitutionRecord[]> {
   return withSuperAdminContext(authUserId, async (scoped) => {
     const { rows } = await scoped.query<InstitutionRecord>(
-      `select id, code, name, type, status, deployment_mode, default_locale, created_at
+      `select id, code, name, type, board, status, deployment_mode, default_locale, created_at
          from institutions order by created_at desc`
     );
     return rows;
@@ -99,7 +106,7 @@ export async function listInstitutions(authUserId: string): Promise<InstitutionR
 export async function getInstitutionForSuperAdmin(authUserId: string, institutionId: string): Promise<InstitutionRecord | null> {
   return withSuperAdminContext(authUserId, async (scoped) => {
     const { rows } = await scoped.query<InstitutionRecord>(
-      `select id, code, name, type, status, deployment_mode, default_locale, created_at
+      `select id, code, name, type, board, status, deployment_mode, default_locale, created_at
          from institutions where id = $1`,
       [institutionId]
     );
@@ -111,6 +118,11 @@ const createInstitutionSchema = z.object({
   code: institutionCodeSchema,
   name: z.string().min(1).max(200),
   type: z.enum(["madrasa", "islamic_school", "school", "college", "dars", "other"]).default("other"),
+  // Only meaningful (and only offered by the form) when type = 'madrasa' —
+  // §137 follow-up. Rejected below via superRefine if given for any other
+  // type, and required when type IS 'madrasa', since selecting a board is
+  // what drives auto-provisioning (provisionSksvbDefaults()).
+  board: z.enum(EDUCATIONAL_BOARDS).optional(),
   defaultLocale: z.enum(["en", "ml"]).default("en"),
   // Optional as a TRIO, not individually — either all three are given (the
   // form always sends all three together) or none are, so createInstitution()
@@ -125,6 +137,12 @@ const createInstitutionSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "To create the institution's first admin account, provide their email, full name, and a password (8+ characters) together — or leave all three blank to add an admin later from Users & Roles.",
     });
+  }
+  if (data.type === "madrasa" && !data.board) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "Choose an educational board (SKSVB or SKIMVB) for a madrasa." });
+  }
+  if (data.type !== "madrasa" && data.board) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "Educational board only applies to madrasa institutions." });
   }
 });
 
@@ -162,12 +180,21 @@ export async function createInstitution(
     // later the same way any other configuration changes (a future Super
     // Admin action, not built as its own UI yet — see docs/SETUP.md).
     const { rows } = await scoped.query<InstitutionRecord>(
-      `insert into institutions (code, name, type, default_locale, status, plan_id)
-       values ($1, $2, $3, $4, 'trial', (select id from subscription_plans where is_active = true order by created_at asc limit 1))
-       returning id, code, name, type, status, deployment_mode, default_locale, created_at`,
-      [data.code, data.name, data.type, data.defaultLocale]
+      `insert into institutions (code, name, type, board, default_locale, status, plan_id)
+       values ($1, $2, $3, $4, $5, 'trial', (select id from subscription_plans where is_active = true order by created_at asc limit 1))
+       returning id, code, name, type, board, status, deployment_mode, default_locale, created_at`,
+      [data.code, data.name, data.type, data.board ?? null, data.defaultLocale]
     );
     const institution = rows[0];
+
+    // §137 follow-up ("all configurations, rules, subjects applicable for
+    // the concerned must be applicable") — the one deliberate exception to
+    // this function's usual "Super Admin creation never seeds domain
+    // config" rule (see file header): a chosen board IS the domain config,
+    // not an Institution Admin preference, so it's provisioned right here.
+    if (data.board === "sksvb") {
+      await provisionSksvbDefaults(scoped, institution.id);
+    }
 
     for (const [roleCode, roleName] of SYSTEM_ROLES) {
       await scoped.query(
@@ -234,10 +261,91 @@ export async function createInstitution(
 
     await recordPlatformAudit(scoped, {
       actorUserId: callerUserId, institutionId: institution.id, action: "create", entityType: "institutions",
-      entityId: institution.id, after: { code: institution.code, name: institution.name, type: institution.type },
+      entityId: institution.id, after: { code: institution.code, name: institution.name, type: institution.type, board: institution.board },
     });
     return institution;
   });
+}
+
+/** SKSVB syllabus (§137 follow-up, given verbatim by the platform owner) —
+ *  classes 1–12, each with its own subject list. "Qur'an & Hifz" is the
+ *  one PRACTICAL subject (present from class 2 onward): graded out of 20
+ *  marks with no TE/CE split, unlike every other subject which uses
+ *  TE(80)+CE(20)=100 (§137: "practical only 20, other subjects 80+20").
+ *  `subjects.category` records that distinction ('practical' | null) so
+ *  the examination module can tell them apart later without a schema
+ *  change; `class_subjects.is_core` mirrors it (practical = not core) for
+ *  any UI that already filters on that existing flag. */
+const SKSVB_SYLLABUS: Record<string, string[]> = {
+  "1": ["Thafheemul Qur'an", "Duroosul Islam", "Kithabath"],
+  "2": ["Thajweedul Qur'an", "Kithabath", "Duroosul Islam", "Qur'an & Hifz"],
+  "3": ["Duroos 1", "Duroos 2", "Fiqh", "Thajweed", "Qur'an & Hifz"],
+  "4": ["Duroos 1", "Duroos 2", "Fiqh", "Thajweed", "Qur'an & Hifz"],
+  "5": ["Duroos 1", "Duroos 2", "Fiqh", "Thajweed", "Qur'an & Hifz"],
+  "6": ["Thareeq", "Fiqhul Islam", "Thazkiya & Thajweed", "Duroosul Aqa'id", "Qur'an & Hifz"],
+  "7": ["Thareeq", "Fiqhul Islam", "Thazkiya & Thajweed", "Duroosul Aqa'id", "Qur'an & Hifz"],
+  "8": ["Fiqhul Islam", "Thazkiyathul Vildan", "Duroosul Islam", "Qur'an & Hifz"],
+  "9": ["Fiqhul Islam", "Thazkiyathul Vildan", "Duroosul Islam", "Qur'an & Hifz"],
+  "10": ["Fiqhul Islam", "Thazkiyathul Vildan", "Duroosul Islam", "Qur'an & Hifz"],
+  "11": ["Duroos 1", "Duroos 2", "Qur'an & Hifz"],
+  "12": ["Duroos 1", "Duroos 2", "Qur'an & Hifz"],
+};
+
+const SKSVB_PRACTICAL_SUBJECT = "Qur'an & Hifz";
+
+/** Runs inside createInstitution()'s own transaction (same `scoped`
+ *  client) so a failure here rolls the whole institution creation back
+ *  rather than leaving a half-configured institution behind.
+ *
+ *  Provisions: classes 1–12 (sort_order = class number so the UI's
+ *  natural ordering matches §137's LP/UP/HS/HSS grouping without needing
+ *  numeric class names — see app/(institution)/classes/page.tsx), every
+ *  distinct subject the syllabus references, and each class's own
+ *  class_subjects rows. Does NOT create exam_types/examinations/
+ *  exam_subjects — those are per-academic-year instances an Institution
+ *  Admin creates from Examinations (an institution has no academic year
+ *  yet at creation time, see createAcademicYear() in
+ *  modules/academic/service.ts). When they do, this institution's
+ *  Qur'an & Hifz subjects should get a single 20-mark component and every
+ *  other subject a TE(80) + CE(20) pair — documented here rather than
+ *  built as a combined-result auto-computer, which the current
+ *  single-examination-at-a-time results engine (computeResults() in
+ *  modules/examination/service.ts) doesn't support yet. */
+async function provisionSksvbDefaults(scoped: DbClient, institutionId: string): Promise<void> {
+  const subjectIds = new Map<string, string>();
+  const allSubjectNames = new Set<string>();
+  for (const names of Object.values(SKSVB_SYLLABUS)) {
+    for (const n of names) allSubjectNames.add(n);
+  }
+  for (const name of allSubjectNames) {
+    const category = name === SKSVB_PRACTICAL_SUBJECT ? "practical" : null;
+    const { rows } = await scoped.query<{ id: string }>(
+      `insert into subjects (institution_id, name, category) values ($1, $2, $3)
+       on conflict (institution_id, name) do update set category = excluded.category
+       returning id`,
+      [institutionId, name, category]
+    );
+    subjectIds.set(name, rows[0].id);
+  }
+
+  for (const [className, subjectNames] of Object.entries(SKSVB_SYLLABUS)) {
+    const { rows: classRows } = await scoped.query<{ id: string }>(
+      `insert into classes (institution_id, name, sort_order) values ($1, $2, $3)
+       on conflict (institution_id, name) do update set sort_order = excluded.sort_order
+       returning id`,
+      [institutionId, className, Number(className)]
+    );
+    const classId = classRows[0].id;
+    for (const subjectName of subjectNames) {
+      const subjectId = subjectIds.get(subjectName)!;
+      const isCore = subjectName !== SKSVB_PRACTICAL_SUBJECT;
+      await scoped.query(
+        `insert into class_subjects (institution_id, class_id, subject_id, is_core) values ($1, $2, $3, $4)
+         on conflict (institution_id, class_id, subject_id) do update set is_core = excluded.is_core`,
+        [institutionId, classId, subjectId, isCore]
+      );
+    }
+  }
 }
 
 const updateStatusSchema = z.object({ status: z.enum(INSTITUTION_STATUSES) });
@@ -254,7 +362,7 @@ export async function updateInstitutionStatus(
 
     const { rows } = await scoped.query<InstitutionRecord>(
       `update institutions set status = $1, updated_at = now() where id = $2
-       returning id, code, name, type, status, deployment_mode, default_locale, created_at`,
+       returning id, code, name, type, board, status, deployment_mode, default_locale, created_at`,
       [data.status, institutionId]
     );
     await recordPlatformAudit(scoped, {
@@ -282,7 +390,7 @@ export async function updateInstitutionCode(
   const data = updateCodeSchema.parse(input);
   return withSuperAdminContext(authUserId, async (scoped, callerUserId) => {
     const { rows: before } = await scoped.query<InstitutionRecord & { code: string }>(
-      `select id, code, name, type, status, deployment_mode, default_locale, created_at from institutions where id = $1`,
+      `select id, code, name, type, board, status, deployment_mode, default_locale, created_at from institutions where id = $1`,
       [institutionId]
     );
     if (before.length === 0) return null;
@@ -295,7 +403,7 @@ export async function updateInstitutionCode(
 
     const { rows } = await scoped.query<InstitutionRecord>(
       `update institutions set code = $1, updated_at = now() where id = $2
-       returning id, code, name, type, status, deployment_mode, default_locale, created_at`,
+       returning id, code, name, type, board, status, deployment_mode, default_locale, created_at`,
       [data.code, institutionId]
     );
     await recordPlatformAudit(scoped, {

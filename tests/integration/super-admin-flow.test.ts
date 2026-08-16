@@ -255,3 +255,77 @@ describe("createInstitution rejects reserved codes up front", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("educational board (§137 follow-up: SKSVB/SKIMVB for madrasa institutions)", () => {
+  it("requires a board when type is madrasa", async () => {
+    await expect(
+      createInstitution(superAdminAuth, { code: "no-board-madrasa", name: "No Board Madrasa", type: "madrasa", defaultLocale: "en" })
+    ).rejects.toThrow(/educational board/i);
+  });
+
+  it("rejects a board given for a non-madrasa type", async () => {
+    await expect(
+      createInstitution(superAdminAuth, { code: "school-with-board", name: "School With Board", type: "school", board: "sksvb", defaultLocale: "en" })
+    ).rejects.toThrow(/only applies to madrasa/i);
+  });
+
+  it("SKIMVB just records the choice — no auto-provisioning yet", async () => {
+    const institution = await createInstitution(superAdminAuth, {
+      code: "skimvb-madrasa", name: "SKIMVB Madrasa", type: "madrasa", board: "skimvb", defaultLocale: "en",
+    });
+    expect(institution.board).toBe("skimvb");
+
+    const db = await getDbClient();
+    const classCount = await db.withInstitutionContext(
+      { institutionId: institution.id, authUserId: superAdminAuth, isSuperAdmin: true },
+      async (scoped) => {
+        const { rows } = await scoped.query<{ count: string }>("select count(*) as count from classes where institution_id = $1", [institution.id]);
+        return Number(rows[0].count);
+      }
+    );
+    expect(classCount).toBe(0);
+  });
+
+  it("SKSVB auto-provisions classes 1-12, the full syllabus, and flags Qur'an & Hifz as the practical-only subject", async () => {
+    const institution = await createInstitution(superAdminAuth, {
+      code: "sksvb-madrasa", name: "SKSVB Madrasa", type: "madrasa", board: "sksvb", defaultLocale: "en",
+    });
+    expect(institution.board).toBe("sksvb");
+
+    const db = await getDbClient();
+    const { classes, classSubjectRows, practicalSubject } = await db.withInstitutionContext(
+      { institutionId: institution.id, authUserId: superAdminAuth, isSuperAdmin: true },
+      async (scoped) => {
+        const { rows: classes } = await scoped.query<{ name: string }>(
+          "select name from classes where institution_id = $1 order by sort_order", [institution.id]
+        );
+        const { rows: classSubjectRows } = await scoped.query<{ class_name: string; subject_name: string; is_core: boolean }>(
+          `select c.name as class_name, s.name as subject_name, cs.is_core
+             from class_subjects cs
+             join classes c on c.id = cs.class_id
+             join subjects s on s.id = cs.subject_id
+            where cs.institution_id = $1`,
+          [institution.id]
+        );
+        const { rows: practicalSubject } = await scoped.query<{ category: string | null }>(
+          "select category from subjects where institution_id = $1 and name = $2", [institution.id, "Qur'an & Hifz"]
+        );
+        return { classes, classSubjectRows, practicalSubject };
+      }
+    );
+
+    expect(classes.map((c) => c.name)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
+
+    // Class 1 has no "Qur'an & Hifz" per the given syllabus; class 2 onward does.
+    const class1Subjects = classSubjectRows.filter((r) => r.class_name === "1").map((r) => r.subject_name);
+    expect(class1Subjects.sort()).toEqual(["Duroosul Islam", "Kithabath", "Thafheemul Qur'an"].sort());
+
+    const class2QuranHifz = classSubjectRows.find((r) => r.class_name === "2" && r.subject_name === "Qur'an & Hifz");
+    expect(class2QuranHifz?.is_core).toBe(false); // practical, not core
+
+    const class2Duroosul = classSubjectRows.find((r) => r.class_name === "2" && r.subject_name === "Duroosul Islam");
+    expect(class2Duroosul?.is_core).toBe(true); // an 80+20 subject, is_core stays true
+
+    expect(practicalSubject[0]?.category).toBe("practical");
+  });
+});

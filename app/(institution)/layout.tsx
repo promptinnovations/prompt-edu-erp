@@ -56,6 +56,7 @@ export default async function InstitutionLayout({ children }: { children: React.
   const navItems: NavItem[] = [
     { href: "/dashboard", label: t("dashboard") },
     { href: "/academic", label: t("academic") },
+    { href: "/classes", label: t("classes") },
     { href: "/students", label: t("students") },
     ...(enabledModules.has("examination") ? [{ href: "/examinations", label: t("examinations") }] : []),
     ...(enabledModules.has("attendance") ? [{ href: "/attendance", label: t("attendance") }] : []),
