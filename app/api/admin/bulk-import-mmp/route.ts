@@ -37,9 +37,10 @@ interface ImportRow {
   dateOfBirth: string; gender: string; parentName: string; parentPhone: string;
 }
 
-export async function POST(request: Request) {
+async function runImport(request: Request) {
   const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${IMPORT_TOKEN}`) {
+  const tokenParam = new URL(request.url).searchParams.get("token");
+  if (auth !== `Bearer ${IMPORT_TOKEN}` && tokenParam !== IMPORT_TOKEN) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -150,4 +151,15 @@ export async function POST(request: Request) {
   } catch (err) {
     return NextResponse.json({ ok: false, log, error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
+}
+
+export async function POST(request: Request) {
+  return runImport(request);
+}
+
+// GET too (query-string token) — some HTTP-fetch tools can't send a custom
+// method/header, and this whole route is deleted right after the one real
+// run either way (see this file's own header comment).
+export async function GET(request: Request) {
+  return runImport(request);
 }
