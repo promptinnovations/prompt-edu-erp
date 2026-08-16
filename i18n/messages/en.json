@@ -49,7 +49,18 @@
     "add": "Add student",
     "view": "View",
     "backToList": "Back to students",
-    "notFound": "Student not found"
+    "notFound": "Student not found",
+    "search": "Search",
+    "searchPlaceholder": "Name, admission number, or login ID",
+    "filterByClass": "Class",
+    "allClasses": "All classes",
+    "showRemoved": "Show removed students",
+    "applyFilters": "Search",
+    "clearFilters": "Clear",
+    "class": "Class",
+    "loginId": "Login ID",
+    "removed": "removed",
+    "noMatches": "No students match your search."
   },
   "login": {
     "title": "PROMPT EDU ERP",
@@ -58,7 +69,13 @@
     "password": "Password",
     "signIn": "Sign in",
     "signUp": "Create account",
-    "firstTimeNotice": "First time? Your institution admin must create your account before you can sign up."
+    "firstTimeNotice": "First time? Your institution admin must create your account before you can sign up.",
+    "staffTab": "Staff & Admin",
+    "studentTab": "Student",
+    "studentLoginId": "Student login ID",
+    "studentLoginIdPlaceholder": "Your full name, as entered by your school",
+    "studentPasswordPlaceholder": "Parent's phone number",
+    "studentTabNotice": "No account yet? Ask your school office to set up your student login."
   },
   "language": {
     "label": "Language"

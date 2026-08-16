@@ -1,10 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getAuthService } from "../../../services/auth/auth-service";
 import { linkOrResolveAuthenticatedUser, resolveActiveInstitution } from "../../../services/tenant/tenant-service";
 import { getRoleCodesForUser } from "../../../services/permissions/permission-service";
-import { resolvePortalDestination } from "../../../modules/portal/service";
+import { resolvePortalDestination, resolveStudentLoginEmail } from "../../../modules/portal/service";
+import { ACTIVE_INSTITUTION_COOKIE } from "../../../services/tenant/institution-cookie";
 
 export interface LoginState {
   error: string | null;
@@ -25,9 +27,35 @@ export interface LoginState {
  * three-outcome design.
  */
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
-  const email = String(formData.get("email") ?? "").trim();
+  let email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const intent = String(formData.get("intent") ?? "signin");
+
+  // §137 follow-up ("their log in id (must be student name, password- phone
+  // number of parent)") — the "Student login" tab on LoginForm.tsx submits a
+  // name (not an email) plus intent="student_signin"; resolve it, server-side,
+  // to the synthetic email that account was actually provisioned with (see
+  // modules/portal/service.ts's createStudentLoginAccount()/
+  // resolveStudentLoginEmail()) BEFORE falling into the exact same
+  // AuthService.signIn() + linkOrResolveAuthenticatedUser() flow every other
+  // sign-in already uses below — nothing downstream of this block needs to
+  // know a name-based login even happened.
+  if (intent === "student_signin") {
+    const studentLoginId = String(formData.get("studentLoginId") ?? "").trim();
+    if (!studentLoginId) return { error: "Student name is required.", info: null };
+    if (!password) return { error: "Password is required.", info: null };
+    const store = await cookies();
+    const institutionCode = store.get(ACTIVE_INSTITUTION_COOKIE)?.value ?? null;
+    if (!institutionCode) {
+      return { error: "Open your institution's own login link first (ask your school office for it).", info: null };
+    }
+    const resolved = await resolveStudentLoginEmail(institutionCode, studentLoginId).catch(() => null);
+    if (!resolved) {
+      return { error: "No student login found with that name here. Check the spelling, or contact the school office.", info: null };
+    }
+    email = resolved.email;
+  }
+
   if (!email) return { error: "Email is required.", info: null };
 
   const authService = await getAuthService();

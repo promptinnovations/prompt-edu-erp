@@ -60,6 +60,15 @@ export interface AuthService {
    *  console needs SOME way to bootstrap a brand new tenant's first login
    *  without an extra "please go sign up yourself" round trip. */
   adminCreateUser(email: string, password: string): Promise<AuthResult | { error: string }>;
+  /** Resets an existing account's password server-side, same "explicit
+   *  server-set password" exception adminCreateUser() documents — used by
+   *  modules/portal/service.ts's resetStudentLoginPassword() when a
+   *  student's login (student name / parent phone, §137 follow-up) needs
+   *  its password corrected after the parent's phone number itself was
+   *  corrected. Returns void on success, matching adminDeleteUser()'s
+   *  "best-effort, narrow" shape below rather than AuthResult's, since
+   *  there's no new identity to report back. */
+  adminUpdatePassword(authUserId: string, password: string): Promise<void | { error: string }>;
   /** Best-effort compensation for the specific case where adminCreateUser()
    *  succeeded but a LATER step in the same logical operation then failed
    *  (e.g. the institution's DB rows couldn't be created) — never called on

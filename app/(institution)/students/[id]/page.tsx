@@ -7,6 +7,8 @@ import { getStudent, getCurrentEnrollment, listParentsForStudent } from "../../.
 import { listClasses, listSections, getCurrentAcademicYear } from "../../../../modules/academic/service";
 import EnrollForm from "../EnrollForm";
 import ParentSection, { ProvisionStudentAccountForm } from "../ParentSection";
+import EditStudentForm from "../EditStudentForm";
+import StudentLoginSection from "../StudentLoginSection";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -41,9 +43,20 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{student.full_name}</h1>
-          <Link href={`/students/${student.id}/portfolio`} className="text-sm text-zinc-600 dark:text-zinc-400 underline">
-            View Student 360°
-          </Link>
+          <div className="flex items-center gap-3">
+            {can(ctx.permissions, "student.edit") ? (
+              <EditStudentForm
+                studentId={student.id}
+                admissionNumber={student.admission_number}
+                fullName={student.full_name}
+                dateOfBirth={student.date_of_birth}
+                gender={student.gender}
+              />
+            ) : null}
+            <Link href={`/students/${student.id}/portfolio`} className="text-sm text-zinc-600 dark:text-zinc-400 underline">
+              View Student 360°
+            </Link>
+          </div>
         </div>
         <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -89,13 +102,25 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
       {can(ctx.permissions, "users.manage") ? (
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Student portal account (§Z)</h2>
-          <ProvisionStudentAccountForm
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Student portal login (§137)</h2>
+          <StudentLoginSection
             studentId={student.id}
-            defaultEmail={student.contact_email ?? ""}
-            defaultName={student.full_name}
-            alreadyLinked={!!student.user_id}
+            loginId={student.login_id ?? null}
+            defaultParentPhone={parents.find((p) => p.is_primary_contact)?.phone ?? parents[0]?.phone ?? ""}
           />
+          {!student.login_id && !student.user_id ? (
+            <details className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+              <summary className="cursor-pointer underline">Prefer an email-based login instead?</summary>
+              <div className="mt-2">
+                <ProvisionStudentAccountForm
+                  studentId={student.id}
+                  defaultEmail={student.contact_email ?? ""}
+                  defaultName={student.full_name}
+                  alreadyLinked={!!student.user_id}
+                />
+              </div>
+            </details>
+          ) : null}
         </div>
       ) : null}
     </div>

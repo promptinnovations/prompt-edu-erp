@@ -19,6 +19,18 @@ export interface StudentRecord {
   status: string;
   user_id: string | null;
   contact_email: string | null;
+  login_id?: string | null;
+}
+
+/** §137 follow-up row shape for the searchable admin list — same student
+ *  columns plus its CURRENT class/section (from student_enrollments, joined
+ *  to whichever academic_year has is_current = true), so the admin students
+ *  page can show and filter by class without a separate round trip per
+ *  row. */
+export interface StudentListRow extends StudentRecord {
+  class_id: string | null;
+  class_name: string | null;
+  section_name: string | null;
 }
 
 const createStudentSchema = z.object({
@@ -33,10 +45,129 @@ export async function listStudents(institutionId: string, authUserId: string): P
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StudentRecord>(
-      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email
+      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email, login_id
          from students order by full_name`
     );
     return rows;
+  });
+}
+
+export interface ListStudentsForAdminOptions {
+  /** Matches against full_name, admission_number, or login_id (case-insensitive substring). */
+  search?: string;
+  /** Filter to one class's current-year enrollment. */
+  classId?: string;
+  /** Soft-deleted (§137 follow-up "delete") students are excluded by
+   *  default — set true to include them (e.g. a "show removed" toggle). */
+  includeWithdrawn?: boolean;
+}
+
+/** Search/filter-capable listing for the admin Students page (§137 follow-up
+ *  "should be able ... search"). Deliberately a SEPARATE function from
+ *  listStudents() above rather than adding optional params to it — over a
+ *  dozen other call sites (attendance, scoring, library, reporting, bulk
+ *  import, …) call listStudents() with its plain two-arg signature and
+ *  expect every student back regardless of status; changing its default
+ *  behavior to exclude withdrawn students would silently change all of
+ *  those too. */
+export async function listStudentsForAdmin(
+  institutionId: string, authUserId: string, options: ListStudentsForAdminOptions = {}
+): Promise<StudentListRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<StudentListRow>(
+      `select s.id, s.admission_number, s.full_name, s.full_name_native, s.date_of_birth, s.gender,
+              s.status, s.user_id, s.contact_email, s.login_id,
+              c.id as class_id, c.name as class_name, sec.name as section_name
+         from students s
+         left join student_enrollments se
+           on se.student_id = s.id and se.status = 'active'
+          and se.academic_year_id = (select id from academic_years where institution_id = s.institution_id and is_current = true limit 1)
+         left join classes c on c.id = se.class_id
+         left join sections sec on sec.id = se.section_id
+        where ($1::boolean or s.status <> 'withdrawn')
+          and ($2::uuid is null or se.class_id = $2::uuid)
+          and (
+            $3::text is null
+            or s.full_name ilike '%' || $3 || '%'
+            or s.admission_number ilike '%' || $3 || '%'
+            or coalesce(s.login_id, '') ilike '%' || $3 || '%'
+          )
+        order by c.sort_order nulls last, sec.name, s.full_name`,
+      [options.includeWithdrawn ?? false, options.classId ?? null, options.search?.trim() || null]
+    );
+    return rows;
+  });
+}
+
+const updateStudentSchema = z.object({
+  admissionNumber: z.string().min(1).max(50).optional(),
+  fullName: z.string().min(1).max(200).optional(),
+  fullNameNative: z.string().max(200).nullable().optional(),
+  dateOfBirth: z.string().nullable().optional(),
+  gender: z.string().max(20).nullable().optional(),
+});
+
+export async function updateStudent(
+  institutionId: string, authUserId: string, userId: string, studentId: string, input: z.infer<typeof updateStudentSchema>
+): Promise<StudentRecord | null> {
+  const data = updateStudentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<StudentRecord>(
+      `update students set
+         admission_number = coalesce($1, admission_number),
+         full_name = coalesce($2, full_name),
+         full_name_native = case when $3 then $4 else full_name_native end,
+         date_of_birth = case when $5 then $6::date else date_of_birth end,
+         gender = case when $7 then $8 else gender end,
+         updated_at = now(), updated_by = $9
+       where id = $10
+       returning id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email, login_id`,
+      [
+        data.admissionNumber ?? null, data.fullName ?? null,
+        "fullNameNative" in data, data.fullNameNative ?? null,
+        "dateOfBirth" in data, data.dateOfBirth ?? null,
+        "gender" in data, data.gender ?? null,
+        userId, studentId,
+      ]
+    );
+    if (rows.length === 0) return null;
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "students", entityType: "students", entityId: studentId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Soft-delete (§137 follow-up "should be able ... delete") — sets status
+ *  to 'withdrawn' rather than a hard DELETE. A hard delete would either
+ *  cascade destructively through every module that references student_id
+ *  (attendance, exams, scoring, portfolio, library loans, …) or be flatly
+ *  rejected by whichever of those has no ON DELETE clause — the exact
+ *  tradeoff documented on deleteClass()/deleteSection() above, but far
+ *  worse here given how many modules key off a student. The seeded
+ *  `student.delete` permission's own description ("Soft-delete a student
+ *  record") already anticipated this. Reversible via restoreStudent(). */
+export async function deleteStudent(institutionId: string, authUserId: string, userId: string, studentId: string): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; status: string }>(
+      "update students set status = 'withdrawn', updated_at = now(), updated_by = $1 where id = $2 and status <> 'withdrawn' returning id, status",
+      [userId, studentId]
+    );
+    if (rows.length === 0) return;
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "students", entityType: "students", entityId: studentId, after: rows[0] });
+  });
+}
+
+export async function restoreStudent(institutionId: string, authUserId: string, userId: string, studentId: string): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string }>(
+      "update students set status = 'active', updated_at = now(), updated_by = $1 where id = $2 and status = 'withdrawn' returning id",
+      [userId, studentId]
+    );
+    if (rows.length === 0) return;
+    await recordAudit(scoped, { institutionId, userId, action: "restore", module: "students", entityType: "students", entityId: studentId });
   });
 }
 
@@ -44,7 +175,7 @@ export async function getStudent(institutionId: string, authUserId: string, stud
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StudentRecord>(
-      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email
+      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email, login_id
          from students where id = $1`,
       [studentId]
     );
@@ -229,6 +360,82 @@ export async function listParentsForStudent(institutionId: string, authUserId: s
       [studentId]
     );
     return rows;
+  });
+}
+
+const updateParentSchema = z.object({
+  fullName: z.string().min(1).max(200).optional(),
+  phone: z.string().max(30).nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  occupation: z.string().max(150).nullable().optional(),
+});
+
+export async function updateParent(
+  institutionId: string, authUserId: string, userId: string, parentId: string, input: z.infer<typeof updateParentSchema>
+): Promise<ParentRecord | null> {
+  const data = updateParentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ParentRecord>(
+      `update parents set
+         full_name = coalesce($1, full_name),
+         phone = case when $2 then $3 else phone end,
+         email = case when $4 then $5 else email end,
+         occupation = case when $6 then $7 else occupation end
+       where id = $8
+       returning id, full_name, phone, email, occupation, user_id`,
+      [
+        data.fullName ?? null,
+        "phone" in data, data.phone ?? null,
+        "email" in data, data.email ?? null,
+        "occupation" in data, data.occupation ?? null,
+        parentId,
+      ]
+    );
+    if (rows.length === 0) return null;
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "students", entityType: "parents", entityId: parentId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Removes ONE parent/guardian's link to ONE student (§137 follow-up
+ *  "should be able ... delete") — the `parents` row itself, and any link it
+ *  has to a SIBLING, is untouched, since one parent can be linked to
+ *  several children via student_parents (see this module's header
+ *  comment). This is what the "Remove" button next to a parent row on a
+ *  student's page does. Use deleteParentRecord() below for the rarer case
+ *  of removing the person from the institution entirely. */
+export async function unlinkParentFromStudent(
+  institutionId: string, authUserId: string, userId: string, studentId: string, parentId: string
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string }>(
+      "delete from student_parents where student_id = $1 and parent_id = $2 returning id",
+      [studentId, parentId]
+    );
+    if (rows.length === 0) return;
+    await recordAudit(scoped, { institutionId, userId, action: "unlink", module: "students", entityType: "student_parents", entityId: rows[0].id, before: { studentId, parentId } });
+  });
+}
+
+/** Hard-deletes a parent/guardian record entirely — cascades through every
+ *  student_parents link they have (§D.4/0001_foundation.sql), so this
+ *  removes them from ALL of their children's pages, not just one. Their
+ *  portal login (if provisioned) is orphaned rather than deleted along
+ *  with them (parents.user_id references users(id) on delete set null) —
+ *  the `users` table has no delete RLS policy in this schema (see
+ *  0001_foundation.sql), so the login account itself, if ever provisioned,
+ *  is left dormant rather than removed. */
+export async function deleteParentRecord(institutionId: string, authUserId: string, userId: string, parentId: string): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; full_name: string }>(
+      "delete from parents where id = $1 returning id, full_name",
+      [parentId]
+    );
+    if (rows.length === 0) return;
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "students", entityType: "parents", entityId: parentId, before: rows[0] });
   });
 }
 

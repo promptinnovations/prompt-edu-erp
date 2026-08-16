@@ -1,0 +1,1012 @@
+[
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "260",
+    "fullName": "AHMED ZAYAN A",
+    "dateOfBirth": "2020-06-11",
+    "gender": "M",
+    "parentName": "ABDUL BASITH MUEENI A",
+    "parentPhone": "9539515808"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "270",
+    "fullName": "AIZA FATHIMA PT",
+    "dateOfBirth": "2021-02-08",
+    "gender": "F",
+    "parentName": "MOHAMMED NIYASUDDEEN",
+    "parentPhone": "7560890523"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "271",
+    "fullName": "AYSHA AZMIA K",
+    "dateOfBirth": "2021-05-24",
+    "gender": "F",
+    "parentName": "MUBARIS K",
+    "parentPhone": "8129146062"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "268",
+    "fullName": "FAIHA K",
+    "dateOfBirth": "2020-08-16",
+    "gender": "F",
+    "parentName": "RAFEEQUE K",
+    "parentPhone": "8089312814"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "274",
+    "fullName": "FATHIMA HIZRA V",
+    "dateOfBirth": "2020-07-04",
+    "gender": "F",
+    "parentName": "SHAREEF V",
+    "parentPhone": "8848693198"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "272",
+    "fullName": "FATHIMA JUMANA K",
+    "dateOfBirth": "2020-04-27",
+    "gender": "F",
+    "parentName": "HUSAIN K",
+    "parentPhone": "9846753324"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "269",
+    "fullName": "FATHIMA RANA K",
+    "dateOfBirth": "2020-09-24",
+    "gender": "F",
+    "parentName": "ABDU RASAK K",
+    "parentPhone": "9846131451"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "266",
+    "fullName": "HAAZIM PM",
+    "dateOfBirth": "2019-01-02",
+    "gender": "M",
+    "parentName": "ABDUL RAHOOF PM",
+    "parentPhone": "9744365857"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "259",
+    "fullName": "HANZAL RASHID PM",
+    "dateOfBirth": "2019-09-01",
+    "gender": "M",
+    "parentName": "ABDUL RASHID PM",
+    "parentPhone": "8129346652"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "273",
+    "fullName": "MIHLA FATHIMA AP",
+    "dateOfBirth": "2020-11-28",
+    "gender": "F",
+    "parentName": "SHAMSEER AP",
+    "parentPhone": "9567130473"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "261",
+    "fullName": "MUHAMMAD HASAN KK",
+    "dateOfBirth": "2020-07-17",
+    "gender": "M",
+    "parentName": "MUHAMMAD SHAMEER AHSANI KK",
+    "parentPhone": "9061449664"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "262",
+    "fullName": "MUHAMMED SAHL P",
+    "dateOfBirth": "2021-01-19",
+    "gender": "M",
+    "parentName": "SALMAN MUHAMMED SALIH P",
+    "parentPhone": "8086293314"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "264",
+    "fullName": "MUHAMMED SALIM KT",
+    "dateOfBirth": "2020-05-06",
+    "gender": "M",
+    "parentName": "SAEED ADANY KT",
+    "parentPhone": "9645459599"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "263",
+    "fullName": "MUHAMMED SHAMMAS N",
+    "dateOfBirth": "2020-05-10",
+    "gender": "M",
+    "parentName": "MUJEEB RAHMAN N",
+    "parentPhone": "9605451681"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "267",
+    "fullName": "SHAAN KN",
+    "dateOfBirth": "2020-08-11",
+    "gender": "M",
+    "parentName": "RASHEED KN",
+    "parentPhone": "9946372774"
+  },
+  {
+    "className": "1",
+    "section": "A",
+    "admissionNumber": "265",
+    "fullName": "SWABEEH KT",
+    "dateOfBirth": "2019-09-26",
+    "gender": "M",
+    "parentName": "ABDUL LATHEEF KT",
+    "parentPhone": "9846524056"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "252",
+    "fullName": "ADAM ZIYAN CT",
+    "dateOfBirth": "2019-10-13",
+    "gender": "M",
+    "parentName": "ILLIYAS CT",
+    "parentPhone": "9846317807"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "253",
+    "fullName": "AYISHA SHAIMA KK",
+    "dateOfBirth": "2019-11-30",
+    "gender": "F",
+    "parentName": "MUHAMMED BASHEER AHSANI KK",
+    "parentPhone": "8606703313"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "257",
+    "fullName": "FAIHA FATHIMA KT",
+    "dateOfBirth": "2019-06-18",
+    "gender": "F",
+    "parentName": "MISBAHUDHEEN KT",
+    "parentPhone": "9645716942"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "255",
+    "fullName": "FATHIMA LIYA V",
+    "dateOfBirth": "2019-07-06",
+    "gender": "F",
+    "parentName": "MOHAMADALI V",
+    "parentPhone": "7994699341"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "254",
+    "fullName": "FELLA CP",
+    "dateOfBirth": "2019-04-29",
+    "gender": "F",
+    "parentName": "MUHAMMED FASIL CP",
+    "parentPhone": "9778756959"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "245",
+    "fullName": "HAMDAN. PM",
+    "dateOfBirth": "2017-04-12",
+    "gender": "M",
+    "parentName": "ABDUL RAHOOF. PM",
+    "parentPhone": "7025365858"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "256",
+    "fullName": "MINSHA FATHIMA AP",
+    "dateOfBirth": "2018-09-29",
+    "gender": "F",
+    "parentName": "SHAMSEER AP",
+    "parentPhone": "7034398237"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "244",
+    "fullName": "MUHAMMAD RAZI. A",
+    "dateOfBirth": "2019-04-28",
+    "gender": "M",
+    "parentName": "UKKASHA AHSANI. A",
+    "parentPhone": "9048593825"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "241",
+    "fullName": "MUHAMMED FADI. V",
+    "dateOfBirth": "2018-06-11",
+    "gender": "M",
+    "parentName": "ABDULATHEEF. V",
+    "parentPhone": "7559077034"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "258",
+    "fullName": "MUHAMMED MISHAL K",
+    "dateOfBirth": "2019-07-01",
+    "gender": "M",
+    "parentName": "MAHMOOD ALI K",
+    "parentPhone": "9895825828"
+  },
+  {
+    "className": "2",
+    "section": "A",
+    "admissionNumber": "251",
+    "fullName": "MUHAMMED SHAFIN KK",
+    "dateOfBirth": "2020-01-01",
+    "gender": "M",
+    "parentName": "SULAIMAN KK",
+    "parentPhone": "9946818047"
+  },
+  {
+    "className": "3",
+    "section": "A",
+    "admissionNumber": "239",
+    "fullName": "FATHIMA MIZRA. V",
+    "dateOfBirth": "2018-10-13",
+    "gender": "F",
+    "parentName": "SHAREEF. V",
+    "parentPhone": "8848693198"
+  },
+  {
+    "className": "3",
+    "section": "A",
+    "admissionNumber": "229",
+    "fullName": "FATHIMA RIDHA N",
+    "dateOfBirth": "2017-09-08",
+    "gender": "F",
+    "parentName": "MUJEEB RAHMAN. N",
+    "parentPhone": "9605451681"
+  },
+  {
+    "className": "3",
+    "section": "A",
+    "admissionNumber": "223",
+    "fullName": "MUHAMMED ADHIL. KK",
+    "dateOfBirth": "2016-11-28",
+    "gender": "M",
+    "parentName": "HUSAIN. KK",
+    "parentPhone": "9846753324"
+  },
+  {
+    "className": "3",
+    "section": "A",
+    "admissionNumber": "234",
+    "fullName": "MUHAMMED HANAN. KK",
+    "dateOfBirth": "2017-09-21",
+    "gender": "M",
+    "parentName": "SHIHABUDHEEN. KK",
+    "parentPhone": "9946784941"
+  },
+  {
+    "className": "3",
+    "section": "A",
+    "admissionNumber": "233",
+    "fullName": "MUHAMMED RAZI. A",
+    "dateOfBirth": "2018-06-11",
+    "gender": "M",
+    "parentName": "ABDUL VAHID SAQAFI. A",
+    "parentPhone": "9539716606"
+  },
+  {
+    "className": "3",
+    "section": "A",
+    "admissionNumber": "246",
+    "fullName": "RANARAFEEK. P",
+    "dateOfBirth": "2018-02-17",
+    "gender": "F",
+    "parentName": "RAFEEK. P",
+    "parentPhone": "9946474108"
+  },
+  {
+    "className": "3",
+    "section": "A",
+    "admissionNumber": "243",
+    "fullName": "SHIMA BATHOOL. P",
+    "dateOfBirth": "2019-02-05",
+    "gender": "F",
+    "parentName": "SHAMSUDHEEN. P",
+    "parentPhone": "9946010259"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "225",
+    "fullName": "AMEEN ZIYAD. KK",
+    "dateOfBirth": "2017-05-09",
+    "gender": "M",
+    "parentName": "ABOOBAKER ANVARI. KK",
+    "parentPhone": "7902331341"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "220",
+    "fullName": "AYISHA HAIRIN. K",
+    "dateOfBirth": "2017-07-09",
+    "gender": "F",
+    "parentName": "SHAMSUDHEEN. K",
+    "parentPhone": "9447926812"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "230",
+    "fullName": "FATHIMA FAIHA NT",
+    "dateOfBirth": "2017-10-18",
+    "gender": "F",
+    "parentName": "SHAMEER. NT",
+    "parentPhone": "9544899719"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "227",
+    "fullName": "FATHIMA HUSNA. KK",
+    "dateOfBirth": "2017-07-23",
+    "gender": "F",
+    "parentName": "SHAMEER AHSANI. KK",
+    "parentPhone": "9061449664"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "219",
+    "fullName": "FATHIMA SANA. PN",
+    "dateOfBirth": "2017-09-23",
+    "gender": "F",
+    "parentName": "SHIHABUDHEEN SAADI. PN",
+    "parentPhone": "7306426930"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "228",
+    "fullName": "FATHIMA SANHA. PT",
+    "dateOfBirth": "2017-05-24",
+    "gender": "F",
+    "parentName": "ABDUL SALAM. PT",
+    "parentPhone": "9633119109"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "213",
+    "fullName": "HENZA FATHIMA. KK",
+    "dateOfBirth": "2016-06-22",
+    "gender": "F",
+    "parentName": "MAHAROOF. KK",
+    "parentPhone": "8592029003"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "215",
+    "fullName": "MUHAMMAD HANAN. T",
+    "dateOfBirth": "2017-06-22",
+    "gender": "M",
+    "parentName": "ABDULRAHMAN. T",
+    "parentPhone": "8086561272"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "211",
+    "fullName": "MUHAMMAD RAYYAN. K",
+    "dateOfBirth": "2017-03-02",
+    "gender": "M",
+    "parentName": "ABDUL RASAK FALILI. K",
+    "parentPhone": "9846131451"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "209",
+    "fullName": "MUHAMMAD SHAMJAD. K",
+    "dateOfBirth": "2017-05-27",
+    "gender": "M",
+    "parentName": "ABDUL BASHEER. K",
+    "parentPhone": "9895236227"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "216",
+    "fullName": "MUHAMMAD SHEES. VK",
+    "dateOfBirth": "2016-10-29",
+    "gender": "M",
+    "parentName": "SHAMSUDEEN. VK",
+    "parentPhone": "8606684126"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "235",
+    "fullName": "MUHAMMED ARSHAQ. A",
+    "dateOfBirth": "2017-12-31",
+    "gender": "M",
+    "parentName": "ABDULLATHEEF SAQAFI. A",
+    "parentPhone": "9745110146"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "232",
+    "fullName": "MUHAMMED FAHEEM. KT",
+    "dateOfBirth": "2017-05-27",
+    "gender": "M",
+    "parentName": "MISBAHUDHEEN SAQAFI KT",
+    "parentPhone": "9645716942"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "222",
+    "fullName": "MUHAMMED RAZEEN. KK",
+    "dateOfBirth": "2017-04-10",
+    "gender": "M",
+    "parentName": "MUHAMMED RAFI. KK",
+    "parentPhone": "9846418827"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "236",
+    "fullName": "MUHAMMED SHADHULI. KK",
+    "dateOfBirth": "2017-09-12",
+    "gender": "M",
+    "parentName": "MUHAMMED RAFEEQ ALMADANI. KK",
+    "parentPhone": "9539912585"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "224",
+    "fullName": "MUHAMMED SHADULI. KK",
+    "dateOfBirth": "2017-12-30",
+    "gender": "M",
+    "parentName": "RASHID AHSANI. KK",
+    "parentPhone": "9747684381"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "221",
+    "fullName": "SHEFIN. KN",
+    "dateOfBirth": "2017-01-20",
+    "gender": "M",
+    "parentName": "SUBAIR. KN",
+    "parentPhone": "7907217615"
+  },
+  {
+    "className": "4",
+    "section": "A",
+    "admissionNumber": "226",
+    "fullName": "UMMU HANI KK",
+    "dateOfBirth": "2017-05-10",
+    "gender": "F",
+    "parentName": "MUHAMMED BASHEER AHSANI. KK",
+    "parentPhone": "8086439183"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "250",
+    "fullName": "AYISHA SHAIMA",
+    "dateOfBirth": "2017-01-03",
+    "gender": "F",
+    "parentName": "ABDUL BARI MISBAHI",
+    "parentPhone": "9656598395"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "199",
+    "fullName": "FATHIMA HIDA. N",
+    "dateOfBirth": "2014-02-14",
+    "gender": "F",
+    "parentName": "MUJEEB RAHMAN. N",
+    "parentPhone": "9605451681"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "207",
+    "fullName": "FATHIMA HUSNA. K",
+    "dateOfBirth": "2016-09-09",
+    "gender": "F",
+    "parentName": "JAMALUDEEN AHSANI. K",
+    "parentPhone": "9497138980"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "204",
+    "fullName": "FATHIMA RAHIBA. K",
+    "dateOfBirth": "2017-04-18",
+    "gender": "F",
+    "parentName": "ABDULRAHEEM K",
+    "parentPhone": "9656016487"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "200",
+    "fullName": "FATHIMA SANA. K",
+    "dateOfBirth": "2016-04-16",
+    "gender": "F",
+    "parentName": "ASHRAF. K",
+    "parentPhone": "8593013837"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "214",
+    "fullName": "MAHAMMAD RABEEH. A",
+    "dateOfBirth": "2017-05-24",
+    "gender": "M",
+    "parentName": "UKKASHA AHSANI. A",
+    "parentPhone": "9048593825"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "210",
+    "fullName": "MUHAMMAD BASIL. K",
+    "dateOfBirth": "2017-03-11",
+    "gender": "M",
+    "parentName": "ABDUL RASHID. K",
+    "parentPhone": "9567993555"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "208",
+    "fullName": "MUHAMMAD BUSHAIR. K",
+    "dateOfBirth": "2014-04-15",
+    "gender": "M",
+    "parentName": "JAFAR SAQAFI. K",
+    "parentPhone": "9746950676"
+  },
+  {
+    "className": "5",
+    "section": "A",
+    "admissionNumber": "192",
+    "fullName": "SHAHRA .KN",
+    "dateOfBirth": "2015-07-24",
+    "gender": "F",
+    "parentName": "SUBAIR .KN",
+    "parentPhone": "9895672195"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "187",
+    "fullName": "ADHEEBA FATHIMA KK",
+    "dateOfBirth": "2014-12-13",
+    "gender": "F",
+    "parentName": "MAHROOF",
+    "parentPhone": "8592029003"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "183",
+    "fullName": "AHMED BUSHAIR KK",
+    "dateOfBirth": "2014-12-05",
+    "gender": "M",
+    "parentName": "ABDUL RASHEED",
+    "parentPhone": "9526509576"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "194",
+    "fullName": "FATHIMA RAJA .A",
+    "dateOfBirth": "2016-03-15",
+    "gender": "F",
+    "parentName": "ABDULRAOOF RAHMANI .A",
+    "parentPhone": "9544957141"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "191",
+    "fullName": "MUHAMMED ANAS .A",
+    "dateOfBirth": "2015-12-06",
+    "gender": "M",
+    "parentName": "MUHAMMED ABDULLATHEEF .A",
+    "parentPhone": "9745110146"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "186",
+    "fullName": "MUHAMMED BISHR VK",
+    "dateOfBirth": "2014-10-21",
+    "gender": "M",
+    "parentName": "ABDUL GAFOOR",
+    "parentPhone": "9048136602"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "196",
+    "fullName": "MUHAMMED NIHAL .V",
+    "dateOfBirth": "2016-03-10",
+    "gender": "M",
+    "parentName": "ABDULLATHEEF .V",
+    "parentPhone": "7559077034"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "190",
+    "fullName": "MUHAMMED RAYYAN .KK",
+    "dateOfBirth": "2015-11-30",
+    "gender": "M",
+    "parentName": "RIYAS .KK",
+    "parentPhone": "9446459159"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "195",
+    "fullName": "NASHA FATHIMA .K",
+    "dateOfBirth": "2015-09-05",
+    "gender": "F",
+    "parentName": "MUHAMMED ASHRAF .K",
+    "parentPhone": "9745928233"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "189",
+    "fullName": "RASAN.P",
+    "dateOfBirth": "2015-10-27",
+    "gender": "M",
+    "parentName": "RAFEEK.P",
+    "parentPhone": "9946474108"
+  },
+  {
+    "className": "6",
+    "section": "A",
+    "admissionNumber": "193",
+    "fullName": "SHAMMAS .KN",
+    "dateOfBirth": "2015-08-20",
+    "gender": "M",
+    "parentName": "RASHEED .KN",
+    "parentPhone": "9946372774"
+  },
+  {
+    "className": "7",
+    "section": "A",
+    "admissionNumber": "184",
+    "fullName": "FATHIMA LUBABA P",
+    "dateOfBirth": "2014-11-27",
+    "gender": "F",
+    "parentName": "MUHAMMADALI AKBAR",
+    "parentPhone": "9447882291"
+  },
+  {
+    "className": "7",
+    "section": "A",
+    "admissionNumber": "185",
+    "fullName": "FATHIMA RABIA A",
+    "dateOfBirth": "2015-01-09",
+    "gender": "F",
+    "parentName": "UKKASHA AHSANI",
+    "parentPhone": "9048593825"
+  },
+  {
+    "className": "7",
+    "section": "A",
+    "admissionNumber": "181",
+    "fullName": "MUHAMMED BASIL KK",
+    "dateOfBirth": "2014-07-21",
+    "gender": "M",
+    "parentName": "HUSSAIN",
+    "parentPhone": "9048473316"
+  },
+  {
+    "className": "7",
+    "section": "A",
+    "admissionNumber": "180",
+    "fullName": "MUHAMMED BISHR KK",
+    "dateOfBirth": "2014-01-16",
+    "gender": "M",
+    "parentName": "JAFAR",
+    "parentPhone": "9048473316"
+  },
+  {
+    "className": "7",
+    "section": "A",
+    "admissionNumber": "167",
+    "fullName": "MUHAMMED SHIYAN KK",
+    "dateOfBirth": "2013-07-23",
+    "gender": "M",
+    "parentName": "SHIHABUDHEEN",
+    "parentPhone": "9946784941"
+  },
+  {
+    "className": "7",
+    "section": "A",
+    "admissionNumber": "203",
+    "fullName": "NASHA FATHIMA. K",
+    "dateOfBirth": "2014-06-06",
+    "gender": "F",
+    "parentName": "ABDUL RAHEEM. K",
+    "parentPhone": "9656016487"
+  },
+  {
+    "className": "7",
+    "section": "A",
+    "admissionNumber": "182",
+    "fullName": "SULHA K",
+    "dateOfBirth": "2014-11-09",
+    "gender": "F",
+    "parentName": "RAFEEQ",
+    "parentPhone": "9895512814"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "163",
+    "fullName": "ABDULLA SHAFEEH KK",
+    "dateOfBirth": "2013-01-16",
+    "gender": "M",
+    "parentName": "MUHAMMED KUTTY AHSANI",
+    "parentPhone": "9645381596"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "149",
+    "fullName": "AJWAD K",
+    "dateOfBirth": "2012-04-13",
+    "gender": "M",
+    "parentName": "ALI",
+    "parentPhone": "8151892668"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "172",
+    "fullName": "FAHMA FATHIMA KK",
+    "dateOfBirth": "2013-11-10",
+    "gender": "F",
+    "parentName": "ABDUL LATHEEF",
+    "parentPhone": "9946799124"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "177",
+    "fullName": "FATHIMA BAHJA",
+    "dateOfBirth": "2013-08-17",
+    "gender": "F",
+    "parentName": "MUHAMMED ALI AKBAR",
+    "parentPhone": "9946872016"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "175",
+    "fullName": "FATHIMA LUBABA",
+    "dateOfBirth": "2014-03-25",
+    "gender": "F",
+    "parentName": "MUHAMMED BASHEER AHSANI",
+    "parentPhone": "8606703313"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "173",
+    "fullName": "FATHIMA MEHRIN KK",
+    "dateOfBirth": "2014-06-26",
+    "gender": "F",
+    "parentName": "MAHMOOD",
+    "parentPhone": "9895825828"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "231",
+    "fullName": "FATHIMA SANHA. NT",
+    "dateOfBirth": "2013-12-04",
+    "gender": "F",
+    "parentName": "SHAMEER. NT",
+    "parentPhone": "9544899719"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "174",
+    "fullName": "HANA FATHIMA TM",
+    "dateOfBirth": "2013-08-21",
+    "gender": "F",
+    "parentName": "ABDUL KAREEM",
+    "parentPhone": "9946628949"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "169",
+    "fullName": "MUHAMMAD SHAMMAS P",
+    "dateOfBirth": "2013-11-21",
+    "gender": "M",
+    "parentName": "SHAMSUDHEEN",
+    "parentPhone": "9946010259"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "212",
+    "fullName": "MUHAMMAD SINAN. KK",
+    "dateOfBirth": "2014-05-13",
+    "gender": "M",
+    "parentName": "MUHAMMAD RAFI. KK",
+    "parentPhone": "9846418827"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "171",
+    "fullName": "MUHAMMED BISHR K",
+    "dateOfBirth": "2014-05-22",
+    "gender": "M",
+    "parentName": "ABDULRASHID",
+    "parentPhone": "9567990809"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "166",
+    "fullName": "MUHAMMED NISHAL V",
+    "dateOfBirth": "2013-06-14",
+    "gender": "M",
+    "parentName": "SHAREEF",
+    "parentPhone": "9526365675"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "170",
+    "fullName": "MUHAMMED SAHL. PN",
+    "dateOfBirth": "2013-11-06",
+    "gender": "M",
+    "parentName": "SHIHABUDHEEN SAADI",
+    "parentPhone": "9567535130"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "176",
+    "fullName": "SAFIYA NASEERA KK",
+    "dateOfBirth": "2014-03-25",
+    "gender": "F",
+    "parentName": "MUHAMMED SHAMEER AHSANI",
+    "parentPhone": "9048679186"
+  },
+  {
+    "className": "8",
+    "section": "A",
+    "admissionNumber": "168",
+    "fullName": "SHAMMAS PT",
+    "dateOfBirth": "2014-04-01",
+    "gender": "M",
+    "parentName": "ABDUSSALAM",
+    "parentPhone": "9633119109"
+  },
+  {
+    "className": "9",
+    "section": "A",
+    "admissionNumber": "164",
+    "fullName": "FATHIMA NABEELA",
+    "dateOfBirth": "2013-08-07",
+    "gender": "F",
+    "parentName": "ALAVI MUSLIYAR",
+    "parentPhone": "9846807107"
+  },
+  {
+    "className": "9",
+    "section": "A",
+    "admissionNumber": "165",
+    "fullName": "MINHA FATHIMA K",
+    "dateOfBirth": "2012-01-15",
+    "gender": "F",
+    "parentName": "MAHMOOD",
+    "parentPhone": "9895825828"
+  },
+  {
+    "className": "9",
+    "section": "A",
+    "admissionNumber": "159",
+    "fullName": "SALWA KN",
+    "dateOfBirth": "2012-09-10",
+    "gender": "F",
+    "parentName": "ABDUSSAMAD",
+    "parentPhone": "6536454185"
+  },
+  {
+    "className": "10",
+    "section": "A",
+    "admissionNumber": "153",
+    "fullName": "FADIYA KN",
+    "dateOfBirth": "2012-01-13",
+    "gender": "F",
+    "parentName": "ABOOBAKAR",
+    "parentPhone": "9846982531"
+  },
+  {
+    "className": "10",
+    "section": "A",
+    "admissionNumber": "151",
+    "fullName": "FATHIMA RIYANA KK",
+    "dateOfBirth": "2011-01-07",
+    "gender": "F",
+    "parentName": "RIYAS",
+    "parentPhone": "7026811702"
+  },
+  {
+    "className": "10",
+    "section": "A",
+    "admissionNumber": "152",
+    "fullName": "NISHLA KN",
+    "dateOfBirth": "2012-06-30",
+    "gender": "F",
+    "parentName": "ALI",
+    "parentPhone": "9995975422"
+  },
+  {
+    "className": "12",
+    "section": "A",
+    "admissionNumber": "275",
+    "fullName": "DIYANA K",
+    "dateOfBirth": "2011-05-03",
+    "gender": "F",
+    "parentName": "SHAMSUDHEEN K",
+    "parentPhone": "9447926812"
+  },
+  {
+    "className": "12",
+    "section": "A",
+    "admissionNumber": "131",
+    "fullName": "MINHA FATHIMA VK",
+    "dateOfBirth": "2010-05-19",
+    "gender": "F",
+    "parentName": "ABDUL GAFOOR",
+    "parentPhone": "9048136602"
+  }
+]

@@ -79,6 +79,64 @@ export async function createClass(
   return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
+const updateClassSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  sortOrder: z.number().int().optional(),
+  academicStream: z.string().max(100).nullable().optional(),
+});
+
+export async function updateClass(
+  institutionId: string, authUserId: string, userId: string, classId: string, input: z.infer<typeof updateClassSchema>
+): Promise<ClassRecord | null> {
+  const data = updateClassSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ClassRecord>(
+      `update classes set
+         name = coalesce($1, name),
+         sort_order = coalesce($2, sort_order),
+         academic_stream = case when $3 then $4 else academic_stream end
+       where id = $5
+       returning id, name, sort_order, academic_stream`,
+      [data.name ?? null, data.sortOrder ?? null, "academicStream" in data, data.academicStream ?? null, classId]
+    );
+    if (rows.length === 0) return null;
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "academic", entityType: "classes", entityId: classId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Hard-deletes a class (§137 follow-up "should be able ... delete"). Every
+ *  FK that references classes.id (sections, class_subjects,
+ *  teacher_assignments, student_enrollments, exam_classes) cascades — see
+ *  0001_foundation.sql — EXCEPT attendance_records and portion_plans, which
+ *  have no ON DELETE clause and so block the delete at the database level
+ *  (Postgres default NO ACTION) once real attendance/portion data exists.
+ *  The explicit enrolled-students guard below gives a clear, actionable
+ *  error for the single most common blocker (an admin trying to delete a
+ *  class students are still actively enrolled in) before ever reaching that
+ *  harder-to-read foreign-key-violation case. */
+export async function deleteClass(institutionId: string, authUserId: string, userId: string, classId: string): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: enrolled } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from student_enrollments where class_id = $1 and status = 'active'",
+      [classId]
+    );
+    if (Number(enrolled[0]?.count ?? 0) > 0) {
+      throw new Error("This class still has actively enrolled students — move or remove them first.");
+    }
+    let deleted;
+    try {
+      deleted = await scoped.query<{ id: string; name: string }>("delete from classes where id = $1 returning id, name", [classId]);
+    } catch {
+      throw new Error("This class can't be deleted yet — it's still referenced by attendance or syllabus records.");
+    }
+    if (deleted.rows.length === 0) return;
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "academic", entityType: "classes", entityId: classId, before: deleted.rows[0] });
+  });
+}
+
 const createSectionSchema = z.object({
   classId: z.string().uuid(),
   name: z.string().min(1).max(50),
@@ -121,6 +179,53 @@ export async function createSection(
   if (scopedClient) return run(scopedClient);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+const updateSectionSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  capacity: z.number().int().positive().nullable().optional(),
+});
+
+export async function updateSection(
+  institutionId: string, authUserId: string, userId: string, sectionId: string, input: z.infer<typeof updateSectionSchema>
+): Promise<SectionRecord | null> {
+  const data = updateSectionSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<SectionRecord>(
+      `update sections set
+         name = coalesce($1, name),
+         capacity = case when $2 then $3 else capacity end
+       where id = $4
+       returning id, class_id, name, capacity`,
+      [data.name ?? null, "capacity" in data, data.capacity ?? null, sectionId]
+    );
+    if (rows.length === 0) return null;
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "academic", entityType: "sections", entityId: sectionId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Same enrolled-students guard as deleteClass() above, scoped to just this section. */
+export async function deleteSection(institutionId: string, authUserId: string, userId: string, sectionId: string): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: enrolled } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from student_enrollments where section_id = $1 and status = 'active'",
+      [sectionId]
+    );
+    if (Number(enrolled[0]?.count ?? 0) > 0) {
+      throw new Error("This section still has actively enrolled students — move or remove them first.");
+    }
+    let deleted;
+    try {
+      deleted = await scoped.query<{ id: string; name: string }>("delete from sections where id = $1 returning id, name", [sectionId]);
+    } catch {
+      throw new Error("This section can't be deleted yet — it's still referenced by attendance or syllabus records.");
+    }
+    if (deleted.rows.length === 0) return;
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "academic", entityType: "sections", entityId: sectionId, before: deleted.rows[0] });
+  });
 }
 
 const createSubjectSchema = z.object({

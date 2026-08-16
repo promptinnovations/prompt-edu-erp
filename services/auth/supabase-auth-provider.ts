@@ -120,6 +120,12 @@ export function createSupabaseAuthProvider(): AuthService {
       return { authUserId: data.user.id, email: data.user.email ?? null };
     },
 
+    async adminUpdatePassword(authUserId, password) {
+      const admin = getSupabaseAdminClient();
+      const { error } = await admin.auth.admin.updateUserById(authUserId, { password });
+      if (error) return { error: error.message };
+    },
+
     async adminDeleteUser(authUserId) {
       const admin = getSupabaseAdminClient();
       try {

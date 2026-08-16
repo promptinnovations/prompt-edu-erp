@@ -61,6 +61,10 @@ export function createDevAuthProvider(): AuthService {
       return { authUserId: crypto.randomUUID(), email };
     },
 
+    async adminUpdatePassword(_authUserId, _password) {
+      // No-op — same reasoning as adminCreateUser() above.
+    },
+
     async adminDeleteUser(_authUserId) {
       // No-op: dev mode has no separate auth-account store to clean up —
       // devSignIn()/devLookupAuthUserIdByEmail() only ever look at `users`.

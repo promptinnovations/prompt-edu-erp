@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loginAction, type LoginState } from "./actions";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -24,6 +24,13 @@ export default function LoginForm({ institutionName }: { institutionName?: strin
   const [state, formAction, pending] = useActionState<LoginState, FormData>(loginAction, INITIAL_STATE);
   const credit = institutionName ? "PROMPT EDU ERP · Prompt Innovations" : "Prompt Innovations";
   const logoLetter = (institutionName ?? "P").trim().charAt(0).toUpperCase() || "P";
+  // §137 follow-up ("their log in id (must be student name, password- phone
+  // number of parent)") — the student-name login tab only makes sense once
+  // we're already on a specific institution's own login screen (the
+  // synthetic email it resolves to is scoped by institution code, from the
+  // ACTIVE_INSTITUTION_COOKIE — see actions.ts's loginAction()); the
+  // generic, un-prefixed /login has no institution to scope the lookup to.
+  const [studentMode, setStudentMode] = useState(false);
 
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-zinc-950 px-4 py-10">
@@ -66,54 +73,117 @@ export default function LoginForm({ institutionName }: { institutionName?: strin
             <h1 className="mt-1 text-2xl font-semibold text-white">{institutionName ?? t("title")}</h1>
             <p className="mt-1 text-sm text-zinc-400">{t("subtitle")}</p>
           </div>
-          <form action={formAction} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-zinc-300">
-                {t("email")}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-              />
+
+          {institutionName ? (
+            <div className="mb-4 flex rounded-lg border border-zinc-700 p-0.5 text-sm">
+              <button
+                type="button"
+                onClick={() => setStudentMode(false)}
+                className={`flex-1 rounded-md px-3 py-1.5 transition-colors ${!studentMode ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-200"}`}
+              >
+                {t("staffTab")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentMode(true)}
+                className={`flex-1 rounded-md px-3 py-1.5 transition-colors ${studentMode ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-200"}`}
+              >
+                {t("studentTab")}
+              </button>
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-zinc-300">
-                {t("password")}
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-              />
-            </div>
-            {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
-            {state.info ? <p className="text-sm text-emerald-400">{state.info}</p> : null}
-            <div className="flex gap-2 pt-1">
+          ) : null}
+
+          {studentMode ? (
+            <form action={formAction} className="space-y-4">
+              <input type="hidden" name="intent" value="student_signin" />
+              <div>
+                <label htmlFor="studentLoginId" className="block text-sm font-medium text-zinc-300">
+                  {t("studentLoginId")}
+                </label>
+                <input
+                  id="studentLoginId"
+                  name="studentLoginId"
+                  type="text"
+                  required
+                  placeholder={t("studentLoginIdPlaceholder")}
+                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+              <div>
+                <label htmlFor="studentPassword" className="block text-sm font-medium text-zinc-300">
+                  {t("password")}
+                </label>
+                <input
+                  id="studentPassword"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  placeholder={t("studentPasswordPlaceholder")}
+                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+              {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
+              {state.info ? <p className="text-sm text-emerald-400">{state.info}</p> : null}
               <button
                 type="submit"
-                name="intent"
-                value="signin"
                 disabled={pending}
-                className="flex-1 rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-2 text-sm font-medium text-white shadow-lg shadow-violet-900/30 transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="w-full rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-2 text-sm font-medium text-white shadow-lg shadow-violet-900/30 transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {t("signIn")}
               </button>
-              <button
-                type="submit"
-                name="intent"
-                value="signup"
-                disabled={pending}
-                className="flex-1 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
-              >
-                {t("signUp")}
-              </button>
-            </div>
-          </form>
+              <p className="text-center text-xs text-zinc-500">{t("studentTabNotice")}</p>
+            </form>
+          ) : (
+            <form action={formAction} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-zinc-300">
+                  {t("email")}
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-zinc-300">
+                  {t("password")}
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+              {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
+              {state.info ? <p className="text-sm text-emerald-400">{state.info}</p> : null}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  name="intent"
+                  value="signin"
+                  disabled={pending}
+                  className="flex-1 rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-2 text-sm font-medium text-white shadow-lg shadow-violet-900/30 transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {t("signIn")}
+                </button>
+                <button
+                  type="submit"
+                  name="intent"
+                  value="signup"
+                  disabled={pending}
+                  className="flex-1 rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                >
+                  {t("signUp")}
+                </button>
+              </div>
+            </form>
+          )}
           <p className="mt-6 text-center text-xs text-zinc-500">{t("firstTimeNotice")}</p>
         </div>
       </div>
