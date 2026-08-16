@@ -111,11 +111,31 @@ async function runImport(request: Request) {
 
     const existingStudents = await listStudents(institutionId, authUserId);
     const existingAdmissionNumbers = new Set(existingStudents.map((s) => s.admission_number));
+    const studentIdByAdmission = new Map(existingStudents.map((s) => [s.admission_number, s]));
 
     let created = 0, skipped = 0, loginsCreated = 0;
     const loginErrors: string[] = [];
     for (const row of rows) {
-      if (existingAdmissionNumbers.has(row.admissionNumber)) { skipped++; continue; }
+      if (existingAdmissionNumbers.has(row.admissionNumber)) {
+        skipped++;
+        // Backfill pass: the student/parent/enrollment already exist from a
+        // prior run, but a earlier attempt's login creation may have failed
+        // (e.g. two students whose names collided after slugifying) — retry
+        // just the login for exactly those, idempotent no-op otherwise.
+        const existing = studentIdByAdmission.get(row.admissionNumber);
+        if (existing && !existing.user_id) {
+          try {
+            await createStudentLoginAccount(institutionId, authUserId, userId, {
+              studentId: existing.id, parentPhone: row.parentPhone,
+            });
+            loginsCreated++;
+            log.push(`Backfilled login for ${row.fullName} (${row.admissionNumber})`);
+          } catch (err) {
+            loginErrors.push(`${row.fullName} (${row.admissionNumber}) [backfill]: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+        continue;
+      }
 
       const student = await createStudent(institutionId, authUserId, userId, {
         admissionNumber: row.admissionNumber, fullName: row.fullName,

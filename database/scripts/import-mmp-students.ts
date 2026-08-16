@@ -107,11 +107,30 @@ async function main() {
   // that already exists (idempotent re-run).
   const existingStudents = await listStudents(institutionId, authUserId);
   const existingAdmissionNumbers = new Set(existingStudents.map((s) => s.admission_number));
+  const studentByAdmission = new Map(existingStudents.map((s) => [s.admission_number, s]));
 
   let created = 0, skipped = 0, loginsCreated = 0, loginErrors = 0;
   for (const row of rows) {
     if (existingAdmissionNumbers.has(row.admissionNumber)) {
       skipped++;
+      // Backfill: retry just the login for a student that already exists
+      // but has no linked account yet (e.g. an earlier run's login
+      // creation failed for that one row — see modules/portal/service.ts's
+      // generateUniqueLoginId() for the punctuation-collision case this
+      // was written to also fix).
+      const existing = studentByAdmission.get(row.admissionNumber);
+      if (existing && !existing.user_id) {
+        try {
+          await createStudentLoginAccount(institutionId, authUserId, userId, {
+            studentId: existing.id, parentPhone: row.parentPhone,
+          });
+          loginsCreated++;
+          console.log(`Backfilled login for ${row.fullName} (${row.admissionNumber})`);
+        } catch (err) {
+          loginErrors++;
+          console.error(`  Backfill login failed for ${row.fullName} (${row.admissionNumber}): ${err instanceof Error ? err.message : err}`);
+        }
+      }
       continue;
     }
     const student = await createStudent(institutionId, authUserId, userId, {
