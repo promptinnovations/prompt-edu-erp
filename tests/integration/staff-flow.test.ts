@@ -23,6 +23,7 @@ import {
   createPortionPlan, listPortionPlans, recordPortionCompletion, listPortionCompletionHistory,
   recordTeacherObservation, listTeacherObservations,
   createTeacherAssignment, listTeacherAssignments, listAssignmentsForTeacher,
+  createStaffLoginAccount, resetStaffLoginPassword,
 } from "../../modules/staff/service";
 
 let institutionA: string;
@@ -272,5 +273,50 @@ describe("Staff module tenant isolation (§E, extended to migration 0012 tables)
       const rows = await scoped.query("select id from staff where id = $1", [teacher1Id]);
       expect(rows.rows).toHaveLength(0);
     });
+  });
+});
+
+describe("Staff login provisioning (§137 follow-up: 'mail id can be their user id and phone number as passwords')", () => {
+  it("listStaff()/getStaffMember() report has_login=false for a claimable placeholder", async () => {
+    const staff = await createStaffMember(institutionA, adminAuth, adminUserId, {
+      email: "no-login-yet@staff-a.example", fullName: "No Login Yet", staffCode: "LOGIN-STF-1", employmentStatus: "active", roleCode: "teacher",
+    });
+    const row = await getStaffMember(institutionA, adminAuth, staff.id);
+    expect(row?.has_login).toBe(false);
+    expect((await listStaff(institutionA, adminAuth)).find((s) => s.id === staff.id)?.has_login).toBe(false);
+  });
+
+  it("createStaffLoginAccount() provisions a real, immediately-usable login and flips has_login to true", async () => {
+    const staff = await createStaffMember(institutionA, adminAuth, adminUserId, {
+      email: "provision-me@staff-a.example", fullName: "Provision Me", staffCode: "LOGIN-STF-2", employmentStatus: "active", roleCode: "teacher",
+    });
+    const result = await createStaffLoginAccount(institutionA, adminAuth, adminUserId, { staffId: staff.id, password: "9876543210" });
+    expect(result.userId).toBe(staff.user_id);
+
+    const row = await getStaffMember(institutionA, adminAuth, staff.id);
+    expect(row?.has_login).toBe(true);
+  });
+
+  it("provisioning a login twice for the same staff member throws", async () => {
+    const staff = await createStaffMember(institutionA, adminAuth, adminUserId, {
+      email: "double-provision@staff-a.example", fullName: "Double Provision", staffCode: "LOGIN-STF-3", employmentStatus: "active", roleCode: "teacher",
+    });
+    await createStaffLoginAccount(institutionA, adminAuth, adminUserId, { staffId: staff.id, password: "9876543211" });
+    await expect(
+      createStaffLoginAccount(institutionA, adminAuth, adminUserId, { staffId: staff.id, password: "9876543212" })
+    ).rejects.toThrow(/already has a login/);
+  });
+
+  it("resetStaffLoginPassword() succeeds for a provisioned login and throws for one that has none — editable anytime", async () => {
+    const staff = await createStaffMember(institutionA, adminAuth, adminUserId, {
+      email: "reset-me@staff-a.example", fullName: "Reset Me", staffCode: "LOGIN-STF-4", employmentStatus: "active", roleCode: "teacher",
+    });
+    await createStaffLoginAccount(institutionA, adminAuth, adminUserId, { staffId: staff.id, password: "9876543213" });
+    await expect(resetStaffLoginPassword(institutionA, adminAuth, adminUserId, staff.id, "9876543214")).resolves.toBeUndefined();
+
+    const noLogin = await createStaffMember(institutionA, adminAuth, adminUserId, {
+      email: "no-login-reset@staff-a.example", fullName: "No Login Reset", staffCode: "LOGIN-STF-5", employmentStatus: "active", roleCode: "teacher",
+    });
+    await expect(resetStaffLoginPassword(institutionA, adminAuth, adminUserId, noLogin.id, "9876543215")).rejects.toThrow(/doesn't have a login yet/);
   });
 });

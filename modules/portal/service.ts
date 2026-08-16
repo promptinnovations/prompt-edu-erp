@@ -339,7 +339,13 @@ export async function resetStudentLoginPassword(
     const authService = await getAuthService();
     const result = await authService.adminUpdatePassword(authUserIdForLogin, password);
     if (result && "error" in result) throw new Error(`Could not reset the login password (${result.error}).`);
-    await scoped.query("update users set phone = $1, updated_at = now() where id = $2", [password, rows[0].user_id]);
+    // A plain UPDATE here silently affects 0 rows under RLS — users_write_self
+    // (migration 0001) only allows a user to update their OWN row, not one
+    // an admin is resetting on a student's behalf. See
+    // database/migrations/0025_admin_login_provisioning.sql (added
+    // alongside the equivalent staff-login feature, which is what
+    // surfaced this same latent gap here).
+    await scoped.query("select set_login_credentials($1, null, $2)", [rows[0].user_id, password]);
     await recordAudit(scoped, { institutionId, userId, action: "reset_password", module: "students", entityType: "students", entityId: studentId });
   });
 }

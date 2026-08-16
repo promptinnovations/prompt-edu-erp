@@ -221,10 +221,16 @@ describe("Student login: name + parent-phone (§137 follow-up)", () => {
     expect(await resolveStudentLoginEmail("sa-flow-b", "Resolve Me")).toBeNull(); // wrong institution
   });
 
-  it("resetStudentLoginPassword() succeeds for a provisioned login and throws for one that has none", async () => {
+  it("resetStudentLoginPassword() succeeds for a provisioned login, actually persists the new phone (§137 follow-up: admin-on-behalf-of-colleague update, see migration 0025), and throws for one that has none", async () => {
     const s = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "RESET-1", fullName: "Reset Me" });
-    await createStudentLoginAccount(institutionA, adminAuth, adminUserId, { studentId: s.id, parentPhone: "9000000040" });
+    const created = await createStudentLoginAccount(institutionA, adminAuth, adminUserId, { studentId: s.id, parentPhone: "9000000040" });
     await expect(resetStudentLoginPassword(institutionA, adminAuth, adminUserId, s.id, "9000000041")).resolves.toBeUndefined();
+
+    const db = await getDbClient();
+    const { rows } = await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, (scoped) =>
+      scoped.query<{ phone: string | null }>("select phone from users where id = $1", [created.userId])
+    );
+    expect(rows[0].phone).toBe("9000000041"); // the RESET value, not the original "9000000040"
 
     const noLogin = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "RESET-2", fullName: "No Login Yet" });
     await expect(resetStudentLoginPassword(institutionA, adminAuth, adminUserId, noLogin.id, "9000000042")).rejects.toThrow(/doesn't have a portal login/);

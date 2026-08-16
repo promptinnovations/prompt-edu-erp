@@ -8,6 +8,7 @@ import {
   applyForStaffLeave, reviewStaffLeave,
   createPortionPlan, recordPortionCompletion,
   recordTeacherObservation, createTeacherAssignment,
+  createStaffLoginAccount, resetStaffLoginPassword,
 } from "../../../modules/staff/service";
 
 export async function createStaffAction(_prevState: { error: string | null }, formData: FormData) {
@@ -29,6 +30,38 @@ export async function createStaffAction(_prevState: { error: string | null }, fo
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to add staff member." };
+  }
+}
+
+export async function createStaffLoginAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.create");
+    await createStaffLoginAccount(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      staffId: String(formData.get("staffId") ?? ""),
+      password: String(formData.get("password") ?? ""),
+    });
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to create login." };
+  }
+}
+
+export async function resetStaffLoginPasswordAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.create");
+    await resetStaffLoginPassword(
+      ctx.institutionId, ctx.session.authUserId, ctx.userId,
+      String(formData.get("staffId") ?? ""), String(formData.get("password") ?? "")
+    );
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to reset password." };
   }
 }
 

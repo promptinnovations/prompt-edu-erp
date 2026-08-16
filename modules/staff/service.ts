@@ -23,6 +23,7 @@ import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { assertBelowLimit } from "../../services/limits/limit-service";
+import { getAuthService } from "../../services/auth/auth-service";
 import {
   applyForLeave as applyForLeaveGeneric,
   listLeaveApplications as listLeaveApplicationsGeneric,
@@ -35,7 +36,7 @@ export interface StaffRecord {
   department: string | null; joining_date: string | null; employment_status: string;
 }
 export interface StaffRow extends StaffRecord {
-  full_name: string; email: string | null;
+  full_name: string; email: string | null; has_login: boolean;
 }
 export interface StaffAttendanceGridRow {
   staff_id: string; full_name: string; staff_code: string;
@@ -159,7 +160,7 @@ export async function listStaff(institutionId: string, authUserId: string, emplo
     const { rows } = employmentStatus
       ? await scoped.query<StaffRow>(
           `select st.id, st.user_id, st.staff_code, st.designation, st.department, st.joining_date, st.employment_status,
-                  u.full_name, u.email
+                  u.full_name, u.email, (u.auth_user_id is not null) as has_login
              from staff st join users u on u.id = st.user_id
             where st.employment_status = $1
             order by u.full_name`,
@@ -167,7 +168,7 @@ export async function listStaff(institutionId: string, authUserId: string, emplo
         )
       : await scoped.query<StaffRow>(
           `select st.id, st.user_id, st.staff_code, st.designation, st.department, st.joining_date, st.employment_status,
-                  u.full_name, u.email
+                  u.full_name, u.email, (u.auth_user_id is not null) as has_login
              from staff st join users u on u.id = st.user_id
             order by u.full_name`
         );
@@ -180,7 +181,7 @@ export async function getStaffMember(institutionId: string, authUserId: string, 
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StaffRow>(
       `select st.id, st.user_id, st.staff_code, st.designation, st.department, st.joining_date, st.employment_status,
-              u.full_name, u.email
+              u.full_name, u.email, (u.auth_user_id is not null) as has_login
          from staff st join users u on u.id = st.user_id
         where st.id = $1`,
       [staffId]
@@ -214,6 +215,112 @@ export async function updateStaffMember(
     if (rows.length === 0) return null;
     await recordAudit(scoped, { institutionId, userId, action: "edit", module: "staff", entityType: "staff", entityId: staffId, after: rows[0] });
     return rows[0];
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Staff login provisioning (§137 follow-up: "mail id can be their user id
+// and phone number as passwords") — mirrors modules/portal/service.ts's
+// createStudentLoginAccount()/resetStudentLoginPassword() exactly, but
+// uses the staff member's OWN real email as-is (createStaffMember() already
+// required a real email up front — no synthetic address needed the way
+// student logins need one, since students don't have their own email).
+// The one deliberate exception to "nobody's password ever passes through
+// this app's server" (§X, AuthService.adminCreateUser()'s own doc
+// comment) this file adds: an admin explicitly setting a colleague's
+// initial/reset password (typically their phone number, by this feature's
+// own convention, not the staff member's own choice) — same narrow
+// exception createInstitution()'s admin bundle and the student-login
+// feature already both rely on. Editable anytime via
+// resetStaffLoginPassword(), unlike createStaffMember()'s claimable
+// placeholder path, which requires the person to sign up themselves.
+// ---------------------------------------------------------------------------
+const provisionStaffLoginSchema = z.object({
+  staffId: z.string().uuid(),
+  password: z.string().min(4).max(30),
+});
+
+export interface StaffLoginResult {
+  userId: string;
+}
+
+/** Creates an immediately-usable login for an EXISTING staff member (added
+ *  via createStaffMember(), which only creates a claimable placeholder) —
+ *  a real Supabase Auth account using their already-on-file email and a
+ *  server-set password. Throws if that staff member already has a login
+ *  (use resetStaffLoginPassword() to change it) or already has a
+ *  DIFFERENT real auth account with the same email elsewhere on the
+ *  platform (adminCreateUser() enforces email uniqueness). On any failure
+ *  after the auth account is created, it's torn back down (same
+ *  best-effort compensation createStudentLoginAccount() uses). */
+export async function createStaffLoginAccount(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof provisionStaffLoginSchema>
+): Promise<StaffLoginResult> {
+  const data = provisionStaffLoginSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ user_id: string; email: string | null; auth_user_id: string | null }>(
+      `select st.user_id, u.email, u.auth_user_id from staff st join users u on u.id = st.user_id where st.id = $1`,
+      [data.staffId]
+    );
+    if (rows.length === 0) throw new Error("Staff member not found.");
+    if (rows[0].auth_user_id) throw new Error("This staff member already has a login — use \"Reset password\" instead.");
+    if (!rows[0].email) throw new Error("This staff member has no email on file — add one first (edit their record).");
+
+    const authService = await getAuthService();
+    const authResult = await authService.adminCreateUser(rows[0].email, data.password);
+    if ("error" in authResult) {
+      throw new Error(`Could not create the login (${authResult.error}).`);
+    }
+    try {
+      // Plain UPDATE would silently affect 0 rows here — users_write_self
+      // (migration 0001) only allows a user to update their OWN row, not
+      // one an admin is provisioning on a colleague's behalf. See
+      // database/migrations/0025_admin_login_provisioning.sql for why this
+      // narrowly-scoped SECURITY DEFINER function exists instead.
+      const { rows: setRows } = await scoped.query<{ set_login_credentials: boolean }>(
+        "select set_login_credentials($1, $2, $3) as set_login_credentials",
+        [rows[0].user_id, authResult.authUserId, data.password]
+      );
+      if (!setRows[0]?.set_login_credentials) {
+        throw new Error("Could not link the new login to this staff member's account.");
+      }
+      await recordAudit(scoped, {
+        institutionId, userId, action: "provision_login", module: "staff", entityType: "staff", entityId: data.staffId,
+      });
+      return { userId: rows[0].user_id };
+    } catch (err) {
+      await authService.adminDeleteUser(authResult.authUserId).catch(() => {});
+      throw err;
+    }
+  });
+}
+
+/** Resets an existing staff login's password (e.g. a mistyped phone number,
+ *  or simply changing it later — "should be editable anytime"). Requires
+ *  the login to already exist (use createStaffLoginAccount() for the
+ *  first-time case). */
+export async function resetStaffLoginPassword(
+  institutionId: string, authUserId: string, userId: string, staffId: string, password: string
+): Promise<void> {
+  const newPassword = z.string().min(4).max(30).parse(password);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ user_id: string; auth_user_id: string | null }>(
+      `select st.user_id, u.auth_user_id from staff st join users u on u.id = st.user_id where st.id = $1`,
+      [staffId]
+    );
+    if (rows.length === 0) throw new Error("Staff member not found.");
+    if (!rows[0].auth_user_id) throw new Error("This staff member doesn't have a login yet — use \"Create login\" instead.");
+
+    const authService = await getAuthService();
+    const result = await authService.adminUpdatePassword(rows[0].auth_user_id, newPassword);
+    if (result && "error" in result) throw new Error(`Could not reset the login password (${result.error}).`);
+    // See createStaffLoginAccount()'s comment above and
+    // database/migrations/0025_admin_login_provisioning.sql — a plain
+    // UPDATE here would silently affect 0 rows under RLS.
+    await scoped.query("select set_login_credentials($1, null, $2)", [rows[0].user_id, newPassword]);
+    await recordAudit(scoped, { institutionId, userId, action: "reset_password", module: "staff", entityType: "staff", entityId: staffId });
   });
 }
 

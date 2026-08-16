@@ -8,6 +8,7 @@ import {
   listPortionPlans, listTeacherObservations, listTeacherAssignments,
 } from "../../../modules/staff/service";
 import AddStaffForm from "./AddStaffForm";
+import StaffLoginCell from "./StaffLoginCell";
 import StaffAttendanceGrid from "./StaffAttendanceGrid";
 import StaffLeaveSection from "./StaffLeaveSection";
 import PortionPlanSection from "./PortionPlanSection";
@@ -65,9 +66,11 @@ export default async function StaffPage({
             <tr>
               <th className="py-1.5">Code</th>
               <th className="py-1.5">Name</th>
+              <th className="py-1.5">Email</th>
               <th className="py-1.5">Designation</th>
               <th className="py-1.5">Department</th>
               <th className="py-1.5">Status</th>
+              <th className="py-1.5">Login</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -75,13 +78,17 @@ export default async function StaffPage({
               <tr key={s.id}>
                 <td className="py-1.5">{s.staff_code}</td>
                 <td className="py-1.5">{s.full_name}</td>
+                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{s.email ?? "—"}</td>
                 <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{s.designation ?? "—"}</td>
                 <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{s.department ?? "—"}</td>
                 <td className="py-1.5 capitalize">{s.employment_status.replace("_", " ")}</td>
+                <td className="py-1.5">
+                  <StaffLoginCell staffId={s.id} hasLogin={s.has_login} canManage={can(ctx.permissions, "staff.create")} />
+                </td>
               </tr>
             ))}
             {staff.length === 0 ? (
-              <tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No staff members yet.</td></tr>
+              <tr><td colSpan={7} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No staff members yet.</td></tr>
             ) : null}
           </tbody>
         </table>

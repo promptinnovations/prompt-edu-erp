@@ -676,6 +676,39 @@ that is the entire point of the `StorageProvider` abstraction.
   **SKIMVB** is accepted by the form and recorded, but has no
   auto-provisioning yet — the platform owner said its syllabus/rules would
   follow later.
+- **§137 follow-up: staff login provisioning ("mail id can be their user id
+  and phone number as passwords... should be editable anytime")** —
+  `createStaffMember()` (the existing `/staff` "Add staff member" form)
+  only ever created a claimable placeholder (`auth_user_id = null`),
+  requiring the person to self-serve sign up. `modules/staff/service.ts`
+  gained `createStaffLoginAccount()`/`resetStaffLoginPassword()`, mirroring
+  `modules/portal/service.ts`'s `createStudentLoginAccount()`/
+  `resetStudentLoginPassword()` exactly: a real Supabase Auth account using
+  the staff member's own on-file email and a server-set password (by this
+  feature's convention, their phone number) — the same narrow,
+  already-documented exception to "nobody's password ever passes through
+  this app's server" those two functions and `createInstitution()`'s admin
+  bundle all share. New `/staff` Directory column ("Create login" /
+  "Reset password", editable any time, not just at creation) wired via
+  `StaffLoginCell.tsx` and two new server actions.
+  Building this surfaced a real, previously-untested bug shared by BOTH
+  the new staff code and the existing student-login reset path: `users_
+  write_self` (migration 0001) only allows a user to update their own row,
+  so an admin's plain `update users set auth_user_id = ...` (or `phone =
+  ...`) on a COLLEAGUE's row silently affects 0 rows under RLS — no error,
+  just a no-op. `resetStudentLoginPassword()`'s own test only ever asserted
+  the call didn't throw, never that the phone value actually changed, so
+  this had been latent since that feature shipped. Fixed by migration
+  `0025_admin_login_provisioning.sql`'s `set_login_credentials()` — a
+  narrowly-scoped `SECURITY DEFINER` function (same pattern
+  `0012_staff.sql`'s `user_shares_current_institution()` already
+  established) that re-derives its own authorization (target user must
+  hold an active membership in the CALLER's current institution context)
+  rather than trusting the caller's institutionId argument, and both the
+  new staff functions and the existing `resetStudentLoginPassword()` now
+  call it instead of a raw UPDATE. `tests/integration/staff-flow.test.ts`
+  and `student-admin-flow.test.ts` both assert the actual persisted value,
+  not just that the call resolved.
 - **CSV import uses a hand-rolled RFC4180-ish parser, not a library**:
   `modules/bulk/service.ts`'s `parseCsv()` handles quoted fields, escaped
   quotes, and CRLF/LF line endings, but hasn't been fuzz-tested against
