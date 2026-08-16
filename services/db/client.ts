@@ -86,7 +86,25 @@ export async function createIsolatedTestClient(): Promise<DbClient> {
 // node-postgres adapter (real Postgres — Supabase / Neon / self-hosted)
 // ---------------------------------------------------------------------------
 async function createPgAdapter(connectionString: string): Promise<DbClient> {
-  const { Pool } = await import("pg");
+  const { Pool, types } = await import("pg");
+  // node-postgres parses `date`/`timestamp`/`timestamptz` columns into JS
+  // Date objects by default — PGlite (the adapter every integration test
+  // runs against, see createPgliteAdapter() below) does NOT do this, it
+  // returns the raw string Postgres sends. Every service interface in this
+  // codebase declares these fields `string` (e.g. LeaveApplicationRecord.
+  // start_date), so a Date object silently satisfies TypeScript at compile
+  // time but crashes the first time something renders it directly in JSX
+  // ("Objects are not valid as a React child (found: [object Date])") —
+  // found live on /staff (StaffLeaveSection rendering leave_applications.
+  // start_date/end_date) after 341 passing tests never caught it, exactly
+  // because PGlite already agreed with the `string` type. Overriding these
+  // three OIDs to the identity function makes both adapters behave
+  // identically, for every current and future date/timestamp column, not
+  // just the one that happened to crash first.
+  types.setTypeParser(types.builtins.DATE, (val) => val);
+  types.setTypeParser(types.builtins.TIMESTAMP, (val) => val);
+  types.setTypeParser(types.builtins.TIMESTAMPTZ, (val) => val);
+
   const pool = new Pool({ connectionString });
 
   const adapter: DbClient = {
