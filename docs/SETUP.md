@@ -571,6 +571,26 @@ that is the entire point of the `StorageProvider` abstraction.
   accepts anything 4–30 characters). `database/scripts/import-mmp-students.ts`
   remains as a direct-SQL-access alternative for anyone who prefers a
   script over the UI, but is no longer the only way to do this.
+- **Students import now requires the minimum real-world field set** (per
+  explicit request: "student data must contain minimum these details: Std,
+  Div, Adm No, Student Name, Father, DOB, Gender, Mobile No" — the columns
+  on a physical class register): `modules/bulk/service.ts`'s students
+  definition now requires Std (class name)/Div (section name)/Adm No/
+  Student Name/Father/Mobile No (DOB and Gender stay optional, as before).
+  Unlike a cosmetic template change, each of the new columns does real
+  work in `insertRow()` rather than sitting unused: Std/Div immediately
+  `enrollStudent()`s the new student into that class/section for the
+  institution's current academic year (the same function the standalone
+  "Enrollments" entity type above calls), and Father/Mobile No
+  `createParent()` + `linkParentToStudent()` a linked guardian record
+  (relationship="Father", phone=Mobile No — the same functions "Parents /
+  guardians" calls). A row fails validation up front if its class/division
+  doesn't exist yet, or if the institution has no current academic year
+  set — both with the same referential-check messages the "Enrollments"
+  entity type already gives. The standalone "Enrollments" and "Parents /
+  guardians" entity types are unchanged and still useful for a second
+  guardian, a later class transfer, or importing students before classes
+  exist.
 - **Parent import dedup only applies when an email is given**: since
   `createParent()` has no unique constraint to check against (a real
   institution can have two different parents named the same thing),

@@ -14,8 +14,8 @@ import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
-import { createClass, listClasses, listSections, getCurrentAcademicYear } from "../../modules/academic/service";
-import { createStudent, listStudents, enrollStudent } from "../../modules/students/service";
+import { createClass, createSection, listClasses, listSections, getCurrentAcademicYear } from "../../modules/academic/service";
+import { createStudent, listStudents, enrollStudent, getCurrentEnrollment } from "../../modules/students/service";
 import {
   generateImportTemplate, stageImport, confirmImport, listRecentImportBatches,
   exportRows, exportDefinitions, listImportEntityTypes,
@@ -46,8 +46,9 @@ beforeAll(async () => {
   const teacher = await seedDemoUser(db, institutionA, "teacher@bulk-a.example", "Bulk Teacher", "teacher");
   teacherAuth = teacher.authUserId; teacherUserId = teacher.userId;
 
-  await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 6", sortOrder: 6 });
+  const grade6 = await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 6", sortOrder: 6 });
   await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 7", sortOrder: 7 });
+  await createSection(institutionA, adminAuth, adminUserId, { classId: grade6.id, name: "A" });
   await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "EXIST-1", fullName: "Existing Student" });
   // "Sports Meet" / "District" are already seeded by seedDemoInstitution()
   // (database/scripts/seed.ts) -- reuse them rather than colliding with the
@@ -114,13 +115,15 @@ describe("Stage: field / referential / duplicate validation (§Q.1)", () => {
     expect(result.rows[2].errors[0]).toMatch(/was not found/);
   });
 
-  it("students: admission number required + unique, date format validated", async () => {
+  it("students: Std/Div/Adm No/Student Name/Father/Mobile No required, admission number unique, date format validated, class/division referential checks, and a valid row actually enrolls + links a Father parent", async () => {
     const file = xlsxToCsvLikeRows(
-      ["Admission number", "Full name", "Date of birth (YYYY-MM-DD)", "Gender"],
+      ["Std", "Div", "Adm No", "Student Name", "Father", "DOB (YYYY-MM-DD)", "Gender", "Mobile No"],
       [
-        ["NEW-100", "Zainab Ali", "2013-01-15", "female"],
-        ["EXIST-1", "Someone Else", "", ""], // duplicate of an existing DB row
-        ["NEW-101", "Bad Date Kid", "not-a-date", ""],
+        ["Grade 6", "A", "NEW-100", "Zainab Ali", "Karim Ali", "2013-01-15", "female", "9876543211"],
+        ["Grade 6", "A", "EXIST-1", "Someone Else", "Some Father", "", "", "9876543212"], // duplicate of an existing DB row
+        ["Grade 6", "A", "NEW-101", "Bad Date Kid", "Some Father", "not-a-date", "", "9876543213"],
+        ["Nonexistent Class", "A", "NEW-102", "No Class Kid", "Some Father", "", "", "9876543214"],
+        ["Grade 6", "Z", "NEW-103", "No Div Kid", "Some Father", "", "", "9876543215"],
       ]
     );
     const result = await stageImport(institutionA, adminAuth, adminUserId, {
@@ -131,6 +134,25 @@ describe("Stage: field / referential / duplicate validation (§Q.1)", () => {
     expect(result.rows[1].errors[0]).toMatch(/already exists/);
     expect(result.rows[2].status).toBe("invalid");
     expect(result.rows[2].errors[0]).toMatch(/YYYY-MM-DD/);
+    expect(result.rows[3].status).toBe("invalid");
+    expect(result.rows[3].errors[0]).toMatch(/Class .* was not found/);
+    expect(result.rows[4].status).toBe("invalid");
+    expect(result.rows[4].errors[0]).toMatch(/Division .* was not found/);
+
+    const confirmed = await confirmImport(institutionA, adminAuth, adminUserId, result.batchId);
+    expect(confirmed.importedRows).toBe(1);
+
+    const newStudent = (await listStudents(institutionA, adminAuth)).find((s) => s.admission_number === "NEW-100")!;
+    expect(newStudent).toBeDefined();
+    const classes = await listClasses(institutionA, adminAuth);
+    const grade6 = classes.find((c) => c.name === "Grade 6")!;
+    const sections = await listSections(institutionA, adminAuth, grade6.id);
+    const sectionA = sections.find((s) => s.name === "A")!;
+    // Actually enrolled (not just recorded) — same enrollStudent() the
+    // "Enrollments" entity type below uses.
+    const enrollment = await getCurrentEnrollment(institutionA, adminAuth, newStudent.id);
+    expect(enrollment?.class_id).toBe(grade6.id);
+    expect(enrollment?.section_id).toBe(sectionA.id);
   });
 
   it("achievements: multi-entity referential checks (student, category, level)", async () => {

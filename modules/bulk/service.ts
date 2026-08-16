@@ -190,37 +190,98 @@ const subjectsDefinition: EntityImportDefinition = {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Std/Div/Father/Mobile No — the minimum field set an institution admin
+ *  actually works from on paper (a class register), per explicit request:
+ *  "student data must contain minimum these details: Std, Div, Adm No,
+ *  Student Name, Father, DOB, Gender, Mobile No". Rather than stop at
+ *  recording these as inert text, each does real work in insertRow():
+ *  Std/Div enroll the student into that class/section for the current
+ *  academic year (reusing enrollStudent(), the same function the
+ *  "Enrollments" entity type below calls), and Father/Mobile No create a
+ *  linked parent/guardian record (relationship="Father", phone=Mobile No)
+ *  via createParent()/linkParentToStudent() — the same functions the
+ *  "Parents / guardians" entity type below calls for any OTHER guardian an
+ *  institution wants to add. Both of those entity types remain available
+ *  unchanged for additional parents, class transfers, or importing
+ *  students before classes/an academic year exist. */
 const studentsDefinition: EntityImportDefinition = {
   entityType: "students",
   label: "Students",
   columns: [
-    { key: "admissionNumber", label: "Admission number", required: true },
-    { key: "fullName", label: "Full name", required: true },
-    { key: "dateOfBirth", label: "Date of birth (YYYY-MM-DD)", required: false },
+    { key: "className", label: "Std", required: true },
+    { key: "sectionName", label: "Div", required: true },
+    { key: "admissionNumber", label: "Adm No", required: true },
+    { key: "fullName", label: "Student Name", required: true },
+    { key: "fatherName", label: "Father", required: true },
+    { key: "dateOfBirth", label: "DOB (YYYY-MM-DD)", required: false },
     { key: "gender", label: "Gender", required: false },
+    { key: "mobileNo", label: "Mobile No", required: true },
   ],
-  sampleRow: { admissionNumber: "2026-001", fullName: "Ahmed Ali", dateOfBirth: "2012-05-14", gender: "male" },
+  sampleRow: {
+    className: "6", sectionName: "A", admissionNumber: "2026-001", fullName: "Ahmed Ali",
+    fatherName: "Mohammed Ali", dateOfBirth: "2012-05-14", gender: "male", mobileNo: "9876543210",
+  },
   async prepareContext(institutionId, authUserId) {
-    const existing = await listStudents(institutionId, authUserId);
-    return { existingAdmissionNumbers: new Set(existing.map((s) => normKey(s.admission_number))) };
+    const [existing, classes, sections, currentYear] = await Promise.all([
+      listStudents(institutionId, authUserId),
+      listClasses(institutionId, authUserId),
+      listSections(institutionId, authUserId),
+      getCurrentAcademicYear(institutionId, authUserId),
+    ]);
+    return {
+      existingAdmissionNumbers: new Set(existing.map((s) => normKey(s.admission_number))),
+      classesByName: new Map(classes.map((c) => [normKey(c.name), c.id])),
+      sectionsByClassAndName: new Map(sections.map((s) => [`${s.class_id}:${normKey(s.name)}`, s.id])),
+      currentAcademicYearId: currentYear?.id ?? null,
+    };
   },
   parseRow(raw, context) {
     const errors: string[] = [];
+    const className = req(raw, "className", errors);
+    const sectionName = req(raw, "sectionName", errors);
     const admissionNumber = req(raw, "admissionNumber", errors);
     const fullName = req(raw, "fullName", errors); // Unicode-safe — any script (§S.3)
+    const fatherName = req(raw, "fatherName", errors);
+    const mobileNo = req(raw, "mobileNo", errors);
     const dateOfBirth = (raw.dateOfBirth ?? "").trim() || null;
-    if (dateOfBirth && !DATE_RE.test(dateOfBirth)) errors.push(`"dateOfBirth" must be YYYY-MM-DD.`);
+    if (dateOfBirth && !DATE_RE.test(dateOfBirth)) errors.push(`"DOB" must be YYYY-MM-DD.`);
     if (errors.length > 0) return { status: "invalid", errors };
+
     const key = normKey(admissionNumber);
     const existingAdmissionNumbers = context.existingAdmissionNumbers as Set<string>;
     if (existingAdmissionNumbers.has(key)) return { status: "invalid", errors: [`Admission number "${admissionNumber}" already exists.`] };
+
+    const classesByName = context.classesByName as Map<string, string>;
+    const classId = classesByName.get(normKey(className));
+    if (!classId) return { status: "invalid", errors: [`Class "${className}" was not found — add it under Academic Setup or the "Classes" import first.`] };
+
+    const sectionsByClassAndName = context.sectionsByClassAndName as Map<string, string>;
+    const sectionId = sectionsByClassAndName.get(`${classId}:${normKey(sectionName)}`);
+    if (!sectionId) return { status: "invalid", errors: [`Division "${sectionName}" was not found in class "${className}" — add it under Academic Setup or the "Sections" import first.`] };
+
+    const currentAcademicYearId = context.currentAcademicYearId as string | null;
+    if (!currentAcademicYearId) return { status: "invalid", errors: [`No current academic year is set for this institution — set one under Academic Setup before importing students.`] };
+
     const gender = (raw.gender ?? "").trim() || null;
-    return { status: "valid", data: { admissionNumber, fullName, dateOfBirth, gender }, dedupeKey: key };
+    return {
+      status: "valid", dedupeKey: key,
+      data: { admissionNumber, fullName, dateOfBirth, gender, classId, sectionId, academicYearId: currentAcademicYearId, fatherName, mobileNo },
+    };
   },
   async insertRow(institutionId, authUserId, userId, data, scoped) {
-    await createStudent(institutionId, authUserId, userId, {
+    const student = await createStudent(institutionId, authUserId, userId, {
       admissionNumber: data.admissionNumber as string, fullName: data.fullName as string,
       dateOfBirth: data.dateOfBirth as string | null, gender: data.gender as string | null,
+    }, scoped);
+    await enrollStudent(institutionId, authUserId, userId, {
+      studentId: student.id, classId: data.classId as string,
+      sectionId: data.sectionId as string, academicYearId: data.academicYearId as string,
+    }, scoped);
+    const father = await createParent(institutionId, authUserId, userId, {
+      fullName: data.fatherName as string, phone: data.mobileNo as string, email: null, occupation: null,
+    }, scoped);
+    await linkParentToStudent(institutionId, authUserId, userId, {
+      studentId: student.id, parentId: father.id, relationship: "Father", isPrimaryContact: true,
     }, scoped);
   },
 };

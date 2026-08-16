@@ -8,9 +8,15 @@
  * pipeline; nothing about which rows get committed is decided client-side.
  */
 import { useActionState, useState } from "react";
-import { stageImportAction, confirmImportAction, importInitialState, type ImportActionState } from "./actions";
+import { stageImportAction, confirmImportAction, type ImportActionState } from "./actions";
 
 interface EntityOption { entityType: string; label: string }
+
+// Defined here (a Client Component), not in actions.ts — a "use server"
+// file may only export async functions; exporting this plain object
+// alongside the server actions crashes the whole page in production
+// ("A 'use server' file can only export async functions, found object.").
+const importInitialState: ImportActionState = { error: null, staged: null, confirmed: null };
 
 export default function ImportWizard({ entities }: { entities: EntityOption[] }) {
   const [entityType, setEntityType] = useState(entities[0]?.entityType ?? "");

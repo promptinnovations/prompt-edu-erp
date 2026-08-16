@@ -11,9 +11,6 @@ export interface ImportActionState {
   confirmed: ConfirmResult | null;
 }
 
-const initialState: ImportActionState = { error: null, staged: null, confirmed: null };
-export { initialState as importInitialState };
-
 export async function stageImportAction(_prevState: ImportActionState, formData: FormData): Promise<ImportActionState> {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution.", staged: null, confirmed: null };
