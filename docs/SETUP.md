@@ -542,18 +542,35 @@ that is the entire point of the `StorageProvider` abstraction.
   fix, a row that failed to insert would NOT roll back rows that "succeeded"
   earlier in the same batch — silently violating §Q.1's core promise.
   Fixed by adding an optional trailing `scopedClient?: DbClient` parameter
-  to the nine functions the bulk importer calls
+  to the functions the bulk importer calls
   (`createClass`/`createSection`/`createSubject` in
   `modules/academic/service.ts`; `createStudent`/`createParent`/
-  `linkParentToStudent` in `modules/students/service.ts`;
+  `linkParentToStudent`/`enrollStudent` in `modules/students/service.ts`;
   `createStaffMember` in `modules/staff/service.ts`; `createBook` in
   `modules/library/service.ts`; `submitAchievement` in
-  `modules/achievements/service.ts`) — when provided, the function inserts
+  `modules/achievements/service.ts`; `createStudentLoginAccount` in
+  `modules/portal/service.ts`) — when provided, the function inserts
   against that client instead of opening a new one. Purely additive (every
   existing call site is unaffected), and covered by an integration test
   (`tests/integration/bulk-flow.test.ts`) that specifically deletes a
   referenced class between staging and confirming, forcing a mid-batch
   failure, and asserts the earlier row in the same batch is rolled back too.
+- **§137 follow-up: "Enrollments" and "Student logins" bulk import entity
+  types** generalize what was first built as a one-off script for a single
+  institution (Madrasathul Muhammadiyya, Pappinippara) into a self-service
+  feature any institution admin can use, with their own class/section
+  naming and their own choice of password: `/import` → "Classes" → 
+  "Sections" (both already accepted arbitrary names, e.g. "LKG"/"Std
+  1"/"Grade 6" — nothing here is numeric-only) → "Students" → "Enrollments"
+  (assigns each student, by admission number, to a class+section for the
+  current — or a named — academic year) → "Student logins" (username is
+  always the student's full name as already entered, generated
+  automatically with a numeric suffix on collision; password is whatever
+  the uploaded file's `password` column says — most institutions will use
+  the parent's phone number, matching the mmp convention, but this column
+  accepts anything 4–30 characters). `database/scripts/import-mmp-students.ts`
+  remains as a direct-SQL-access alternative for anyone who prefers a
+  script over the UI, but is no longer the only way to do this.
 - **Parent import dedup only applies when an email is given**: since
   `createParent()` has no unique constraint to check against (a real
   institution can have two different parents named the same thing),
@@ -567,6 +584,31 @@ that is the entire point of the `StorageProvider` abstraction.
   duplicate; it also only imports title + copy count (no author/publisher/
   category linking), matching the existing "Add book" form's already-
   documented minimal scope.
+- **§137 follow-up: per-institution grading/points configuration UI**
+  (`/settings/grading`) — grade scales/bands (examination module), scoring
+  rule points (scoring engine), achievement categories/levels, and skill
+  types/activities were all institution-scoped in the schema since their
+  original phases, but only createable (or not even that — skill types had
+  no create function at all) via seed scripts, with no update/delete. Every
+  institution now defines and edits its own independently: `modules/
+  examination/service.ts` gained `createGradeScale`/`updateGradeScale`/
+  `deleteGradeScale`/`setDefaultGradeScale`/`createGradeBand`/
+  `updateGradeBand`/`deleteGradeBand`; `modules/scoring/service.ts` gained
+  `updateScoringRule`/`deleteScoringRule`; `modules/achievements/service.ts`
+  gained `updateAchievementCategory`/`deleteAchievementCategory`/
+  `updateAchievementLevel`/`deleteAchievementLevel`; `modules/skills/
+  service.ts` gained `createSkillType`/`updateSkillType`/`deleteSkillType`/
+  `createSkillActivity`/`updateSkillActivity`/`deleteSkillActivity` (plus
+  `listSkillActivitiesForAdmin()`, an inactive-inclusive companion to the
+  submission-form-facing `listSkillActivities()`). Deletes are guarded
+  against rows already referenced by real history (an examination for a
+  grade scale, a `score_events` row for a scoring rule, an `achievements`
+  row for a category/level, a `skill_submissions` row for an activity) —
+  refuses with a clear message rather than either a raw FK error or (worse)
+  a silent cascade through real student data; scoring rules/skill
+  activities offer deactivation (`isActive: false`) as the safe alternative
+  once something is in use. Covered by
+  `tests/integration/institution-config-flow.test.ts`.
 - **CSV import uses a hand-rolled RFC4180-ish parser, not a library**:
   `modules/bulk/service.ts`'s `parseCsv()` handles quoted fields, escaped
   quotes, and CRLF/LF line endings, but hasn't been fuzz-tested against

@@ -94,6 +94,81 @@ export async function createScoringRule(
   });
 }
 
+/** §137 follow-up ("sometimes configurations also will be different") —
+ *  scoring_rules (the actual point values per activity) were createable
+ *  but not editable/deletable through any UI: an institution wanting
+ *  different points than Badrudhuja's seeded defaults (§K.4) had no way to
+ *  change them short of a direct database edit. `points`/`maxPoints`/
+ *  `bonusJsonb` are the fields real institutions will most often want to
+ *  retune; `conditionJsonb` is included too since a threshold (e.g.
+ *  "min_pages": 50) is just as much a per-institution number as the point
+ *  value attached to it. */
+const updateScoringRuleSchema = z.object({
+  points: z.number().optional(),
+  maxPoints: z.number().nullable().optional(),
+  conditionJsonb: z.record(z.unknown()).optional(),
+  bonusJsonb: z.record(z.unknown()).nullable().optional(),
+  verificationRequired: z.boolean().optional(),
+  approvalRequired: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export async function updateScoringRule(
+  institutionId: string, authUserId: string, userId: string, scoringRuleId: string, input: z.infer<typeof updateScoringRuleSchema>
+): Promise<ScoringRuleRecord> {
+  const data = updateScoringRuleSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ScoringRuleRecord>(
+      `update scoring_rules set
+         points = coalesce($2, points),
+         max_points = case when $3 then $4 else max_points end,
+         condition_jsonb = coalesce($5, condition_jsonb),
+         bonus_jsonb = case when $6 then $7 else bonus_jsonb end,
+         verification_required = coalesce($8, verification_required),
+         approval_required = coalesce($9, approval_required),
+         is_active = coalesce($10, is_active)
+       where id = $1
+       returning id, module, activity_code, condition_jsonb, points, bonus_jsonb, max_points,
+                 verification_required, approval_required, is_active`,
+      [
+        scoringRuleId, data.points ?? null,
+        Object.prototype.hasOwnProperty.call(data, "maxPoints"), data.maxPoints ?? null,
+        data.conditionJsonb ? JSON.stringify(data.conditionJsonb) : null,
+        Object.prototype.hasOwnProperty.call(data, "bonusJsonb"), data.bonusJsonb ? JSON.stringify(data.bonusJsonb) : null,
+        data.verificationRequired ?? null, data.approvalRequired ?? null, data.isActive ?? null,
+      ]
+    );
+    if (!rows[0]) throw new Error("Scoring rule not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "scoring", entityType: "scoring_rules", entityId: scoringRuleId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Hard-deletes only if no score_events reference this rule yet (§K's
+ *  config-vs-transaction separation means a rule that has already produced
+ *  history must never disappear out from under it — score_events.scoring_rule_id
+ *  has no ON DELETE clause, i.e. RESTRICT, so this guard is what turns that
+ *  into a friendly error instead of a raw FK-violation stack trace, same
+ *  pattern as deleteClass()/deleteGradeScale()). Deactivate (via
+ *  updateScoringRule({ isActive: false })) is the right move for a rule
+ *  that's already been used — it stops applying to new submissions while
+ *  every past score_event keeps its provenance intact. */
+export async function deleteScoringRule(institutionId: string, authUserId: string, userId: string, scoringRuleId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: used } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from score_events where scoring_rule_id = $1", [scoringRuleId]
+    );
+    if (Number(used[0]?.count ?? 0) > 0) {
+      throw new Error("This scoring rule has already been used to award points — deactivate it instead of deleting it.");
+    }
+    const { rows } = await scoped.query("delete from scoring_rules where id = $1 returning id", [scoringRuleId]);
+    if (rows.length === 0) throw new Error("Scoring rule not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "scoring", entityType: "scoring_rules", entityId: scoringRuleId });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Evaluator (§K.3)
 // ---------------------------------------------------------------------------

@@ -255,11 +255,13 @@ export interface StudentLoginResult {
  *  best-effort compensation createInstitution() uses) rather than left
  *  orphaned. Throws if the student already has a linked account. */
 export async function createStudentLoginAccount(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createStudentLoginSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createStudentLoginSchema>,
+  scopedClient?: DbClient // §Q.1, see modules/academic/service.ts's createClass() for why — needed
+                           // so the "Student logins" bulk import entity type (modules/bulk/service.ts)
+                           // can commit every row of a batch inside one transaction.
 ): Promise<StudentLoginResult> {
   const data = createStudentLoginSchema.parse(input);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     const { rows: studentRows } = await scoped.query<{ full_name: string; user_id: string | null }>(
       "select full_name, user_id from students where id = $1", [data.studentId]
     );
@@ -313,7 +315,10 @@ export async function createStudentLoginAccount(
       await authService.adminDeleteUser(authResult.authUserId).catch(() => {});
       throw err;
     }
-  });
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
 /** Resets an existing student login's password to (a possibly-updated)

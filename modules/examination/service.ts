@@ -87,6 +87,159 @@ export async function getGradeBands(institutionId: string, authUserId: string, g
   });
 }
 
+/** §137 follow-up ("sometimes configurations also will be different") —
+ *  grade_scales/grade_bands existed in the schema and were readable since
+ *  Phase 2, but only ever populated by seed scripts; there was no way for
+ *  an institution admin to define their own grading scheme (e.g. a
+ *  madrasa's Kithab pass/fail bands vs. a school's A+–F letter grades) —
+ *  only listExamTypes()/createExamType() had that for exam types. This
+ *  block is the same treatment for grade scales/bands, wired into a new
+ *  Settings sub-page rather than in-line on /examinations, since a grading
+ *  scheme is institution-wide configuration, not a per-examination choice
+ *  (an examination merely PICKS one via its own gradeScaleId, unchanged). */
+export interface GradeScaleRecord { id: string; name: string; is_default: boolean }
+
+export async function listGradeScales(institutionId: string, authUserId: string): Promise<GradeScaleRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<GradeScaleRecord>("select id, name, is_default from grade_scales order by name");
+    return rows;
+  });
+}
+
+const createGradeScaleSchema = z.object({ name: z.string().min(1).max(150), isDefault: z.boolean().optional() });
+
+export async function createGradeScale(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createGradeScaleSchema>
+): Promise<GradeScaleRecord> {
+  const data = createGradeScaleSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    if (data.isDefault) {
+      await scoped.query("update grade_scales set is_default = false where is_default = true");
+    }
+    const { rows } = await scoped.query<GradeScaleRecord>(
+      `insert into grade_scales (institution_id, name, is_default) values ($1, $2, $3) returning id, name, is_default`,
+      [institutionId, data.name, data.isDefault ?? false]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "grade_scales", entityId: rows[0].id, after: rows[0] });
+    return rows[0];
+  });
+}
+
+const updateGradeScaleSchema = z.object({ name: z.string().min(1).max(150).optional() });
+
+export async function updateGradeScale(
+  institutionId: string, authUserId: string, userId: string, gradeScaleId: string, input: z.infer<typeof updateGradeScaleSchema>
+): Promise<GradeScaleRecord> {
+  const data = updateGradeScaleSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<GradeScaleRecord>(
+      `update grade_scales set name = coalesce($2, name) where id = $1 returning id, name, is_default`,
+      [gradeScaleId, data.name ?? null]
+    );
+    if (!rows[0]) throw new Error("Grade scale not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "grade_scales", entityId: gradeScaleId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+export async function setDefaultGradeScale(institutionId: string, authUserId: string, userId: string, gradeScaleId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query("update grade_scales set is_default = false where is_default = true");
+    const { rows } = await scoped.query("update grade_scales set is_default = true where id = $1 returning id", [gradeScaleId]);
+    if (rows.length === 0) throw new Error("Grade scale not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "grade_scales", entityId: gradeScaleId, after: { is_default: true } });
+  });
+}
+
+/** Refuses to delete a grade scale any examination still points at (its
+ *  results already reference grade_bands under this scale) — same
+ *  "guard, don't hard-DELETE-and-hope" pattern updateClass()/deleteClass()
+ *  established in modules/academic/service.ts. Grade bands cascade off the
+ *  scale at the DB level (migration 0005's `on delete cascade`), so this
+ *  check is what stands in for that on a scale that's actually in use. */
+export async function deleteGradeScale(institutionId: string, authUserId: string, userId: string, gradeScaleId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: used } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from examinations where grade_scale_id = $1", [gradeScaleId]
+    );
+    if (Number(used[0]?.count ?? 0) > 0) {
+      throw new Error("This grade scale is used by one or more examinations and can't be deleted.");
+    }
+    const { rows } = await scoped.query("delete from grade_scales where id = $1 returning id", [gradeScaleId]);
+    if (rows.length === 0) throw new Error("Grade scale not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "grade_scales", entityId: gradeScaleId });
+  });
+}
+
+const createGradeBandSchema = z.object({
+  gradeScaleId: z.string().uuid(),
+  minPercent: z.number().min(0).max(100),
+  maxPercent: z.number().min(0).max(100),
+  gradeLabel: z.string().min(1).max(20),
+  gradePoint: z.number().nullable().optional(),
+});
+
+export async function createGradeBand(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createGradeBandSchema>
+): Promise<GradeBandRecord> {
+  const data = createGradeBandSchema.parse(input);
+  if (data.minPercent > data.maxPercent) throw new Error("Minimum percent cannot exceed maximum percent.");
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<GradeBandRecord>(
+      `insert into grade_bands (institution_id, grade_scale_id, min_percent, max_percent, grade_label, grade_point)
+       values ($1, $2, $3, $4, $5, $6) returning id, min_percent, max_percent, grade_label, grade_point`,
+      [institutionId, data.gradeScaleId, data.minPercent, data.maxPercent, data.gradeLabel, data.gradePoint ?? null]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "grade_bands", entityId: rows[0].id, after: rows[0] });
+    return rows[0];
+  });
+}
+
+const updateGradeBandSchema = z.object({
+  minPercent: z.number().min(0).max(100).optional(),
+  maxPercent: z.number().min(0).max(100).optional(),
+  gradeLabel: z.string().min(1).max(20).optional(),
+  gradePoint: z.number().nullable().optional(),
+});
+
+export async function updateGradeBand(
+  institutionId: string, authUserId: string, userId: string, gradeBandId: string, input: z.infer<typeof updateGradeBandSchema>
+): Promise<GradeBandRecord> {
+  const data = updateGradeBandSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<GradeBandRecord>(
+      `update grade_bands set
+         min_percent = coalesce($2, min_percent),
+         max_percent = coalesce($3, max_percent),
+         grade_label = coalesce($4, grade_label),
+         grade_point = case when $5 then $6 else grade_point end
+       where id = $1 returning id, min_percent, max_percent, grade_label, grade_point`,
+      [gradeBandId, data.minPercent ?? null, data.maxPercent ?? null, data.gradeLabel ?? null,
+        Object.prototype.hasOwnProperty.call(data, "gradePoint"), data.gradePoint ?? null]
+    );
+    if (!rows[0]) throw new Error("Grade band not found.");
+    if (Number(rows[0].min_percent) > Number(rows[0].max_percent)) throw new Error("Minimum percent cannot exceed maximum percent.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "grade_bands", entityId: gradeBandId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+export async function deleteGradeBand(institutionId: string, authUserId: string, userId: string, gradeBandId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query("delete from grade_bands where id = $1 returning id", [gradeBandId]);
+    if (rows.length === 0) throw new Error("Grade band not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "grade_bands", entityId: gradeBandId });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Examinations
 // ---------------------------------------------------------------------------

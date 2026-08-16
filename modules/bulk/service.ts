@@ -23,11 +23,12 @@ import ExcelJS from "exceljs";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
-import { createClass, createSection, createSubject, listClasses, listSections, listSubjects } from "../academic/service";
-import { createStudent, createParent, linkParentToStudent, listStudents } from "../students/service";
+import { createClass, createSection, createSubject, listClasses, listSections, listSubjects, listAcademicYears, getCurrentAcademicYear } from "../academic/service";
+import { createStudent, createParent, linkParentToStudent, listStudents, enrollStudent, listActiveEnrollments } from "../students/service";
 import { createStaffMember, listStaff } from "../staff/service";
 import { createBook } from "../library/service";
 import { submitAchievement, listAchievementCategories, listAchievementLevels } from "../achievements/service";
+import { createStudentLoginAccount } from "../portal/service";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -278,6 +279,129 @@ const parentsDefinition: EntityImportDefinition = {
   },
 };
 
+/** §137 follow-up ("the same system should work with other institution as
+ *  well, data will be different, sometimes configurations also will be
+ *  different") — the class/student/parent/login workflow first built for
+ *  Madrasathul Muhammadiyya was a one-off script hardcoded to that one
+ *  institution (database/scripts/import-mmp-students.ts). These two entity
+ *  types close the gap so ANY institution admin can enroll students into
+ *  whatever class/section names THEY use (nothing here assumes numeric
+ *  1–12, "Std", "Grade", or any other naming scheme — the "Classes"/
+ *  "Sections" entity types above already accept arbitrary names) and
+ *  provision name+password logins themselves, self-service, through this
+ *  same generic stage->preview->confirm pipeline — no engineering
+ *  involvement needed per institution. Both are deliberately separate,
+ *  narrow steps (run after "Students" — and "Classes"/"Sections" for
+ *  enrollments) rather than folded into the students import, matching this
+ *  file's existing "one file, one entity type" shape (see this file's
+ *  header comment on marks/attendance import for the same reasoning). */
+const enrollmentsDefinition: EntityImportDefinition = {
+  entityType: "enrollments",
+  label: "Enrollments (assign students to a class/section)",
+  columns: [
+    { key: "studentAdmissionNumber", label: "Student admission number", required: true },
+    { key: "className", label: "Class name", required: true },
+    { key: "sectionName", label: "Section name", required: true },
+    { key: "academicYear", label: "Academic year (leave blank for the current one)", required: false },
+  ],
+  sampleRow: { studentAdmissionNumber: "2026-001", className: "Grade 6", sectionName: "A", academicYear: "" },
+  async prepareContext(institutionId, authUserId) {
+    const [students, classes, sections, academicYears, currentYear, enrollments] = await Promise.all([
+      listStudents(institutionId, authUserId),
+      listClasses(institutionId, authUserId),
+      listSections(institutionId, authUserId),
+      listAcademicYears(institutionId, authUserId),
+      getCurrentAcademicYear(institutionId, authUserId),
+      listActiveEnrollments(institutionId, authUserId),
+    ]);
+    return {
+      studentsByAdmission: new Map(students.map((s) => [normKey(s.admission_number), s.id])),
+      classesByName: new Map(classes.map((c) => [normKey(c.name), c.id])),
+      sectionsByClassAndName: new Map(sections.map((s) => [`${s.class_id}:${normKey(s.name)}`, s.id])),
+      academicYearsByName: new Map(academicYears.map((y) => [normKey(y.name), y.id])),
+      currentAcademicYearId: currentYear?.id ?? null,
+      existingEnrollmentKeys: new Set(enrollments.map((e) => `${e.student_id}:${e.academic_year_id}`)),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const studentAdmissionNumber = req(raw, "studentAdmissionNumber", errors);
+    const className = req(raw, "className", errors);
+    const sectionName = req(raw, "sectionName", errors);
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    const studentsByAdmission = context.studentsByAdmission as Map<string, string>;
+    const studentId = studentsByAdmission.get(normKey(studentAdmissionNumber));
+    if (!studentId) errors.push(`Student admission number "${studentAdmissionNumber}" was not found — import "Students" first.`);
+
+    const classesByName = context.classesByName as Map<string, string>;
+    const classId = classesByName.get(normKey(className));
+    if (!classId) errors.push(`Class "${className}" was not found — import "Classes" first (any name is fine, it doesn't have to be numeric).`);
+
+    const sectionsByClassAndName = context.sectionsByClassAndName as Map<string, string>;
+    const sectionId = classId ? sectionsByClassAndName.get(`${classId}:${normKey(sectionName)}`) : undefined;
+    if (classId && !sectionId) errors.push(`Section "${sectionName}" was not found in class "${className}" — import "Sections" first.`);
+
+    const academicYearRaw = (raw.academicYear ?? "").trim();
+    const academicYearsByName = context.academicYearsByName as Map<string, string>;
+    const currentAcademicYearId = context.currentAcademicYearId as string | null;
+    let academicYearId: string | null = null;
+    if (academicYearRaw) {
+      academicYearId = academicYearsByName.get(normKey(academicYearRaw)) ?? null;
+      if (!academicYearId) errors.push(`Academic year "${academicYearRaw}" was not found.`);
+    } else {
+      academicYearId = currentAcademicYearId;
+      if (!academicYearId) errors.push(`No current academic year is set for this institution, and no "academicYear" was given — set one under Academic Setup, or add it to this row.`);
+    }
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    const key = `${studentId}:${academicYearId}`;
+    const existingEnrollmentKeys = context.existingEnrollmentKeys as Set<string>;
+    if (existingEnrollmentKeys.has(key)) return { status: "invalid", errors: [`This student is already enrolled for that academic year.`] };
+
+    return { status: "valid", dedupeKey: key, data: { studentId, classId, sectionId, academicYearId } };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await enrollStudent(institutionId, authUserId, userId, {
+      studentId: data.studentId as string, classId: data.classId as string,
+      sectionId: data.sectionId as string, academicYearId: data.academicYearId as string,
+    }, scoped);
+  },
+};
+
+const studentLoginsDefinition: EntityImportDefinition = {
+  entityType: "student_logins",
+  label: "Student logins (username = full name, password = your choice)",
+  columns: [
+    { key: "studentAdmissionNumber", label: "Student admission number", required: true },
+    { key: "password", label: "Password (e.g. parent's phone number)", required: true },
+  ],
+  sampleRow: { studentAdmissionNumber: "2026-001", password: "9876543210" },
+  async prepareContext(institutionId, authUserId) {
+    const students = await listStudents(institutionId, authUserId);
+    return {
+      studentsByAdmission: new Map(students.map((s) => [normKey(s.admission_number), { id: s.id, hasLogin: Boolean(s.user_id) }])),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const studentAdmissionNumber = req(raw, "studentAdmissionNumber", errors);
+    const password = req(raw, "password", errors);
+    if (password && (password.length < 4 || password.length > 30)) errors.push(`"password" must be 4–30 characters.`);
+    if (errors.length > 0) return { status: "invalid", errors };
+    const studentsByAdmission = context.studentsByAdmission as Map<string, { id: string; hasLogin: boolean }>;
+    const student = studentsByAdmission.get(normKey(studentAdmissionNumber));
+    if (!student) return { status: "invalid", errors: [`Student admission number "${studentAdmissionNumber}" was not found — import "Students" first.`] };
+    if (student.hasLogin) return { status: "invalid", errors: [`This student already has a login. Use the student's profile page to reset their password instead.`] };
+    return { status: "valid", dedupeKey: student.id, data: { studentId: student.id, password } };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await createStudentLoginAccount(institutionId, authUserId, userId, {
+      studentId: data.studentId as string, parentPhone: data.password as string,
+    }, scoped);
+  },
+};
+
 const EMPLOYMENT_STATUSES = new Set(["active", "on_leave", "resigned", "terminated"]);
 
 const staffDefinition: EntityImportDefinition = {
@@ -422,6 +546,8 @@ const registry: Record<string, EntityImportDefinition> = {
   subjects: subjectsDefinition,
   students: studentsDefinition,
   parents: parentsDefinition,
+  enrollments: enrollmentsDefinition,
+  student_logins: studentLoginsDefinition,
   staff: staffDefinition,
   library_books: libraryBooksDefinition,
   achievements: achievementsDefinition,

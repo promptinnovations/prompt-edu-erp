@@ -60,8 +60,178 @@ export async function listSkillActivities(institutionId: string, authUserId: str
   });
 }
 
+/** Admin-config view of activities — includes inactive ones (unlike
+ *  listSkillActivities(), which is the submission-form-facing list and
+ *  deliberately only shows currently-active activities) so a Settings
+ *  screen can display/reactivate something that was deactivated instead of
+ *  hard-deleted. */
+export async function listSkillActivitiesForAdmin(institutionId: string, authUserId: string, skillTypeId?: string): Promise<SkillActivityRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = skillTypeId
+      ? await scoped.query<SkillActivityRecord>(
+          `select id, skill_type_id, name, description, evidence_required, verification_required, approval_required, is_active
+             from skill_activities where skill_type_id = $1 order by name`,
+          [skillTypeId]
+        )
+      : await scoped.query<SkillActivityRecord>(
+          `select id, skill_type_id, name, description, evidence_required, verification_required, approval_required, is_active
+             from skill_activities order by name`
+        );
+    return rows;
+  });
+}
+
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+/** §137 follow-up ("sometimes configurations also will be different") —
+ *  skill_types/skill_activities had list functions since Phase 6 but no
+ *  way for an institution admin to define their own (only seed scripts
+ *  populated them, same gap grade_scales/scoring_rules/achievement
+ *  categories all had). `code` is auto-derived from `name` (slugify()
+ *  above already existed for this file's own internal use) so the admin
+ *  never has to think about it, mirroring how exam_types' UI-facing form
+ *  would work if one existed. */
+const createSkillTypeSchema = z.object({ name: z.string().min(1).max(150) });
+
+export async function createSkillType(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createSkillTypeSchema>
+): Promise<SkillTypeRecord> {
+  const data = createSkillTypeSchema.parse(input);
+  const code = slugify(data.name);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<SkillTypeRecord>(
+      "insert into skill_types (institution_id, code, name) values ($1, $2, $3) returning id, code, name",
+      [institutionId, code, data.name]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "skills", entityType: "skill_types", entityId: rows[0].id, after: rows[0] });
+    return rows[0];
+  });
+}
+
+const updateSkillTypeSchema = z.object({ name: z.string().min(1).max(150) });
+
+export async function updateSkillType(
+  institutionId: string, authUserId: string, userId: string, skillTypeId: string, input: z.infer<typeof updateSkillTypeSchema>
+): Promise<SkillTypeRecord> {
+  const data = updateSkillTypeSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<SkillTypeRecord>(
+      "update skill_types set name = $2 where id = $1 returning id, code, name", [skillTypeId, data.name]
+    );
+    if (!rows[0]) throw new Error("Skill type not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "skills", entityType: "skill_types", entityId: skillTypeId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Blocks deletion while any activity still exists under this type — both
+ *  skill_activities.skill_type_id and skill_submissions.skill_activity_id
+ *  cascade at the DB level (migration 0008), so an unguarded delete here
+ *  would silently wipe out real submission history along with it. Removing
+ *  every activity first (each individually guarded the same way below)
+ *  makes that impossible to do by accident. */
+export async function deleteSkillType(institutionId: string, authUserId: string, userId: string, skillTypeId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: activities } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from skill_activities where skill_type_id = $1", [skillTypeId]
+    );
+    if (Number(activities[0]?.count ?? 0) > 0) {
+      throw new Error("This skill type still has activities under it — remove or deactivate those first.");
+    }
+    const { rows } = await scoped.query("delete from skill_types where id = $1 returning id", [skillTypeId]);
+    if (rows.length === 0) throw new Error("Skill type not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "skills", entityType: "skill_types", entityId: skillTypeId });
+  });
+}
+
+const createSkillActivitySchema = z.object({
+  skillTypeId: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).nullable().optional(),
+  evidenceRequired: z.boolean().default(false),
+  verificationRequired: z.boolean().default(true),
+  approvalRequired: z.boolean().default(false),
+});
+
+export async function createSkillActivity(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createSkillActivitySchema>
+): Promise<SkillActivityRecord> {
+  const data = createSkillActivitySchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<SkillActivityRecord>(
+      `insert into skill_activities
+         (institution_id, skill_type_id, name, description, evidence_required, verification_required, approval_required)
+       values ($1, $2, $3, $4, $5, $6, $7)
+       returning id, skill_type_id, name, description, evidence_required, verification_required, approval_required, is_active`,
+      [institutionId, data.skillTypeId, data.name, data.description ?? null, data.evidenceRequired, data.verificationRequired, data.approvalRequired]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "skills", entityType: "skill_activities", entityId: rows[0].id, after: rows[0] });
+    return rows[0];
+  });
+}
+
+const updateSkillActivitySchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  evidenceRequired: z.boolean().optional(),
+  verificationRequired: z.boolean().optional(),
+  approvalRequired: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export async function updateSkillActivity(
+  institutionId: string, authUserId: string, userId: string, skillActivityId: string, input: z.infer<typeof updateSkillActivitySchema>
+): Promise<SkillActivityRecord> {
+  const data = updateSkillActivitySchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<SkillActivityRecord>(
+      `update skill_activities set
+         name = coalesce($2, name),
+         description = case when $3 then $4 else description end,
+         evidence_required = coalesce($5, evidence_required),
+         verification_required = coalesce($6, verification_required),
+         approval_required = coalesce($7, approval_required),
+         is_active = coalesce($8, is_active)
+       where id = $1
+       returning id, skill_type_id, name, description, evidence_required, verification_required, approval_required, is_active`,
+      [
+        skillActivityId, data.name ?? null,
+        Object.prototype.hasOwnProperty.call(data, "description"), data.description ?? null,
+        data.evidenceRequired ?? null, data.verificationRequired ?? null, data.approvalRequired ?? null, data.isActive ?? null,
+      ]
+    );
+    if (!rows[0]) throw new Error("Skill activity not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "skills", entityType: "skill_activities", entityId: skillActivityId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Guarded the same way deleteScoringRule() is — an activity with real
+ *  submissions against it cascades those away on a raw DELETE (migration
+ *  0008's `on delete cascade`), so this refuses and points the admin at
+ *  deactivating (updateSkillActivity({ isActive: false })) instead, which
+ *  already hides it from listSkillActivities()'s active-only listing. */
+export async function deleteSkillActivity(institutionId: string, authUserId: string, userId: string, skillActivityId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: used } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from skill_submissions where skill_activity_id = $1", [skillActivityId]
+    );
+    if (Number(used[0]?.count ?? 0) > 0) {
+      throw new Error("This activity already has student submissions against it — deactivate it instead of deleting it.");
+    }
+    const { rows } = await scoped.query("delete from skill_activities where id = $1 returning id", [skillActivityId]);
+    if (rows.length === 0) throw new Error("Skill activity not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "skills", entityType: "skill_activities", entityId: skillActivityId });
+  });
 }
 
 /** The single point (§L.3) where an approved skill submission fans out to

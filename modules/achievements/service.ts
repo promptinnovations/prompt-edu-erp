@@ -81,6 +81,75 @@ export async function createAchievementLevel(
   });
 }
 
+// §137 follow-up ("sometimes configurations also will be different") —
+// category/level NAMES (and a level's points-relevant sort order) are the
+// institution-specific part (§42 Badrudhuja's "Sahityotsav"/"District"/etc.
+// were always just this table's first rows, never special-cased); update
+// lets an admin retune them post-seed, delete is guarded against categories/
+// levels an actual achievement record already references (achievements.
+// category_id/level_id have no ON DELETE clause — RESTRICT — so without
+// this guard a real in-use row would surface as a raw FK error instead of
+// a clear message), same pattern as deleteClass()/deleteGradeScale().
+const updateCategorySchema = z.object({ name: z.string().min(1).max(150) });
+export async function updateAchievementCategory(
+  institutionId: string, authUserId: string, userId: string, categoryId: string, input: z.infer<typeof updateCategorySchema>
+): Promise<AchievementCategoryRecord> {
+  const data = updateCategorySchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<AchievementCategoryRecord>(
+      "update achievement_categories set name = $2 where id = $1 returning id, name", [categoryId, data.name]
+    );
+    if (!rows[0]) throw new Error("Achievement category not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "achievements", entityType: "achievement_categories", entityId: categoryId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+export async function deleteAchievementCategory(institutionId: string, authUserId: string, userId: string, categoryId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: used } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from achievements where category_id = $1", [categoryId]
+    );
+    if (Number(used[0]?.count ?? 0) > 0) throw new Error("This category has achievements recorded against it and can't be deleted.");
+    const { rows } = await scoped.query("delete from achievement_categories where id = $1 returning id", [categoryId]);
+    if (rows.length === 0) throw new Error("Achievement category not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "achievements", entityType: "achievement_categories", entityId: categoryId });
+  });
+}
+
+const updateLevelSchema = z.object({ name: z.string().min(1).max(100).optional(), sortOrder: z.number().int().optional() });
+export async function updateAchievementLevel(
+  institutionId: string, authUserId: string, userId: string, levelId: string, input: z.infer<typeof updateLevelSchema>
+): Promise<AchievementLevelRecord> {
+  const data = updateLevelSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<AchievementLevelRecord>(
+      `update achievement_levels set name = coalesce($2, name), sort_order = coalesce($3, sort_order)
+       where id = $1 returning id, name, sort_order`,
+      [levelId, data.name ?? null, data.sortOrder ?? null]
+    );
+    if (!rows[0]) throw new Error("Achievement level not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "achievements", entityType: "achievement_levels", entityId: levelId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+export async function deleteAchievementLevel(institutionId: string, authUserId: string, userId: string, levelId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: used } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from achievements where level_id = $1", [levelId]
+    );
+    if (Number(used[0]?.count ?? 0) > 0) throw new Error("This level has achievements recorded against it and can't be deleted.");
+    const { rows } = await scoped.query("delete from achievement_levels where id = $1 returning id", [levelId]);
+    if (rows.length === 0) throw new Error("Achievement level not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "achievements", entityType: "achievement_levels", entityId: levelId });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Achievements
 // ---------------------------------------------------------------------------

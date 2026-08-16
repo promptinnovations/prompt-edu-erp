@@ -14,8 +14,8 @@ import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
-import { createClass, listClasses, listSections } from "../../modules/academic/service";
-import { createStudent, listStudents } from "../../modules/students/service";
+import { createClass, listClasses, listSections, getCurrentAcademicYear } from "../../modules/academic/service";
+import { createStudent, listStudents, enrollStudent } from "../../modules/students/service";
 import {
   generateImportTemplate, stageImport, confirmImport, listRecentImportBatches,
   exportRows, exportDefinitions, listImportEntityTypes,
@@ -63,7 +63,10 @@ afterAll(async () => {
 describe("Import entity catalogue + templates (§Q.1, §Q.3)", () => {
   it("listImportEntityTypes() exposes the v1 target entities", () => {
     const types = listImportEntityTypes().map((t) => t.entityType).sort();
-    expect(types).toEqual(["achievements", "classes", "library_books", "parents", "sections", "staff", "students", "subjects"].sort());
+    expect(types).toEqual(
+      ["achievements", "classes", "enrollments", "library_books", "parents", "sections", "staff",
+        "student_logins", "students", "subjects"].sort()
+    );
   });
 
   it("generateImportTemplate() produces a real, non-empty XLSX per entity, from the same columns used to validate", async () => {
@@ -172,6 +175,87 @@ describe("Stage: field / referential / duplicate validation (§Q.1)", () => {
     });
     expect(result.rows[0].status).toBe("valid");
     expect(result.rows[0].data).toMatchObject({ name: "Grade 9" });
+  });
+});
+
+describe("Enrollments + Student logins bulk import (§137 follow-up — self-service, not mmp-only)", () => {
+  it("enrollments: referential checks (student/class/section) + defaults to the current academic year + flags an already-enrolled student", async () => {
+    await createClass(institutionA, adminAuth, adminUserId, { name: "Enroll Grade", sortOrder: 50 });
+    const staged1 = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "sections", filename: "enroll-sections.csv", fileBuffer: xlsxToCsvLikeRows(["Class name", "Section name"], [["Enroll Grade", "A"]]), format: "csv",
+    });
+    await confirmImport(institutionA, adminAuth, adminUserId, staged1.batchId);
+    await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "ENR-1", fullName: "Enroll Test Student" });
+    await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "ENR-2", fullName: "Already Enrolled Student" });
+
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    expect(year).not.toBeNull();
+    const classes = await listClasses(institutionA, adminAuth);
+    const cls = classes.find((c) => c.name === "Enroll Grade")!;
+    const sections = await listSections(institutionA, adminAuth);
+    const section = sections.find((s) => s.class_id === cls.id && s.name === "A")!;
+    await enrollStudent(institutionA, adminAuth, adminUserId, {
+      studentId: (await listStudents(institutionA, adminAuth)).find((s) => s.admission_number === "ENR-2")!.id,
+      academicYearId: year!.id, classId: cls.id, sectionId: section.id,
+    });
+
+    const file = xlsxToCsvLikeRows(
+      ["Student admission number", "Class name", "Section name", "Academic year"],
+      [
+        ["ENR-1", "Enroll Grade", "A", ""], // valid, defaults to current year
+        ["NOT-A-STUDENT-999", "Enroll Grade", "A", ""], // invalid: student not found
+        ["ENR-1", "Nonexistent Class", "A", ""], // invalid: class not found (same student, different row -> not a dedupe hit)
+        ["ENR-2", "Enroll Grade", "A", ""], // invalid: already enrolled for the current year
+      ]
+    );
+    const result = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "enrollments", filename: "enrollments.csv", fileBuffer: file, format: "csv",
+    });
+    expect(result.rows[0].status).toBe("valid");
+    expect(result.rows[1].status).toBe("invalid");
+    expect(result.rows[1].errors[0]).toMatch(/was not found/);
+    expect(result.rows[2].status).toBe("invalid");
+    expect(result.rows[2].errors[0]).toMatch(/Class .* was not found/);
+    expect(result.rows[3].status).toBe("invalid");
+    expect(result.rows[3].errors[0]).toMatch(/already enrolled/);
+
+    const confirmed = await confirmImport(institutionA, adminAuth, adminUserId, result.batchId);
+    expect(confirmed.importedRows).toBe(1);
+  });
+
+  it("student_logins: creates a real login (username = full name, password = the file's value), rejects a student who already has one", async () => {
+    await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "LOGIN-1", fullName: "Login Bulk Student" });
+    const file = xlsxToCsvLikeRows(
+      ["Student admission number", "Password"],
+      [
+        ["LOGIN-1", "9876543210"], // valid
+        ["EXIST-1", "12"], // invalid: password too short
+        ["NOT-A-STUDENT-999", "9876543210"], // invalid: student not found
+      ]
+    );
+    const result = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "student_logins", filename: "logins.csv", fileBuffer: file, format: "csv",
+    });
+    expect(result.rows[0].status).toBe("valid");
+    expect(result.rows[1].status).toBe("invalid");
+    expect(result.rows[1].errors[0]).toMatch(/4–30 characters/);
+    expect(result.rows[2].status).toBe("invalid");
+    expect(result.rows[2].errors[0]).toMatch(/was not found/);
+
+    const confirmed = await confirmImport(institutionA, adminAuth, adminUserId, result.batchId);
+    expect(confirmed.importedRows).toBe(1);
+
+    const student = (await listStudents(institutionA, adminAuth)).find((s) => s.admission_number === "LOGIN-1")!;
+    expect(student.login_id).toBe("Login Bulk Student");
+    expect(student.user_id).not.toBeNull();
+
+    // A second import row for the same (now-logged-in) student is rejected up front at stage time.
+    const again = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "student_logins", filename: "logins-again.csv",
+      fileBuffer: xlsxToCsvLikeRows(["Student admission number", "Password"], [["LOGIN-1", "1112223333"]]), format: "csv",
+    });
+    expect(again.rows[0].status).toBe("invalid");
+    expect(again.rows[0].errors[0]).toMatch(/already has a login/);
   });
 });
 

@@ -238,11 +238,13 @@ export interface EnrollmentRecord {
 }
 
 export async function enrollStudent(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof enrollStudentSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof enrollStudentSchema>,
+  scopedClient?: DbClient // §Q.1, see modules/academic/service.ts's createClass() for why — needed
+                           // so the "Enrollments" bulk import entity type (modules/bulk/service.ts)
+                           // can commit every row of a batch inside one transaction.
 ): Promise<EnrollmentRecord> {
   const data = enrollStudentSchema.parse(input);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<EnrollmentRecord>(
       `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id)
        values ($1, $2, $3, $4, $5)
@@ -254,6 +256,24 @@ export async function enrollStudent(
       entityType: "student_enrollments", entityId: rows[0].id, after: rows[0],
     });
     return rows[0];
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+/** All currently-active enrollments in the institution, keyed loosely by
+ *  (student, academic year) — used by the "Enrollments" bulk import entity
+ *  type (modules/bulk/service.ts) to detect "this student is already
+ *  enrolled for that year" up front, same O(1)-queries-not-O(N) prepareContext
+ *  pattern every other bulk entity type uses (§Q.1). */
+export async function listActiveEnrollments(institutionId: string, authUserId: string): Promise<{ student_id: string; academic_year_id: string }[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ student_id: string; academic_year_id: string }>(
+      "select student_id, academic_year_id from student_enrollments where status = 'active'"
+    );
+    return rows;
   });
 }
 
