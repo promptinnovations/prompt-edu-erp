@@ -270,6 +270,88 @@ export async function createSubject(
 }
 
 // -----------------------------------------------------------------------------
+// Class ↔ subject links (class_subjects). Populated automatically by
+// super-admin-service.ts's provisionSksvbDefaults() for SKSVB madrasas, but
+// until now had no read function or UI for ANY institution — the table sat
+// completely unused by the app layer (§137 follow-up "subjects should be
+// visible in classes as well"). listClassSubjects() + the two mutators below
+// are the general-purpose version every institution (SKSVB or not) can use.
+// -----------------------------------------------------------------------------
+
+export interface ClassSubjectRecord {
+  id: string;
+  class_id: string;
+  subject_id: string;
+  subject_name: string;
+  is_core: boolean;
+}
+
+export async function listClassSubjects(institutionId: string, authUserId: string, classId?: string): Promise<ClassSubjectRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ClassSubjectRecord>(
+      classId
+        ? `select cs.id, cs.class_id, cs.subject_id, s.name as subject_name, cs.is_core
+             from class_subjects cs join subjects s on s.id = cs.subject_id
+            where cs.class_id = $1
+            order by s.name`
+        : `select cs.id, cs.class_id, cs.subject_id, s.name as subject_name, cs.is_core
+             from class_subjects cs join subjects s on s.id = cs.subject_id
+            order by s.name`,
+      classId ? [classId] : []
+    );
+    return rows;
+  });
+}
+
+const assignClassSubjectSchema = z.object({
+  classId: z.string().uuid(),
+  subjectId: z.string().uuid(),
+  isCore: z.boolean().default(true),
+});
+
+/** Idempotent by design (`on conflict ... do update`) — safe to call again
+ *  to change is_core without a separate update function. */
+export async function assignSubjectToClass(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof assignClassSubjectSchema>
+): Promise<ClassSubjectRecord> {
+  const data = assignClassSubjectSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; class_id: string; subject_id: string; is_core: boolean }>(
+      `insert into class_subjects (institution_id, class_id, subject_id, is_core)
+       values ($1, $2, $3, $4)
+       on conflict (institution_id, class_id, subject_id) do update set is_core = excluded.is_core
+       returning id, class_id, subject_id, is_core`,
+      [institutionId, data.classId, data.subjectId, data.isCore]
+    );
+    const { rows: subjRows } = await scoped.query<{ name: string }>("select name from subjects where id = $1", [data.subjectId]);
+    await recordAudit(scoped, {
+      institutionId, userId, action: "create", module: "academic",
+      entityType: "class_subjects", entityId: rows[0].id, after: rows[0],
+    });
+    return { ...rows[0], subject_name: subjRows[0]?.name ?? "" };
+  });
+}
+
+export async function removeSubjectFromClass(
+  institutionId: string, authUserId: string, userId: string, classId: string, subjectId: string
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: deleted } = await scoped.query<{ id: string }>(
+      "delete from class_subjects where class_id = $1 and subject_id = $2 returning id",
+      [classId, subjectId]
+    );
+    if (deleted.length === 0) return;
+    await recordAudit(scoped, {
+      institutionId, userId, action: "delete", module: "academic",
+      entityType: "class_subjects", entityId: deleted[0].id,
+    });
+  });
+}
+
+// -----------------------------------------------------------------------------
 // Academic years / terms (§D.3) — examinations, enrollments, and attendance
 // all key off academic_year_id, so these are foundational to Phase 3+.
 // -----------------------------------------------------------------------------

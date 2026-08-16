@@ -6,6 +6,7 @@ import { requirePermission } from "../../../services/permissions/permission-serv
 import {
   createClass, createSection, createSubject,
   updateClass, deleteClass, updateSection, deleteSection,
+  assignSubjectToClass, removeSubjectFromClass,
 } from "../../../modules/academic/service";
 
 export async function createClassAction(_prevState: { error: string | null }, formData: FormData) {
@@ -108,5 +109,40 @@ export async function deleteSectionAction(_prevState: { error: string | null }, 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to delete section." };
+  }
+}
+
+export async function assignClassSubjectAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await assignSubjectToClass(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      classId: String(formData.get("classId") ?? ""),
+      subjectId: String(formData.get("subjectId") ?? ""),
+      isCore: true,
+    });
+    revalidatePath("/academic");
+    revalidatePath("/classes");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to add subject to class." };
+  }
+}
+
+export async function removeClassSubjectAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await removeSubjectFromClass(
+      ctx.institutionId, ctx.session.authUserId, ctx.userId,
+      String(formData.get("classId") ?? ""), String(formData.get("subjectId") ?? "")
+    );
+    revalidatePath("/academic");
+    revalidatePath("/classes");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove subject from class." };
   }
 }

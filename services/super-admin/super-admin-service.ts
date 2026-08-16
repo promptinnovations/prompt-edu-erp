@@ -45,7 +45,7 @@ export interface InstitutionRecord {
  *  meaningful when type = 'madrasa'. SKIMVB is accepted here (so the form
  *  can offer it and record the choice) but has no auto-provisioning yet —
  *  see provisionSksvbDefaults() below, which only runs for 'sksvb'. */
-const EDUCATIONAL_BOARDS = ["sksvb", "skimvb"] as const;
+export const EDUCATIONAL_BOARDS = ["sksvb", "skimvb"] as const;
 
 const INSTITUTION_STATUSES = ["active", "inactive", "suspended", "trial"] as const;
 
@@ -524,6 +524,51 @@ export async function updateInstitutionCode(
     await recordPlatformAudit(scoped, {
       actorUserId: callerUserId, institutionId, action: "code_change", entityType: "institutions", entityId: institutionId,
       before: { code: before[0].code }, after: { code: data.code },
+    });
+    return rows[0];
+  });
+}
+
+const updateBoardSchema = z.object({ board: z.enum(EDUCATIONAL_BOARDS) });
+
+/** Sets/changes an existing madrasa institution's educational board — the
+ *  edit-time counterpart of createInstitution()'s board field (§137
+ *  follow-up "Educational Board selector for madrasa institutions" only
+ *  wired up creation-time provisioning; a board set or corrected on an
+ *  EXISTING institution — as MMP's was, via a direct SQL update before this
+ *  function existed — silently got none of provisionSksvbDefaults()'s
+ *  classes/subjects/class_subjects, since that function only ever ran
+ *  inside createInstitution()). Calling this for board='sksvb' (re-)runs
+ *  provisionSksvbDefaults(), which is safe to repeat: subjects/classes/
+ *  class_subjects are all upserted with `on conflict do update`, so an
+ *  institution whose classes already happen to match the syllabus's names
+ *  (as MMP's do) gets subjects attached in place rather than duplicated. */
+export async function updateInstitutionBoard(
+  authUserId: string,
+  institutionId: string,
+  input: z.infer<typeof updateBoardSchema>
+): Promise<InstitutionRecord | null> {
+  const data = updateBoardSchema.parse(input);
+  return withSuperAdminContext(authUserId, async (scoped, callerUserId) => {
+    const { rows: before } = await scoped.query<{ type: string; board: string | null }>(
+      "select type, board from institutions where id = $1", [institutionId]
+    );
+    if (before.length === 0) return null;
+    if (before[0].type !== "madrasa") {
+      throw new Error("Educational board only applies to madrasa institutions.");
+    }
+
+    const { rows } = await scoped.query<InstitutionRecord>(
+      `update institutions set board = $1, updated_at = now() where id = $2
+       returning id, code, name, type, board, status, deployment_mode, default_locale, created_at`,
+      [data.board, institutionId]
+    );
+    if (data.board === "sksvb") {
+      await provisionSksvbDefaults(scoped, institutionId);
+    }
+    await recordPlatformAudit(scoped, {
+      actorUserId: callerUserId, institutionId, action: "board_change", entityType: "institutions", entityId: institutionId,
+      before: { board: before[0].board }, after: { board: data.board },
     });
     return rows[0];
   });

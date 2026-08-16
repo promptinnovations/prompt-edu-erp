@@ -887,6 +887,61 @@ to principal."
   enrolled/marked/present/absent/late counts for the day, plus a
   consolidated absentee name list.
 
+## MMP data-integrity fixes (three bugs reported together: "even if MMP is
+## SKSVB still subjects are seen not added... subjects should be visible in
+## classes as well... MMP staff shows some glitch")
+
+- **SKSVB provisioning never re-runs for an EXISTING institution.**
+  `provisionSksvbDefaults()` (`services/super-admin/super-admin-service.ts`)
+  only ever ran inside `createInstitution()`. MMP's `board` had been set to
+  `'sksvb'` afterward via a direct SQL update (an earlier session), so it
+  got zero classes/subjects/`class_subjects` from that function — the
+  Classes UI correctly showed "no subjects" because there genuinely were
+  none. **Fixed**: new `updateInstitutionBoard()` (mirrors
+  `updateInstitutionStatus()`'s shape) — settable per-madrasa-institution
+  from Super Admin → institution detail → new "Educational board" section
+  (`BoardConfigForm`) — (re-)runs `provisionSksvbDefaults()` whenever the
+  board is set to `sksvb`. Safe to run repeatedly: subjects/classes/
+  `class_subjects` are all `on conflict do update` upserts, matched by
+  name, never duplicated. MMP was backfilled directly in production
+  (14 subjects, 12 classes incl. the previously-missing "11", 50
+  `class_subjects` links) using the exact same upsert logic.
+- **`class_subjects` was completely unused by the app layer** — for every
+  institution, not just SKSVB ones. No read function, no UI, anywhere.
+  **Fixed**: `listClassSubjects()`/`assignSubjectToClass()`/
+  `removeSubjectFromClass()` in `modules/academic/service.ts`. Surfaced two
+  places: (1) Academic Setup (`/academic`) gets a new "Subjects per class"
+  section — add/remove subjects per class, `settings.manage`-gated, same as
+  the rest of that page; (2) the Classes hub detail page
+  (`/classes/[classId]`) shows each class's assigned subjects read-only
+  (with a "(practical)" tag for `is_core=false` subjects like Qur'an &
+  Hifz), linking back to Academic Setup to manage them.
+- **"MMP staff shows some glitch" — a duplicate `users` row from a
+  case-sensitivity bug.** Root cause: `users.email` only had a plain
+  `unique` constraint (migration 0001), so `"Saalikms786@gmail.com"` (Anees
+  Alavi's real, Supabase-Auth-linked account) and `"saalikms786@gmail.com"`
+  (entered with different capitalization when he was added to the Staff
+  directory) were treated as different emails — `createStaffMember()`'s
+  plain `insert into users` succeeded and created a second, orphan,
+  login-less `users` row. His `staff` row and all 3 `teacher_assignments`
+  (class teacher, 3A/5A/12A) ended up pointing at that orphan row instead
+  of his real logged-in account, so his class-teacher scoping silently
+  wouldn't have worked, and the Staff Directory showed him as
+  `has_login=false` (clicking "Create login" would have failed, since
+  Supabase Auth already had that email registered case-insensitively).
+  **Fixed at the data layer** (migration 0028: `create unique index
+  users_email_lower_unique_idx on users (lower(email))`) so this can never
+  recur for ANY of the four `insert into users` call sites (staff creation,
+  student/parent portal provisioning, user management) — they already all
+  shared the same `catch { throw friendly "already exists" error }` shape,
+  so no code changes were needed there, just the stricter constraint.
+  Anees Alavi's specific production data was repaired directly: his
+  `staff`/`teacher_assignments`/`user_roles` rows were re-pointed from the
+  orphan `user_id` to his real one, then the orphan `users` row (and its
+  now-empty `user_institution_memberships`) was deleted. Verified no other
+  institution had a similar case-only email collision before applying the
+  new constraint.
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

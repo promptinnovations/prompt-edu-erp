@@ -1,12 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
-import { listClasses, listSections, listSubjects } from "../../../modules/academic/service";
+import { listClasses, listSections, listSubjects, listClassSubjects } from "../../../modules/academic/service";
 import ClassForm from "./ClassForm";
 import SectionForm from "./SectionForm";
 import SubjectForm from "./SubjectForm";
 import ClassRow from "./ClassRow";
 import SectionRow from "./SectionRow";
+import ClassSubjectsForm from "./ClassSubjectsForm";
 
 export default async function AcademicPage() {
   const ctx = await requireRequestContext();
@@ -14,10 +15,11 @@ export default async function AcademicPage() {
   const t = await getTranslations("academic");
   const canManage = can(ctx.permissions, "settings.manage");
 
-  const [classes, sections, subjects] = await Promise.all([
+  const [classes, sections, subjects, classSubjects] = await Promise.all([
     listClasses(institutionId, ctx.session.authUserId),
     listSections(institutionId, ctx.session.authUserId),
     listSubjects(institutionId, ctx.session.authUserId),
+    listClassSubjects(institutionId, ctx.session.authUserId),
   ]);
 
   const sectionsByClass = new Map<string, typeof sections>();
@@ -25,6 +27,13 @@ export default async function AcademicPage() {
     const arr = sectionsByClass.get(s.class_id) ?? [];
     arr.push(s);
     sectionsByClass.set(s.class_id, arr);
+  }
+
+  const subjectsByClass = new Map<string, { subjectId: string; subjectName: string }[]>();
+  for (const cs of classSubjects) {
+    const arr = subjectsByClass.get(cs.class_id) ?? [];
+    arr.push({ subjectId: cs.subject_id, subjectName: cs.subject_name });
+    subjectsByClass.set(cs.class_id, arr);
   }
 
   return (
@@ -75,6 +84,26 @@ export default async function AcademicPage() {
             </li>
           ))}
           {subjects.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subjects per class</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+          Which subjects each class studies — shown to teachers/students on that class&apos;s own page.
+        </p>
+        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+          {classes.map((c) => (
+            <ClassSubjectsForm
+              key={c.id}
+              classId={c.id}
+              className={c.name}
+              assigned={subjectsByClass.get(c.id) ?? []}
+              availableSubjects={subjects}
+              canManage={canManage}
+            />
+          ))}
+          {classes.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">Add a class above first.</li> : null}
         </ul>
       </section>
     </div>

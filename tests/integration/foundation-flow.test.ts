@@ -19,7 +19,10 @@ import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser, seedSuperAdminUser } from "../../database/scripts/seed";
 import { resolveUserByAuthId, resolveActiveInstitution, linkOrResolveAuthenticatedUser } from "../../services/tenant/tenant-service";
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
-import { createClass, createSection, createSubject, listClasses } from "../../modules/academic/service";
+import {
+  createClass, createSection, createSubject, listClasses,
+  listClassSubjects, assignSubjectToClass, removeSubjectFromClass,
+} from "../../modules/academic/service";
 import { createStudent, getStudent, listStudents } from "../../modules/students/service";
 
 let institutionA: string;
@@ -115,6 +118,31 @@ describe("Phase 0 exit-criterion flow (§AA.1), via the service layer", () => {
   it("throws Forbidden when a permission the role doesn't hold is required", async () => {
     const perms = await getPermissionsForUser(adminAAuth, adminAUserId, institutionA);
     expect(() => requirePermission(perms, "platform.institutions.manage")).toThrow(/Forbidden/);
+  });
+
+  it("assigns/lists/removes class_subjects (§137 follow-up: 'subjects should be visible in classes as well')", async () => {
+    const cls = await createClass(institutionA, adminAAuth, adminAUserId, { name: "Grade 6", sortOrder: 2 });
+    const subject = await createSubject(institutionA, adminAAuth, adminAUserId, { name: "Fiqh" });
+
+    const assigned = await assignSubjectToClass(institutionA, adminAAuth, adminAUserId, {
+      classId: cls.id, subjectId: subject.id, isCore: true,
+    });
+    expect(assigned.subject_name).toBe("Fiqh");
+    expect(assigned.is_core).toBe(true);
+
+    // Idempotent — re-assigning (e.g. to flip is_core) upserts rather than duplicating.
+    const reassigned = await assignSubjectToClass(institutionA, adminAAuth, adminAUserId, {
+      classId: cls.id, subjectId: subject.id, isCore: false,
+    });
+    expect(reassigned.id).toBe(assigned.id);
+    expect(reassigned.is_core).toBe(false);
+
+    const listed = await listClassSubjects(institutionA, adminAAuth, cls.id);
+    expect(listed).toHaveLength(1);
+    expect(listed[0].subject_name).toBe("Fiqh");
+
+    await removeSubjectFromClass(institutionA, adminAAuth, adminAUserId, cls.id, subject.id);
+    expect(await listClassSubjects(institutionA, adminAAuth, cls.id)).toHaveLength(0);
   });
 });
 

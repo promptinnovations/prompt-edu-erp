@@ -5,6 +5,7 @@ import { listInstitutions, getInstitutionWhatsAppConfig } from "../../../../../s
 import { listInstitutionModuleStatus } from "../../../../../services/modules/module-service";
 import ModuleToggleForm from "./ModuleToggleForm";
 import WhatsAppConfigForm from "./WhatsAppConfigForm";
+import BoardConfigForm from "./BoardConfigForm";
 import { openInstitutionAction } from "./actions";
 
 export default async function InstitutionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -93,6 +94,16 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
         </table>
         </div>
       </section>
+
+      {institution.type === "madrasa" ? (
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Educational board</h2>
+          <p className="mb-4 text-xs text-zinc-400 dark:text-zinc-500">
+            Current: {institution.board ? institution.board.toUpperCase() : "not set"}.
+          </p>
+          <BoardConfigForm institutionId={id} board={institution.board} />
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">WhatsApp (GREEN-API)</h2>

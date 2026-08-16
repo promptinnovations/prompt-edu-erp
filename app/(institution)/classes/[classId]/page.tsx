@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
-import { listClasses, listSections } from "../../../../modules/academic/service";
+import { listClasses, listSections, listClassSubjects } from "../../../../modules/academic/service";
 import { listStudentsForAdmin } from "../../../../modules/students/service";
 import { listTeacherAssignments } from "../../../../modules/staff/service";
 
@@ -21,11 +21,12 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
   const authUserId = ctx.session.authUserId;
   const today = new Date().toISOString().slice(0, 10);
 
-  const [classes, sections, students, teacherAssignments] = await Promise.all([
+  const [classes, sections, students, teacherAssignments, classSubjects] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId, classId),
     listStudentsForAdmin(institutionId, authUserId, { classId }),
     listTeacherAssignments(institutionId, authUserId),
+    listClassSubjects(institutionId, authUserId, classId),
   ]);
 
   const cls = classes.find((c) => c.id === classId);
@@ -101,6 +102,30 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subjects</h2>
+          <Link href="/academic" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+            Manage in Academic Setup
+          </Link>
+        </div>
+        {classSubjects.length === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No subjects assigned to this class yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {classSubjects.map((cs) => (
+              <span
+                key={cs.id}
+                className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-xs text-zinc-700 dark:text-zinc-300"
+              >
+                {cs.subject_name}
+                {!cs.is_core ? <span className="ml-1 text-zinc-400 dark:text-zinc-500">(practical)</span> : null}
+              </span>
+            ))}
           </div>
         )}
       </section>

@@ -1,0 +1,19 @@
+-- Root-cause fix for a case-sensitivity bug: users.email only had a plain
+-- `unique` constraint (migration 0001), so "Name@x.com" and "name@x.com"
+-- were treated as different emails and could both get their own `users`
+-- row. This happened for real in production (modules/staff/service.ts's
+-- createStaffMember() plain `insert into users` — see its try/catch: it
+-- assumes any insert failure means a case-EXACT duplicate, but the DB
+-- constraint never caught case-only variants), creating a second, orphan,
+-- login-less `users` row for an existing staff member whose email was
+-- entered with different capitalization when they were added to the Staff
+-- directory. Their real (Supabase Auth-linked) account and the orphan row
+-- silently diverged: staff/teacher_assignments pointed at the orphan.
+--
+-- A case-insensitive unique index closes this for every insert path in the
+-- app (staff creation, portal identity provisioning, user management, super
+-- admin), not just the one that triggered it — Postgres now raises a unique
+-- violation for ANY case-variant duplicate, which createStaffMember()'s
+-- existing catch block already turns into a friendly "already exists"
+-- error.
+create unique index if not exists users_email_lower_unique_idx on users (lower(email));
