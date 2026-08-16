@@ -259,6 +259,30 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
+  // §137 follow-up, found while verifying "can I install separate apps
+  // now" live: response.cookies.set(ACTIVE_INSTITUTION_COOKIE, ...) below
+  // (in buildBaseResponse) only changes what the BROWSER sends on its
+  // NEXT request — it does nothing for THIS request's own render, since
+  // services/request-context.ts's getRequestContext() reads the
+  // institution code via next/headers' cookies(), which reflects the
+  // INCOMING request, not a mutation this same middleware invocation made
+  // to the outgoing response. Reproduced live: visiting /badrudhuja/login
+  // in a browser that still carried an ACTIVE_INSTITUTION_COOKIE=mmp from
+  // an earlier visit kept rendering MMP's title/manifest/branding on that
+  // very first /badrudhuja/... request — exactly the scenario a genuinely
+  // separate per-institution app needs to get right immediately, not on
+  // a second visit. Fixed by rewriting the "cookie" REQUEST header itself
+  // (not just the response) so the SAME request's downstream render sees
+  // the correct value straight away.
+  if (routing.setInstitutionCode) {
+    const cookieHeader = request.cookies.getAll()
+      .filter((c) => c.name !== ACTIVE_INSTITUTION_COOKIE)
+      .concat([{ name: ACTIVE_INSTITUTION_COOKIE, value: routing.setInstitutionCode }])
+      .map((c) => `${c.name}=${c.value}`)
+      .join("; ");
+    requestHeaders.set("cookie", cookieHeader);
+  }
+
   let response = buildBaseResponse(routing, request, requestHeaders);
 
   // Supabase session refresh — see file header comment (point 3). Only

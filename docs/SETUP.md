@@ -709,6 +709,29 @@ that is the entire point of the `StorageProvider` abstraction.
   call it instead of a raw UPDATE. `tests/integration/staff-flow.test.ts`
   and `student-admin-flow.test.ts` both assert the actual persisted value,
   not just that the call resolved.
+- **§137 follow-up: institution identity was stale on the FIRST request
+  through a new institution's URL, not just the very first request ever**
+  — found by literally testing "can I install separate apps now" live in
+  a browser: visiting `/badrudhuja/login` right after `/mmp/login` (same
+  browser, same session) kept rendering MMP's title/manifest/icons on
+  that very first `/badrudhuja/...` request. Root cause:
+  `middleware.ts`'s institution-URL routing only ever wrote the resolved
+  code onto the RESPONSE cookie (`response.cookies.set(ACTIVE_
+  INSTITUTION_COOKIE, ...)`), which only changes what the browser sends
+  on its NEXT request — `services/request-context.ts`'s
+  `getRequestContext()` reads the active institution via `next/headers`'
+  `cookies()`, which reflects the INCOMING request, never a mutation the
+  same middleware invocation made to the outgoing response. So every
+  single navigation to a DIFFERENT institution's URL in an existing
+  browser session rendered the PREVIOUS institution's identity for one
+  full request (title, manifest, icons — not page content, which is
+  correctly resolved via the URL rewrite itself and unaffected). Fixed by
+  also rewriting the `cookie` REQUEST header directly (not just the
+  response) in `middleware.ts`, so the very same request's server-side
+  render sees the correct institution immediately — verified live via
+  Claude in Chrome: fresh tab → `/mmp/login` → manifest correctly "MMP" →
+  same tab → `/badrudhuja/login` → manifest correctly "badrudhuja" on
+  the first load, no second visit needed.
 - **CSV import uses a hand-rolled RFC4180-ish parser, not a library**:
   `modules/bulk/service.ts`'s `parseCsv()` handles quoted fields, escaped
   quotes, and CRLF/LF line endings, but hasn't been fuzz-tested against
