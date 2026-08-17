@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
-import { listClasses, listSections, listClassSubjects } from "../../../../modules/academic/service";
+import { listClasses, listSections, listClassSubjects, getCurrentAcademicYear } from "../../../../modules/academic/service";
 import { listStudentsForAdmin } from "../../../../modules/students/service";
 import { listTeacherAssignments } from "../../../../modules/staff/service";
+import RecomputeRollNumbersButton from "../RecomputeRollNumbersButton";
 
 /**
  * §137 follow-up — the per-class drill-down: every division ("A, B, C, D
@@ -21,12 +22,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
   const authUserId = ctx.session.authUserId;
   const today = new Date().toISOString().slice(0, 10);
 
-  const [classes, sections, students, teacherAssignments, classSubjects] = await Promise.all([
+  const [classes, sections, students, teacherAssignments, classSubjects, academicYear] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId, classId),
     listStudentsForAdmin(institutionId, authUserId, { classId }),
     listTeacherAssignments(institutionId, authUserId),
     listClassSubjects(institutionId, authUserId, classId),
+    getCurrentAcademicYear(institutionId, authUserId),
   ]);
 
   const cls = classes.find((c) => c.id === classId);
@@ -71,6 +73,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                   <th className="pb-2 font-medium">Division</th>
                   <th className="pb-2 font-medium">Class teacher</th>
                   <th className="pb-2 font-medium">Students</th>
+                  <th className="pb-2 font-medium text-right">Roll numbers</th>
                   <th className="pb-2 font-medium text-right">Attendance</th>
                 </tr>
               </thead>
@@ -89,6 +92,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                         )}
                       </td>
                       <td className="py-2 text-zinc-500 dark:text-zinc-400">{count}</td>
+                      <td className="py-2 text-right">
+                        {academicYear ? (
+                          <RecomputeRollNumbersButton classId={classId} sectionId={s.id} academicYearId={academicYear.id} />
+                        ) : (
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">No current academic year</span>
+                        )}
+                      </td>
                       <td className="py-2 text-right">
                         <Link
                           href={`/attendance?classId=${classId}&sectionId=${s.id}&date=${today}`}
@@ -144,6 +154,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 dark:border-zinc-800 text-left text-zinc-400 dark:text-zinc-500">
+                  <th className="pb-2 font-medium">Roll no.</th>
                   <th className="pb-2 font-medium">Admission no.</th>
                   <th className="pb-2 font-medium">Name</th>
                   <th className="pb-2 font-medium">Division</th>
@@ -151,8 +162,11 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                 </tr>
               </thead>
               <tbody>
-                {students.map((s) => (
+                {[...students]
+                  .sort((a, b) => (a.section_name ?? "").localeCompare(b.section_name ?? "") || (a.roll_number ?? 999) - (b.roll_number ?? 999) || a.full_name.localeCompare(b.full_name))
+                  .map((s) => (
                   <tr key={s.id} className="border-b border-zinc-100 dark:border-zinc-800">
+                    <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.roll_number ?? "—"}</td>
                     <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.admission_number}</td>
                     <td className="py-2 text-zinc-900 dark:text-zinc-50">
                       <Link href={`/students/${s.id}`} className="underline hover:text-indigo-600 dark:hover:text-indigo-400">{s.full_name}</Link>

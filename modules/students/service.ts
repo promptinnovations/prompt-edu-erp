@@ -31,6 +31,7 @@ export interface StudentListRow extends StudentRecord {
   class_id: string | null;
   class_name: string | null;
   section_name: string | null;
+  roll_number: number | null;
 }
 
 const createStudentSchema = z.object({
@@ -78,7 +79,7 @@ export async function listStudentsForAdmin(
     const { rows } = await scoped.query<StudentListRow>(
       `select s.id, s.admission_number, s.full_name, s.full_name_native, s.date_of_birth, s.gender,
               s.status, s.user_id, s.contact_email, s.login_id,
-              c.id as class_id, c.name as class_name, sec.name as section_name
+              c.id as class_id, c.name as class_name, sec.name as section_name, se.roll_number
          from students s
          left join student_enrollments se
            on se.student_id = s.id and se.status = 'active'
@@ -234,7 +235,19 @@ const enrollStudentSchema = z.object({
 });
 
 export interface EnrollmentRecord {
-  id: string; student_id: string; class_id: string; section_id: string; academic_year_id: string;
+  id: string; student_id: string; class_id: string; section_id: string; academic_year_id: string; roll_number?: number | null;
+}
+
+/** A past or present enrollment row for one student, with class/section
+ *  names resolved for display (§137 follow-up "removed data should be
+ *  stored ... if required for restoring") — used by the student detail
+ *  page's "class history" section to show removed/transferred rows
+ *  alongside the one active row (if any), each with its own restore
+ *  action where applicable. */
+export interface EnrollmentHistoryRow {
+  id: string; status: string; class_id: string; class_name: string; section_id: string; section_name: string;
+  academic_year_id: string; academic_year_name: string; enrollment_date: string; exit_date: string | null;
+  exit_reason: string | null; roll_number: number | null;
 }
 
 export async function enrollStudent(
@@ -281,7 +294,7 @@ export async function getCurrentEnrollment(institutionId: string, authUserId: st
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<EnrollmentRecord>(
-      `select se.id, se.student_id, se.class_id, se.section_id, se.academic_year_id
+      `select se.id, se.student_id, se.class_id, se.section_id, se.academic_year_id, se.roll_number
          from student_enrollments se
          join academic_years ay on ay.id = se.academic_year_id
         where se.student_id = $1 and ay.is_current = true and se.status = 'active'
@@ -289,6 +302,177 @@ export async function getCurrentEnrollment(institutionId: string, authUserId: st
       [studentId]
     );
     return rows[0] ?? null;
+  });
+}
+
+/** Every enrollment row (active, removed, or transferred) this student has
+ *  ever had, newest first — the "class history" the student detail page
+ *  shows below the current enrollment, so a removed/transferred row is
+ *  never actually gone (§137 follow-up), just not the one counted as
+ *  active anywhere. */
+export async function listEnrollmentHistory(institutionId: string, authUserId: string, studentId: string): Promise<EnrollmentHistoryRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<EnrollmentHistoryRow>(
+      `select se.id, se.status, se.class_id, c.name as class_name, se.section_id, sec.name as section_name,
+              se.academic_year_id, ay.name as academic_year_name, se.enrollment_date, se.exit_date, se.exit_reason, se.roll_number
+         from student_enrollments se
+         join classes c on c.id = se.class_id
+         join sections sec on sec.id = se.section_id
+         join academic_years ay on ay.id = se.academic_year_id
+        where se.student_id = $1
+        order by se.enrollment_date desc, se.id desc`,
+      [studentId]
+    );
+    return rows;
+  });
+}
+
+const moveEnrollmentSchema = z.object({
+  studentId: z.string().uuid(),
+  newClassId: z.string().uuid(),
+  newSectionId: z.string().uuid(),
+});
+
+/** Moves a student from their current active class/section to a different
+ *  one (§137 follow-up "moving from one class to another") — closes out
+ *  the prior active enrollment (status='transferred', exit_date=today)
+ *  rather than mutating its class_id/section_id in place, and inserts a
+ *  fresh active row for the new class/section, so the old placement stays
+ *  visible in listEnrollmentHistory() instead of being overwritten. Both
+ *  writes happen in one transaction — see modules/academic/service.ts's
+ *  createClass() doc comment for why withInstitutionContext() itself is
+ *  what supplies that transaction. */
+export async function transferStudentEnrollment(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof moveEnrollmentSchema>
+): Promise<EnrollmentRecord> {
+  const data = moveEnrollmentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: current } = await scoped.query<{ id: string; academic_year_id: string }>(
+      `select se.id, se.academic_year_id from student_enrollments se
+         join academic_years ay on ay.id = se.academic_year_id
+        where se.student_id = $1 and ay.is_current = true and se.status = 'active'
+        order by se.enrollment_date desc limit 1`,
+      [data.studentId]
+    );
+    if (current.length === 0) throw new Error("This student has no active class enrollment to move.");
+
+    await scoped.query(
+      `update student_enrollments set status = 'transferred', exit_date = current_date, exit_reason = 'Moved to another class'
+        where id = $1`,
+      [current[0].id]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "transfer", module: "students",
+      entityType: "student_enrollments", entityId: current[0].id, before: { status: "active" }, after: { status: "transferred" },
+    });
+
+    const { rows } = await scoped.query<EnrollmentRecord>(
+      `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id)
+       values ($1, $2, $3, $4, $5)
+       returning id, student_id, class_id, section_id, academic_year_id`,
+      [institutionId, data.studentId, current[0].academic_year_id, data.newClassId, data.newSectionId]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "create", module: "students",
+      entityType: "student_enrollments", entityId: rows[0].id, after: rows[0],
+    });
+    return rows[0];
+  });
+}
+
+/** Unenrolls a student from their current active class WITHOUT withdrawing
+ *  the student from the institution (§137 follow-up "removing" — distinct
+ *  from deleteStudent()'s institution-wide withdrawal above). Sets the
+ *  enrollment's status to 'removed' and stamps exit_date/exit_reason; the
+ *  row is kept (not deleted) so restoreEnrollment() can bring it back, but
+ *  every active-enrollment query (getCurrentEnrollment,
+ *  listStudentsForAdmin's class join, listActiveEnrollments) already
+ *  filters on status = 'active' and so stops showing it immediately. */
+export async function removeStudentFromClass(
+  institutionId: string, authUserId: string, userId: string, studentId: string, reason?: string | null
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string }>(
+      `update student_enrollments se set status = 'removed', exit_date = current_date, exit_reason = $1
+         from academic_years ay
+        where se.academic_year_id = ay.id and ay.is_current = true and se.status = 'active' and se.student_id = $2
+        returning se.id`,
+      [reason?.trim() || "Removed from class", studentId]
+    );
+    if (rows.length === 0) throw new Error("This student has no active class enrollment to remove.");
+    await recordAudit(scoped, { institutionId, userId, action: "remove", module: "students", entityType: "student_enrollments", entityId: rows[0].id });
+  });
+}
+
+/** Reactivates a previously removed or transferred enrollment row exactly
+ *  as it was (§137 follow-up "should be stored, if required for
+ *  restoring") — refuses if the student already has a different active
+ *  enrollment for that same academic year, since a student can only be in
+ *  one class at a time; remove or move that one first. */
+export async function restoreEnrollment(institutionId: string, authUserId: string, userId: string, enrollmentId: string): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: target } = await scoped.query<{ student_id: string; academic_year_id: string; status: string }>(
+      "select student_id, academic_year_id, status from student_enrollments where id = $1", [enrollmentId]
+    );
+    if (target.length === 0) throw new Error("Enrollment record not found.");
+    if (target[0].status === "active") return;
+    const { rows: clash } = await scoped.query<{ id: string }>(
+      "select id from student_enrollments where student_id = $1 and academic_year_id = $2 and status = 'active'",
+      [target[0].student_id, target[0].academic_year_id]
+    );
+    if (clash.length > 0) throw new Error("This student already has an active class enrollment for that academic year — remove or move it first.");
+    await scoped.query(
+      "update student_enrollments set status = 'active', exit_date = null, exit_reason = null where id = $1",
+      [enrollmentId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "restore", module: "students", entityType: "student_enrollments", entityId: enrollmentId });
+  });
+}
+
+/** One row of the roster assignRollNumbers() below sorts and numbers. */
+interface RollNumberCandidate { id: string; gender: string | null }
+
+/** Recomputes roll numbers for every actively-enrolled student in one
+ *  class+section+academic-year (§137 follow-up "roll number should be male
+ *  first in alphabetic order then girls in alphabetic order") — males
+ *  (any of 'm'/'male', case-insensitive) sorted alphabetically by name get
+ *  1..N first, then females get the following numbers, also alphabetical;
+ *  any other/unset gender value sorts after females, alphabetical among
+ *  themselves, rather than erroring, so a row with a blank gender doesn't
+ *  block the rest of the class from being numbered. Always a full
+ *  recompute of the whole roster (not an incremental patch) so the
+ *  sequence stays dense (1..N, no gaps) after adds/removes/moves — call it
+ *  again any time the roster changes. */
+export async function assignRollNumbers(
+  institutionId: string, authUserId: string, userId: string, classId: string, sectionId: string, academicYearId: string
+): Promise<number> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<RollNumberCandidate & { full_name: string }>(
+      `select se.id, s.gender, s.full_name
+         from student_enrollments se join students s on s.id = se.student_id
+        where se.class_id = $1 and se.section_id = $2 and se.academic_year_id = $3 and se.status = 'active'
+        order by
+          case when lower(coalesce(s.gender, '')) in ('m', 'male') then 0
+               when lower(coalesce(s.gender, '')) in ('f', 'female') then 1
+               else 2 end,
+          s.full_name`,
+      [classId, sectionId, academicYearId]
+    );
+    for (let i = 0; i < rows.length; i++) {
+      await scoped.query("update student_enrollments set roll_number = $1 where id = $2", [i + 1, rows[i].id]);
+    }
+    if (rows.length > 0) {
+      await recordAudit(scoped, {
+        institutionId, userId, action: "recompute", module: "students",
+        entityType: "student_enrollments", entityId: classId, after: { classId, sectionId, academicYearId, count: rows.length },
+      });
+    }
+    return rows.length;
   });
 }
 

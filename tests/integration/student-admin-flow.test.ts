@@ -21,6 +21,8 @@ import {
   createStudent, enrollStudent, createParent, linkParentToStudent,
   updateStudent, deleteStudent, restoreStudent, listStudentsForAdmin,
   updateParent, unlinkParentFromStudent, deleteParentRecord, listParentsForStudent,
+  transferStudentEnrollment, removeStudentFromClass, restoreEnrollment,
+  assignRollNumbers, getCurrentEnrollment, listEnrollmentHistory,
 } from "../../modules/students/service";
 import {
   createStudentLoginAccount, resetStudentLoginPassword, resolveStudentLoginEmail,
@@ -234,6 +236,98 @@ describe("Student login: name + parent-phone (§137 follow-up)", () => {
 
     const noLogin = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "RESET-2", fullName: "No Login Yet" });
     await expect(resetStudentLoginPassword(institutionA, adminAuth, adminUserId, noLogin.id, "9000000042")).rejects.toThrow(/doesn't have a portal login/);
+  });
+});
+
+describe("Class move/remove/restore + roll numbers (§137 follow-up: MBS request)", () => {
+  it("transferStudentEnrollment() closes the old enrollment (status=transferred) and opens a new active one", async () => {
+    const s = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "MOVE-1", fullName: "Move Me" });
+    const otherClass = await createClass(institutionA, adminAuth, adminUserId, { name: "6", sortOrder: 6 });
+    const otherSection = await createSection(institutionA, adminAuth, adminUserId, { classId: otherClass.id, name: "A" });
+    await enrollStudent(institutionA, adminAuth, adminUserId, { studentId: s.id, academicYearId, classId, sectionId });
+
+    const moved = await transferStudentEnrollment(institutionA, adminAuth, adminUserId, {
+      studentId: s.id, newClassId: otherClass.id, newSectionId: otherSection.id,
+    });
+    expect(moved.class_id).toBe(otherClass.id);
+
+    const current = await getCurrentEnrollment(institutionA, adminAuth, s.id);
+    expect(current?.class_id).toBe(otherClass.id);
+
+    const history = await listEnrollmentHistory(institutionA, adminAuth, s.id);
+    expect(history).toHaveLength(2);
+    expect(history.find((h) => h.class_id === classId)?.status).toBe("transferred");
+    expect(history.find((h) => h.class_id === otherClass.id)?.status).toBe("active");
+  });
+
+  it("transferStudentEnrollment() throws for a student with no active enrollment", async () => {
+    const s = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "MOVE-2", fullName: "Never Enrolled" });
+    await expect(
+      transferStudentEnrollment(institutionA, adminAuth, adminUserId, { studentId: s.id, newClassId: classId, newSectionId: sectionId })
+    ).rejects.toThrow(/no active class enrollment/);
+  });
+
+  it("removeStudentFromClass() unenrolls without withdrawing the student, and the record is restorable", async () => {
+    const s = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "REMOVE-1", fullName: "Remove Me" });
+    await enrollStudent(institutionA, adminAuth, adminUserId, { studentId: s.id, academicYearId, classId, sectionId });
+
+    await removeStudentFromClass(institutionA, adminAuth, adminUserId, s.id, "Test removal");
+    expect(await getCurrentEnrollment(institutionA, adminAuth, s.id)).toBeNull();
+
+    // Not active anywhere, but not hard-deleted — still listed as a student, class column blank.
+    const rows = await listStudentsForAdmin(institutionA, adminAuth, { search: "Remove Me" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].class_name).toBeNull();
+    expect(rows[0].status).toBe("active"); // still an active STUDENT, just not enrolled anywhere
+
+    const history = await listEnrollmentHistory(institutionA, adminAuth, s.id);
+    expect(history[0].status).toBe("removed");
+    expect(history[0].exit_reason).toBe("Test removal");
+
+    // Restore brings it back as active.
+    await restoreEnrollment(institutionA, adminAuth, adminUserId, history[0].id);
+    expect((await getCurrentEnrollment(institutionA, adminAuth, s.id))?.class_id).toBe(classId);
+  });
+
+  it("removeStudentFromClass() throws for a student with no active enrollment", async () => {
+    const s = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "REMOVE-2", fullName: "Nothing To Remove" });
+    await expect(removeStudentFromClass(institutionA, adminAuth, adminUserId, s.id)).rejects.toThrow(/no active class enrollment/);
+  });
+
+  it("restoreEnrollment() refuses when the student already has a different active enrollment for that year", async () => {
+    const s = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "RESTORE-CLASH", fullName: "Clash Student" });
+    const otherClass = await createClass(institutionA, adminAuth, adminUserId, { name: "7", sortOrder: 7 });
+    const otherSection = await createSection(institutionA, adminAuth, adminUserId, { classId: otherClass.id, name: "A" });
+    await enrollStudent(institutionA, adminAuth, adminUserId, { studentId: s.id, academicYearId, classId, sectionId });
+    await removeStudentFromClass(institutionA, adminAuth, adminUserId, s.id);
+    await enrollStudent(institutionA, adminAuth, adminUserId, { studentId: s.id, academicYearId, classId: otherClass.id, sectionId: otherSection.id });
+
+    const removed = (await listEnrollmentHistory(institutionA, adminAuth, s.id)).find((h) => h.status === "removed")!;
+    await expect(restoreEnrollment(institutionA, adminAuth, adminUserId, removed.id)).rejects.toThrow(/already has an active class enrollment/);
+  });
+
+  it("assignRollNumbers() ranks males alphabetically first, then females alphabetically", async () => {
+    const rollClass = await createClass(institutionA, adminAuth, adminUserId, { name: "Roll Test Class", sortOrder: 50 });
+    const rollSection = await createSection(institutionA, adminAuth, adminUserId, { classId: rollClass.id, name: "A" });
+
+    const rows: { name: string; gender: string }[] = [
+      { name: "Zainab", gender: "F" }, { name: "Amina", gender: "F" },
+      { name: "Zayd", gender: "M" }, { name: "Ahmad", gender: "M" },
+    ];
+    for (const r of rows) {
+      const s = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: `ROLL-${r.name}`, fullName: r.name, gender: r.gender });
+      await enrollStudent(institutionA, adminAuth, adminUserId, { studentId: s.id, academicYearId, classId: rollClass.id, sectionId: rollSection.id });
+    }
+
+    const count = await assignRollNumbers(institutionA, adminAuth, adminUserId, rollClass.id, rollSection.id, academicYearId);
+    expect(count).toBe(4);
+
+    const listed = await listStudentsForAdmin(institutionA, adminAuth, { classId: rollClass.id });
+    const byName = new Map(listed.map((s) => [s.full_name, s.roll_number]));
+    expect(byName.get("Ahmad")).toBe(1);
+    expect(byName.get("Zayd")).toBe(2);
+    expect(byName.get("Amina")).toBe(3);
+    expect(byName.get("Zainab")).toBe(4);
   });
 });
 

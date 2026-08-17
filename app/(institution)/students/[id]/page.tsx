@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../../services/request-context";
 import { can } from "../../../../services/permissions/permission-service";
-import { getStudent, getCurrentEnrollment, listParentsForStudent } from "../../../../modules/students/service";
+import { getStudent, getCurrentEnrollment, listParentsForStudent, listEnrollmentHistory } from "../../../../modules/students/service";
 import { listClasses, listSections, getCurrentAcademicYear } from "../../../../modules/academic/service";
 import EnrollForm from "../EnrollForm";
+import ClassEnrollmentSection from "../ClassEnrollmentSection";
 import ParentSection, { ProvisionStudentAccountForm } from "../ParentSection";
 import EditStudentForm from "../EditStudentForm";
 import StudentLoginSection from "../StudentLoginSection";
@@ -20,12 +21,13 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const student = await getStudent(institutionId, authUserId, id);
   if (!student) notFound(); // RLS already guarantees this is null for another institution's id (§E.3)
 
-  const [enrollment, classes, sections, academicYear, parents] = await Promise.all([
+  const [enrollment, classes, sections, academicYear, parents, enrollmentHistory] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     getCurrentAcademicYear(institutionId, authUserId),
     listParentsForStudent(institutionId, authUserId, id),
+    listEnrollmentHistory(institutionId, authUserId, id),
   ]);
 
   const classById = new Map(classes.map((c) => [c.id, c.name]));
@@ -85,11 +87,28 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Class enrollment</h2>
         {enrollment ? (
-          <p className="text-sm text-zinc-700 dark:text-zinc-300">
-            Enrolled in {classById.get(enrollment.class_id) ?? "—"} for the current academic year.
-          </p>
+          <ClassEnrollmentSection
+            studentId={student.id}
+            currentClassLabel={classById.get(enrollment.class_id) ?? null}
+            currentRollNumber={enrollment.roll_number ?? null}
+            sections={sectionOptions}
+            history={enrollmentHistory}
+            canManage={can(ctx.permissions, "student.edit")}
+          />
         ) : academicYear ? (
-          <EnrollForm studentId={student.id} academicYearId={academicYear.id} sections={sectionOptions} />
+          <div className="space-y-4">
+            <EnrollForm studentId={student.id} academicYearId={academicYear.id} sections={sectionOptions} />
+            {enrollmentHistory.length > 0 ? (
+              <ClassEnrollmentSection
+                studentId={student.id}
+                currentClassLabel={null}
+                currentRollNumber={null}
+                sections={sectionOptions}
+                history={enrollmentHistory}
+                canManage={can(ctx.permissions, "student.edit")}
+              />
+            ) : null}
+          </div>
         ) : (
           <p className="text-sm text-zinc-400 dark:text-zinc-500">No current academic year configured.</p>
         )}

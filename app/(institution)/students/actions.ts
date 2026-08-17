@@ -7,6 +7,7 @@ import {
   createStudent, enrollStudent, createParent, linkParentToStudent,
   updateStudent, deleteStudent, restoreStudent,
   updateParent, unlinkParentFromStudent, deleteParentRecord,
+  transferStudentEnrollment, removeStudentFromClass, restoreEnrollment, assignRollNumbers,
 } from "../../../modules/students/service";
 import {
   provisionStudentPortalAccount, provisionParentPortalAccount,
@@ -44,6 +45,87 @@ export async function enrollStudentAction(_prevState: { error: string | null }, 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to enroll student." };
+  }
+}
+
+/** §137 follow-up "moving from one class to another" — closes the current
+ *  active enrollment and opens a new one; see transferStudentEnrollment()'s
+ *  doc comment for why that's two writes rather than an UPDATE in place. */
+export async function moveStudentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    await transferStudentEnrollment(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      studentId,
+      newClassId: String(formData.get("classId") ?? ""),
+      newSectionId: String(formData.get("sectionId") ?? ""),
+    });
+    revalidatePath("/students");
+    revalidatePath(`/students/${studentId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to move student to the new class." };
+  }
+}
+
+/** §137 follow-up "removing" — unenrolls from the current class without
+ *  withdrawing the student from the institution; see
+ *  removeStudentFromClass()'s doc comment for how this differs from
+ *  deleteStudentAction() below. */
+export async function removeFromClassAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    await removeStudentFromClass(ctx.institutionId, ctx.session.authUserId, ctx.userId, studentId, String(formData.get("reason") ?? "") || null);
+    revalidatePath("/students");
+    revalidatePath(`/students/${studentId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove the student from their class." };
+  }
+}
+
+/** §137 follow-up "if required for restoring" — brings back a removed or
+ *  transferred enrollment row exactly as it was. */
+export async function restoreEnrollmentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    await restoreEnrollment(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("enrollmentId") ?? ""));
+    revalidatePath("/students");
+    revalidatePath(`/students/${studentId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to restore the enrollment." };
+  }
+}
+
+/** §137 follow-up "roll number should be male first ... then girls" —
+ *  recomputes the whole class+section's roll numbers on demand from the
+ *  Classes hub (see app/(institution)/classes/[classId]/page.tsx). */
+export async function recomputeRollNumbersAction(
+  _prevState: { error: string | null; count: number | undefined }, formData: FormData
+): Promise<{ error: string | null; count: number | undefined }> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution.", count: undefined };
+  const classId = String(formData.get("classId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    const count = await assignRollNumbers(
+      ctx.institutionId, ctx.session.authUserId, ctx.userId,
+      classId, String(formData.get("sectionId") ?? ""), String(formData.get("academicYearId") ?? "")
+    );
+    revalidatePath(`/classes/${classId}`);
+    revalidatePath("/students");
+    return { error: null, count };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to recompute roll numbers.", count: undefined };
   }
 }
 

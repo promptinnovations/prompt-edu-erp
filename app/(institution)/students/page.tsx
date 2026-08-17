@@ -90,6 +90,7 @@ export default async function StudentsPage({
               <th className="px-4 py-2">{t("admissionNumber")}</th>
               <th className="px-4 py-2">{t("fullName")}</th>
               <th className="px-4 py-2">{t("class")}</th>
+              <th className="px-4 py-2">Roll no.</th>
               <th className="px-4 py-2">{t("loginId")}</th>
               <th className="px-4 py-2" />
             </tr>
@@ -105,6 +106,7 @@ export default async function StudentsPage({
                 <td className="px-4 py-2 text-zinc-500 dark:text-zinc-400">
                   {s.class_name ? `${s.class_name}${s.section_name ? ` — ${s.section_name}` : ""}` : "—"}
                 </td>
+                <td className="px-4 py-2 text-zinc-500 dark:text-zinc-400">{s.roll_number ?? "—"}</td>
                 <td className="px-4 py-2 font-mono text-xs text-zinc-500 dark:text-zinc-400">{s.login_id || "—"}</td>
                 <td className="px-4 py-2 text-right">
                   <div className="flex items-center justify-end gap-3">
