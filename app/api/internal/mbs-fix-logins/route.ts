@@ -35,10 +35,14 @@ export async function GET(req: NextRequest) {
   const db = await getDbClient();
 
   // Phase 1: tear down any previously-created (wrongly-suffixed) logins.
+  // IMPORTANT: only target rows whose login_id still carries the " 2" bug
+  // suffix — NOT every row with a user_id, since re-running this route
+  // after Phase 2 has already fixed some students would otherwise delete
+  // those freshly-corrected (unsuffixed) accounts too.
   const { rows: toDelete } = await db.query<{ id: string; user_id: string; auth_user_id: string | null }>(
     `select s.id, s.user_id, u.auth_user_id
        from students s join users u on u.id = s.user_id
-      where s.institution_id = $1
+      where s.institution_id = $1 and s.login_id like '% 2'
       limit 40`,
     [MBS_INSTITUTION_ID]
   );
