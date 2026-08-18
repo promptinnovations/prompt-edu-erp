@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { ChevronIcon } from "./NavIcons";
 
 export type NavLeaf = { href: string; label: string };
 // `icon` is a pre-rendered ReactNode (e.g. `<DashboardIcon className="..." />`),
@@ -23,14 +22,17 @@ export type NavEntry =
  * layout.tsx. Replaces the old flat NavLinks.tsx.
  *
  * "Only main items should be seen in bold, sub items will be inside that,
- * if clicked on the main item, the sub items will be shown" follow-up — a
- * `kind: "group"` entry renders as a bold, icon-led button; clicking it
- * toggles that ONE group's sub-item list open/closed (every other group
- * stays exactly as it was — this is per-group state, not an accordion that
- * forces others shut, since an admin often has 2-3 groups open at once
- * while working). A `kind: "link"` entry (Dashboard, Classes — items with
- * no natural sub-grouping) renders the same bold+icon style but navigates
- * directly, no expand affordance.
+ * if clicked on the main item, the sub items will be shown" follow-up,
+ * refined further per "no arrow marks, just add main titles with symbols
+ * the same way you gave Analysis, print center etc." — a `kind: "group"`
+ * entry renders with the EXACT same row style as a `kind: "link"` entry
+ * (icon + label, no chevron/expand indicator); clicking it toggles that ONE
+ * group's sub-item list open/closed (every other group stays exactly as it
+ * was — this is per-group state, not an accordion that forces others shut,
+ * since an admin often has 2-3 groups open at once while working). A
+ * `kind: "link"` entry (Dashboard, Analysis, Print Center — items with no
+ * natural sub-grouping) renders the same icon+label style but navigates
+ * directly.
  *
  * The group containing the current route starts expanded on first render
  * (derived once from `items`+pathname at mount, not re-derived on every
@@ -60,23 +62,25 @@ export default function GroupedNavLinks({ items }: { items: NavEntry[] }) {
     });
   };
 
+  // One shared row style for every main item — link or group, active or
+  // not — so a group header (e.g. "Attendance") looks exactly like a plain
+  // link (e.g. "Print Center"): icon + label, same weight/size/padding, no
+  // chevron or other expand affordance to tell them apart at rest.
+  const rowClass = (active: boolean) =>
+    [
+      "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left font-medium transition-colors",
+      active
+        ? "bg-[var(--sidebar-active)] text-white"
+        : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60",
+    ].join(" ");
+
   return (
     <nav className="flex flex-1 flex-col gap-0.5 text-sm">
       {items.map((entry) => {
         if (entry.kind === "link") {
           const active = isLeafActive(entry.href);
           return (
-            <Link
-              key={entry.href}
-              href={entry.href}
-              aria-current={active ? "page" : undefined}
-              className={[
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium transition-colors",
-                active
-                  ? "bg-[var(--sidebar-active)] text-white"
-                  : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60",
-              ].join(" ")}
-            >
+            <Link key={entry.href} href={entry.href} aria-current={active ? "page" : undefined} className={rowClass(active)}>
               {entry.icon}
               <span className="min-w-0 truncate">{entry.label}</span>
             </Link>
@@ -92,16 +96,10 @@ export default function GroupedNavLinks({ items }: { items: NavEntry[] }) {
               type="button"
               onClick={() => toggle(entry.label)}
               aria-expanded={open}
-              className={[
-                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left font-semibold transition-colors",
-                groupHasActive && !open
-                  ? "text-white"
-                  : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60",
-              ].join(" ")}
+              className={rowClass(groupHasActive && !open)}
             >
               {entry.icon}
               <span className="min-w-0 flex-1 truncate">{entry.label}</span>
-              <ChevronIcon className={`text-[var(--sidebar-text-muted)] ${open ? "rotate-90" : ""}`} />
             </button>
             {open ? (
               <div className="ml-[26px] flex flex-col gap-0.5 border-l border-[var(--sidebar-border)] py-1 pl-3">

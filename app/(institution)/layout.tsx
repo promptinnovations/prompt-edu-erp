@@ -138,7 +138,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasExaminationAccess ? [{
       kind: "group" as const, label: "Examination", icon: ni(ExamIcon),
       items: [
-        { href: "/examinations#create", label: "Create Exam (For admin)" },
+        { href: "/examinations#create", label: "Create Exam" },
         { href: "/examinations#list", label: "Exams" },
         { href: "/examinations", label: "Mark entry" },
         { href: "/examinations/status", label: "Mark entry status" },
@@ -168,7 +168,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasStaffAccess ? [{
       kind: "group" as const, label: "Staff", icon: ni(StaffIcon),
       items: [
-        { href: "/staff", label: "Staff directory (Profile)" },
+        { href: "/staff", label: "Staff directory" },
         { href: "/staff", label: "Staff attendance" },
         { href: "/staff/register", label: "Monthly register" },
         { href: "/staff", label: "Teacher Performance" },
