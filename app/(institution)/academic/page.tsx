@@ -1,13 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
-import { listClasses, listSections, listSubjects, listClassSubjects } from "../../../modules/academic/service";
+import { listClasses, listSections, listSubjects, listClassSubjects, listAcademicYears } from "../../../modules/academic/service";
 import ClassForm from "./ClassForm";
 import SectionForm from "./SectionForm";
 import SubjectForm from "./SubjectForm";
 import ClassRow from "./ClassRow";
 import SectionRow from "./SectionRow";
 import ClassSubjectsForm from "./ClassSubjectsForm";
+import AcademicYearForm from "./AcademicYearForm";
 
 export default async function AcademicPage() {
   const ctx = await requireRequestContext();
@@ -15,11 +16,12 @@ export default async function AcademicPage() {
   const t = await getTranslations("academic");
   const canManage = can(ctx.permissions, "settings.manage");
 
-  const [classes, sections, subjects, classSubjects] = await Promise.all([
+  const [classes, sections, subjects, classSubjects, academicYears] = await Promise.all([
     listClasses(institutionId, ctx.session.authUserId),
     listSections(institutionId, ctx.session.authUserId),
     listSubjects(institutionId, ctx.session.authUserId),
     listClassSubjects(institutionId, ctx.session.authUserId),
+    listAcademicYears(institutionId, ctx.session.authUserId),
   ]);
 
   const sectionsByClass = new Map<string, typeof sections>();
@@ -40,7 +42,27 @@ export default async function AcademicPage() {
     <div className="space-y-8">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("title")}</h1>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="academic-years" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Academic years</h2>
+        {canManage ? <AcademicYearForm /> : null}
+        <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+          {academicYears.map((y) => (
+            <li key={y.id} className="flex items-center justify-between py-2">
+              <span>
+                {y.name} <span className="text-zinc-400 dark:text-zinc-500">({y.start_date} — {y.end_date})</span>
+              </span>
+              {y.is_current ? (
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                  Current
+                </span>
+              ) : null}
+            </li>
+          ))}
+          {academicYears.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
+        </ul>
+      </section>
+
+      <section id="classes" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("classesHeading")}</h2>
         {canManage ? <ClassForm /> : null}
         <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
@@ -57,7 +79,7 @@ export default async function AcademicPage() {
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="sections" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("sectionsHeading")}</h2>
         {canManage ? <SectionForm classes={classes} /> : null}
         <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
@@ -74,7 +96,7 @@ export default async function AcademicPage() {
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="subjects" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("subjectsHeading")}</h2>
         <SubjectForm />
         <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">

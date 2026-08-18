@@ -348,6 +348,38 @@ export async function getStaffAttendanceGrid(
   });
 }
 
+/** "Staff > Staff attendance > Monthly register" follow-up — mirrors
+ *  modules/attendance/service.ts's getMonthlyAttendanceRegister() for
+ *  students, over staff_attendance instead. Every active staff member is
+ *  a row regardless of whether they have any records that month, so an
+ *  all-absent or not-yet-marked staff member is still visible on the
+ *  register (not silently dropped). */
+export interface StaffMonthlyRegisterRow { staff_id: string; full_name: string; staff_code: string | null }
+export interface StaffMonthlyRegisterEntry { staff_id: string; date: string; status_code: string }
+
+export async function getMonthlyStaffAttendanceRegister(
+  institutionId: string, authUserId: string, year: number, month: number
+): Promise<{ staff: StaffMonthlyRegisterRow[]; entries: StaffMonthlyRegisterEntry[] }> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: staff } = await scoped.query<StaffMonthlyRegisterRow>(
+      `select st.id as staff_id, u.full_name, st.staff_code
+         from staff st join users u on u.id = st.user_id
+        where st.employment_status = 'active'
+        order by u.full_name`
+    );
+    const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+    const { rows: entries } = await scoped.query<StaffMonthlyRegisterEntry>(
+      `select sa.staff_id, to_char(sa.date, 'YYYY-MM-DD') as date, ast.code as status_code
+         from staff_attendance sa
+         join attendance_statuses ast on ast.id = sa.status_id
+        where sa.date >= $1::date and sa.date < ($1::date + interval '1 month')`,
+      [monthStart]
+    );
+    return { staff, entries };
+  });
+}
+
 const markStaffAttendanceEntrySchema = z.object({ staffId: z.string().uuid(), statusId: z.string().uuid() });
 const markStaffAttendanceSchema = z.object({
   date: z.string().min(1),

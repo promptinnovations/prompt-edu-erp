@@ -360,6 +360,41 @@ export async function getExamCoveredClassIds(institutionId: string, authUserId: 
   });
 }
 
+/** "Examination > Mark entry status" follow-up — for one examination, how
+ *  far along mark entry is per subject: how many students are expected to
+ *  have a mark (enrolled in a class/section that exam covers) vs how many
+ *  actually have one yet. Lets an admin see at a glance which subjects
+ *  still need marks entered instead of opening each subject's grid one by
+ *  one. `entry_status` on `marks` isn't used here — a row existing in
+ *  `marks` at all (regardless of its own status) counts as "entered",
+ *  since even a draft/unverified entry means someone has started. */
+export interface MarkEntryStatusRow {
+  exam_subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
+  expected: number; entered: number;
+}
+
+export async function getMarkEntryStatus(institutionId: string, authUserId: string, examinationId: string): Promise<MarkEntryStatusRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<MarkEntryStatusRow>(
+      `select es.id as exam_subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
+              count(distinct se.student_id) as expected,
+              count(distinct m.student_id) as entered
+         from exam_subjects es
+         join subjects sub on sub.id = es.subject_id
+         join exam_classes ec on ec.examination_id = es.examination_id
+         join student_enrollments se on se.class_id = ec.class_id
+              and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
+         left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
+        where es.examination_id = $1
+        group by es.id, sub.name, es.max_marks, es.pass_marks
+        order by sub.name`,
+      [examinationId]
+    );
+    return rows.map((r) => ({ ...r, expected: Number(r.expected), entered: Number(r.entered) }));
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mark entry grid (§28)
 // ---------------------------------------------------------------------------
@@ -543,6 +578,44 @@ export async function computeResults(institutionId: string, authUserId: string, 
       computed++;
     }
     return { computed, skippedIncomplete };
+  });
+}
+
+/** "Result > Consolidated marks / Report Cards" follow-up — one flat row
+ *  per (student, exam_subject) covering EVERY subject of the examination,
+ *  base on the students actually enrolled in the classes/sections this
+ *  examination covers (exam_classes) rather than only students who already
+ *  have a mark, so a not-yet-entered subject still shows as a blank cell
+ *  instead of silently disappearing. Both the Consolidated Marks grid
+ *  (pivots this into a student x subject matrix) and the per-student
+ *  Report Card page (filters to one student_id) are built on this same
+ *  query — one source of truth for "every mark this exam has", matching
+ *  §P.1's "one query, many renderings" philosophy. */
+export interface ExaminationMarksMatrixRow {
+  student_id: string; student_name: string; admission_number: string;
+  exam_subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
+  marks_obtained: string | null; is_absent: boolean;
+}
+
+export async function getExaminationMarksMatrix(institutionId: string, authUserId: string, examinationId: string): Promise<ExaminationMarksMatrixRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ExaminationMarksMatrixRow>(
+      `select distinct se.student_id, s.full_name as student_name, s.admission_number,
+              es.id as exam_subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
+              m.marks_obtained, coalesce(m.is_absent, false) as is_absent
+         from exam_subjects es
+         join subjects sub on sub.id = es.subject_id
+         join exam_classes ec on ec.examination_id = es.examination_id
+         join student_enrollments se on se.class_id = ec.class_id
+              and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
+         join students s on s.id = se.student_id
+         left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
+        where es.examination_id = $1
+        order by s.full_name, sub.name`,
+      [examinationId]
+    );
+    return rows;
   });
 }
 

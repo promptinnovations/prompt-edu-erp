@@ -50,18 +50,21 @@ export default function ResponsiveSidebar({
 
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-zinc-800 bg-zinc-950 px-4 py-3 text-white md:hidden">
+      <div
+        data-app-shell
+        className="flex items-center gap-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-4 py-3 text-white md:hidden"
+      >
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="shrink-0 rounded-lg p-2 hover:bg-zinc-800"
+          className="shrink-0 rounded-lg p-2 hover:bg-[var(--sidebar-active)]"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
           </svg>
         </button>
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-xs font-bold">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-teal)] text-xs font-bold">
           {logoLetter}
         </span>
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{brandLabel}</span>
@@ -77,15 +80,16 @@ export default function ResponsiveSidebar({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-zinc-800 bg-zinc-950 px-4 py-6 text-zinc-100 shadow-xl transition-transform duration-200 ease-out ${
+        data-app-shell
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-[var(--sidebar-border)] bg-gradient-to-b from-[var(--sidebar-bg-2)] to-[var(--sidebar-bg)] px-4 py-6 shadow-xl transition-transform duration-200 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
-        } md:static md:z-auto md:w-60 md:translate-x-0 md:shadow-none md:transition-none`}
+        } md:static md:z-auto md:w-64 md:translate-x-0 md:shadow-none md:transition-none`}
       >
         <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Close menu"
-          className="mb-2 self-end rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 md:hidden"
+          className="mb-2 self-end rounded-lg p-1.5 text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)] md:hidden"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -93,7 +97,7 @@ export default function ResponsiveSidebar({
         </button>
 
         <div className="mb-6 hidden items-center gap-2.5 md:flex">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-sm font-bold text-white shadow-lg shadow-violet-900/40">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-teal)] text-sm font-bold text-white shadow-lg shadow-black/20">
             {logoLetter}
           </span>
           <div className="min-w-0 truncate text-base font-semibold text-white">{brandLabel}</div>
@@ -101,12 +105,12 @@ export default function ResponsiveSidebar({
 
         {children}
 
-        <div className="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
-          <span className="text-[11px] text-zinc-600">Appearance</span>
+        <div className="mt-4 flex items-center justify-between border-t border-[var(--sidebar-border)] pt-4">
+          <span className="text-[11px] text-[var(--sidebar-text-muted)]">Appearance</span>
           <ThemeToggle compact />
         </div>
 
-        <div className="mt-3 truncate text-center text-[10px] uppercase tracking-wide text-zinc-700">
+        <div className="mt-3 truncate text-center text-[10px] uppercase tracking-wide text-[var(--sidebar-text-muted)]">
           PROMPT EDU ERP · Prompt Innovations
         </div>
       </aside>

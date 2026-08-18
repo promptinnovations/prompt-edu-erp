@@ -6,7 +6,7 @@ import { requirePermission } from "../../../services/permissions/permission-serv
 import {
   createClass, createSection, createSubject,
   updateClass, deleteClass, updateSection, deleteSection,
-  assignSubjectToClass, removeSubjectFromClass,
+  assignSubjectToClass, removeSubjectFromClass, createAcademicYear,
 } from "../../../modules/academic/service";
 
 export async function createClassAction(_prevState: { error: string | null }, formData: FormData) {
@@ -109,6 +109,25 @@ export async function deleteSectionAction(_prevState: { error: string | null }, 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to delete section." };
+  }
+}
+
+export async function createAcademicYearAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await createAcademicYear(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      name: String(formData.get("name") ?? ""),
+      startDate: String(formData.get("startDate") ?? ""),
+      endDate: String(formData.get("endDate") ?? ""),
+      isCurrent: formData.get("isCurrent") === "on",
+    });
+    revalidatePath("/academic");
+    revalidatePath("/dashboard");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to create academic year." };
   }
 }
 

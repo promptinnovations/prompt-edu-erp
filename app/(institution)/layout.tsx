@@ -9,9 +9,14 @@ import { listMyNotifications, getUnreadNotificationCount } from "../../services/
 import { getUserDisplayInfo } from "../../services/tenant/tenant-service";
 import NotificationBell from "../components/NotificationBell";
 import ResponsiveSidebar from "../components/ResponsiveSidebar";
-import NavLinks, { type NavItem } from "../components/NavLinks";
+import GroupedNavLinks, { type NavEntry } from "../components/GroupedNavLinks";
 import Breadcrumb from "../components/Breadcrumb";
 import SignedInAs from "../components/SignedInAs";
+import {
+  DashboardIcon, AcademicIcon, StudentIcon, AttendanceIcon, ExamIcon, ResultIcon, LibraryIcon,
+  StaffIcon, SkillsIcon, DisciplineIcon, MentoringIcon, AnalysisIcon, PrintIcon,
+  UsersIcon, SettingsIcon, SuperAdminIcon, ImportIcon, AnnouncementIcon, StorageIcon,
+} from "../components/NavIcons";
 import { setLocaleAction, signOutAction, exitSuperAdminViewAction } from "./actions";
 
 export default async function InstitutionLayout({ children }: { children: React.ReactNode }) {
@@ -54,56 +59,155 @@ export default async function InstitutionLayout({ children }: { children: React.
   ]);
 
   // Plain data, not JSX — permission/module gating happens here (Server
-  // Component), active-page highlighting happens inside NavLinks (Client
-  // Component, needs usePathname()). "Give access to the assigned roles
-  // only" follow-up: every item below is now gated on the SAME permission
-  // code that page itself already uses internally to decide what's visible/
-  // editable there (see each page's own `can(ctx.permissions, "...")`
-  // calls) — a role that page would show nothing useful to (e.g. a pure
-  // "staff" role has no student.view/student.view_all, and a "librarian"
-  // has no reports.view) no longer even sees the link. Dashboard/Classes
-  // stay unconditional — no dedicated permission code exists for either,
-  // and both are harmless read-only landing/reference views for any
-  // institution member who reaches this layout at all (student/parent
-  // roles never do — routed to (portals) above instead).
-  const navItems: NavItem[] = [
-    { href: "/dashboard", label: t("dashboard") },
-    ...(can(ctx.permissions, "settings.manage") ? [{ href: "/academic", label: t("academic") }] : []),
-    { href: "/classes", label: t("classes") },
-    ...(can(ctx.permissions, "student.view") || can(ctx.permissions, "student.view_all")
-      ? [{ href: "/students", label: t("students") }]
+  // Component), active-page highlighting/expand-collapse happens inside
+  // GroupedNavLinks (Client Component, needs usePathname()). "Give access
+  // to the assigned roles only" follow-up (kept from the flat-nav design):
+  // every leaf is gated on the SAME permission code that page itself
+  // already uses internally to decide what's visible/editable there.
+  //
+  // "Rearrange the sidepanel under this structure" follow-up — the flat,
+  // ~18-item list above is replaced with the 12 named groups given
+  // verbatim (Academic Structure, Student Management, Attendance,
+  // Examination, Result, Library, Staff, Skills & Achievements, Discipline,
+  // Mentoring, Analysis, Print Center). A few of those sub-items share ONE
+  // underlying page (e.g. "Create Exam"/"Exams" are both /examinations —
+  // same precedent as before) with `#anchor`s added to that page where a
+  // section boundary already existed. Modules/permissions NOT mentioned in
+  // that list (Scoring, Import/Export, Announcements, Storage, Users &
+  // Roles, Settings, Super Admin) still need a home — folded Scoring into
+  // Result (closest existing "consolidated performance" concept) and kept
+  // the rest as plain trailing links below the 12 groups, same as the
+  // System-utility items always sat at the bottom of the old flat list.
+  const hasSkillsAccess = enabledModules.has("skills")
+    && (can(ctx.permissions, "skills.review") || can(ctx.permissions, "skills.approve") || can(ctx.permissions, "skills.submit"));
+  const hasAchievementsAccess = enabledModules.has("achievements")
+    && (can(ctx.permissions, "achievements.verify") || can(ctx.permissions, "achievements.approve") || can(ctx.permissions, "achievements.submit"));
+  const hasExaminationAccess = enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"));
+  const hasAttendanceAccess = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"));
+  const hasStudentAccess = can(ctx.permissions, "student.view") || can(ctx.permissions, "student.view_all");
+  const hasDisciplineAccess = enabledModules.has("discipline") && (can(ctx.permissions, "discipline.view") || can(ctx.permissions, "discipline.record"));
+  const hasMentoringAccess = enabledModules.has("mentoring")
+    && (can(ctx.permissions, "mentoring.view_all") || can(ctx.permissions, "mentoring.view_own") || can(ctx.permissions, "mentoring.create"));
+  const hasLibraryAccess = enabledModules.has("library") && can(ctx.permissions, "library.view");
+  const hasStaffAccess = enabledModules.has("staff") && can(ctx.permissions, "staff.view");
+  const hasReportsAccess = can(ctx.permissions, "reports.view");
+  const hasSettingsAccess = can(ctx.permissions, "settings.manage");
+
+  const navItems: NavEntry[] = [
+    { kind: "link", href: "/dashboard", label: t("dashboard"), icon: DashboardIcon },
+
+    ...(hasSettingsAccess ? [{
+      kind: "group" as const, label: "Academic Structure", icon: AcademicIcon,
+      items: [
+        { href: "/classes", label: "Classes overview" },
+        { href: "/academic#classes", label: "Classes" },
+        { href: "/academic#sections", label: "Sections" },
+        { href: "/academic#subjects", label: "Subjects" },
+        { href: "/academic#academic-years", label: "Academic years" },
+      ],
+    }] : [{ kind: "link" as const, href: "/classes", label: "Classes", icon: AcademicIcon }]),
+
+    ...(hasStudentAccess ? [{
+      kind: "group" as const, label: "Student Management", icon: StudentIcon,
+      items: [
+        { href: "/students", label: "Student profiles" },
+        { href: "/students", label: "Enrollment" },
+        { href: "/students", label: "Portfolio" },
+      ],
+    }] : []),
+
+    ...(hasAttendanceAccess ? [{
+      kind: "group" as const, label: "Attendance", icon: AttendanceIcon,
+      items: [
+        { href: "/attendance#take", label: "Student attendance" },
+        { href: "/attendance#leave", label: "Leave applications" },
+        { href: "/attendance/register", label: "Monthly register" },
+      ],
+    }] : []),
+
+    ...(hasExaminationAccess ? [{
+      kind: "group" as const, label: "Examination", icon: ExamIcon,
+      items: [
+        { href: "/examinations#create", label: "Create Exam (For admin)" },
+        { href: "/examinations#list", label: "Exams" },
+        { href: "/examinations", label: "Mark entry" },
+        { href: "/examinations/status", label: "Mark entry status" },
+      ],
+    }] : []),
+
+    ...(hasExaminationAccess ? [{
+      kind: "group" as const, label: "Result", icon: ResultIcon,
+      items: [
+        { href: "/results", label: "Results" },
+        { href: "/analytics", label: "Analysis" },
+        { href: "/results", label: "Consolidated marks" },
+        { href: "/results", label: "Report Cards" },
+        ...(hasReportsAccess ? [{ href: "/scoring", label: "Scoring" }] : []),
+      ],
+    }] : []),
+
+    ...(hasLibraryAccess ? [{
+      kind: "group" as const, label: "Library", icon: LibraryIcon,
+      items: [
+        { href: "/library", label: "Catalogue" },
+        { href: "/library", label: "Issue/return" },
+        { href: "/library", label: "Reading history" },
+      ],
+    }] : []),
+
+    ...(hasStaffAccess ? [{
+      kind: "group" as const, label: "Staff", icon: StaffIcon,
+      items: [
+        { href: "/staff", label: "Staff directory (Profile)" },
+        { href: "/staff", label: "Staff attendance" },
+        { href: "/staff/register", label: "Monthly register" },
+        { href: "/staff", label: "Teacher Performance" },
+      ],
+    }] : []),
+
+    ...(hasSkillsAccess || hasAchievementsAccess ? [{
+      kind: "group" as const, label: "Skills & Achievements", icon: SkillsIcon,
+      items: [
+        ...(hasAchievementsAccess ? [{ href: "/achievements", label: "Student achievements & Recognitions" }] : []),
+        ...(hasSkillsAccess ? [{ href: "/skills", label: "Reading, Writing, Speaking, language activities" }] : []),
+      ],
+    }] : []),
+
+    ...(hasDisciplineAccess ? [{
+      kind: "group" as const, label: "Discipline", icon: DisciplineIcon,
+      items: [
+        { href: "/discipline", label: "Discipline records" },
+        { href: "/discipline", label: "Character assessments" },
+      ],
+    }] : []),
+
+    ...(hasMentoringAccess ? [{
+      kind: "group" as const, label: "Mentoring", icon: MentoringIcon,
+      items: [
+        { href: "/mentoring", label: "Mentor observations" },
+        { href: "/mentoring", label: "Goals" },
+        { href: "/mentoring", label: "Action plans" },
+        { href: "/analysis", label: "Pattern analysis" },
+      ],
+    }] : []),
+
+    ...(hasReportsAccess ? [{ kind: "link" as const, href: "/analysis", label: "Analysis", icon: AnalysisIcon }] : []),
+    { kind: "link", href: "/print", label: "Print Center", icon: PrintIcon },
+
+    ...(can(ctx.permissions, "data.import") || can(ctx.permissions, "data.export")
+      ? [{ kind: "link" as const, href: "/import", label: t("importExport"), icon: ImportIcon }]
       : []),
-    ...(enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"))
-      ? [{ href: "/examinations", label: t("examinations") }]
+    ...(can(ctx.permissions, "announcements.view")
+      ? [{ kind: "link" as const, href: "/announcements", label: t("announcements"), icon: AnnouncementIcon }]
       : []),
-    ...(enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"))
-      ? [{ href: "/attendance", label: t("attendance") }]
+    ...(can(ctx.permissions, "files.manage")
+      ? [{ kind: "link" as const, href: "/storage", label: t("storage"), icon: StorageIcon }]
       : []),
-    ...(can(ctx.permissions, "reports.view") ? [{ href: "/analytics", label: t("analytics") }] : []),
-    ...(enabledModules.has("skills") && (can(ctx.permissions, "skills.review") || can(ctx.permissions, "skills.approve") || can(ctx.permissions, "skills.submit"))
-      ? [{ href: "/skills", label: t("skills") }]
-      : []),
-    ...(enabledModules.has("achievements") && (can(ctx.permissions, "achievements.verify") || can(ctx.permissions, "achievements.approve") || can(ctx.permissions, "achievements.submit"))
-      ? [{ href: "/achievements", label: t("achievements") }]
-      : []),
-    ...(can(ctx.permissions, "reports.view") ? [{ href: "/scoring", label: t("scoring") }] : []),
-    ...(enabledModules.has("library") && can(ctx.permissions, "library.view") ? [{ href: "/library", label: t("library") }] : []),
-    ...(enabledModules.has("staff") && can(ctx.permissions, "staff.view") ? [{ href: "/staff", label: t("staff") }] : []),
-    ...(enabledModules.has("discipline") && (can(ctx.permissions, "discipline.view") || can(ctx.permissions, "discipline.record"))
-      ? [{ href: "/discipline", label: t("discipline") }]
-      : []),
-    ...(enabledModules.has("mentoring") && (can(ctx.permissions, "mentoring.view_all") || can(ctx.permissions, "mentoring.view_own") || can(ctx.permissions, "mentoring.create"))
-      ? [{ href: "/mentoring", label: t("mentoring") }]
-      : []),
-    ...(can(ctx.permissions, "reports.view") ? [{ href: "/reports", label: t("reports") }] : []),
-    ...(can(ctx.permissions, "data.import") || can(ctx.permissions, "data.export") ? [{ href: "/import", label: t("importExport") }] : []),
-    ...(can(ctx.permissions, "announcements.view") ? [{ href: "/announcements", label: t("announcements") }] : []),
-    ...(can(ctx.permissions, "files.manage") ? [{ href: "/storage", label: t("storage") }] : []),
     ...(can(ctx.permissions, "users.manage") || can(ctx.permissions, "roles.manage")
-      ? [{ href: "/users", label: t("users") }]
+      ? [{ kind: "link" as const, href: "/users", label: t("users"), icon: UsersIcon }]
       : []),
-    ...(can(ctx.permissions, "settings.manage") ? [{ href: "/settings", label: t("settings") }] : []),
-    ...(ctx.isSuperAdmin ? [{ href: "/super-admin", label: t("superAdmin"), separated: true }] : []),
+    ...(hasSettingsAccess ? [{ kind: "link" as const, href: "/settings", label: t("settings"), icon: SettingsIcon }] : []),
+    ...(ctx.isSuperAdmin ? [{ kind: "link" as const, href: "/super-admin", label: t("superAdmin"), icon: SuperAdminIcon }] : []),
   ];
 
   // Design refresh (see globals.css): the app now uses one fixed brand
@@ -112,16 +216,16 @@ export default async function InstitutionLayout({ children }: { children: React.
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--background)] md:flex-row">
       <ResponsiveSidebar brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}>
-        <NavLinks items={navItems} />
+        <GroupedNavLinks items={navItems} />
 
         {enabledLocales.length > 1 ? (
           <form action={setLocaleAction} className="mb-3 flex items-end gap-1">
             <div className="flex-1">
-              <label className="mb-1 block text-xs text-zinc-500">Language</label>
+              <label className="mb-1 block text-xs text-[var(--sidebar-text-muted)]">Language</label>
               <select
                 name="locale"
                 defaultValue={locale}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                className="w-full rounded-lg border border-[var(--sidebar-border)] bg-[var(--sidebar-active)]/40 px-2 py-1.5 text-sm text-[var(--sidebar-text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]"
               >
                 {enabledLocales.map((l) => (
                   <option key={l} value={l}>
@@ -130,14 +234,14 @@ export default async function InstitutionLayout({ children }: { children: React.
                 ))}
               </select>
             </div>
-            <button type="submit" className="rounded-lg border border-zinc-700 px-2 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <button type="submit" className="rounded-lg border border-[var(--sidebar-border)] px-2 py-1.5 text-sm text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]">
               Go
             </button>
           </form>
         ) : null}
 
         <form action={signOutAction}>
-          <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white">
+          <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)] hover:text-white">
             {t("signOut")}
           </button>
         </form>
@@ -155,7 +259,7 @@ export default async function InstitutionLayout({ children }: { children: React.
             </form>
           </div>
         ) : null}
-        <header className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
+        <header data-app-shell className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
           <Breadcrumb />
           <div className="flex items-center gap-3">
             {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}

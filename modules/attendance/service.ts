@@ -97,6 +97,43 @@ export async function getAttendanceGrid(
   });
 }
 
+/** "Attendance > Monthly register" follow-up — one row per enrolled
+ *  student, one column per calendar day of the given month, cell = the
+ *  attendance status CODE recorded that day (or null if unmarked/no school
+ *  day was taken). Deliberately returns a sparse `Map<studentId,
+ *  Map<isoDate, statusCode>>` rather than a wide pre-pivoted row shape —
+ *  the UI decides how many day-columns to render (28-31, weekends
+ *  greyed out, etc.), this just supplies the underlying facts. */
+export interface MonthlyRegisterRow { student_id: string; student_name: string; admission_number: string }
+export interface MonthlyRegisterEntry { student_id: string; date: string; status_code: string }
+
+export async function getMonthlyAttendanceRegister(
+  institutionId: string, authUserId: string, classId: string, sectionId: string, year: number, month: number
+): Promise<{ students: MonthlyRegisterRow[]; entries: MonthlyRegisterEntry[] }> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: students } = await scoped.query<MonthlyRegisterRow>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number
+         from student_enrollments se
+         join students s on s.id = se.student_id
+         join academic_years ay on ay.id = se.academic_year_id and ay.is_current = true
+        where se.class_id = $1 and se.section_id = $2 and se.status = 'active'
+        order by s.full_name`,
+      [classId, sectionId]
+    );
+    const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+    const { rows: entries } = await scoped.query<MonthlyRegisterEntry>(
+      `select ar.student_id, to_char(ar.date, 'YYYY-MM-DD') as date, ast.code as status_code
+         from attendance_records ar
+         join attendance_statuses ast on ast.id = ar.status_id
+        where ar.class_id = $1 and ar.section_id = $2
+          and ar.date >= $3::date and ar.date < ($3::date + interval '1 month')`,
+      [classId, sectionId, monthStart]
+    );
+    return { students, entries };
+  });
+}
+
 const markAttendanceEntrySchema = z.object({
   studentId: z.string().uuid(),
   statusId: z.string().uuid(),

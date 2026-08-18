@@ -93,31 +93,61 @@
  * layout.tsx and (portals)/portal/layout.tsx, which no longer inject a
  * per-tenant override here). Every primary button in the app is styled
  * with bg-[var(--brand)]/hover:bg-[var(--brand-hover)], so changing these
- * two lines re-colours every button in the product at once. */
+ * two lines re-colours every button in the product at once.
+ *
+ * "Remove that black or white colour ... let it look organized" follow-up:
+ * swapped the indigo/violet/fuchsia gradient brand for a single, calmer
+ * navy-and-teal professional palette (matching the reference screenshots —
+ * a solid navy header/rail, teal primary actions, white content), and gave
+ * the sidebar rail its OWN token set (--sidebar-*) so it's a proper navy
+ * blue instead of near-black zinc-950 in both light and dark content mode
+ * (the rail has always been independent of the light/dark toggle — see
+ * ResponsiveSidebar.tsx's own doc comment — this just changes its colour,
+ * not that independence). */
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
+  --background: #f4f6fb;
+  --foreground: #1e293b;
   --surface: #ffffff;
-  --surface-muted: #f4f4f5;
-  --border-subtle: #e4e4e7;
-  --brand: #4f46e5;
-  --brand-hover: #4338ca;
-  --brand-from: #4f46e5;
-  --brand-via: #7c3aed;
-  --brand-to: #d946ef;
+  --surface-muted: #eef1f8;
+  --border-subtle: #dde3ef;
+  --brand: #1d4ed8;
+  --brand-hover: #1e40af;
+  --brand-from: #1d4ed8;
+  --brand-via: #2563eb;
+  --brand-to: #0d9488;
+  --accent-teal: #0d9488;
+  --accent-teal-hover: #0f766e;
+
+  --sidebar-bg: #16215c;
+  --sidebar-bg-2: #1e2c78;
+  --sidebar-active: #2c3d9e;
+  --sidebar-border: #263070;
+  --sidebar-text: #e4e8fb;
+  --sidebar-text-muted: #9aa4d6;
+  --sidebar-icon: #b9c1ec;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --surface: #18181b;
-  --surface-muted: #27272a;
-  --border-subtle: #27272a;
-  --brand: #818cf8;
-  --brand-hover: #a78bfa;
-  --brand-from: #6366f1;
-  --brand-via: #8b5cf6;
-  --brand-to: #e879f9;
+  --background: #0f1424;
+  --foreground: #e7eaf7;
+  --surface: #171f38;
+  --surface-muted: #1f2a4a;
+  --border-subtle: #263258;
+  --brand: #3b82f6;
+  --brand-hover: #60a5fa;
+  --brand-from: #3b82f6;
+  --brand-via: #2563eb;
+  --brand-to: #14b8a6;
+  --accent-teal: #14b8a6;
+  --accent-teal-hover: #2dd4bf;
+
+  --sidebar-bg: #0d1440;
+  --sidebar-bg-2: #131c54;
+  --sidebar-active: #24337f;
+  --sidebar-border: #1c2760;
+  --sidebar-text: #e4e8fb;
+  --sidebar-text-muted: #8f9ad4;
+  --sidebar-icon: #a9b3e8;
 }
 
 body {
@@ -126,6 +156,29 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Noto Sans", "Noto Sans Malayalam", "Noto Sans Arabic", Arial, sans-serif;
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Print support ("Print Center" follow-up) — any page can opt in to a
+ * clean, chrome-free printout just by containing a `.print-area` wrapper
+ * (report cards, monthly registers, etc.); everything outside it (nav,
+ * header, buttons) is hidden. `.no-print` hides one element without
+ * requiring the whole page to be a print-area (e.g. a "Print" button
+ * itself shouldn't appear on the printed page). */
+@media print {
+  .no-print,
+  [data-app-shell] {
+    display: none !important;
+  }
+  body, .print-area {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    margin: 0;
+  }
 }
 
 /* Data-table polish (plain rgba, not color-mix() — same old-Android
