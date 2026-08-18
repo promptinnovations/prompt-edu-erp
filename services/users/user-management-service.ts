@@ -39,6 +39,7 @@ import type { DbClient } from "../db/client";
 import { recordAudit } from "../audit/audit-service";
 import { assertBelowLimit } from "../limits/limit-service";
 import { getAuthService } from "../auth/auth-service";
+import type { AuthService } from "../auth/auth-service";
 
 export interface InstitutionRoleOption {
   id: string;
@@ -111,6 +112,51 @@ export async function listInstitutionUsers(institutionId: string, authUserId: st
   });
 }
 
+/** Shared by createInstitutionUser() and setUserPassword()'s "not yet
+ *  claimed" branch: create a real auth account with an explicit password,
+ *  but recover instead of failing when one already exists under that email
+ *  (see adminFindUserByEmail()'s own doc comment on the AuthService
+ *  interface for exactly how/why that happens — a real, live example: an
+ *  admin.gmail.com-style account gets "Could not create the login (A user
+ *  with this email address has already been registered)" trying to set a
+ *  password for a 'Not signed up yet' row, because someone used the OLD
+ *  self-service /login sign-up form with this email once, before this
+ *  admin-set-password feature existed, and never came back to confirm/sign
+ *  in — a real, live orphaned account, not a data error). Found account's
+ *  password is set to the admin's chosen one too (adminUpdatePassword()),
+ *  not left as whatever it was before — the admin typed a specific
+ *  password expecting it to be THE password, not a fallback. Exported
+ *  (unlike this file's other private helpers) purely so
+ *  tests/unit/auth-account-recovery.test.ts can exercise it directly
+ *  against a stub AuthService — the real SupabaseAuthProvider it normally
+ *  runs against isn't reachable from the PGlite/dev-auth-provider
+ *  integration test harness (dev auth is deliberately passwordless and
+ *  never reports "already registered"). */
+export async function createOrRecoverAuthAccount(
+  authService: AuthService,
+  email: string,
+  password: string
+): Promise<{ authUserId: string; wasCreated: boolean }> {
+  const created = await authService.adminCreateUser(email, password);
+  if (!("error" in created)) return { authUserId: created.authUserId, wasCreated: true };
+
+  if (/already.*(registered|exists)/i.test(created.error)) {
+    const existing = await authService.adminFindUserByEmail(email);
+    if (existing) {
+      const result = await authService.adminUpdatePassword(existing.authUserId, password);
+      if (result && "error" in result) {
+        throw new Error(`Found the existing login for "${email}" but could not set its password (${result.error}).`);
+      }
+      // wasCreated: false — a pre-existing account was recovered, not
+      // freshly created by this call; callers must NEVER adminDeleteUser()
+      // it just because a later step of THEIR OWN operation fails (see
+      // createInstitutionUser()'s catch block for why this flag exists).
+      return { authUserId: existing.authUserId, wasCreated: false };
+    }
+  }
+  throw new Error(`Could not create the login (${created.error}).`);
+}
+
 async function resolveRoleIds(scoped: DbClient, institutionId: string, roleCodes: string[]): Promise<string[]> {
   if (roleCodes.length === 0) return [];
   const { rows } = await scoped.query<{ id: string; code: string }>(
@@ -158,10 +204,7 @@ export async function createInstitutionUser(
     const roleIds = await resolveRoleIds(scoped, institutionId, data.roleCodes);
 
     const authService = await getAuthService();
-    const authResult = await authService.adminCreateUser(data.email, data.password);
-    if ("error" in authResult) {
-      throw new Error(`Could not create the login (${authResult.error}).`);
-    }
+    const { authUserId: newAuthUserId, wasCreated } = await createOrRecoverAuthAccount(authService, data.email, data.password);
 
     const newUserId = crypto.randomUUID();
     try {
@@ -169,7 +212,7 @@ export async function createInstitutionUser(
         await scoped.query(
           `insert into users (id, auth_user_id, email, phone, full_name, preferred_locale)
            values ($1, $2, $3, $4, $5, 'en')`,
-          [newUserId, authResult.authUserId, data.email, data.password, data.fullName]
+          [newUserId, newAuthUserId, data.email, data.password, data.fullName]
         );
       } catch {
         throw new Error(`A user with email "${data.email}" already exists — reusing an existing account for a new login isn't supported yet.`);
@@ -195,7 +238,12 @@ export async function createInstitutionUser(
       });
       return { userId: newUserId };
     } catch (err) {
-      await authService.adminDeleteUser(authResult.authUserId).catch(() => {});
+      // Only ever delete an account THIS call actually created — a
+      // recovered (pre-existing) account must never be torn down just
+      // because a later, unrelated step of THIS call failed; that account
+      // may still matter elsewhere. adminDeleteUser() is a real Supabase
+      // Auth account delete, not reversible.
+      if (wasCreated) await authService.adminDeleteUser(newAuthUserId).catch(() => {});
       throw err;
     }
   });
@@ -241,15 +289,20 @@ export async function setUserPassword(
       await scoped.query("select set_login_credentials($1, null, $2)", [targetUserId, data.password]);
     } else {
       if (!email) throw new Error("This user has no email on file.");
-      const authResult = await authService.adminCreateUser(email, data.password);
-      if ("error" in authResult) throw new Error(`Could not create the login (${authResult.error}).`);
+      // createOrRecoverAuthAccount() handles the exact case that broke the
+      // two staff accounts this feature was built to fix: a "Not signed up
+      // yet" row whose email ALREADY has a real (but orphaned/unconfirmed)
+      // Supabase Auth account from an old self-service sign-up attempt —
+      // recovers and re-passwords it instead of failing with "already been
+      // registered".
+      const { authUserId: newAuthUserId, wasCreated } = await createOrRecoverAuthAccount(authService, email, data.password);
       const { rows: setRows } = await scoped.query<{ set_login_credentials: boolean }>(
         "select set_login_credentials($1, $2, $3) as set_login_credentials",
-        [targetUserId, authResult.authUserId, data.password]
+        [targetUserId, newAuthUserId, data.password]
       );
       if (!setRows[0]?.set_login_credentials) {
-        await authService.adminDeleteUser(authResult.authUserId).catch(() => {});
-        throw new Error("Could not link the new login to this user's account.");
+        if (wasCreated) await authService.adminDeleteUser(newAuthUserId).catch(() => {});
+        throw new Error("Could not link the login to this user's account.");
       }
     }
 

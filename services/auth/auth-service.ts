@@ -76,6 +76,19 @@ export interface AuthService {
    *  orphaned auth account with no linked institution/users row is a
    *  cosmetic leftover, not a security or data-integrity problem. */
   adminDeleteUser(authUserId: string): Promise<void>;
+  /** Recovery path for the specific case adminCreateUser() reports "already
+   *  registered": a `users` row can be created via createInstitutionUser()/
+   *  a claimable seed WITHOUT a matching Supabase Auth account yet, but a
+   *  real auth account under that same email can independently already
+   *  exist — e.g. someone used the old self-service "sign up yourself"
+   *  /login flow (before this feature required an admin-set password) and
+   *  never actually confirmed/signed in afterward, so `users.auth_user_id`
+   *  never got linked (see tenant-service.ts's linkOrResolveAuthenticatedUser()
+   *  case 2), leaving a real but orphaned auth account behind. Callers use
+   *  this to find and LINK that existing account (then adminUpdatePassword()
+   *  it to the admin's chosen password) instead of failing outright.
+   *  Returns null if no such account exists (a genuine, different error). */
+  adminFindUserByEmail(email: string): Promise<AuthResult | null>;
 }
 
 export async function getAuthService(): Promise<AuthService> {

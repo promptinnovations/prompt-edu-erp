@@ -122,7 +122,14 @@ export function createSupabaseAuthProvider(): AuthService {
 
     async adminUpdatePassword(authUserId, password) {
       const admin = getSupabaseAdminClient();
-      const { error } = await admin.auth.admin.updateUserById(authUserId, { password });
+      // email_confirm: true here too (not just adminCreateUser()) — this is
+      // also the path that "claims" a previously-orphaned account found via
+      // adminFindUserByEmail() below, which may have been sitting
+      // unconfirmed since a much older self-service sign-up attempt; there
+      // is no separate "just confirm this email" admin call, but re-setting
+      // email_confirm on every password set/reset is harmless for the
+      // already-confirmed common case.
+      const { error } = await admin.auth.admin.updateUserById(authUserId, { password, email_confirm: true });
       if (error) return { error: error.message };
     },
 
@@ -134,6 +141,23 @@ export function createSupabaseAuthProvider(): AuthService {
         // Best-effort compensation only — see this method's own doc
         // comment on auth-service.ts's AuthService interface.
       }
+    },
+
+    async adminFindUserByEmail(email) {
+      const admin = getSupabaseAdminClient();
+      const target = email.trim().toLowerCase();
+      // supabase-js's listUsers() has no server-side email filter (only
+      // page/perPage) — a single perPage:1000 page comfortably covers every
+      // real-world institution's total user count today; the loop below
+      // still pages further just in case that ever stops being true.
+      for (let page = 1; page <= 10; page++) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error || data.users.length === 0) return null;
+        const found = data.users.find((u) => (u.email ?? "").toLowerCase() === target);
+        if (found) return { authUserId: found.id, email: found.email ?? null };
+        if (data.users.length < 1000) return null; // last page, no match
+      }
+      return null;
     },
   };
 }

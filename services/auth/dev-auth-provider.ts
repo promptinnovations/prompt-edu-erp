@@ -69,6 +69,14 @@ export function createDevAuthProvider(): AuthService {
       // No-op: dev mode has no separate auth-account store to clean up —
       // devSignIn()/devLookupAuthUserIdByEmail() only ever look at `users`.
     },
+
+    async adminFindUserByEmail(_email) {
+      // No-op: dev mode has no separate auth-account store an orphan could
+      // exist in — every "account" IS a `users` row, so there is nothing to
+      // find here that createInstitutionUser()/setUserPassword() don't
+      // already see directly.
+      return null;
+    },
   };
 }
 
