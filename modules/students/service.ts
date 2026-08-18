@@ -61,6 +61,15 @@ export interface ListStudentsForAdminOptions {
   /** Soft-deleted (§137 follow-up "delete") students are excluded by
    *  default — set true to include them (e.g. a "show removed" toggle). */
   includeWithdrawn?: boolean;
+  /** "Teachers can only access their own classes" follow-up — restricts the
+   *  result to students currently enrolled in one of these class ids (from
+   *  services/scope/teacher-scope-service.ts's getTeacherClassScope()).
+   *  Distinct from `classId` above (a single ADMIN-CHOSEN filter dropdown
+   *  value) — both may be given at once; a student must match both. An
+   *  empty array (as opposed to undefined) means "show nothing", not "show
+   *  everything" — callers pass undefined, never [], when scoping doesn't
+   *  apply. */
+  classIds?: string[];
 }
 
 /** Search/filter-capable listing for the admin Students page (§137 follow-up
@@ -94,8 +103,12 @@ export async function listStudentsForAdmin(
             or s.admission_number ilike '%' || $3 || '%'
             or coalesce(s.login_id, '') ilike '%' || $3 || '%'
           )
+          and ($4::uuid[] is null or se.class_id = any($4::uuid[]))
         order by c.sort_order nulls last, sec.name, s.full_name`,
-      [options.includeWithdrawn ?? false, options.classId ?? null, options.search?.trim() || null]
+      [
+        options.includeWithdrawn ?? false, options.classId ?? null, options.search?.trim() || null,
+        options.classIds ?? null,
+      ]
     );
     return rows;
   });

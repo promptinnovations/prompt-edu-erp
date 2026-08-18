@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
+import { can } from "../../../services/permissions/permission-service";
 import { listClasses, listSections } from "../../../modules/academic/service";
 import { listStudentsForAdmin } from "../../../modules/students/service";
 import { listTeacherAssignments } from "../../../modules/staff/service";
+import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 
 /**
  * §137 follow-up ("in the side panel, there should [be] Classes for
@@ -39,12 +41,21 @@ export default async function ClassesPage() {
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
 
-  const [classes, sections, students, teacherAssignments] = await Promise.all([
+  // "Teachers can give access only to their respective classes" follow-up —
+  // mirrors students/page.tsx's scoping (this hub shows the same roster).
+  const canViewAll = can(ctx.permissions, "student.view_all");
+  const scopeClassIds = canViewAll
+    ? undefined
+    : Array.from((await getTeacherClassScope(institutionId, authUserId, ctx.userId)).classIds);
+
+  const [allClasses, allSections, students, teacherAssignments] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
-    listStudentsForAdmin(institutionId, authUserId, {}),
+    listStudentsForAdmin(institutionId, authUserId, { classIds: scopeClassIds }),
     listTeacherAssignments(institutionId, authUserId),
   ]);
+  const classes = scopeClassIds ? allClasses.filter((c) => scopeClassIds.includes(c.id)) : allClasses;
+  const sections = scopeClassIds ? allSections.filter((s) => scopeClassIds.includes(s.class_id)) : allSections;
 
   const sectionsByClass = new Map<string, typeof sections>();
   for (const s of sections) {

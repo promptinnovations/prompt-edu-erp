@@ -7,6 +7,7 @@ import {
   listAttendanceStatuses, getAttendanceGrid, listLeaveApplications, listLeaveApplicationsForClassOnDate,
   isClassTeacherOfStudent, getDailyAttendanceOverview,
 } from "../../../modules/attendance/service";
+import { getTeacherClassScope, scopeIncludesSection } from "../../../services/scope/teacher-scope-service";
 import ClassSectionPicker from "./ClassSectionPicker";
 import AttendanceGridForm from "./AttendanceGridForm";
 import LeaveApplications from "./LeaveApplications";
@@ -27,7 +28,20 @@ export default async function AttendancePage({
   const hasUnrestrictedEdit = can(ctx.permissions, "attendance.edit");
   const hasScopedReview = can(ctx.permissions, "attendance.leave.review_own_class");
 
-  const [classes, sections, statuses, students, leaves, dailyOverview] = await Promise.all([
+  // "Teachers can give access only to their respective classes" follow-up —
+  // attendance.enter without attendance.edit means scoped to teacher_assignments.
+  const teacherScope = hasUnrestrictedEdit
+    ? null
+    : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
+  // A class/section chosen (or URL-crafted) outside the caller's scope is
+  // treated as if nothing were selected — this is the actual access-control
+  // enforcement, not just hiding options in the picker below.
+  const classInScope = !teacherScope || teacherScope.classIds.has(classId);
+  const sectionInScope = !teacherScope || !sectionId || scopeIncludesSection(teacherScope, classId, sectionId);
+  const effectiveClassId = classInScope ? classId : "";
+  const effectiveSectionId = classInScope && sectionInScope ? sectionId : "";
+
+  const [allClasses, allSections, statuses, students, leaves, dailyOverview] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
@@ -37,12 +51,16 @@ export default async function AttendancePage({
     // falls back to the institution-wide list (the previous behavior),
     // filtered to still-pending/decided-today so it isn't the entire
     // history.
-    classId ? listLeaveApplicationsForClassOnDate(institutionId, authUserId, classId, effectiveDate) : listLeaveApplications(institutionId, authUserId),
+    effectiveClassId ? listLeaveApplicationsForClassOnDate(institutionId, authUserId, effectiveClassId, effectiveDate) : listLeaveApplications(institutionId, authUserId),
     hasUnrestrictedEdit ? getDailyAttendanceOverview(institutionId, authUserId, effectiveDate) : Promise.resolve(null),
   ]);
+  const classes = teacherScope ? allClasses.filter((c) => teacherScope.classIds.has(c.id)) : allClasses;
+  const sections = teacherScope
+    ? allSections.filter((s) => scopeIncludesSection(teacherScope, s.class_id, s.id))
+    : allSections;
 
-  const grid = classId && sectionId
-    ? await getAttendanceGrid(institutionId, authUserId, classId, sectionId, effectiveDate)
+  const grid = effectiveClassId && effectiveSectionId
+    ? await getAttendanceGrid(institutionId, authUserId, effectiveClassId, effectiveSectionId, effectiveDate)
     : [];
 
   const studentNameById = new Map(students.map((s) => [s.id, s.full_name]));
@@ -132,29 +150,33 @@ export default async function AttendancePage({
         <ClassSectionPicker
           classes={classes}
           sections={sections}
-          classId={classId}
-          sectionId={sectionId}
+          classId={effectiveClassId}
+          sectionId={effectiveSectionId}
           date={effectiveDate}
         />
-        {classId && sectionId ? (
+        {effectiveClassId && effectiveSectionId ? (
           <div className="mt-4">
             <AttendanceGridForm
               students={grid}
               statuses={statuses}
-              classId={classId}
-              sectionId={sectionId}
+              classId={effectiveClassId}
+              sectionId={effectiveSectionId}
               date={effectiveDate}
               canEnter={can(ctx.permissions, "attendance.enter")}
             />
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">Select a class and section to load the attendance grid.</p>
+          <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">
+            {teacherScope && classId && !classInScope
+              ? "You're not assigned to that class."
+              : "Select a class and section to load the attendance grid."}
+          </p>
         )}
       </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-          Leave applications{classId ? ` — this class, ${effectiveDate}` : ""}
+          Leave applications{effectiveClassId ? ` — this class, ${effectiveDate}` : ""}
         </h2>
         <LeaveApplications
           leaves={leaveRows}

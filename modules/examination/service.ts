@@ -344,6 +344,22 @@ export async function addExamClass(
   });
 }
 
+/** "Teachers can give access only to their respective classes" follow-up —
+ *  the set of class ids one examination applies to (from exam_classes),
+ *  used by the marks entry page to check whether a scoped teacher (one
+ *  without marks.approve) is actually assigned to teach the exam_subject's
+ *  subject in at least one of them before granting access to that grid. */
+export async function getExamCoveredClassIds(institutionId: string, authUserId: string, examinationId: string): Promise<string[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ class_id: string }>(
+      "select distinct class_id from exam_classes where examination_id = $1",
+      [examinationId]
+    );
+    return rows.map((r) => r.class_id);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mark entry grid (§28)
 // ---------------------------------------------------------------------------

@@ -1,8 +1,9 @@
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { can } from "../../../services/permissions/permission-service";
-import { listStudents } from "../../../modules/students/service";
+import { listStudents, listStudentsForAdmin } from "../../../modules/students/service";
 import { listMentoringRecords, getOwnStaffId } from "../../../modules/mentoring/service";
+import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import MentoringSection from "./MentoringSection";
 
 export default async function MentoringPage() {
@@ -14,10 +15,20 @@ export default async function MentoringPage() {
   const canViewAll = can(ctx.permissions, "mentoring.view_all");
   const ownMentorStaffId = await getOwnStaffId(institutionId, authUserId, ctx.userId);
 
-  const [students, records] = await Promise.all([
+  const [allStudents, records] = await Promise.all([
     listStudents(institutionId, authUserId),
     listMentoringRecords(institutionId, authUserId, { canViewAll, ownMentorStaffId }),
   ]);
+  // "Teachers can give access only to their respective classes" follow-up —
+  // the "create a mentoring record for…" student picker shouldn't offer
+  // every student institution-wide to someone who isn't management.
+  let students = allStudents;
+  if (!canViewAll) {
+    const scope = await getTeacherClassScope(institutionId, authUserId, ctx.userId);
+    const scoped = await listStudentsForAdmin(institutionId, authUserId, { classIds: Array.from(scope.classIds) });
+    const scopedIds = new Set(scoped.map((s) => s.id));
+    students = allStudents.filter((s) => scopedIds.has(s.id));
+  }
 
   return (
     <div className="space-y-6">

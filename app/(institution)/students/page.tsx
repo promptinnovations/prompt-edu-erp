@@ -4,6 +4,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { listStudentsForAdmin } from "../../../modules/students/service";
 import { listClasses } from "../../../modules/academic/service";
+import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import StudentForm from "./StudentForm";
 import StudentRowActions from "./StudentRowActions";
 
@@ -23,14 +24,23 @@ export default async function StudentsPage({
   const canManage = can(ctx.permissions, "student.edit");
   const canDelete = can(ctx.permissions, "student.delete");
 
-  const [students, classes] = await Promise.all([
+  // "Teachers can give access only to their respective classes" follow-up —
+  // student.view (but not student.view_all) means scoped to teacher_assignments.
+  const canViewAll = can(ctx.permissions, "student.view_all");
+  const scopeClassIds = canViewAll
+    ? undefined
+    : Array.from((await getTeacherClassScope(institutionId, ctx.session.authUserId, ctx.userId)).classIds);
+
+  const [students, allClasses] = await Promise.all([
     listStudentsForAdmin(institutionId, ctx.session.authUserId, {
       search: q || undefined,
       classId: classId || undefined,
       includeWithdrawn: removed === "1",
+      classIds: scopeClassIds,
     }),
     listClasses(institutionId, ctx.session.authUserId),
   ]);
+  const classes = scopeClassIds ? allClasses.filter((c) => scopeClassIds.includes(c.id)) : allClasses;
 
   return (
     <div className="space-y-6">
