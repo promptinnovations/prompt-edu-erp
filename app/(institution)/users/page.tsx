@@ -5,6 +5,7 @@ import { listInstitutionRoles, listInstitutionUsers } from "../../../services/us
 import CreateUserForm from "./CreateUserForm";
 import UserRolesForm from "./UserRolesForm";
 import UserStatusForm from "./UserStatusForm";
+import UserPasswordForm from "./UserPasswordForm";
 
 export default async function UsersPage() {
   const ctx = await requireRequestContext();
@@ -27,10 +28,9 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Users & Roles</h1>
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Create a login for a new person and assign them one or more roles. They&apos;ll sign up themselves at{" "}
-        <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-xs">/login</code> with the email you set here —
-        nobody&apos;s password is ever entered by an admin. A user can hold several roles at once (e.g. Teacher +
-        Librarian).
+        Create a login for a new person, set their password, and assign them one or more roles — it works immediately,
+        no email confirmation step needed. A user can hold several roles at once (e.g. Teacher + Librarian). The
+        current password for each user is shown below; reset it any time if someone loses it.
       </p>
 
       {canManageUsers ? (
@@ -51,6 +51,7 @@ export default async function UsersPage() {
               <th className="py-1.5">Roles</th>
               <th className="py-1.5">Login status</th>
               <th className="py-1.5">Membership</th>
+              {canManageUsers ? <th className="py-1.5">Password</th> : null}
               {canManageRoles ? <th className="py-1.5"></th> : null}
               {canManageUsers ? <th className="py-1.5"></th> : null}
             </tr>
@@ -71,6 +72,11 @@ export default async function UsersPage() {
                   </span>
                 </td>
                 <td className="py-2 capitalize text-zinc-600 dark:text-zinc-400">{u.membershipStatus}</td>
+                {canManageUsers ? (
+                  <td className="py-2">
+                    <UserPasswordForm userId={u.userId} currentPassword={u.currentPassword} />
+                  </td>
+                ) : null}
                 {canManageRoles ? (
                   <td className="py-2">
                     <UserRolesForm userId={u.userId} roleOptions={roles} currentRoleCodes={u.roleCodes} />
@@ -85,7 +91,7 @@ export default async function UsersPage() {
             ))}
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-4 text-center text-zinc-400 dark:text-zinc-500">
+                <td colSpan={8} className="py-4 text-center text-zinc-400 dark:text-zinc-500">
                   No users yet.
                 </td>
               </tr>

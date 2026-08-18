@@ -59,6 +59,32 @@ export async function resolveUserByAuthId(authUserId: string): Promise<ResolvedU
   });
 }
 
+/** Plain full_name/email lookup for the "Signed in as ..." indicator shown
+ *  at the top of every authenticated layout ((institution), (super-admin),
+ *  (portals)/portal). No institution scoping needed and no super-admin
+ *  bypass required either — a user reading their OWN `users` row (the
+ *  common "users can read their own record" RLS policy) is always allowed,
+ *  same as resolveUserByAuthId() above always passing the CALLER's own
+ *  real authUserId (never an empty/synthetic one, which risks an invalid
+ *  ::uuid cast in a WHERE clause depending on how a given RLS policy is
+ *  written). */
+export interface UserDisplayInfo {
+  fullName: string;
+  email: string | null;
+}
+
+export async function getUserDisplayInfo(authUserId: string, userId: string): Promise<UserDisplayInfo | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId: null, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ full_name: string; email: string | null }>(
+      "select full_name, email from users where id = $1",
+      [userId]
+    );
+    if (rows.length === 0) return null;
+    return { fullName: rows[0].full_name, email: rows[0].email };
+  });
+}
+
 /**
  * The bridge between "Supabase (or dev) Auth just verified this person
  * controls this email" and "this app actually knows who they are" — called

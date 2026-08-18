@@ -24,6 +24,17 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
           <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Full name</label>
           <input name="fullName" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
+        <div>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Password</label>
+          <input
+            name="password"
+            type="text"
+            required
+            minLength={6}
+            placeholder="At least 6 characters"
+            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          />
+        </div>
       </div>
 
       <div>

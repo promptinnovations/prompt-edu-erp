@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../services/request-context";
 import { getInstitution } from "../../../services/institution/institution-service";
+import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { listMyNotifications, getUnreadNotificationCount } from "../../../services/notification/notification-service";
 import NotificationBell from "../../components/NotificationBell";
 import ThemeToggle from "../../components/ThemeToggle";
+import SignedInAs from "../../components/SignedInAs";
 import { signOutAction } from "../../(institution)/actions";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -16,10 +18,11 @@ export default async function PortalLayout({ children }: { children: React.React
   if (ctx.institutionBlockedReason) redirect(`/suspended?reason=${ctx.institutionBlockedReason}`);
   if (!ctx.institutionId) redirect("/login");
 
-  const [institution, notifications, unreadCount] = await Promise.all([
+  const [institution, notifications, unreadCount, viewer] = await Promise.all([
     getInstitution(ctx.institutionId, ctx.session.authUserId),
     listMyNotifications(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUnreadNotificationCount(ctx.institutionId, ctx.session.authUserId, ctx.userId),
+    getUserDisplayInfo(ctx.session.authUserId, ctx.userId),
   ]);
 
   // Design refresh (see globals.css): one fixed brand palette everywhere —
@@ -41,6 +44,7 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2.5">
+          {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
           <ThemeToggle />
           <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
           <form action={signOutAction}>

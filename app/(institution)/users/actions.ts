@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
-  createInstitutionUser, updateUserRoles, setUserMembershipStatus,
+  createInstitutionUser, updateUserRoles, setUserMembershipStatus, setUserPassword,
 } from "../../../services/users/user-management-service";
 
 export async function createUserAction(_prevState: { error: string | null }, formData: FormData) {
@@ -15,12 +15,28 @@ export async function createUserAction(_prevState: { error: string | null }, for
     await createInstitutionUser(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       email: String(formData.get("email") ?? ""),
       fullName: String(formData.get("fullName") ?? ""),
+      password: String(formData.get("password") ?? ""),
       roleCodes: formData.getAll("roleCodes").map(String),
     });
     revalidatePath("/users");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create login." };
+  }
+}
+
+export async function setUserPasswordAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "users.manage");
+    const targetUserId = String(formData.get("userId") ?? "");
+    const password = String(formData.get("password") ?? "");
+    await setUserPassword(ctx.institutionId, ctx.session.authUserId, ctx.userId, targetUserId, { password });
+    revalidatePath("/users");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to set password." };
   }
 }
 

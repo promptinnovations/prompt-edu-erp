@@ -6,10 +6,12 @@ import { getEnabledModuleCodes } from "../../services/modules/module-service";
 import { getRoleCodesForUser, can } from "../../services/permissions/permission-service";
 import { resolvePortalDestination } from "../../modules/portal/service";
 import { listMyNotifications, getUnreadNotificationCount } from "../../services/notification/notification-service";
+import { getUserDisplayInfo } from "../../services/tenant/tenant-service";
 import NotificationBell from "../components/NotificationBell";
 import ResponsiveSidebar from "../components/ResponsiveSidebar";
 import NavLinks, { type NavItem } from "../components/NavLinks";
 import Breadcrumb from "../components/Breadcrumb";
+import SignedInAs from "../components/SignedInAs";
 import { setLocaleAction, signOutAction, exitSuperAdminViewAction } from "./actions";
 
 export default async function InstitutionLayout({ children }: { children: React.ReactNode }) {
@@ -40,7 +42,7 @@ export default async function InstitutionLayout({ children }: { children: React.
   if (portalDestination === "student") redirect("/portal/student");
   if (portalDestination === "parent") redirect("/portal/parent");
 
-  const [institution, enabledLocales, enabledModules, t, locale, notifications, unreadCount] = await Promise.all([
+  const [institution, enabledLocales, enabledModules, t, locale, notifications, unreadCount, viewer] = await Promise.all([
     getInstitution(ctx.institutionId, ctx.session.authUserId),
     getEnabledUiLanguages(ctx.institutionId, ctx.session.authUserId),
     getEnabledModuleCodes(ctx.institutionId, ctx.session.authUserId),
@@ -48,30 +50,55 @@ export default async function InstitutionLayout({ children }: { children: React.
     getLocale(),
     listMyNotifications(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUnreadNotificationCount(ctx.institutionId, ctx.session.authUserId, ctx.userId),
+    getUserDisplayInfo(ctx.session.authUserId, ctx.userId),
   ]);
 
   // Plain data, not JSX — permission/module gating happens here (Server
   // Component), active-page highlighting happens inside NavLinks (Client
-  // Component, needs usePathname()).
+  // Component, needs usePathname()). "Give access to the assigned roles
+  // only" follow-up: every item below is now gated on the SAME permission
+  // code that page itself already uses internally to decide what's visible/
+  // editable there (see each page's own `can(ctx.permissions, "...")`
+  // calls) — a role that page would show nothing useful to (e.g. a pure
+  // "staff" role has no student.view/student.view_all, and a "librarian"
+  // has no reports.view) no longer even sees the link. Dashboard/Classes
+  // stay unconditional — no dedicated permission code exists for either,
+  // and both are harmless read-only landing/reference views for any
+  // institution member who reaches this layout at all (student/parent
+  // roles never do — routed to (portals) above instead).
   const navItems: NavItem[] = [
     { href: "/dashboard", label: t("dashboard") },
-    { href: "/academic", label: t("academic") },
+    ...(can(ctx.permissions, "settings.manage") ? [{ href: "/academic", label: t("academic") }] : []),
     { href: "/classes", label: t("classes") },
-    { href: "/students", label: t("students") },
-    ...(enabledModules.has("examination") ? [{ href: "/examinations", label: t("examinations") }] : []),
-    ...(enabledModules.has("attendance") ? [{ href: "/attendance", label: t("attendance") }] : []),
-    { href: "/analytics", label: t("analytics") },
-    ...(enabledModules.has("skills") ? [{ href: "/skills", label: t("skills") }] : []),
-    ...(enabledModules.has("achievements") ? [{ href: "/achievements", label: t("achievements") }] : []),
-    { href: "/scoring", label: t("scoring") },
-    ...(enabledModules.has("library") ? [{ href: "/library", label: t("library") }] : []),
-    ...(enabledModules.has("staff") ? [{ href: "/staff", label: t("staff") }] : []),
-    ...(enabledModules.has("discipline") ? [{ href: "/discipline", label: t("discipline") }] : []),
-    ...(enabledModules.has("mentoring") ? [{ href: "/mentoring", label: t("mentoring") }] : []),
-    { href: "/reports", label: t("reports") },
-    { href: "/import", label: t("importExport") },
-    { href: "/announcements", label: t("announcements") },
-    { href: "/storage", label: t("storage") },
+    ...(can(ctx.permissions, "student.view") || can(ctx.permissions, "student.view_all")
+      ? [{ href: "/students", label: t("students") }]
+      : []),
+    ...(enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"))
+      ? [{ href: "/examinations", label: t("examinations") }]
+      : []),
+    ...(enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"))
+      ? [{ href: "/attendance", label: t("attendance") }]
+      : []),
+    ...(can(ctx.permissions, "reports.view") ? [{ href: "/analytics", label: t("analytics") }] : []),
+    ...(enabledModules.has("skills") && (can(ctx.permissions, "skills.review") || can(ctx.permissions, "skills.approve") || can(ctx.permissions, "skills.submit"))
+      ? [{ href: "/skills", label: t("skills") }]
+      : []),
+    ...(enabledModules.has("achievements") && (can(ctx.permissions, "achievements.verify") || can(ctx.permissions, "achievements.approve") || can(ctx.permissions, "achievements.submit"))
+      ? [{ href: "/achievements", label: t("achievements") }]
+      : []),
+    ...(can(ctx.permissions, "reports.view") ? [{ href: "/scoring", label: t("scoring") }] : []),
+    ...(enabledModules.has("library") && can(ctx.permissions, "library.view") ? [{ href: "/library", label: t("library") }] : []),
+    ...(enabledModules.has("staff") && can(ctx.permissions, "staff.view") ? [{ href: "/staff", label: t("staff") }] : []),
+    ...(enabledModules.has("discipline") && (can(ctx.permissions, "discipline.view") || can(ctx.permissions, "discipline.record"))
+      ? [{ href: "/discipline", label: t("discipline") }]
+      : []),
+    ...(enabledModules.has("mentoring") && (can(ctx.permissions, "mentoring.view_all") || can(ctx.permissions, "mentoring.view_own") || can(ctx.permissions, "mentoring.create"))
+      ? [{ href: "/mentoring", label: t("mentoring") }]
+      : []),
+    ...(can(ctx.permissions, "reports.view") ? [{ href: "/reports", label: t("reports") }] : []),
+    ...(can(ctx.permissions, "data.import") || can(ctx.permissions, "data.export") ? [{ href: "/import", label: t("importExport") }] : []),
+    ...(can(ctx.permissions, "announcements.view") ? [{ href: "/announcements", label: t("announcements") }] : []),
+    ...(can(ctx.permissions, "files.manage") ? [{ href: "/storage", label: t("storage") }] : []),
     ...(can(ctx.permissions, "users.manage") || can(ctx.permissions, "roles.manage")
       ? [{ href: "/users", label: t("users") }]
       : []),
@@ -130,7 +157,10 @@ export default async function InstitutionLayout({ children }: { children: React.
         ) : null}
         <header className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
           <Breadcrumb />
-          <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
+          <div className="flex items-center gap-3">
+            {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
+            <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
+          </div>
         </header>
         <main className="min-w-0 flex-1 bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 md:px-8 md:py-8">{children}</main>
       </div>

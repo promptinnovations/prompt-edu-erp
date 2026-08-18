@@ -1,14 +1,18 @@
 /**
  * PROMPT EDU ERP — User/role management flow. Proves: an institution admin
- * can generate a claimable login and assign it MULTIPLE roles in one call,
- * multi-role assignment is preserved and independently editable afterward
- * (add + remove in the same call), unknown role codes are rejected before
- * any write happens (atomic — no partial user), duplicate emails are
- * rejected with a clear error (not a raw constraint-violation leak), a
- * caller can never modify their own role assignments or deactivate
- * themselves, and deactivating a membership genuinely blocks
- * resolveActiveInstitution() from resolving that institution for them
- * (real access removal, not a cosmetic flag) while reactivating restores it.
+ * can create a REAL, immediately-usable login (§137 follow-up: "add and
+ * show current password of each user" — no more claimable/self-signup
+ * placeholder, see user-management-service.ts's own header comment) and
+ * assign it MULTIPLE roles in one call, multi-role assignment is preserved
+ * and independently editable afterward (add + remove in the same call),
+ * unknown role codes are rejected before any write happens (atomic — no
+ * partial user), duplicate emails are rejected with a clear error (not a
+ * raw constraint-violation leak), the current password is visible and
+ * resettable via setUserPassword(), a caller can never modify their own
+ * role assignments or deactivate themselves, and deactivating a membership
+ * genuinely blocks resolveActiveInstitution() from resolving that
+ * institution for them (real access removal, not a cosmetic flag) while
+ * reactivating restores it.
  */
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 process.env.PGLITE_DATA_DIR = ":memory:";
@@ -18,7 +22,7 @@ import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
 import { resolveActiveInstitution } from "../../services/tenant/tenant-service";
 import {
-  listInstitutionRoles, listInstitutionUsers, createInstitutionUser, updateUserRoles, setUserMembershipStatus,
+  listInstitutionRoles, listInstitutionUsers, createInstitutionUser, updateUserRoles, setUserMembershipStatus, setUserPassword,
 } from "../../services/users/user-management-service";
 
 let institutionId: string;
@@ -51,10 +55,11 @@ describe("listInstitutionRoles", () => {
 });
 
 describe("createInstitutionUser — multi-role login generation", () => {
-  it("creates a claimable login with two roles at once", async () => {
+  it("creates a real, immediately-usable login with two roles at once, password visible", async () => {
     const { userId } = await createInstitutionUser(institutionId, adminAuth, adminUserId, {
       email: "multi-role@um-school.example",
       fullName: "Multi Role Person",
+      password: "startpass1",
       roleCodes: ["teacher", "librarian"],
     });
     expect(userId).toBeTruthy();
@@ -62,16 +67,18 @@ describe("createInstitutionUser — multi-role login generation", () => {
     const users = await listInstitutionUsers(institutionId, adminAuth);
     const created = users.find((u) => u.userId === userId);
     expect(created).toBeTruthy();
-    expect(created!.isClaimed).toBe(false); // no auth_user_id yet — a real signup with this email will claim it
+    expect(created!.isClaimed).toBe(true); // real auth account created up front, no separate "sign up yourself" step
+    expect(created!.currentPassword).toBe("startpass1");
     expect(created!.membershipStatus).toBe("active");
     expect(created!.roleCodes.sort()).toEqual(["librarian", "teacher"].sort());
   });
 
-  it("rejects an unknown role code and creates nothing (atomic — no partial user)", async () => {
+  it("rejects an unknown role code and creates nothing (atomic — no partial user, no orphaned auth account)", async () => {
     await expect(
       createInstitutionUser(institutionId, adminAuth, adminUserId, {
         email: "bad-role@um-school.example",
         fullName: "Bad Role Person",
+        password: "startpass1",
         roleCodes: ["teacher", "not-a-real-role"],
       })
     ).rejects.toThrow(/Unknown role code/);
@@ -85,6 +92,7 @@ describe("createInstitutionUser — multi-role login generation", () => {
       createInstitutionUser(institutionId, adminAuth, adminUserId, {
         email: "multi-role@um-school.example", // already created above
         fullName: "Duplicate Attempt",
+        password: "startpass1",
         roleCodes: ["teacher"],
       })
     ).rejects.toThrow(/already exists/);
@@ -100,11 +108,28 @@ describe("createInstitutionUser — multi-role login generation", () => {
   });
 });
 
+describe("setUserPassword — view/reset a login's current password", () => {
+  it("resets an existing login's password and it's reflected in listInstitutionUsers", async () => {
+    const { userId } = await createInstitutionUser(institutionId, adminAuth, adminUserId, {
+      email: "reset-me@um-school.example",
+      fullName: "Reset Me",
+      password: "original1",
+      roleCodes: ["teacher"],
+    });
+
+    await setUserPassword(institutionId, adminAuth, adminUserId, userId, { password: "newpass99" });
+
+    const users = await listInstitutionUsers(institutionId, adminAuth);
+    expect(users.find((u) => u.userId === userId)!.currentPassword).toBe("newpass99");
+  });
+});
+
 describe("updateUserRoles — replaces the full role set", () => {
   it("can add and remove roles in the same call", async () => {
     const { userId } = await createInstitutionUser(institutionId, adminAuth, adminUserId, {
       email: "role-swap@um-school.example",
       fullName: "Role Swap Person",
+      password: "startpass1",
       roleCodes: ["teacher"],
     });
 
@@ -119,6 +144,7 @@ describe("updateUserRoles — replaces the full role set", () => {
     const { userId } = await createInstitutionUser(institutionId, adminAuth, adminUserId, {
       email: "clear-roles@um-school.example",
       fullName: "Clear Roles Person",
+      password: "startpass1",
       roleCodes: ["teacher"],
     });
     await updateUserRoles(institutionId, adminAuth, adminUserId, userId, { roleCodes: [] });
@@ -130,6 +156,7 @@ describe("updateUserRoles — replaces the full role set", () => {
     const { userId } = await createInstitutionUser(institutionId, adminAuth, adminUserId, {
       email: "role-unknown@um-school.example",
       fullName: "Role Unknown Person",
+      password: "startpass1",
       roleCodes: ["teacher"],
     });
     await expect(
@@ -149,6 +176,7 @@ describe("setUserMembershipStatus — deactivation actually removes access", () 
     const { userId } = await createInstitutionUser(institutionId, adminAuth, adminUserId, {
       email: "deactivate-me@um-school.example",
       fullName: "Deactivate Me",
+      password: "startpass1",
       roleCodes: ["teacher"],
     });
     // Simulate this account being claimed for real (same shape as a real Supabase sign-up).
