@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { ComponentType, SVGProps } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../services/request-context";
 import { getInstitution, getEnabledUiLanguages } from "../../services/institution/institution-service";
@@ -93,11 +94,20 @@ export default async function InstitutionLayout({ children }: { children: React.
   const hasReportsAccess = can(ctx.permissions, "reports.view");
   const hasSettingsAccess = can(ctx.permissions, "settings.manage");
 
+  // Icons must be pre-rendered elements, not bare component references —
+  // GroupedNavLinks is a "use client" component, and a Server Component
+  // (this layout) cannot pass a function across that boundary (React:
+  // "Functions cannot be passed directly to Client Components"). ni() gives
+  // every sidebar icon the same fixed size/colour in one place.
+  const ni = (Icon: ComponentType<SVGProps<SVGSVGElement>>) => (
+    <Icon className="h-[18px] w-[18px] shrink-0 text-[var(--sidebar-icon)]" />
+  );
+
   const navItems: NavEntry[] = [
-    { kind: "link", href: "/dashboard", label: t("dashboard"), icon: DashboardIcon },
+    { kind: "link", href: "/dashboard", label: t("dashboard"), icon: ni(DashboardIcon) },
 
     ...(hasSettingsAccess ? [{
-      kind: "group" as const, label: "Academic Structure", icon: AcademicIcon,
+      kind: "group" as const, label: "Academic Structure", icon: ni(AcademicIcon),
       items: [
         { href: "/classes", label: "Classes overview" },
         { href: "/academic#classes", label: "Classes" },
@@ -105,10 +115,10 @@ export default async function InstitutionLayout({ children }: { children: React.
         { href: "/academic#subjects", label: "Subjects" },
         { href: "/academic#academic-years", label: "Academic years" },
       ],
-    }] : [{ kind: "link" as const, href: "/classes", label: "Classes", icon: AcademicIcon }]),
+    }] : [{ kind: "link" as const, href: "/classes", label: "Classes", icon: ni(AcademicIcon) }]),
 
     ...(hasStudentAccess ? [{
-      kind: "group" as const, label: "Student Management", icon: StudentIcon,
+      kind: "group" as const, label: "Student Management", icon: ni(StudentIcon),
       items: [
         { href: "/students", label: "Student profiles" },
         { href: "/students", label: "Enrollment" },
@@ -117,7 +127,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasAttendanceAccess ? [{
-      kind: "group" as const, label: "Attendance", icon: AttendanceIcon,
+      kind: "group" as const, label: "Attendance", icon: ni(AttendanceIcon),
       items: [
         { href: "/attendance#take", label: "Student attendance" },
         { href: "/attendance#leave", label: "Leave applications" },
@@ -126,7 +136,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasExaminationAccess ? [{
-      kind: "group" as const, label: "Examination", icon: ExamIcon,
+      kind: "group" as const, label: "Examination", icon: ni(ExamIcon),
       items: [
         { href: "/examinations#create", label: "Create Exam (For admin)" },
         { href: "/examinations#list", label: "Exams" },
@@ -136,7 +146,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasExaminationAccess ? [{
-      kind: "group" as const, label: "Result", icon: ResultIcon,
+      kind: "group" as const, label: "Result", icon: ni(ResultIcon),
       items: [
         { href: "/results", label: "Results" },
         { href: "/analytics", label: "Analysis" },
@@ -147,7 +157,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasLibraryAccess ? [{
-      kind: "group" as const, label: "Library", icon: LibraryIcon,
+      kind: "group" as const, label: "Library", icon: ni(LibraryIcon),
       items: [
         { href: "/library", label: "Catalogue" },
         { href: "/library", label: "Issue/return" },
@@ -156,7 +166,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasStaffAccess ? [{
-      kind: "group" as const, label: "Staff", icon: StaffIcon,
+      kind: "group" as const, label: "Staff", icon: ni(StaffIcon),
       items: [
         { href: "/staff", label: "Staff directory (Profile)" },
         { href: "/staff", label: "Staff attendance" },
@@ -166,7 +176,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasSkillsAccess || hasAchievementsAccess ? [{
-      kind: "group" as const, label: "Skills & Achievements", icon: SkillsIcon,
+      kind: "group" as const, label: "Skills & Achievements", icon: ni(SkillsIcon),
       items: [
         ...(hasAchievementsAccess ? [{ href: "/achievements", label: "Student achievements & Recognitions" }] : []),
         ...(hasSkillsAccess ? [{ href: "/skills", label: "Reading, Writing, Speaking, language activities" }] : []),
@@ -174,7 +184,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasDisciplineAccess ? [{
-      kind: "group" as const, label: "Discipline", icon: DisciplineIcon,
+      kind: "group" as const, label: "Discipline", icon: ni(DisciplineIcon),
       items: [
         { href: "/discipline", label: "Discipline records" },
         { href: "/discipline", label: "Character assessments" },
@@ -182,7 +192,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasMentoringAccess ? [{
-      kind: "group" as const, label: "Mentoring", icon: MentoringIcon,
+      kind: "group" as const, label: "Mentoring", icon: ni(MentoringIcon),
       items: [
         { href: "/mentoring", label: "Mentor observations" },
         { href: "/mentoring", label: "Goals" },
@@ -191,23 +201,23 @@ export default async function InstitutionLayout({ children }: { children: React.
       ],
     }] : []),
 
-    ...(hasReportsAccess ? [{ kind: "link" as const, href: "/analysis", label: "Analysis", icon: AnalysisIcon }] : []),
-    { kind: "link", href: "/print", label: "Print Center", icon: PrintIcon },
+    ...(hasReportsAccess ? [{ kind: "link" as const, href: "/analysis", label: "Analysis", icon: ni(AnalysisIcon) }] : []),
+    { kind: "link", href: "/print", label: "Print Center", icon: ni(PrintIcon) },
 
     ...(can(ctx.permissions, "data.import") || can(ctx.permissions, "data.export")
-      ? [{ kind: "link" as const, href: "/import", label: t("importExport"), icon: ImportIcon }]
+      ? [{ kind: "link" as const, href: "/import", label: t("importExport"), icon: ni(ImportIcon) }]
       : []),
     ...(can(ctx.permissions, "announcements.view")
-      ? [{ kind: "link" as const, href: "/announcements", label: t("announcements"), icon: AnnouncementIcon }]
+      ? [{ kind: "link" as const, href: "/announcements", label: t("announcements"), icon: ni(AnnouncementIcon) }]
       : []),
     ...(can(ctx.permissions, "files.manage")
-      ? [{ kind: "link" as const, href: "/storage", label: t("storage"), icon: StorageIcon }]
+      ? [{ kind: "link" as const, href: "/storage", label: t("storage"), icon: ni(StorageIcon) }]
       : []),
     ...(can(ctx.permissions, "users.manage") || can(ctx.permissions, "roles.manage")
-      ? [{ kind: "link" as const, href: "/users", label: t("users"), icon: UsersIcon }]
+      ? [{ kind: "link" as const, href: "/users", label: t("users"), icon: ni(UsersIcon) }]
       : []),
-    ...(hasSettingsAccess ? [{ kind: "link" as const, href: "/settings", label: t("settings"), icon: SettingsIcon }] : []),
-    ...(ctx.isSuperAdmin ? [{ kind: "link" as const, href: "/super-admin", label: t("superAdmin"), icon: SuperAdminIcon }] : []),
+    ...(hasSettingsAccess ? [{ kind: "link" as const, href: "/settings", label: t("settings"), icon: ni(SettingsIcon) }] : []),
+    ...(ctx.isSuperAdmin ? [{ kind: "link" as const, href: "/super-admin", label: t("superAdmin"), icon: ni(SuperAdminIcon) }] : []),
   ];
 
   // Design refresh (see globals.css): the app now uses one fixed brand

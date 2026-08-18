@@ -3,13 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType, SVGProps } from "react";
+import type { ReactNode } from "react";
 import { ChevronIcon } from "./NavIcons";
 
 export type NavLeaf = { href: string; label: string };
+// `icon` is a pre-rendered ReactNode (e.g. `<DashboardIcon className="..." />`),
+// NOT a component reference — this is a "use client" component, and a Server
+// Component (the institution/super-admin layouts) cannot pass a bare function
+// across the server/client boundary (React: "Functions cannot be passed
+// directly to Client Components"). Passing an already-rendered element is
+// fine because by serialization time it's resolved down to plain SVG/DOM
+// elements, which ARE serializable.
 export type NavEntry =
-  | { kind: "link"; href: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>> }
-  | { kind: "group"; label: string; icon: ComponentType<SVGProps<SVGSVGElement>>; items: NavLeaf[] };
+  | { kind: "link"; href: string; label: string; icon: ReactNode }
+  | { kind: "group"; label: string; icon: ReactNode; items: NavLeaf[] };
 
 /**
  * Sidebar nav shared by (institution)/layout.tsx and (super-admin)/
@@ -58,7 +65,6 @@ export default function GroupedNavLinks({ items }: { items: NavEntry[] }) {
       {items.map((entry) => {
         if (entry.kind === "link") {
           const active = isLeafActive(entry.href);
-          const Icon = entry.icon;
           return (
             <Link
               key={entry.href}
@@ -71,13 +77,12 @@ export default function GroupedNavLinks({ items }: { items: NavEntry[] }) {
                   : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60",
               ].join(" ")}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0 text-[var(--sidebar-icon)]" />
+              {entry.icon}
               <span className="min-w-0 truncate">{entry.label}</span>
             </Link>
           );
         }
 
-        const Icon = entry.icon;
         const open = openGroups.has(entry.label);
         const groupHasActive = entry.items.some((i) => isLeafActive(i.href));
 
@@ -94,7 +99,7 @@ export default function GroupedNavLinks({ items }: { items: NavEntry[] }) {
                   : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60",
               ].join(" ")}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0 text-[var(--sidebar-icon)]" />
+              {entry.icon}
               <span className="min-w-0 flex-1 truncate">{entry.label}</span>
               <ChevronIcon className={`text-[var(--sidebar-text-muted)] ${open ? "rotate-90" : ""}`} />
             </button>
