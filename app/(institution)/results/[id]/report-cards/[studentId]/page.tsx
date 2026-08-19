@@ -4,6 +4,7 @@ import { requireRequestContext } from "../../../../../../services/request-contex
 import { getInstitution } from "../../../../../../services/institution/institution-service";
 import { getExamination, getExaminationMarksMatrix, getResults } from "../../../../../../modules/examination/service";
 import PrintButton from "../../../../../components/PrintButton";
+import PrintLetterhead from "../../../../../components/PrintLetterhead";
 
 /** "Result > Report Cards" — one student's printable report card: subject
  *  by subject marks, overall total/percentage/grade/rank (from the same
@@ -39,9 +40,10 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
 
       <section className="print-area mx-auto max-w-2xl rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8">
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {institution?.appName || institution?.name || "PROMPT EDU ERP"}
-          </h1>
+          <PrintLetterhead
+            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            logoCode={institution?.logoFileId ? institution.code : null}
+          />
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Report Card — {examination.name}</p>
         </div>
 

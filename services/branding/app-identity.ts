@@ -64,6 +64,12 @@ export interface AppIdentity {
    *  the same handlers). Empty string for the generic/no-institution case,
    *  where there's nothing institution-specific to keep separate anyway. */
   assetBasePath: string;
+  /** "Can I add institution logo?" follow-up — set once the institution has
+   *  actually uploaded a logo (institutions.logo_file_id is non-null);
+   *  app/icon-badge/[size]/route.tsx streams that real image instead of the
+   *  generated letter-gradient badge when this is set. Always null for the
+   *  generic/Super-Admin identities — neither has an uploadable logo. */
+  logoInstitutionCode: string | null;
 }
 
 const GENERIC: AppIdentity = {
@@ -75,6 +81,7 @@ const GENERIC: AppIdentity = {
   scope: "/",
   startUrl: "/",
   assetBasePath: "",
+  logoInstitutionCode: null,
 };
 
 export async function resolveAppIdentity(ctx: RequestContext | null): Promise<AppIdentity> {
@@ -94,6 +101,7 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
         scope: `/${slug}/`,
         startUrl: `/${slug}`,
         assetBasePath: `/${slug}`,
+        logoInstitutionCode: institution.logoFileId && code ? code : null,
       };
     }
   }
@@ -111,6 +119,7 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
       scope: "/super-admin/",
       startUrl: "/super-admin",
       assetBasePath: "",
+      logoInstitutionCode: null,
     };
   }
   return GENERIC;

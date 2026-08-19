@@ -1,11 +1,13 @@
 import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
+import { getInstitution } from "../../../../services/institution/institution-service";
 import { listClasses, listSections } from "../../../../modules/academic/service";
 import { listAttendanceStatuses, getMonthlyAttendanceRegister } from "../../../../modules/attendance/service";
 import { getTeacherClassScope, scopeIncludesSection } from "../../../../services/scope/teacher-scope-service";
 import { can } from "../../../../services/permissions/permission-service";
 import RegisterPicker from "./RegisterPicker";
 import PrintButton from "../../../components/PrintButton";
+import PrintLetterhead from "../../../components/PrintLetterhead";
 
 /** "Attendance > Monthly register" — a class/section's whole-month
  *  attendance in one printable grid (rows = students, columns = days),
@@ -47,11 +49,12 @@ export default async function MonthlyRegisterPage({
     ? allSections.filter((s) => scopeIncludesSection(teacherScope, s.class_id, s.id))
     : allSections;
 
-  const [statuses, register] = await Promise.all([
+  const [statuses, register, institution] = await Promise.all([
     listAttendanceStatuses(institutionId, authUserId),
     effectiveClassId && effectiveSectionId
       ? getMonthlyAttendanceRegister(institutionId, authUserId, effectiveClassId, effectiveSectionId, year, monthNum)
       : Promise.resolve(null),
+    getInstitution(institutionId, authUserId),
   ]);
   const statusByCode = new Map(statuses.map((s) => [s.code, s]));
 
@@ -73,6 +76,10 @@ export default async function MonthlyRegisterPage({
 
       {register ? (
         <section className="print-area rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <PrintLetterhead
+            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            logoCode={institution?.logoFileId ? institution.code : null}
+          />
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">

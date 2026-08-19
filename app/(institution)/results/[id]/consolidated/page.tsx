@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
+import { getInstitution } from "../../../../../services/institution/institution-service";
 import { getExamination, getExaminationMarksMatrix } from "../../../../../modules/examination/service";
 import PrintButton from "../../../../components/PrintButton";
+import PrintLetterhead from "../../../../components/PrintLetterhead";
 
 /** "Result > Consolidated marks" — one student per row, one subject per
  *  column (the traditional "consolidated marksheet" format), pivoted
@@ -17,7 +19,10 @@ export default async function ConsolidatedMarksPage({ params }: { params: Promis
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound();
 
-  const rows = await getExaminationMarksMatrix(institutionId, authUserId, id);
+  const [institution, rows] = await Promise.all([
+    getInstitution(institutionId, authUserId),
+    getExaminationMarksMatrix(institutionId, authUserId, id),
+  ]);
 
   const subjects = new Map<string, { name: string; maxMarks: string }>();
   const studentOrder: string[] = [];
@@ -43,6 +48,12 @@ export default async function ConsolidatedMarksPage({ params }: { params: Promis
       </div>
 
       <section className="print-area overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <div className="p-4 pb-0">
+          <PrintLetterhead
+            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            logoCode={institution?.logoFileId ? institution.code : null}
+          />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 dark:bg-zinc-950 text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">

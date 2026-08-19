@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
 import { can } from "../../../../services/permissions/permission-service";
+import { getInstitution } from "../../../../services/institution/institution-service";
 import { listAttendanceStatuses } from "../../../../modules/attendance/service";
 import { getMonthlyStaffAttendanceRegister } from "../../../../modules/staff/service";
 import PrintButton from "../../../components/PrintButton";
+import PrintLetterhead from "../../../components/PrintLetterhead";
 
 /** "Staff > Staff attendance > Monthly register" — every active staff
  *  member's whole-month attendance in one printable grid, mirroring
@@ -31,9 +33,10 @@ export default async function StaffMonthlyRegisterPage({
   const daysInMonth = new Date(year, monthNum, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  const [statuses, register] = await Promise.all([
+  const [statuses, register, institution] = await Promise.all([
     listAttendanceStatuses(institutionId, authUserId),
     getMonthlyStaffAttendanceRegister(institutionId, authUserId, year, monthNum),
+    getInstitution(institutionId, authUserId),
   ]);
   const statusByCode = new Map(statuses.map((s) => [s.code, s]));
   const cellByStaffDate = new Map<string, string>();
@@ -56,6 +59,10 @@ export default async function StaffMonthlyRegisterPage({
       </section>
 
       <section className="print-area rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <PrintLetterhead
+          institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+          logoCode={institution?.logoFileId ? institution.code : null}
+        />
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{effectiveMonth}</h2>

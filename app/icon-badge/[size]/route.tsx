@@ -10,9 +10,12 @@
  * Postgres client via services/db/client.ts, which is not edge-compatible
  * — the same reason app/manifest.ts itself never declared edge either.
  */
+import { NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
 import { getRequestContext } from "../../../services/request-context";
 import { resolveAppIdentity } from "../../../services/branding/app-identity";
+import { getPublicLogoFile } from "../../../services/institution/institution-service";
+import { getStorageProviderByName } from "../../../services/storage/storage-provider";
 
 const SIZES: Record<string, number> = { "192": 192, "512": 512 };
 
@@ -22,6 +25,31 @@ export async function GET(_request: Request, { params }: { params: Promise<{ siz
 
   const ctx = await getRequestContext().catch(() => null);
   const identity = await resolveAppIdentity(ctx);
+
+  // "Can I add institution logo?" follow-up — once an institution has
+  // uploaded its own logo, the PWA install icon/favicon use the real image
+  // instead of the generated letter-gradient badge below. Streamed directly
+  // (same lookup the pre-auth /api/institution-logo/[code] route uses) —
+  // this route is already authenticated via ctx by this point, but the
+  // lookup itself doesn't need a second, redundant auth check.
+  if (identity.logoInstitutionCode) {
+    const file = await getPublicLogoFile(identity.logoInstitutionCode).catch(() => null);
+    if (file) {
+      if (file.storageProvider !== "local") {
+        const url = await getStorageProviderByName(file.storageProvider).getDownloadUrl(file.storageFileId);
+        return NextResponse.redirect(url);
+      }
+      const bytes = await getStorageProviderByName("local").download(file.storageFileId);
+      return new NextResponse(new Uint8Array(bytes), {
+        status: 200,
+        headers: {
+          "Content-Type": file.mimeType || "application/octet-stream",
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+  }
+
   const label = identity.badgeText;
   const fontSize = label.length <= 2 ? size * 0.42 : label.length <= 4 ? size * 0.3 : size * 0.22;
 
@@ -34,7 +62,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ siz
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #d946ef 100%)",
+          background: "linear-gradient(135deg, #16215c 0%, #1d4ed8 55%, #0d9488 100%)",
         }}
       >
         <div

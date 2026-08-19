@@ -19,7 +19,7 @@ const INITIAL_STATE: LoginState = { error: null, info: null };
  * institution context (the plain, un-prefixed /login — e.g. the public
  * marketing entry point) this renders exactly as it always has.
  */
-export default function LoginForm({ institutionName }: { institutionName?: string }) {
+export default function LoginForm({ institutionName, logoUrl }: { institutionName?: string; logoUrl?: string }) {
   const t = useTranslations("login");
   const [state, formAction, pending] = useActionState<LoginState, FormData>(loginAction, INITIAL_STATE);
   const credit = institutionName ? "PROMPT EDU ERP · Prompt Innovations" : "Prompt Innovations";
@@ -57,9 +57,14 @@ export default function LoginForm({ institutionName }: { institutionName?: strin
         {/* Left: brand hero panel, hidden on small screens */}
         <div className="hidden flex-col justify-between bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-10 text-white md:flex">
           <div>
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold backdrop-blur">
-              {logoLetter}
-            </span>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL
+              <img src={logoUrl} alt="" className="h-11 w-11 rounded-2xl bg-white object-contain p-1" />
+            ) : (
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold backdrop-blur">
+                {logoLetter}
+              </span>
+            )}
             <h2 className="mt-8 text-2xl font-semibold leading-snug">
               {institutionName ?? "Technology with Purpose."}
             </h2>

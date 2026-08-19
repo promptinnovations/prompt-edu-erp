@@ -225,7 +225,10 @@ export default async function InstitutionLayout({ children }: { children: React.
   // per-tenant CSS variable override here.
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--background)] md:flex-row">
-      <ResponsiveSidebar brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}>
+      <ResponsiveSidebar
+        brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+        logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null}
+      >
         <GroupedNavLinks items={navItems} />
 
         {enabledLocales.length > 1 ? (

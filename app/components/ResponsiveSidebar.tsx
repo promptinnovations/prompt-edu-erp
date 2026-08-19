@@ -32,9 +32,14 @@ import ThemeToggle from "./ThemeToggle";
  */
 export default function ResponsiveSidebar({
   brandLabel,
+  logoUrl,
   children,
 }: {
   brandLabel: string;
+  /** "Can I add institution logo?" follow-up — /api/institution-logo/<code>
+   *  when the institution has uploaded one, else null to keep the existing
+   *  generated letter badge exactly as before. */
+  logoUrl?: string | null;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -47,6 +52,13 @@ export default function ResponsiveSidebar({
   }, [pathname]);
 
   const logoLetter = brandLabel.trim().charAt(0).toUpperCase() || "P";
+  const badge = (className: string) =>
+    logoUrl ? (
+      // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL
+      <img src={logoUrl} alt="" className={`${className} object-contain bg-white`} />
+    ) : (
+      <span className={`${className} bg-[var(--accent-teal)] font-bold text-white`}>{logoLetter}</span>
+    );
 
   return (
     <>
@@ -64,9 +76,7 @@ export default function ResponsiveSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
           </svg>
         </button>
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-teal)] text-xs font-bold">
-          {logoLetter}
-        </span>
+        {badge("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs")}
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{brandLabel}</span>
         <ThemeToggle compact />
       </div>
@@ -97,9 +107,7 @@ export default function ResponsiveSidebar({
         </button>
 
         <div className="mb-6 hidden items-center gap-2.5 md:flex">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-teal)] text-sm font-bold text-white shadow-lg shadow-black/20">
-            {logoLetter}
-          </span>
+          {badge("flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-sm shadow-lg shadow-black/20")}
           <div className="min-w-0 truncate text-base font-semibold text-white">{brandLabel}</div>
         </div>
 

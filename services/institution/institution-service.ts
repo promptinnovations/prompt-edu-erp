@@ -13,6 +13,7 @@ export interface InstitutionSummary {
   name: string;
   appName: string | null;
   primaryColor: string | null;
+  logoFileId: string | null;
 }
 
 /** The app's built-in look when an institution hasn't picked its own colour
@@ -25,9 +26,9 @@ export async function getInstitution(institutionId: string, authUserId: string):
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{
-      id: string; code: string; name: string; app_name: string | null; primary_color: string | null;
+      id: string; code: string; name: string; app_name: string | null; primary_color: string | null; logo_file_id: string | null;
     }>(
-      "select id, code, name, app_name, primary_color from institutions where id = $1",
+      "select id, code, name, app_name, primary_color, logo_file_id from institutions where id = $1",
       [institutionId]
     );
     if (!rows[0]) return null;
@@ -37,6 +38,7 @@ export async function getInstitution(institutionId: string, authUserId: string):
       name: rows[0].name,
       appName: rows[0].app_name,
       primaryColor: rows[0].primary_color,
+      logoFileId: rows[0].logo_file_id,
     };
   });
 }
@@ -45,6 +47,10 @@ export interface InstitutionPublicSummary {
   code: string;
   name: string;
   appName: string | null;
+  /** Whether a logo has been uploaded — never the raw file id itself (no
+   *  reason to hand a pre-auth caller anything more than "should I render
+   *  an <img src="/api/institution-logo/<code>">"). */
+  hasLogo: boolean;
 }
 
 /**
@@ -71,12 +77,58 @@ export interface InstitutionPublicSummary {
 export async function getInstitutionPublicSummaryByCode(code: string): Promise<InstitutionPublicSummary | null> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId: null, isSuperAdmin: true }, async (scoped) => {
-    const { rows } = await scoped.query<{ code: string; name: string; app_name: string | null }>(
-      "select code, name, app_name from institutions where code = $1",
+    const { rows } = await scoped.query<{ code: string; name: string; app_name: string | null; logo_file_id: string | null }>(
+      "select code, name, app_name, logo_file_id from institutions where code = $1",
       [code]
     );
     if (!rows[0]) return null;
-    return { code: rows[0].code, name: rows[0].name, appName: rows[0].app_name };
+    return { code: rows[0].code, name: rows[0].name, appName: rows[0].app_name, hasLogo: rows[0].logo_file_id !== null };
+  });
+}
+
+export interface PublicLogoFile {
+  storageProvider: "local" | "supabase";
+  storageFileId: string;
+  mimeType: string | null;
+  fileName: string;
+}
+
+/**
+ * Pre-authentication logo lookup for GET /api/institution-logo/[code] (the
+ * one place this app genuinely needs to serve a file's bytes to someone who
+ * hasn't signed in yet — the login page's brand panel). Same
+ * `isSuperAdmin: true` DB-context pattern as getInstitutionPublicSummaryByCode()
+ * above, for the same reason (no session to run withInstitutionContext's
+ * ordinary institutionId/authUserId RLS check against) — but scoped much more
+ * tightly than "any column on this row": the query only ever returns a file
+ * that is (a) this exact institution's own logo_file_id, AND (b) tagged
+ * entity_type = 'institution_logo', AND (c) explicitly is_public = true, so
+ * even a future bug that pointed logo_file_id at some other file would still
+ * refuse to serve it here unless every one of those three conditions holds
+ * — plus a fourth, f.institution_id = i.id, the same belt-and-braces
+ * ownership check updateInstitutionLogo() enforces at write time.
+ */
+export async function getPublicLogoFile(institutionCode: string): Promise<PublicLogoFile | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId: null, isSuperAdmin: true }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      storage_provider: string; storage_file_id: string; mime_type: string | null; file_name: string;
+    }>(
+      `select f.storage_provider, f.storage_file_id, f.mime_type, f.file_name
+         from institutions i
+         join files f on f.id = i.logo_file_id and f.institution_id = i.id
+        where i.code = $1
+          and f.entity_type = 'institution_logo'
+          and f.is_public = true`,
+      [institutionCode]
+    );
+    if (!rows[0]) return null;
+    return {
+      storageProvider: rows[0].storage_provider as "local" | "supabase",
+      storageFileId: rows[0].storage_file_id,
+      mimeType: rows[0].mime_type,
+      fileName: rows[0].file_name,
+    };
   });
 }
 
@@ -166,6 +218,63 @@ export async function updateInstitutionBranding(
       entityId: institutionId,
       before: { primaryColor: before[0]?.primary_color ?? null },
       after: { primaryColor: data.primaryColor },
+    });
+  });
+}
+
+/**
+ * Institution-scoped self-service write for the logo — same
+ * institutions_update_self RLS policy / settings.manage permission gate as
+ * updateInstitutionBranding() above. The actual file upload happens through
+ * FileService.uploadFile() first (in the calling server action); this
+ * function only ever points institutions.logo_file_id at an already-uploaded
+ * file (or null, to remove it) — it never touches file bytes itself.
+ *
+ * fileId is NOT trusted blindly, and — unlike this doc comment's first draft
+ * assumed — files' own RLS does NOT automatically protect this write on its
+ * own: `institutions.logo_file_id references files(id)`, and Postgres FK
+ * constraint checks run against the underlying table directly, bypassing
+ * RLS the same way migrate.ts's own comment notes table owners/superusers
+ * do — an ordinary UPDATE naming an arbitrary existing file id would
+ * satisfy the FK regardless of which institution that file actually
+ * belongs to. So this function explicitly re-SELECTs the file under THIS
+ * institutionId/authUserId's own scoped context first — files' RLS (migration
+ * 0018's tenant_isolation_select policy) genuinely does filter that
+ * ordinary SELECT, so a file belonging to a different institution comes
+ * back as zero rows and the write is refused before it ever reaches the
+ * UPDATE statement.
+ */
+export async function updateInstitutionLogo(
+  institutionId: string,
+  authUserId: string,
+  userId: string,
+  logoFileId: string | null
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    if (logoFileId) {
+      const { rows: owned } = await scoped.query<{ id: string }>("select id from files where id = $1", [logoFileId]);
+      if (owned.length === 0) {
+        throw new Error("That file does not belong to this institution — refusing to set it as the logo.");
+      }
+    }
+    const { rows: before } = await scoped.query<{ logo_file_id: string | null }>(
+      "select logo_file_id from institutions where id = $1",
+      [institutionId]
+    );
+    await scoped.query(
+      "update institutions set logo_file_id = $1, updated_at = now() where id = $2",
+      [logoFileId, institutionId]
+    );
+    await recordAudit(scoped, {
+      institutionId,
+      userId,
+      action: "update",
+      module: "platform",
+      entityType: "institutions",
+      entityId: institutionId,
+      before: { logoFileId: before[0]?.logo_file_id ?? null },
+      after: { logoFileId },
     });
   });
 }

@@ -17,6 +17,7 @@ export default async function LoginPage() {
   const code = store.get(ACTIVE_INSTITUTION_COOKIE)?.value ?? null;
   const institution = code ? await getInstitutionPublicSummaryByCode(code).catch(() => null) : null;
   const institutionName = institution?.appName || institution?.name || undefined;
+  const logoUrl = institution?.hasLogo ? `/api/institution-logo/${institution.code}` : undefined;
 
-  return <LoginForm institutionName={institutionName} />;
+  return <LoginForm institutionName={institutionName} logoUrl={logoUrl} />;
 }

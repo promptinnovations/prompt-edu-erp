@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { getInstitution } from "../../../services/institution/institution-service";
+import LogoForm from "./LogoForm";
 
 export default async function SettingsPage() {
   const ctx = await requireRequestContext();
@@ -23,6 +24,15 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Logo</h2>
+        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+          Upload your institution&apos;s own logo — once set, it replaces the generated letter badge everywhere the
+          app currently shows one.
+        </p>
+        <LogoForm logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null} />
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Appearance</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           PROMPT EDU ERP now uses one consistent look across every institution. Switch between light and dark mode
@@ -39,7 +49,7 @@ export default async function SettingsPage() {
         </p>
         <Link
           href="/settings/grading"
-          className="inline-block rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+          className="inline-block rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
         >
           Manage grading &amp; points
         </Link>
