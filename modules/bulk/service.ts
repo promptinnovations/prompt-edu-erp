@@ -29,6 +29,8 @@ import { createStaffMember, listStaff } from "../staff/service";
 import { createBook } from "../library/service";
 import { submitAchievement, listAchievementCategories, listAchievementLevels } from "../achievements/service";
 import { createStudentLoginAccount } from "../portal/service";
+import { createCalendarEvent, CALENDAR_EVENT_TYPES } from "../calendar/service";
+import { upsertTimetablePeriod } from "../substitution/service";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -601,6 +603,151 @@ const achievementsDefinition: EntityImportDefinition = {
   },
 };
 
+/** "academic calendar in an excel format will be bulk uploaded, it can be
+ *  yearly, termly, monthly" follow-up — one row per event; startDate/endDate
+ *  together already express any of those scales (a term-long "Summer
+ *  Vacation" is one row spanning weeks, a single "PTM" day has no endDate),
+ *  so no separate "granularity" column is needed. No dedupe: an institution
+ *  can legitimately have two events sharing a title in different years. */
+const CALENDAR_EVENT_TYPE_SET = new Set<string>(CALENDAR_EVENT_TYPES);
+const CAL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const calendarEventsDefinition: EntityImportDefinition = {
+  entityType: "calendar_events",
+  label: "Academic Calendar events (yearly/termly/monthly)",
+  columns: [
+    { key: "title", label: "Title", required: true },
+    { key: "eventType", label: "Type (holiday/exam/meeting/ptm/other)", required: false },
+    { key: "startDate", label: "Start date (YYYY-MM-DD)", required: true },
+    { key: "endDate", label: "End date (YYYY-MM-DD, leave blank for a single day)", required: false },
+    { key: "description", label: "Description", required: false },
+  ],
+  sampleRow: { title: "Summer Vacation", eventType: "holiday", startDate: "2026-04-01", endDate: "2026-05-31", description: "" },
+  async prepareContext() {
+    return {};
+  },
+  parseRow(raw) {
+    const errors: string[] = [];
+    const title = req(raw, "title", errors);
+    const startDate = req(raw, "startDate", errors);
+    if (startDate && !CAL_DATE_RE.test(startDate)) errors.push(`"startDate" must be YYYY-MM-DD.`);
+    const endDate = (raw.endDate ?? "").trim() || null;
+    if (endDate && !CAL_DATE_RE.test(endDate)) errors.push(`"endDate" must be YYYY-MM-DD.`);
+    if (endDate && startDate && CAL_DATE_RE.test(startDate) && CAL_DATE_RE.test(endDate) && endDate < startDate) {
+      errors.push(`"endDate" cannot be before "startDate".`);
+    }
+    const eventTypeRaw = normKey(raw.eventType) || "other";
+    if (!CALENDAR_EVENT_TYPE_SET.has(eventTypeRaw)) errors.push(`"eventType" must be one of holiday/exam/meeting/ptm/other.`);
+    if (errors.length > 0) return { status: "invalid", errors };
+    return {
+      status: "valid", dedupeKey: null,
+      data: { title, eventType: eventTypeRaw, startDate, endDate, description: (raw.description ?? "").trim() || null },
+    };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await createCalendarEvent(institutionId, authUserId, userId, {
+      title: data.title as string,
+      eventType: data.eventType as "holiday" | "exam" | "meeting" | "ptm" | "other",
+      startDate: data.startDate as string,
+      endDate: data.endDate as string | null,
+      description: data.description as string | null,
+    }, scoped);
+  },
+};
+
+/** "timetable will be uploaded" follow-up (Substitution module) — one row
+ *  per class+section+day+period; teacherName is optional (a free period has
+ *  no teacher and is simply never a coverage target). Day accepts either a
+ *  weekday name or an ISO 1–7 number so an admin filling this in by hand
+ *  doesn't have to remember the numbering. upsertTimetablePeriod() itself
+ *  is ON CONFLICT DO UPDATE, so re-uploading the same class/section/day/
+ *  period safely replaces that one row instead of erroring or duplicating —
+ *  the natural way to "re-upload this term's timetable" after a change. */
+const DAY_NAME_TO_ISO: Record<string, number> = {
+  monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sunday: 7,
+  mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 7,
+};
+
+const timetablePeriodsDefinition: EntityImportDefinition = {
+  entityType: "timetable_periods",
+  label: "Timetable (weekly periods)",
+  columns: [
+    { key: "className", label: "Class name", required: true },
+    { key: "sectionName", label: "Section name", required: true },
+    { key: "dayOfWeek", label: "Day (Monday–Sunday, or 1–7)", required: true },
+    { key: "periodNo", label: "Period number", required: true },
+    { key: "subjectName", label: "Subject", required: false },
+    { key: "teacherStaffCode", label: "Teacher staff code (leave blank for a free period)", required: false },
+  ],
+  sampleRow: { className: "Grade 6", sectionName: "A", dayOfWeek: "Monday", periodNo: "1", subjectName: "Mathematics", teacherStaffCode: "STF-002" },
+  async prepareContext(institutionId, authUserId) {
+    const [classes, sections, subjects, staff] = await Promise.all([
+      listClasses(institutionId, authUserId),
+      listSections(institutionId, authUserId),
+      listSubjects(institutionId, authUserId),
+      listStaff(institutionId, authUserId),
+    ]);
+    return {
+      classesByName: new Map(classes.map((c) => [normKey(c.name), c.id])),
+      sectionsByClassAndName: new Map(sections.map((s) => [`${s.class_id}:${normKey(s.name)}`, s.id])),
+      subjectsByName: new Map(subjects.map((s) => [normKey(s.name), s.id])),
+      staffByCode: new Map(staff.map((s) => [normKey(s.staff_code), s.id])),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const className = req(raw, "className", errors);
+    const sectionName = req(raw, "sectionName", errors);
+    const dayRaw = req(raw, "dayOfWeek", errors);
+    const periodNoRaw = req(raw, "periodNo", errors);
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    const classesByName = context.classesByName as Map<string, string>;
+    const classId = classesByName.get(normKey(className));
+    if (!classId) errors.push(`Class "${className}" was not found.`);
+
+    const sectionsByClassAndName = context.sectionsByClassAndName as Map<string, string>;
+    const sectionId = classId ? sectionsByClassAndName.get(`${classId}:${normKey(sectionName)}`) : undefined;
+    if (classId && !sectionId) errors.push(`Section "${sectionName}" was not found in class "${className}".`);
+
+    const dayKey = normKey(dayRaw);
+    const dayOfWeek = DAY_NAME_TO_ISO[dayKey] ?? (/^[1-7]$/.test(dayRaw.trim()) ? Number(dayRaw.trim()) : null);
+    if (!dayOfWeek) errors.push(`"dayOfWeek" must be a weekday name (Monday–Sunday) or a number 1–7.`);
+
+    const periodNo = Number(periodNoRaw.trim());
+    if (!Number.isInteger(periodNo) || periodNo < 1) errors.push(`"periodNo" must be a positive whole number.`);
+
+    let subjectId: string | null = null;
+    const subjectNameRaw = (raw.subjectName ?? "").trim();
+    if (subjectNameRaw) {
+      const subjectsByName = context.subjectsByName as Map<string, string>;
+      subjectId = subjectsByName.get(normKey(subjectNameRaw)) ?? null;
+      if (!subjectId) errors.push(`Subject "${subjectNameRaw}" was not found.`);
+    }
+
+    let teacherStaffId: string | null = null;
+    const teacherCodeRaw = (raw.teacherStaffCode ?? "").trim();
+    if (teacherCodeRaw) {
+      const staffByCode = context.staffByCode as Map<string, string>;
+      teacherStaffId = staffByCode.get(normKey(teacherCodeRaw)) ?? null;
+      if (!teacherStaffId) errors.push(`Staff code "${teacherCodeRaw}" was not found.`);
+    }
+
+    if (errors.length > 0) return { status: "invalid", errors };
+    return {
+      status: "valid", dedupeKey: `${classId}:${sectionId}:${dayOfWeek}:${periodNo}`,
+      data: { classId, sectionId, dayOfWeek, periodNo, subjectId, teacherStaffId },
+    };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await upsertTimetablePeriod(institutionId, authUserId, userId, {
+      classId: data.classId as string, sectionId: data.sectionId as string,
+      dayOfWeek: data.dayOfWeek as number, periodNo: data.periodNo as number,
+      subjectId: data.subjectId as string | null, teacherStaffId: data.teacherStaffId as string | null,
+    }, scoped);
+  },
+};
+
 const registry: Record<string, EntityImportDefinition> = {
   classes: classesDefinition,
   sections: sectionsDefinition,
@@ -612,6 +759,8 @@ const registry: Record<string, EntityImportDefinition> = {
   staff: staffDefinition,
   library_books: libraryBooksDefinition,
   achievements: achievementsDefinition,
+  calendar_events: calendarEventsDefinition,
+  timetable_periods: timetablePeriodsDefinition,
 };
 
 export function listImportEntityTypes(): { entityType: string; label: string; columns: ImportColumn[] }[] {

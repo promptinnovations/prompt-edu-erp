@@ -635,3 +635,67 @@ export async function getResults(institutionId: string, authUserId: string, exam
     return rows;
   });
 }
+
+// ---------------------------------------------------------------------------
+// Home page widgets ("Institution-wide Pass rate trend (across exams in %)"
+// and "Marks entry status of recent exam")
+// ---------------------------------------------------------------------------
+export interface RecentExaminationSummary { id: string; name: string }
+
+/** The examination most likely to be "the recent exam" a Home page widget
+ *  means — same "most recently created" ordering listExaminations() already
+ *  uses, just narrowed to one row. */
+export async function getMostRecentExamination(institutionId: string, authUserId: string): Promise<RecentExaminationSummary | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<RecentExaminationSummary>(
+      `select id, name from examinations order by created_at desc limit 1`
+    );
+    return rows[0] ?? null;
+  });
+}
+
+export interface PassRateTrendPoint { examinationId: string; examinationName: string; percentage: number }
+
+/** "Institution-wide Pass rate trend (across exams in %)" — a student
+ *  "passes" an examination here if every one of their approved/locked,
+ *  non-absent marks meets that subject's own pass_marks (the same
+ *  definition results/report cards already imply per-subject, just rolled
+ *  up to "passed everything"). Only examinations that already have at least
+ *  one computed result (computeResults() has been run) are included — an
+ *  examination still in progress isn't a 0% data point, it's just not part
+ *  of the trend yet. Ordered oldest-to-newest (left-to-right on a trend
+ *  chart), most recent `limit` examinations. */
+export async function getInstitutionPassRateTrend(institutionId: string, authUserId: string, limit = 5): Promise<PassRateTrendPoint[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; name: string; total: string; passed: string }>(
+      `select e.id, e.name,
+              count(distinct r.student_id) as total,
+              count(distinct r.student_id) filter (
+                where not exists (
+                  select 1 from marks m
+                    join exam_subjects es2 on es2.id = m.exam_subject_id
+                   where es2.examination_id = e.id
+                     and m.student_id = r.student_id
+                     and m.entry_status in ('approved', 'locked')
+                     and m.is_absent = false
+                     and m.marks_obtained < es2.pass_marks
+                )
+              ) as passed
+         from examinations e
+         join results r on r.examination_id = e.id
+        group by e.id, e.name, e.start_date, e.created_at
+       having count(distinct r.student_id) > 0
+        order by coalesce(e.start_date, e.created_at::date) desc
+        limit $1`,
+      [limit]
+    );
+    return rows
+      .map((r) => ({
+        examinationId: r.id, examinationName: r.name,
+        percentage: Number(r.total) > 0 ? Math.round((Number(r.passed) / Number(r.total)) * 10000) / 100 : 0,
+      }))
+      .reverse();
+  });
+}

@@ -105,6 +105,14 @@ export const StorageIcon = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}><rect x="3.5" y="7" width="17" height="12" rx="2" /><path d="M3.5 7V5.5a1 1 0 0 1 1-1H9l2 2h8a1 1 0 0 1 1 1V7" /></Base>
 );
 
+export const CalendarIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 9.5h17" /><path d="M8 3v3M16 3v3" /><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 16.5h2M11 16.5h2" /></Base>
+);
+
+export const SubstitutionIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><circle cx="8" cy="8" r="3" /><path d="M2.5 20c0-3.3 2.5-5.7 5.5-5.7 1.2 0 2.3.4 3.2 1" /><path d="M14.5 6.5h6M17.5 3.5v6" /><path d="M14.5 14.5h6M17.5 11.5v6" /></Base>
+);
+
 export const ChevronIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0 transition-transform" aria-hidden="true" {...p}>
     <path d="m9 6 6 6-6 6" />

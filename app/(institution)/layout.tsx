@@ -17,6 +17,7 @@ import {
   DashboardIcon, AcademicIcon, StudentIcon, AttendanceIcon, ExamIcon, ResultIcon, LibraryIcon,
   StaffIcon, SkillsIcon, DisciplineIcon, MentoringIcon, AnalysisIcon, PrintIcon,
   UsersIcon, SettingsIcon, SuperAdminIcon, ImportIcon, AnnouncementIcon, StorageIcon,
+  CalendarIcon, SubstitutionIcon,
 } from "../components/NavIcons";
 import { setLocaleAction, signOutAction, exitSuperAdminViewAction } from "./actions";
 
@@ -93,6 +94,8 @@ export default async function InstitutionLayout({ children }: { children: React.
   const hasStaffAccess = enabledModules.has("staff") && can(ctx.permissions, "staff.view");
   const hasReportsAccess = can(ctx.permissions, "reports.view");
   const hasSettingsAccess = can(ctx.permissions, "settings.manage");
+  const hasCalendarAccess = enabledModules.has("calendar") && can(ctx.permissions, "calendar.view");
+  const hasSubstitutionAccess = enabledModules.has("substitution") && can(ctx.permissions, "substitution.view");
 
   // Icons must be pre-rendered elements, not bare component references —
   // GroupedNavLinks is a "use client" component, and a Server Component
@@ -202,6 +205,8 @@ export default async function InstitutionLayout({ children }: { children: React.
     }] : []),
 
     ...(hasReportsAccess ? [{ kind: "link" as const, href: "/analysis", label: "Analysis", icon: ni(AnalysisIcon) }] : []),
+    ...(hasSubstitutionAccess ? [{ kind: "link" as const, href: "/substitution", label: "Substitution", icon: ni(SubstitutionIcon) }] : []),
+    ...(hasCalendarAccess ? [{ kind: "link" as const, href: "/calendar", label: "Academic Calendar", icon: ni(CalendarIcon) }] : []),
     { kind: "link", href: "/print", label: "Print Center", icon: ni(PrintIcon) },
 
     ...(can(ctx.permissions, "data.import") || can(ctx.permissions, "data.export")

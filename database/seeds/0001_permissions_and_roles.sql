@@ -75,6 +75,13 @@ insert into permissions (code, module, description) values
 
   ('files.manage',         'storage',      'Manage institution file storage (view all files, trigger provider migration)'),
 
+  ('calendar.view',        'calendar',      'View the academic calendar'),
+  ('calendar.manage',      'calendar',      'Add/edit/delete academic calendar events, including bulk upload'),
+
+  ('substitution.view',    'substitution',  'View staff substitutions and reports'),
+  ('substitution.manage',  'substitution',  'Generate, edit, and confirm substitutions for an absent teacher'),
+  ('substitution.timetable.manage', 'substitution', 'Configure the weekly timetable (class/section/period -> subject/teacher), including bulk upload'),
+
   ('platform.institutions.manage', 'super_admin', 'Create/edit/activate institutions'),
   ('platform.usage.view',          'super_admin', 'View platform usage metrics'),
   ('platform.audit.view',          'super_admin', 'View platform-wide audit logs')
@@ -108,5 +115,7 @@ insert into modules (code, name, description, category, is_core, is_active) valu
   ('achievements', 'Achievements',       'Student achievements and recognitions',       'performance', false, true),
   ('staff',        'Staff',              'Staff directory, attendance, leave, portion completion, teacher performance', 'core', false, true),
   ('discipline',   'Discipline',         'Discipline records and character assessments',   'wellbeing', false, true),
-  ('mentoring',    'Mentoring',          'Mentor observations, goals, and action plans',    'wellbeing', false, true)
+  ('mentoring',    'Mentoring',          'Mentor observations, goals, and action plans',    'wellbeing', false, true),
+  ('calendar',     'Academic Calendar',  'Yearly/termly/monthly events and holidays',       'operations', false, true),
+  ('substitution', 'Substitution',       'Day-level teacher substitution for absent staff', 'operations', false, true)
 on conflict (code) do nothing;

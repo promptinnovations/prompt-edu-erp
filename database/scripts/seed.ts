@@ -75,7 +75,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
   }
 
   const { rows: moduleRows } = await db.query<{ id: string }>(
-    `select id from modules where code in ('academic','students','examination','attendance','library','skills','achievements','staff','discipline','mentoring')`
+    `select id from modules where code in ('academic','students','examination','attendance','library','skills','achievements','staff','discipline','mentoring','calendar','substitution')`
   );
   for (const m of moduleRows) {
     await db.query(
@@ -106,7 +106,8 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       "discipline.view", "portfolio.view_all", "reports.view", "reports.export", "audit.view",
       "staff.view", "staff.edit", "staff.portion.manage", "staff.observation.manage", "staff.assignment.manage",
       "mentoring.view_all", "data.import", "data.export", "announcements.publish", "announcements.view",
-      "files.manage",
+      "files.manage", "calendar.view", "calendar.manage",
+      "substitution.view", "substitution.manage", "substitution.timetable.manage",
     ],
     teacher: [
       "student.view", "marks.view", "marks.enter", "marks.verify",
@@ -114,11 +115,12 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       "achievements.submit", "portfolio.view_own", "discipline.record",
       "staff.view", "staff.portion.manage",
       "mentoring.view_own", "mentoring.create", "announcements.view",
+      "calendar.view", "substitution.view",
     ],
-    librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view"],
-    parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply"],
-    student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply"],
-    staff: ["staff.view", "announcements.view"],
+    librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view"],
+    parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view"],
+    student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],
+    staff: ["staff.view", "announcements.view", "calendar.view", "substitution.view"],
   };
   for (const [roleCode, permCodes] of Object.entries(roleGrants)) {
     await db.query(

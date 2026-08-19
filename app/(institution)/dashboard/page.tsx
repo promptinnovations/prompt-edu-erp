@@ -1,47 +1,96 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../services/request-context";
 import { getInstitution } from "../../../services/institution/institution-service";
-import { listClasses, listSections, listSubjects } from "../../../modules/academic/service";
-import { listStudents } from "../../../modules/students/service";
+import { getEnabledModuleCodes } from "../../../services/modules/module-service";
 import { getOnboardingChecklist } from "../../../services/onboarding/onboarding-service";
 import { can } from "../../../services/permissions/permission-service";
+import { getInstitutionStats, getTodayAttendanceSummary, getUpcomingItems } from "../../../services/home/home-service";
+import { listMyTodos } from "../../../services/todo/todo-service";
+import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrend } from "../../../modules/examination/service";
 import OnboardingChecklist from "./OnboardingChecklist";
+import TodoWidget from "./TodoWidget";
+import {
+  ResultIcon, StaffIcon, AttendanceIcon, StudentIcon, DisciplineIcon, AnalysisIcon,
+  SubstitutionIcon, CalendarIcon, ExamIcon, MentoringIcon, SkillsIcon, LibraryIcon,
+} from "../../components/NavIcons";
 
-const CARD_ACCENTS = [
-  "from-indigo-500 to-violet-500",
-  "from-violet-500 to-fuchsia-500",
-  "from-fuchsia-500 to-pink-500",
-  "from-sky-500 to-indigo-500",
-];
+interface QuickButton { label: string; href: string; icon: ReactNode }
+
+function formatDate(d: string) {
+  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
 
 export default async function DashboardPage() {
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
+  const authUserId = ctx.session.authUserId;
   const t = await getTranslations("dashboard");
-  // Setup checklist is about configuring the institution, so it's only
-  // fetched/shown to whoever can already reach Settings — same gate, same
-  // reasoning as that page.
   const canSeeChecklist = can(ctx.permissions, "settings.manage");
+  const today = new Date().toISOString().slice(0, 10);
 
-  const [institution, classes, sections, subjects, students, checklist] = await Promise.all([
-    getInstitution(institutionId, ctx.session.authUserId),
-    listClasses(institutionId, ctx.session.authUserId),
-    listSections(institutionId, ctx.session.authUserId),
-    listSubjects(institutionId, ctx.session.authUserId),
-    listStudents(institutionId, ctx.session.authUserId),
-    canSeeChecklist ? getOnboardingChecklist(institutionId, ctx.session.authUserId) : Promise.resolve([]),
+  const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
+  const hasExaminationAccess = enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"));
+  const hasAttendanceAccess = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"));
+
+  const [institution, checklist, stats, attendanceToday, todos, recentExam] = await Promise.all([
+    getInstitution(institutionId, authUserId),
+    canSeeChecklist ? getOnboardingChecklist(institutionId, authUserId) : Promise.resolve([]),
+    getInstitutionStats(institutionId, authUserId),
+    hasAttendanceAccess ? getTodayAttendanceSummary(institutionId, authUserId, today) : Promise.resolve(null),
+    listMyTodos(institutionId, authUserId, ctx.userId),
+    hasExaminationAccess ? getMostRecentExamination(institutionId, authUserId) : Promise.resolve(null),
   ]);
 
-  const cards: Array<[string, number]> = [
-    [t("classes"), classes.length],
-    [t("sections"), sections.length],
-    [t("subjects"), subjects.length],
-    [t("students"), students.length],
+  const [markEntryStatus, passRateTrend, upcoming] = await Promise.all([
+    hasExaminationAccess && recentExam ? getMarkEntryStatus(institutionId, authUserId, recentExam.id) : Promise.resolve([]),
+    hasExaminationAccess ? getInstitutionPassRateTrend(institutionId, authUserId, 5) : Promise.resolve([]),
+    getUpcomingItems(institutionId, authUserId, 6),
+  ]);
+
+  const markExpected = markEntryStatus.reduce((sum, r) => sum + r.expected, 0);
+  const markEntered = markEntryStatus.reduce((sum, r) => sum + r.entered, 0);
+
+  // "Quick Buttons... relevant in the case of each role" — the exact
+  // Principal set given (Result, Staff, Lesson Observation, Attendance,
+  // Student profiles, Discipline, Analysis, Substitution, Academic
+  // Calendar) first, each individually permission/module-gated so a role
+  // with fewer permissions naturally sees fewer buttons, plus a few
+  // sensible extras for roles that list didn't cover (Mark Entry, Library,
+  // Mentoring, Skills). Same permission codes those pages already gate
+  // on internally, and the same "always by permission code" convention the
+  // sidebar (institution)/layout.tsx uses, so a custom role composed from
+  // the same catalogue gets the right buttons automatically.
+  const quickButtons: QuickButton[] = [
+    ...(hasExaminationAccess && can(ctx.permissions, "marks.view") ? [{ label: "Result", href: "/results", icon: <ResultIcon /> }] : []),
+    ...(enabledModules.has("staff") && can(ctx.permissions, "staff.view") ? [{ label: "Staff", href: "/staff", icon: <StaffIcon /> }] : []),
+    ...(enabledModules.has("staff") && can(ctx.permissions, "staff.observation.manage") ? [{ label: "Lesson Observation", href: "/staff", icon: <StaffIcon /> }] : []),
+    ...(hasAttendanceAccess ? [{ label: "Attendance", href: "/attendance", icon: <AttendanceIcon /> }] : []),
+    ...(can(ctx.permissions, "student.view") || can(ctx.permissions, "student.view_all") ? [{ label: "Student profiles", href: "/students", icon: <StudentIcon /> }] : []),
+    ...(enabledModules.has("discipline") && (can(ctx.permissions, "discipline.view") || can(ctx.permissions, "discipline.record")) ? [{ label: "Discipline", href: "/discipline", icon: <DisciplineIcon /> }] : []),
+    ...(can(ctx.permissions, "reports.view") ? [{ label: "Analysis", href: "/analysis", icon: <AnalysisIcon /> }] : []),
+    ...(enabledModules.has("substitution") && can(ctx.permissions, "substitution.view") ? [{ label: "Substitution", href: "/substitution", icon: <SubstitutionIcon /> }] : []),
+    ...(enabledModules.has("calendar") && can(ctx.permissions, "calendar.view") ? [{ label: "Academic Calendar", href: "/calendar", icon: <CalendarIcon /> }] : []),
+    ...(hasExaminationAccess && can(ctx.permissions, "marks.enter") && !can(ctx.permissions, "marks.view") ? [{ label: "Mark Entry", href: "/examinations", icon: <ExamIcon /> }] : []),
+    ...(enabledModules.has("mentoring") && (can(ctx.permissions, "mentoring.view_all") || can(ctx.permissions, "mentoring.view_own") || can(ctx.permissions, "mentoring.create")) ? [{ label: "Mentoring", href: "/mentoring", icon: <MentoringIcon /> }] : []),
+    ...(enabledModules.has("skills") && (can(ctx.permissions, "skills.review") || can(ctx.permissions, "skills.submit")) ? [{ label: "Skills", href: "/skills", icon: <SkillsIcon /> }] : []),
+    ...(enabledModules.has("library") && can(ctx.permissions, "library.view") ? [{ label: "Library", href: "/library", icon: <LibraryIcon /> }] : []),
   ];
+
+  const statCards: Array<[string, number]> = [
+    [t("classes"), stats.classes],
+    ["Divisions", stats.divisions],
+    [t("students"), stats.students],
+    ["Teachers", stats.teachers],
+    ["Staff", stats.staff],
+  ];
+
+  const maxPassRate = Math.max(1, ...passRateTrend.map((p) => p.percentage));
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-6 text-white shadow-lg shadow-violet-900/20 sm:p-8">
+      <div className="relative overflow-hidden rounded-3xl bg-[var(--brand)] p-6 text-white shadow-lg sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
         <div className="relative">
@@ -51,21 +100,119 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {quickButtons.length > 0 ? (
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {quickButtons.map((b) => (
+            <Link
+              key={b.label}
+              href={b.href}
+              className="flex shrink-0 flex-col items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-center shadow-sm transition-colors hover:border-[var(--brand)] dark:border-zinc-800 dark:bg-zinc-900"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
+                {b.icon}
+              </span>
+              <span className="whitespace-nowrap text-xs font-medium text-zinc-700 dark:text-zinc-300">{b.label}</span>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+
       {canSeeChecklist ? <OnboardingChecklist items={checklist} /> : null}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {cards.map(([label, value], i) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br ${CARD_ACCENTS[i % CARD_ACCENTS.length]} text-sm font-bold text-white`}>
-              {value > 99 ? "99+" : value}
-            </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {statCards.map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{value}</div>
             <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{label}</div>
           </div>
         ))}
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">Dashboard</h2>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {attendanceToday ? (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Today&apos;s attendance</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Students</p>
+                  <p className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+                    {attendanceToday.studentsPresent}<span className="text-sm font-normal text-zinc-400">/{attendanceToday.studentsEnrolled}</span>
+                  </p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    {attendanceToday.studentsMarked > 0 ? `${attendanceToday.studentsAbsent} absent` : "Not marked yet"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Staff</p>
+                  <p className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+                    {attendanceToday.staffPresent}<span className="text-sm font-normal text-zinc-400">/{attendanceToday.staffTotal}</span>
+                  </p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    {attendanceToday.staffMarked > 0 ? `${attendanceToday.staffAbsent} absent` : "Not marked yet"}
+                  </p>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">To do list</h3>
+            <TodoWidget todos={todos} />
+          </section>
+
+          {hasExaminationAccess && recentExam ? (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <h3 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Mark entry status</h3>
+              <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">{recentExam.name}</p>
+              {markExpected === 0 ? (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500">No students/subjects configured yet.</p>
+              ) : (
+                <>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                    <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.min(100, (markEntered / markExpected) * 100)}%` }} />
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{markEntered} / {markExpected} marks entered</p>
+                </>
+              )}
+              <Link href="/examinations/status" className="mt-2 inline-block text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">View full status →</Link>
+            </section>
+          ) : null}
+
+          {hasExaminationAccess && passRateTrend.length > 0 ? (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pass rate trend</h3>
+              <div className="flex items-end gap-3" style={{ height: 90 }}>
+                {passRateTrend.map((p) => (
+                  <div key={p.examinationId} className="flex flex-1 flex-col items-center gap-1">
+                    <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{p.percentage}%</span>
+                    <div className="w-full rounded-t bg-[var(--brand)]/70" style={{ height: `${Math.max(4, (p.percentage / maxPassRate) * 60)}px` }} />
+                    <span className="max-w-full truncate text-[10px] text-zinc-400 dark:text-zinc-500" title={p.examinationName}>{p.examinationName}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Upcoming calendar</h3>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing scheduled.</p>
+            ) : (
+              <ul className="space-y-2">
+                {upcoming.map((u) => (
+                  <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate text-zinc-700 dark:text-zinc-300">{u.title}</span>
+                    <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">
+                      {formatDate(u.date)}{u.endDate ? ` – ${formatDate(u.endDate)}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   );
