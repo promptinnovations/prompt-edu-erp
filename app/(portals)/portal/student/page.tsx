@@ -3,9 +3,12 @@ import { getOwnStudentId } from "../../../../modules/portal/service";
 import { getStudent360 } from "../../../../modules/portfolio/service";
 import { listSkillTypes, listSkillActivities } from "../../../../modules/skills/service";
 import { listAchievementCategories, listAchievementLevels } from "../../../../modules/achievements/service";
-import { listBooks } from "../../../../modules/library/service";
+import { listBooks, listReadingRecords, listApprovedReviews, listMyHolds } from "../../../../modules/library/service";
 import SubmitSkillForm from "./SubmitSkillForm";
 import SubmitAchievementForm from "./SubmitAchievementForm";
+import MyPendingReviews from "./MyPendingReviews";
+import ReviewCorner from "./ReviewCorner";
+import PreBookSection from "./PreBookSection";
 
 export default async function StudentPortalPage() {
   const ctx = await requireRequestContext();
@@ -23,13 +26,17 @@ export default async function StudentPortalPage() {
     );
   }
 
-  const [summary, skillTypes, achievementCategories, achievementLevels, books] = await Promise.all([
+  const [summary, skillTypes, achievementCategories, achievementLevels, books, pendingReviews, approvedReviews, myHolds] = await Promise.all([
     getStudent360(institutionId, authUserId, ownStudentId),
     listSkillTypes(institutionId, authUserId),
     listAchievementCategories(institutionId, authUserId),
     listAchievementLevels(institutionId, authUserId),
     listBooks(institutionId, authUserId),
+    listReadingRecords(institutionId, authUserId, "pending", undefined, ownStudentId),
+    listApprovedReviews(institutionId, authUserId, null, ownStudentId),
+    listMyHolds(institutionId, authUserId, ownStudentId),
   ]);
+  const holdableBooks = books.filter((b) => b.available_copies === 0);
 
   const activitiesByType: Record<string, Awaited<ReturnType<typeof listSkillActivities>>> = {};
   for (const st of skillTypes) {
@@ -112,6 +119,25 @@ export default async function StudentPortalPage() {
           </tbody>
         </table>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Post a review</h2>
+        <MyPendingReviews reviews={pendingReviews.map((r) => ({ id: r.id, book_title: r.book_title }))} />
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Review Corner</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">See what others thought before you pick your next book.</p>
+        <ReviewCorner reviews={approvedReviews} />
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pre-book</h2>
+        <PreBookSection
+          holdableBooks={holdableBooks.map((b) => ({ id: b.id, title: b.title, available_copies: b.available_copies }))}
+          myHolds={myHolds.map((h) => ({ id: h.id, book_title: h.book_title, status: h.status }))}
+        />
       </div>
     </div>
   );

@@ -1217,6 +1217,88 @@ Consolidated Marks class filter (unfiltered / own-class / unrelated-class
 cases) plus `listClassesForExamination()`, and tenant isolation across
 every new function.
 
+## Scoring (Page 7) + Library (Page 8) follow-up
+
+User-specified page specs: Page 7 "Scoring" ("can be a different module, it
+should have configuration settings, points children get for their
+academic and non academic (skills and achievements, discipline, library
+usage) will be kept as points here") and Page 8 "Library" (catalogue,
+issue/return, currently issued, pre-book, add book, Review Corner). A
+dedicated scoring module, its configuration (`scoring_rules`), the scoring
+engine, and the library catalogue/issue-return/currently-issued/add-book/
+approval-gated reading review already existed from Phase 7 and Phase 9 —
+exploration narrowed the genuinely new work to three pieces, one schema
+migration (`0033_library_holds_reviews.sql`).
+
+- **Library usage folded into the consolidated score (§K.5).**
+  `getNormalizedScore()`'s `'library'` branch (`modules/scoring/service.ts`)
+  sums `score_events` where `source_module = 'library'` over the requested
+  date range, capped at 100 — the same treatment as the existing skills/
+  achievements branches, per the user's own confirmed choice. Right now
+  that total is just approved reading-review points (already flowing into
+  `score_events` since Phase 9); any future library-scored activity
+  automatically joins this same total the moment a `scoring_rules` row
+  with `module='library'` exists, no code change required. **Not wired**:
+  raw `discipline_records` (positive/negative incident logs) were left
+  out of scoring — only the pre-existing "character" component
+  (`character_assessments`, wired since Phase 11) feeds discipline points
+  today. Turning incident logs themselves into point deltas would need its
+  own point-value/sign conventions the user hasn't specified; flagging
+  this rather than guessing at it.
+- **Pre-booking / holds** (`book_holds`, new table). `placeHold()` refuses
+  when the book already has an available copy (issue it directly instead)
+  and refuses a second active hold by the same student on the same book;
+  succeeds only once every copy is checked out. `returnBook()` — when a
+  copy becomes available again — notifies the single oldest pending hold
+  (in-app + WhatsApp, via the existing `NotificationService`; a failed
+  notification never fails the return itself) and marks it `'notified'`.
+  `issueBook()` auto-marks a matching hold `'fulfilled'` the moment that
+  student is actually issued a copy (this one or any other). Self-service
+  `cancelHold()` takes an optional `ownerStudentId` so the same function
+  serves both the student portal's own-hold-only cancel and the
+  librarian's unrestricted admin cancel.
+- **Review Corner** — self-service write, browse, and reactions. Per the
+  user's own clarification ("nobody will post a pre read review, children
+  can read others' reviews before reading to check interest... review can
+  be written only after reading"), there is exactly one review-writing
+  path: `submitOwnReadingReview()`, an ownership-checked variant of the
+  existing staff `submitReadingReview()` — its `UPDATE` requires
+  `student_id = ownStudentId` (resolved server-side, never client-
+  submitted), so a student can only ever fill in their OWN pending
+  `reading_records` row, silently a no-op otherwise. "Reading others'
+  reviews before picking a book" is served by `listApprovedReviews()`,
+  book-agnostic unless narrowed by `bookId`, joining `review_reactions`
+  for like/dislike counts plus the viewer's own reaction — same query
+  powers both the student portal's Review Corner feed and the librarian's
+  read-only admin view. `reactToReview()` (`review_reactions`, new table,
+  real unique constraint on one row per student+review since "can't like
+  and dislike the same review at once" is a structural invariant, unlike
+  `book_holds`' business-rule-only uniqueness) toggles: the same reaction
+  again removes it, the opposite reaction switches it, otherwise inserts.
+  Approval gating is unchanged — a review only appears in Review Corner
+  once a librarian approves it, same as it already earns points.
+- All new self-service student-portal actions
+  (`submitOwnReadingReviewAction`, `reactToReviewAction`,
+  `placeHoldAction`, `cancelOwnHoldAction`) reuse the existing
+  `library.view` permission (already granted to the `student` role) rather
+  than adding new permission codes — proportionate given every one of
+  these actions can only ever touch the caller's own data, unlike skills/
+  achievements submissions which use dedicated `.submit` codes for
+  weightier new-record-plus-approval flows.
+
+Tests: `tests/integration/library-page8-flow.test.ts` (14 tests) —
+`getNormalizedScore('library', ...)` summing and capping at 100 and
+returning 0 for a student with no library events, `placeHold()` refusing
+both an available-copy book and a duplicate active hold while succeeding
+once fully issued, `returnBook()` auto-notifying the oldest pending hold,
+`issueBook()` auto-fulfilling a matching hold, `cancelHold()`'s ownership
+check (wrong student never cancels another's hold; the true owner can;
+the no-owner admin path can cancel any hold), `submitOwnReadingReview()`
+only ever updating the caller's own pending record, `listApprovedReviews()`
+excluding un-approved reviews and correctly narrowing by book,
+`reactToReview()`'s full toggle/switch/insert cycle, and tenant isolation
+across every new function.
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

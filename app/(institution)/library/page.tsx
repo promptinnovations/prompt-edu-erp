@@ -5,11 +5,13 @@ import { listStudents } from "../../../modules/students/service";
 import {
   listBooks, listAvailableCopies, listIssuedBooks, listReadingRecords,
   listAuthors, listPublishers, listBookCategories, listShelves,
+  listPendingHolds, listApprovedReviews,
 } from "../../../modules/library/service";
 import AddBookForm from "./AddBookForm";
 import IssueBookForm from "./IssueBookForm";
 import ReturnBookForm from "./ReturnBookForm";
 import ReadingReviewQueue from "./ReadingReviewQueue";
+import HoldsWaitlist from "./HoldsWaitlist";
 
 export default async function LibraryPage() {
   const ctx = await requireRequestContext();
@@ -17,7 +19,7 @@ export default async function LibraryPage() {
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "library");
 
-  const [students, books, issued, pendingReviews, authors, publishers, categories, shelves] = await Promise.all([
+  const [students, books, issued, pendingReviews, authors, publishers, categories, shelves, holds, approvedReviews] = await Promise.all([
     listStudents(institutionId, authUserId),
     listBooks(institutionId, authUserId),
     listIssuedBooks(institutionId, authUserId),
@@ -26,6 +28,8 @@ export default async function LibraryPage() {
     listPublishers(institutionId, authUserId),
     listBookCategories(institutionId, authUserId),
     listShelves(institutionId, authUserId),
+    listPendingHolds(institutionId, authUserId),
+    listApprovedReviews(institutionId, authUserId),
   ]);
 
   const copiesByBook: Record<string, Awaited<ReturnType<typeof listAvailableCopies>>> = {};
@@ -120,6 +124,34 @@ export default async function LibraryPage() {
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading reviews</h2>
         <ReadingReviewQueue records={pendingReviews} canReview={canManage} />
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pre-bookings (waitlist)</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+          A student is notified automatically (in-app + WhatsApp) the moment a copy of a held book is returned.
+        </p>
+        <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at }))} />
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Review Corner</h2>
+        <div className="space-y-3">
+          {approvedReviews.map((r) => (
+            <div key={r.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="font-medium text-zinc-800 dark:text-zinc-200">{r.book_title}</span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                  by {r.student_name} · 👍 {r.like_count} · 👎 {r.dislike_count}
+                </span>
+              </div>
+              <p className="text-zinc-600 dark:text-zinc-400">{r.review_text}</p>
+            </div>
+          ))}
+          {approvedReviews.length === 0 ? (
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">No approved reviews yet.</p>
+          ) : null}
+        </div>
       </section>
     </div>
   );

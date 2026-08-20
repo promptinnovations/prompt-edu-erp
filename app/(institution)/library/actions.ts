@@ -5,7 +5,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
   createBook, issueBook, returnBook, submitReadingReview, reviewReadingRecord,
-  createAuthor, createPublisher, createBookCategory, createShelf,
+  createAuthor, createPublisher, createBookCategory, createShelf, cancelHold,
 } from "../../../modules/library/service";
 
 // A blank string from an unselected <select> and a blank string from an
@@ -131,4 +131,19 @@ export async function approveReadingRecordAction(_prevState: { error: string | n
 }
 export async function rejectReadingRecordAction(_prevState: { error: string | null }, formData: FormData) {
   return reviewAction("rejected", formData);
+}
+
+/** §Page-8 follow-up — librarian-side cancel, no ownerStudentId check (may
+ *  cancel any student's hold, e.g. one they were told about in person). */
+export async function cancelHoldAdminAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "library.manage");
+    await cancelHold(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("holdId") ?? ""));
+    revalidatePath("/library");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to cancel hold." };
+  }
 }

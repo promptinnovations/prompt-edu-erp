@@ -18,6 +18,7 @@ import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { evaluateScoring, recordScoreEvent } from "../scoring/service";
 import { recordPortfolioEvent } from "../portfolio/service";
+import { notifyUser } from "../../services/notification/notification-service";
 
 export interface AuthorRecord { id: string; name: string }
 export interface PublisherRecord { id: string; name: string }
@@ -260,6 +261,21 @@ export async function issueBook(
     );
     await scoped.query("update book_copies set status = 'issued' where id = $1", [bookCopyId]);
     await recordAudit(scoped, { institutionId, userId, action: "issue", module: "library", entityType: "book_issues", entityId: rows[0].id, after: rows[0] });
+
+    // §Page-8 follow-up: if this student had an active hold on this exact
+    // book (placed while every copy was out, notified once one came free),
+    // issuing them a copy now — whether that's this exact returned copy or
+    // any other one — satisfies it. Marked 'fulfilled' rather than left
+    // 'notified' forever, so it drops off both their own hold list and the
+    // librarian's waitlist view.
+    const { rows: bookRows } = await scoped.query<{ book_id: string }>("select book_id from book_copies where id = $1", [bookCopyId]);
+    if (bookRows[0]) {
+      await scoped.query(
+        `update book_holds set status = 'fulfilled'
+          where book_id = $1 and student_id = $2 and status in ('pending', 'notified')`,
+        [bookRows[0].book_id, studentId]
+      );
+    }
     return rows[0];
   });
 }
@@ -353,7 +369,145 @@ export async function returnBook(
       [institutionId, issue.student_id, bookRows[0].book_id, data.bookIssueId, reviewStatus]
     );
 
+    // §Page-8 follow-up "once it is returned, notification for the one
+    // booked will be delivered" — only when the copy actually became
+    // available again (not damaged/lost), and only the OLDEST pending hold
+    // for this book gets notified (first-come, first-served; the librarian
+    // still hands the physical book to whoever shows up, this is just the
+    // heads-up). Notification failure (no portal login, provider not
+    // configured, etc.) must never fail the return itself — notifyUser()
+    // already degrades to 'skipped' rows rather than throwing, same
+    // contract every other caller of it relies on.
+    if (newCopyStatus === "available") {
+      const { rows: holdRows } = await scoped.query<{ id: string; student_id: string }>(
+        `select id, student_id from book_holds
+          where book_id = $1 and status = 'pending'
+          order by requested_at asc limit 1`,
+        [bookRows[0].book_id]
+      );
+      if (holdRows[0]) {
+        await scoped.query(
+          "update book_holds set status = 'notified', notified_at = now() where id = $1",
+          [holdRows[0].id]
+        );
+        const { rows: studentRows } = await scoped.query<{ user_id: string | null }>(
+          "select user_id from students where id = $1", [holdRows[0].student_id]
+        );
+        const { rows: titleRows } = await scoped.query<{ title: string }>("select title from books where id = $1", [bookRows[0].book_id]);
+        if (studentRows[0]?.user_id) {
+          await notifyUser(institutionId, authUserId, studentRows[0].user_id, {
+            type: "book_hold_available",
+            title: "A book you're waiting for is available",
+            body: `"${titleRows[0]?.title ?? "Your requested book"}" has just been returned and is available at the library — come collect it.`,
+            channels: ["in_app", "whatsapp"],
+            relatedEntityType: "book_holds", relatedEntityId: holdRows[0].id,
+          }, scoped);
+        }
+      }
+    }
+
     return { fineAmount, readingRecordId: readingRows[0]?.id ?? null };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Pre-booking / holds (§Page-8 follow-up "A book which has already been
+// issued, another child can pre book it")
+// ---------------------------------------------------------------------------
+export interface BookHoldRow {
+  id: string; book_id: string; book_title: string; student_id: string; student_name: string;
+  status: string; requested_at: string; notified_at: string | null;
+}
+
+export async function placeHold(
+  institutionId: string, authUserId: string, userId: string, studentId: string, bookId: string
+): Promise<BookHoldRow> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: availRows } = await scoped.query<{ available: string }>(
+      "select count(*)::text as available from book_copies where book_id = $1 and status = 'available'",
+      [bookId]
+    );
+    if (Number(availRows[0]?.available ?? 0) > 0) {
+      throw new Error("This book has an available copy right now — issue it directly instead of pre-booking.");
+    }
+    const { rows: existing } = await scoped.query<{ id: string }>(
+      "select id from book_holds where book_id = $1 and student_id = $2 and status in ('pending', 'notified')",
+      [bookId, studentId]
+    );
+    if (existing.length > 0) throw new Error("You already have an active pre-booking for this book.");
+
+    const { rows } = await scoped.query<{
+      id: string; book_id: string; student_id: string; status: string; requested_at: string; notified_at: string | null;
+    }>(
+      `insert into book_holds (institution_id, book_id, student_id)
+       values ($1, $2, $3)
+       returning id, book_id, student_id, status, requested_at, notified_at`,
+      [institutionId, bookId, studentId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "library", entityType: "book_holds", entityId: rows[0].id, after: rows[0] });
+
+    const { rows: joined } = await scoped.query<BookHoldRow>(
+      `select bh.id, bh.book_id, b.title as book_title, bh.student_id, s.full_name as student_name,
+              bh.status, bh.requested_at, bh.notified_at
+         from book_holds bh join books b on b.id = bh.book_id join students s on s.id = bh.student_id
+        where bh.id = $1`,
+      [rows[0].id]
+    );
+    return joined[0];
+  });
+}
+
+/** `ownerStudentId`, when passed (the student-portal self-service path),
+ *  restricts the cancellation to the caller's OWN hold — silently a no-op
+ *  (throws the same "not found" error, never revealing whether the hold
+ *  belongs to someone else) if it doesn't match, same shape as
+ *  submitOwnReadingReview()'s ownership check. Omitted entirely for the
+ *  librarian's admin-page cancel action, which may cancel any hold. */
+export async function cancelHold(
+  institutionId: string, authUserId: string, userId: string, holdId: string, ownerStudentId?: string | null
+): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query(
+      `update book_holds set status = 'cancelled'
+        where id = $1 and status in ('pending', 'notified') and ($2::uuid is null or student_id = $2)
+        returning id`,
+      [holdId, ownerStudentId ?? null]
+    );
+    if (rows.length === 0) throw new Error("Hold not found or already resolved.");
+    await recordAudit(scoped, { institutionId, userId, action: "cancel", module: "library", entityType: "book_holds", entityId: holdId });
+  });
+}
+
+/** A student's own active (pending/notified) holds — self-service list. */
+export async function listMyHolds(institutionId: string, authUserId: string, studentId: string): Promise<BookHoldRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<BookHoldRow>(
+      `select bh.id, bh.book_id, b.title as book_title, bh.student_id, s.full_name as student_name,
+              bh.status, bh.requested_at, bh.notified_at
+         from book_holds bh join books b on b.id = bh.book_id join students s on s.id = bh.student_id
+        where bh.student_id = $1 and bh.status in ('pending', 'notified')
+        order by bh.requested_at`,
+      [studentId]
+    );
+    return rows;
+  });
+}
+
+/** Every active hold across the library — the librarian's waitlist view. */
+export async function listPendingHolds(institutionId: string, authUserId: string): Promise<BookHoldRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<BookHoldRow>(
+      `select bh.id, bh.book_id, b.title as book_title, bh.student_id, s.full_name as student_name,
+              bh.status, bh.requested_at, bh.notified_at
+         from book_holds bh join books b on b.id = bh.book_id join students s on s.id = bh.student_id
+        where bh.status in ('pending', 'notified')
+        order by bh.requested_at`
+    );
+    return rows;
   });
 }
 
@@ -448,4 +602,124 @@ export async function reviewReadingRecord(
     });
   }
   return updated;
+}
+
+/** Self-service variant of submitReadingReview() for the student portal
+ *  (§Page-8 follow-up "Children can post review of a book they read").
+ *  `ownStudentId` is always resolved server-side from the caller's own
+ *  session — never client-submitted — and the UPDATE's WHERE clause
+ *  additionally requires `student_id = ownStudentId`, so a student can only
+ *  ever fill in the review text on their OWN pending reading_records row,
+ *  never someone else's by guessing an id (silently a no-op if it doesn't
+ *  match, same "only the right rows transition" pattern as
+ *  reviewLeaveApplication()). The existing submitReadingReview() above is
+ *  unchanged and still used by the librarian's own quick-entry form on the
+ *  admin Library page (a librarian typing a young child's spoken review in
+ *  for them is a legitimate, separate flow — not being removed). */
+export async function submitOwnReadingReview(
+  institutionId: string, authUserId: string, ownStudentId: string, readingRecordId: string, reviewText: string
+): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query(
+      `update reading_records set review_text = $1, updated_at = now()
+        where id = $2 and student_id = $3 and review_status = 'pending'`,
+      [reviewText, readingRecordId, ownStudentId]
+    );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Review Corner (§Page-8 follow-up: browsable approved reviews, "before
+// taking a book" browsing + like/dislike reactions)
+// ---------------------------------------------------------------------------
+export interface ApprovedReviewRow {
+  id: string; book_id: string; book_title: string; student_id: string; student_name: string;
+  review_text: string; like_count: number; dislike_count: number; my_reaction: "like" | "dislike" | null;
+}
+
+/** Every APPROVED review, book-agnostic unless `bookId` narrows it (so a
+ *  student browsing "should I read this?" reviews for one specific book
+ *  and the institution-wide Review Corner feed are the same query).
+ *  `viewerStudentId` is optional and only changes `my_reaction` — omitting
+ *  it (e.g. staff browsing from the admin Library page) still returns
+ *  every review with its like/dislike counts, just with my_reaction always
+ *  null, never an error. */
+export async function listApprovedReviews(
+  institutionId: string, authUserId: string, bookId?: string | null, viewerStudentId?: string | null
+): Promise<ApprovedReviewRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      id: string; book_id: string; book_title: string; student_id: string; student_name: string; review_text: string;
+      like_count: string; dislike_count: string; my_reaction: string | null;
+    }>(
+      `select rr.id, rr.book_id, b.title as book_title, rr.student_id, s.full_name as student_name, rr.review_text,
+              count(*) filter (where rc.reaction = 'like')::int as like_count,
+              count(*) filter (where rc.reaction = 'dislike')::int as dislike_count,
+              max(mine.reaction) as my_reaction
+         from reading_records rr
+         join students s on s.id = rr.student_id
+         join books b on b.id = rr.book_id
+         left join review_reactions rc on rc.reading_record_id = rr.id
+         left join review_reactions mine on mine.reading_record_id = rr.id and mine.student_id = $1
+        where rr.review_status = 'approved' and rr.review_text is not null
+          and ($2::uuid is null or rr.book_id = $2)
+        group by rr.id, rr.book_id, b.title, rr.student_id, s.full_name, rr.review_text
+        order by rr.updated_at desc`,
+      [viewerStudentId ?? null, bookId ?? null]
+    );
+    return rows.map((r) => ({
+      id: r.id, book_id: r.book_id, book_title: r.book_title, student_id: r.student_id, student_name: r.student_name,
+      review_text: r.review_text, like_count: Number(r.like_count), dislike_count: Number(r.dislike_count),
+      my_reaction: (r.my_reaction as "like" | "dislike" | null) ?? null,
+    }));
+  });
+}
+
+const reactionSchema = z.enum(["like", "dislike"]);
+
+/** Toggling reaction (§Page-8: "each children can give like or dislike
+ *  impression"): submitting the SAME reaction again removes it (un-react);
+ *  submitting the opposite one switches it — never two rows for the same
+ *  (review, student), enforced by review_reactions' own unique constraint
+ *  as the backstop. Returns the review's fresh counts so the caller can
+ *  update its UI without a second round-trip. */
+export async function reactToReview(
+  institutionId: string, authUserId: string, studentId: string, readingRecordId: string, reaction: "like" | "dislike"
+): Promise<{ likeCount: number; dislikeCount: number; myReaction: "like" | "dislike" | null }> {
+  const data = reactionSchema.parse(reaction);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: existing } = await scoped.query<{ id: string; reaction: string }>(
+      "select id, reaction from review_reactions where reading_record_id = $1 and student_id = $2",
+      [readingRecordId, studentId]
+    );
+    if (existing[0] && existing[0].reaction === data) {
+      await scoped.query("delete from review_reactions where id = $1", [existing[0].id]);
+    } else if (existing[0]) {
+      await scoped.query("update review_reactions set reaction = $1, updated_at = now() where id = $2", [data, existing[0].id]);
+    } else {
+      await scoped.query(
+        "insert into review_reactions (institution_id, reading_record_id, student_id, reaction) values ($1, $2, $3, $4)",
+        [institutionId, readingRecordId, studentId, data]
+      );
+    }
+
+    const { rows: counts } = await scoped.query<{ like_count: string; dislike_count: string }>(
+      `select count(*) filter (where reaction = 'like')::text as like_count,
+              count(*) filter (where reaction = 'dislike')::text as dislike_count
+         from review_reactions where reading_record_id = $1`,
+      [readingRecordId]
+    );
+    const { rows: mine } = await scoped.query<{ reaction: string }>(
+      "select reaction from review_reactions where reading_record_id = $1 and student_id = $2",
+      [readingRecordId, studentId]
+    );
+    return {
+      likeCount: Number(counts[0]?.like_count ?? 0),
+      dislikeCount: Number(counts[0]?.dislike_count ?? 0),
+      myReaction: (mine[0]?.reaction as "like" | "dislike" | undefined) ?? null,
+    };
+  });
 }

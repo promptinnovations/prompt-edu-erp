@@ -307,9 +307,17 @@ export async function getNormalizedScore(
     const summary = await getStudentAttendanceSummary(institutionId, authUserId, studentId, fromDate, toDate);
     return summary.present_percent;
   }
-  if (componentModule === "skills" || componentModule === "achievements") {
+  if (componentModule === "skills" || componentModule === "achievements" || componentModule === "library") {
+    // §Page-7 follow-up "Points children gets for their...non academic
+    // (Skills and achievements, discipline, library usage) will be kept as
+    // points here" — library usage (currently just approved book reviews,
+    // score_events.source_module='library', §M.3) is summed exactly like
+    // skills/achievements rather than needing its own bespoke query; any
+    // future library-scored activity (e.g. books-read count) automatically
+    // joins this same total the moment a scoring_rules row with
+    // module='library' exists, no code change required here.
     return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-      const sourceModule = componentModule; // score_events.source_module is 'skills' or 'achievements'
+      const sourceModule = componentModule; // score_events.source_module is 'skills'/'achievements'/'library'
       const { rows } = await scoped.query<{ total: string | null }>(
         `select sum(points) as total from score_events
           where student_id = $1 and source_module = $2 and computed_at between $3 and $4`,
