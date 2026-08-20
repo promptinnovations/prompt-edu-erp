@@ -10,9 +10,9 @@ import { updateClassAction, deleteClassAction } from "./actions";
  *  still have actively enrolled students, so the confirm() here is just a
  *  first line of defense against a stray click, not the only guard. */
 export default function ClassRow({
-  classId, name, sectionsLabel, canManage,
+  classId, name, sectionsLabel, canManage, stage,
 }: {
-  classId: string; name: string; sectionsLabel: string; canManage: boolean;
+  classId: string; name: string; sectionsLabel: string; canManage: boolean; stage?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState<{ error: string | null }, FormData>(updateClassAction, { error: null });
@@ -33,6 +33,12 @@ export default function ClassRow({
             required
             className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
+          <input
+            name="stage"
+            defaultValue={stage ?? ""}
+            placeholder="Stage (LP/UP/HS/HSS)"
+            className="w-32 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          />
           <button type="submit" disabled={updatePending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
             Save
           </button>
@@ -47,7 +53,7 @@ export default function ClassRow({
 
   return (
     <li className="flex items-center justify-between gap-2 py-2">
-      <span>{name}</span>
+      <span>{name}{stage ? <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">({stage})</span> : null}</span>
       <span className="flex items-center gap-2">
         <span className="text-xs text-zinc-400 dark:text-zinc-500">{sectionsLabel}</span>
         {canManage ? (

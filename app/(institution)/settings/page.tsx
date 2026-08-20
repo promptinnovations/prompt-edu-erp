@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
-import { getInstitution } from "../../../services/institution/institution-service";
+import { getInstitution, getParentPortalSections } from "../../../services/institution/institution-service";
 import LogoForm from "./LogoForm";
+import ParentPortalSectionsForm from "./ParentPortalSectionsForm";
 
 export default async function SettingsPage() {
   const ctx = await requireRequestContext();
@@ -12,7 +13,10 @@ export default async function SettingsPage() {
   // Full-page gate, same pattern as /users — not just hiding the form.
   if (!can(ctx.permissions, "settings.manage")) redirect("/dashboard");
 
-  const institution = await getInstitution(institutionId, ctx.session.authUserId);
+  const [institution, parentPortalSections] = await Promise.all([
+    getInstitution(institutionId, ctx.session.authUserId),
+    getParentPortalSections(institutionId, ctx.session.authUserId),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -39,6 +43,15 @@ export default async function SettingsPage() {
           any time using the toggle at the bottom of the sidebar (or in the portal header) — your choice is
           remembered on this device.
         </p>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Parent portal — what parents can see</h2>
+        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+          Choose which sections of a child&apos;s page show on the parent portal. Unchecked sections stay hidden from
+          parents but remain fully visible to staff.
+        </p>
+        <ParentPortalSectionsForm sections={parentPortalSections} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">

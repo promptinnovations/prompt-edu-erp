@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
-import { updateInstitutionBranding, updateInstitutionLogo } from "../../../services/institution/institution-service";
+import {
+  updateInstitutionBranding, updateInstitutionLogo,
+  updateParentPortalSections, PARENT_PORTAL_SECTION_KEYS,
+  type ParentPortalSections,
+} from "../../../services/institution/institution-service";
 import { uploadFile } from "../../../services/storage/file-service";
 
 export async function updateBrandingAction(_prevState: { error: string | null }, formData: FormData) {
@@ -72,5 +76,27 @@ export async function removeInstitutionLogoAction(_prevState: { error: string | 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to remove logo." };
+  }
+}
+
+/** §Page-3 follow-up "Student Portfolio Management — designing children's
+ *  page, what should be shown in the Parent portal" — a plain checkbox set,
+ *  one boolean per section key; reads all PARENT_PORTAL_SECTION_KEYS off the
+ *  form (unchecked = absent from FormData, per standard HTML checkbox
+ *  semantics) so adding a new section later needs no new server-action
+ *  wiring, just a new checkbox in the form + a new key in the shared const. */
+export async function updateParentPortalSectionsAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const sections = Object.fromEntries(
+      PARENT_PORTAL_SECTION_KEYS.map((key) => [key, formData.get(key) === "on"])
+    ) as ParentPortalSections;
+    await updateParentPortalSections(ctx.institutionId, ctx.session.authUserId, ctx.userId, sections);
+    revalidatePath("/settings");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update parent portal settings." };
   }
 }

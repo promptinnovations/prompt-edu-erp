@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
+import { can } from "../../../../services/permissions/permission-service";
 import { listClasses, listSections, listClassSubjects, getCurrentAcademicYear } from "../../../../modules/academic/service";
-import { listStudentsForAdmin } from "../../../../modules/students/service";
+import { listStudentsForAdmin, getClassStrength } from "../../../../modules/students/service";
 import { listTeacherAssignments } from "../../../../modules/staff/service";
+import { listExaminationsForClass } from "../../../../modules/examination/service";
+import { listDisciplineRecords } from "../../../../modules/discipline/service";
+import { listAchievements } from "../../../../modules/achievements/service";
+import { listSkillSubmissions } from "../../../../modules/skills/service";
+import { listReadingRecords } from "../../../../modules/library/service";
 import RecomputeRollNumbersButton from "../RecomputeRollNumbersButton";
 
 /**
@@ -22,13 +28,22 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
   const authUserId = ctx.session.authUserId;
   const today = new Date().toISOString().slice(0, 10);
 
-  const [classes, sections, students, teacherAssignments, classSubjects, academicYear] = await Promise.all([
+  const [classes, sections, students, teacherAssignments, classSubjects, academicYear, strength, exams] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId, classId),
-    listStudentsForAdmin(institutionId, authUserId, { classId }),
+    listStudentsForAdmin(institutionId, authUserId, { classId, includeParentContact: true }),
     listTeacherAssignments(institutionId, authUserId),
     listClassSubjects(institutionId, authUserId, classId),
     getCurrentAcademicYear(institutionId, authUserId),
+    getClassStrength(institutionId, authUserId, classId),
+    listExaminationsForClass(institutionId, authUserId, classId),
+  ]);
+
+  const [disciplineRecords, achievements, skillSubmissions, readingRecords] = await Promise.all([
+    can(ctx.permissions, "discipline.view") ? listDisciplineRecords(institutionId, authUserId, undefined, classId) : Promise.resolve([]),
+    listAchievements(institutionId, authUserId, undefined, classId),
+    listSkillSubmissions(institutionId, authUserId, undefined, classId),
+    can(ctx.permissions, "library.view") ? listReadingRecords(institutionId, authUserId, undefined, classId) : Promise.resolve([]),
   ]);
 
   const cls = classes.find((c) => c.id === classId);
@@ -57,6 +72,10 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         {wholeClassTeachers.length > 0 ? (
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Class teacher: {wholeClassTeachers.join(", ")}</p>
         ) : null}
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Strength: {strength.total} total — {strength.boys} boys, {strength.girls} girls
+          {strength.other > 0 ? `, ${strength.other} other` : ""}
+        </p>
       </div>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
@@ -157,6 +176,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                   <th className="pb-2 font-medium">Roll no.</th>
                   <th className="pb-2 font-medium">Admission no.</th>
                   <th className="pb-2 font-medium">Name</th>
+                  <th className="pb-2 font-medium">Parent</th>
                   <th className="pb-2 font-medium">Division</th>
                   <th className="pb-2 font-medium">Login ID</th>
                 </tr>
@@ -171,6 +191,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                     <td className="py-2 text-zinc-900 dark:text-zinc-50">
                       <Link href={`/students/${s.id}`} className="underline hover:text-indigo-600 dark:hover:text-indigo-400">{s.full_name}</Link>
                     </td>
+                    <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.parent_name ?? "—"}</td>
                     <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.section_name ?? "—"}</td>
                     <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.login_id ?? "—"}</td>
                   </tr>
@@ -180,6 +201,102 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
           </div>
         )}
       </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Exams ({exams.length})</h2>
+        {exams.length === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No examinations cover this class yet.</p>
+        ) : (
+          <ol className="space-y-1.5">
+            {exams.map((e, i) => (
+              <li key={e.id} className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700 dark:text-zinc-300">{i + 1}. {e.name}</span>
+                <span className="flex gap-3">
+                  <Link href={`/results/${e.id}`} className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Result</Link>
+                  <Link href={`/results/${e.id}/consolidated`} className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Consolidated</Link>
+                  <Link href={`/results/${e.id}/report-cards`} className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Report cards</Link>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      {can(ctx.permissions, "discipline.view") ? (
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Discipline records ({disciplineRecords.length})</h2>
+            <Link href="/discipline" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+              Open Discipline (add entry / full reports)
+            </Link>
+          </div>
+          {disciplineRecords.length === 0 ? (
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">No discipline records for this class.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {disciplineRecords.slice(0, 10).map((d) => (
+                <li key={d.id} className="flex items-center justify-between text-sm">
+                  <span className="text-zinc-700 dark:text-zinc-300">{d.student_name} — {d.category_name}</span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{d.date}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Skills &amp; achievements ({skillSubmissions.length + achievements.length})
+          </h2>
+          <span className="flex gap-3">
+            <Link href="/skills" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Skills</Link>
+            <Link href="/achievements" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Achievements</Link>
+          </span>
+        </div>
+        {skillSubmissions.length === 0 && achievements.length === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing recorded for this class yet.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {achievements.slice(0, 5).map((a) => (
+              <li key={a.id} className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700 dark:text-zinc-300">{a.student_name} — {a.title} ({a.category_name})</span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">{a.status}</span>
+              </li>
+            ))}
+            {skillSubmissions.slice(0, 5).map((s) => (
+              <li key={s.id} className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700 dark:text-zinc-300">{s.student_name} — {s.activity_name}</span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">{s.status}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {can(ctx.permissions, "library.view") ? (
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Library — reading record ({readingRecords.length})</h2>
+            <Link href="/library" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+              Open Library
+            </Link>
+          </div>
+          {readingRecords.length === 0 ? (
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">No reading records for this class yet.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {readingRecords.slice(0, 10).map((r) => (
+                <li key={r.id} className="flex items-center justify-between text-sm">
+                  <span className="text-zinc-700 dark:text-zinc-300">{r.student_name} — {r.book_title}</span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{r.review_status}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

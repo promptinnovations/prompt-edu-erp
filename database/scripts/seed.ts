@@ -108,6 +108,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       "mentoring.view_all", "data.import", "data.export", "announcements.publish", "announcements.view",
       "files.manage", "calendar.view", "calendar.manage",
       "substitution.view", "substitution.manage", "substitution.timetable.manage",
+      "academic.promote",
     ],
     teacher: [
       "student.view", "marks.view", "marks.enter", "marks.verify",

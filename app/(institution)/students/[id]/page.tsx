@@ -10,6 +10,7 @@ import ClassEnrollmentSection from "../ClassEnrollmentSection";
 import ParentSection, { ProvisionStudentAccountForm } from "../ParentSection";
 import EditStudentForm from "../EditStudentForm";
 import StudentLoginSection from "../StudentLoginSection";
+import PhotoForm from "../PhotoForm";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -60,6 +61,11 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             </Link>
           </div>
         </div>
+        {can(ctx.permissions, "student.edit") ? (
+          <div className="mt-4">
+            <PhotoForm studentId={student.id} photoUrl={student.photo_file_id ? `/api/files/${student.photo_file_id}` : null} />
+          </div>
+        ) : null}
         <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div>
             <dt className="text-zinc-400 dark:text-zinc-500">{t("admissionNumber")}</dt>

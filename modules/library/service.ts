@@ -360,28 +360,31 @@ export async function returnBook(
 // ---------------------------------------------------------------------------
 // Reading review -> portfolio integration (§M.3)
 // ---------------------------------------------------------------------------
-export async function listReadingRecords(institutionId: string, authUserId: string, status?: string): Promise<ReadingRecordRow[]> {
+export async function listReadingRecords(
+  institutionId: string, authUserId: string, status?: string, classId?: string, studentId?: string
+): Promise<ReadingRecordRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = status
-      ? await scoped.query<ReadingRecordRow>(
-          `select rr.id, rr.student_id, s.full_name as student_name, rr.book_id, b.title as book_title,
-                  rr.book_issue_id, rr.review_text, rr.review_status
-             from reading_records rr
-             join students s on s.id = rr.student_id
-             join books b on b.id = rr.book_id
-            where rr.review_status = $1
-            order by rr.created_at desc`,
-          [status]
-        )
-      : await scoped.query<ReadingRecordRow>(
-          `select rr.id, rr.student_id, s.full_name as student_name, rr.book_id, b.title as book_title,
-                  rr.book_issue_id, rr.review_text, rr.review_status
-             from reading_records rr
-             join students s on s.id = rr.student_id
-             join books b on b.id = rr.book_id
-            order by rr.created_at desc`
-        );
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (status) { params.push(status); conditions.push(`rr.review_status = $${params.length}`); }
+    if (classId) {
+      params.push(classId);
+      conditions.push(
+        `rr.student_id in (select se.student_id from student_enrollments se where se.class_id = $${params.length} and se.status = 'active')`
+      );
+    }
+    if (studentId) { params.push(studentId); conditions.push(`rr.student_id = $${params.length}`); }
+    const { rows } = await scoped.query<ReadingRecordRow>(
+      `select rr.id, rr.student_id, s.full_name as student_name, rr.book_id, b.title as book_title,
+              rr.book_issue_id, rr.review_text, rr.review_status
+         from reading_records rr
+         join students s on s.id = rr.student_id
+         join books b on b.id = rr.book_id
+        ${conditions.length ? `where ${conditions.join(" and ")}` : ""}
+        order by rr.created_at desc`,
+      params
+    );
     return rows;
   });
 }

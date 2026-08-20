@@ -962,6 +962,107 @@ to principal."
   institution had a similar case-only email collision before applying the
   new constraint.
 
+## Academic Structure (Page 2) + Student Management (Page 3) follow-up
+
+Two large user-specified page specs, implemented via migration 0032
+(`database/migrations/0032_academic_structure_student_mgmt.sql`):
+`classes.stage`, `students.photo_file_id` (+ FK), an index on
+`exam_classes(institution_id, class_id)`, and `institutions.parent_portal_sections`
+(jsonb), plus one new permission (`academic.promote`).
+
+- **Class stage is now a real, admin-editable field**, not guessed. Classes
+  used to be grouped into LP/UP/HS/HSS sections on the Classes hub purely
+  by pattern-matching the class NAME (a numeric-name-guessing function).
+  That's gone — `classes.stage` is a free-text column (any institution's
+  own vocabulary, not an enum, same §K convention as everything else
+  institution-configurable) set from a text input next to the name/sort
+  order fields on Academic Setup's class form, and the Classes hub now
+  groups by whatever `stage` actually contains: known stages first
+  (LP/UP/HS/HSS), then any custom stage alphabetically, then "Other" last
+  for classes with no stage set.
+- **Classes hub detail page** (`/classes/[classId]`) gained: class
+  strength (boys/girls/other counts for the current year's active roster,
+  `getClassStrength()`), a "Parent" column on the student roster (joined
+  via `student_parents`/`parents`, only when explicitly requested via
+  `listStudentsForAdmin({ includeParentContact: true })` so the dozen
+  other existing callers of that function are unaffected), an "Exams"
+  section listing every examination that covers this class
+  (`listExaminationsForClass()`, via `exam_classes`) with links straight
+  to that exam's existing Result/Consolidated/Report-card pages — a
+  deliberately thin link-out layer, not a new cross-exam data model, per
+  the "just link to each exam's existing pages" scope decision — and new
+  permission-gated Discipline/Skills & Achievements/Library sections,
+  each scoped to students CURRENTLY enrolled in this class via a new
+  optional `classId` parameter added to `listDisciplineRecords()`,
+  `listAchievements()`, `listSkillSubmissions()`, and
+  `listReadingRecords()` (all four: dynamic WHERE-clause building, joins
+  through `student_enrollments where status = 'active'` — "this class's
+  records" always means "students currently placed here", not a
+  historical as-of-date lookup).
+- **Bulk class promotion** (`/academic/promotion`, `academic.promote`
+  permission): pick a class (+ optional section), preview every actively
+  enrolled student with a suggested action
+  (`getPromotionPreview()` — promote to the next-higher-`sort_order`
+  class, or graduate if this is already the highest), override any
+  student's action individually (promote/repeat/graduate/transfer_out/
+  dropout, plus a target class+section for promote/repeat), then confirm
+  once (`promoteClass()`). No new enrollment status or column was needed:
+  `student_enrollments` already has one row per (student, academic year),
+  so promoting/repeating a student is simply inserting a NEW row for the
+  target year — the prior year's row is left completely untouched as
+  permanent history. Only the three non-advancing outcomes mutate the
+  CURRENT year's row, closing it out via the existing
+  `exit_date`/`exit_reason` columns (`status` becomes
+  `graduated`/`transferred`/`removed`). Re-running a promotion for a
+  student who already has an active enrollment in the target year skips
+  them (reported back in `skippedAlreadyEnrolled`) rather than creating a
+  duplicate. `setCurrentAcademicYear()` flips which year is `is_current`
+  (Academic Setup's "Archived" badge + a confirm-then-submit button on any
+  non-current year) — "archiving" a year needs no separate flag; it just
+  stops being current once a newer one is marked so, and every exam/
+  attendance/enrollment row from it stays exactly where it was.
+- **Student photo**: `students.photo_file_id` + `updateStudentPhoto()`,
+  mirroring `updateInstitutionLogo()`'s exact ownership-check shape — a
+  plain UPDATE naming an arbitrary existing file id would otherwise
+  satisfy the FK regardless of which institution that file actually
+  belongs to (files' RLS only protects the SELECT, not a raw UPDATE
+  naming its id), so the file is re-SELECTed under the caller's own scoped
+  institution context first and the update refused with a clear error
+  otherwise. New `PhotoForm.tsx` (mirrors `LogoForm.tsx`) on the student
+  detail page; the Students admin list gained a Photo column (falls back
+  to an initial-letter avatar) and a "Login credentials" column showing
+  `login_id / parent_phone` (the parent's phone doubles as the student
+  portal login password — no separate password is ever stored).
+- **Parent portal section visibility**
+  (`institutions.parent_portal_sections`, a single jsonb config blob —
+  same direct-column convention as `board`/`whatsapp_*` rather than a
+  generic key/value settings table): seven independent toggles (results,
+  attendance, discipline, achievements, library, skills, portfolio),
+  admin-configurable from Settings (`ParentPortalSectionsForm.tsx`),
+  defaulting to all-on. The parent portal page
+  (`app/(portals)/portal/parent/page.tsx`) now reads this config and wraps
+  every stat card and section accordingly, only fetching
+  achievements/skills/library data when their toggle is on. Discipline
+  visibility is driven by THIS toggle specifically — not the
+  institution-wide `discipline.view` staff permission — passed as
+  `Student360Scope.canViewDiscipline` to `getStudent360()`, since "can a
+  parent see their OWN child's discipline record" is a different question
+  from "can staff see every student's". `listAchievements()`,
+  `listSkillSubmissions()`, and `listReadingRecords()` each gained a
+  second optional trailing parameter (`studentId`, after `classId`) so the
+  same functions serve both the class-page listing above and the parent
+  portal's single-child scoping, without a second bespoke query per
+  module.
+
+Tests: `tests/integration/academic-structure-student-mgmt-flow.test.ts`
+(21 tests) — the promotion workflow's five action branches and its
+already-enrolled skip path, tenant isolation on the classId/studentId
+listing filters (including that moving a student out of a class drops
+them from that class's listings immediately), class strength counting,
+the class-scoped examinations lookup, the student photo ownership-check
+rejection, and parent-portal section config defaults/updates/tenant
+isolation.
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

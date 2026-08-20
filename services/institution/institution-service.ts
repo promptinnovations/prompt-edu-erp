@@ -278,3 +278,50 @@ export async function updateInstitutionLogo(
     });
   });
 }
+
+// -----------------------------------------------------------------------------
+// Parent portal section visibility (§Page-3 follow-up "Student Portfolio
+// Management — designing children's page, what should be shown in the
+// Parent portal") — a single jsonb config blob (migration 0032) an admin
+// toggles in Settings; the parent-facing child page (app/(portals)/portal/
+// parent/page.tsx) reads it to decide which sections to render. Defaults to
+// every section visible, so existing institutions see no behavior change
+// until an admin deliberately hides something.
+// -----------------------------------------------------------------------------
+
+export const PARENT_PORTAL_SECTION_KEYS = [
+  "results", "attendance", "discipline", "achievements", "library", "skills", "portfolio",
+] as const;
+export type ParentPortalSectionKey = (typeof PARENT_PORTAL_SECTION_KEYS)[number];
+export type ParentPortalSections = Record<ParentPortalSectionKey, boolean>;
+
+const DEFAULT_PARENT_PORTAL_SECTIONS: ParentPortalSections = {
+  results: true, attendance: true, discipline: true, achievements: true, library: true, skills: true, portfolio: true,
+};
+
+export async function getParentPortalSections(institutionId: string, authUserId: string): Promise<ParentPortalSections> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ parent_portal_sections: ParentPortalSections }>(
+      "select parent_portal_sections from institutions where id = $1",
+      [institutionId]
+    );
+    return { ...DEFAULT_PARENT_PORTAL_SECTIONS, ...(rows[0]?.parent_portal_sections ?? {}) };
+  });
+}
+
+export async function updateParentPortalSections(
+  institutionId: string, authUserId: string, userId: string, sections: ParentPortalSections
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query(
+      "update institutions set parent_portal_sections = $1::jsonb, updated_at = now() where id = $2",
+      [JSON.stringify(sections), institutionId]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "platform",
+      entityType: "institutions", entityId: institutionId, after: { parentPortalSections: sections },
+    });
+  });
+}

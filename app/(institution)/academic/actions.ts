@@ -7,6 +7,8 @@ import {
   createClass, createSection, createSubject,
   updateClass, deleteClass, updateSection, deleteSection,
   assignSubjectToClass, removeSubjectFromClass, createAcademicYear,
+  setCurrentAcademicYear, promoteClass,
+  type PromotionAction,
 } from "../../../modules/academic/service";
 
 export async function createClassAction(_prevState: { error: string | null }, formData: FormData) {
@@ -14,11 +16,14 @@ export async function createClassAction(_prevState: { error: string | null }, fo
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
     requirePermission(ctx.permissions, "settings.manage");
+    const stage = String(formData.get("stage") ?? "").trim();
     await createClass(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       name: String(formData.get("name") ?? ""),
       sortOrder: 0,
+      stage: stage || null,
     });
     revalidatePath("/academic");
+    revalidatePath("/classes");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create class." };
@@ -61,10 +66,13 @@ export async function updateClassAction(_prevState: { error: string | null }, fo
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
     requirePermission(ctx.permissions, "settings.manage");
+    const hasStage = formData.has("stage");
     await updateClass(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("classId") ?? ""), {
       name: String(formData.get("name") ?? ""),
+      ...(hasStage ? { stage: String(formData.get("stage") ?? "").trim() || null } : {}),
     });
     revalidatePath("/academic");
+    revalidatePath("/classes");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update class." };
@@ -128,6 +136,49 @@ export async function createAcademicYearAction(_prevState: { error: string | nul
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create academic year." };
+  }
+}
+
+/** "Archive previous year" (§Page-2 follow-up) — flips a different, already
+ *  existing year to current; the year that WAS current simply stops being
+ *  is_current, i.e. becomes "archived" with no separate flag needed (see
+ *  setCurrentAcademicYear()'s doc comment in modules/academic/service.ts). */
+export async function setCurrentAcademicYearAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await setCurrentAcademicYear(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("academicYearId") ?? ""));
+    revalidatePath("/academic");
+    revalidatePath("/dashboard");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to set current academic year." };
+  }
+}
+
+export interface PromoteFormResult { error: string | null; result?: Awaited<ReturnType<typeof promoteClass>> }
+
+export async function promoteClassAction(_prevState: PromoteFormResult, formData: FormData): Promise<PromoteFormResult> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "academic.promote");
+    const decisionsRaw = String(formData.get("decisions") ?? "[]");
+    const decisions = JSON.parse(decisionsRaw) as Array<{
+      studentId: string; action: PromotionAction; toClassId?: string | null; toSectionId?: string | null;
+    }>;
+    const result = await promoteClass(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      fromClassId: String(formData.get("fromClassId") ?? ""),
+      fromSectionId: String(formData.get("fromSectionId") ?? "") || null,
+      toAcademicYearId: String(formData.get("toAcademicYearId") ?? ""),
+      decisions,
+    });
+    revalidatePath("/classes");
+    revalidatePath("/students");
+    return { error: null, result };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to promote class." };
   }
 }
 

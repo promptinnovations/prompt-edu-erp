@@ -360,6 +360,28 @@ export async function getExamCoveredClassIds(institutionId: string, authUserId: 
   });
 }
 
+/** Reverse of getExamCoveredClassIds() — "Exams added" on the class page
+ *  (§Page-2 follow-up): every examination that covers this class, so the
+ *  class page can list them and link out to each exam's own existing
+ *  result/consolidated/report-card pages (deliberately not a new combined
+ *  cross-exam view — each exam keeps its own page). Uses
+ *  idx_exam_classes_institution_class (migration 0032). */
+export async function listExaminationsForClass(
+  institutionId: string, authUserId: string, classId: string
+): Promise<ExaminationRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ExaminationRecord>(
+      `select e.id, e.name, e.status, e.exam_type_id, e.academic_year_id, e.term_id, e.start_date, e.end_date, e.grade_scale_id
+         from examinations e
+        where exists (select 1 from exam_classes ec where ec.examination_id = e.id and ec.class_id = $1)
+        order by e.start_date desc nulls last, e.created_at desc`,
+      [classId]
+    );
+    return rows;
+  });
+}
+
 /** "Examination > Mark entry status" follow-up — for one examination, how
  *  far along mark entry is per subject: how many students are expected to
  *  have a mark (enrolled in a class/section that exam covers) vs how many

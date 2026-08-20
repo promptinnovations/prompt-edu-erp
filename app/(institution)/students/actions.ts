@@ -8,11 +8,56 @@ import {
   updateStudent, deleteStudent, restoreStudent,
   updateParent, unlinkParentFromStudent, deleteParentRecord,
   transferStudentEnrollment, removeStudentFromClass, restoreEnrollment, assignRollNumbers,
+  updateStudentPhoto,
 } from "../../../modules/students/service";
 import {
   provisionStudentPortalAccount, provisionParentPortalAccount,
   createStudentLoginAccount, resetStudentLoginPassword,
 } from "../../../modules/portal/service";
+import { uploadFile } from "../../../services/storage/file-service";
+
+/** §Page-3 follow-up "Student Profile ... Photo" — same upload-then-link
+ *  shape as the institution logo (app/(institution)/settings/actions.ts's
+ *  uploadInstitutionLogoAction): upload the bytes via FileService first,
+ *  then point students.photo_file_id at the resulting file id. isPublic:
+ *  false — unlike the institution logo, a student photo is never shown on
+ *  a pre-auth page, so it stays behind the authenticated /api/files route. */
+export async function uploadStudentPhotoAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    const studentId = String(formData.get("studentId") ?? "");
+    const photo = formData.get("photo");
+    if (!(photo instanceof File) || photo.size === 0) return { error: "Choose an image file to upload." };
+
+    const bytes = Buffer.from(await photo.arrayBuffer());
+    const uploaded = await uploadFile(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      entityType: "students", entityId: studentId, fileName: photo.name, mimeType: photo.type, isPublic: false, bytes,
+    });
+    await updateStudentPhoto(ctx.institutionId, ctx.session.authUserId, ctx.userId, studentId, uploaded.id);
+    revalidatePath(`/students/${studentId}`);
+    revalidatePath("/students");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to upload photo." };
+  }
+}
+
+export async function removeStudentPhotoAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    const studentId = String(formData.get("studentId") ?? "");
+    await updateStudentPhoto(ctx.institutionId, ctx.session.authUserId, ctx.userId, studentId, null);
+    revalidatePath(`/students/${studentId}`);
+    revalidatePath("/students");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove photo." };
+  }
+}
 
 export async function createStudentAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();

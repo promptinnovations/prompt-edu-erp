@@ -18,6 +18,14 @@ export default function ClassForm() {
           placeholder="e.g. Grade 5"
         />
       </div>
+      <div>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Stage</label>
+        <input
+          name="stage"
+          className="w-28 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          placeholder="e.g. LP, UP, HS"
+        />
+      </div>
       <button
         type="submit"
         disabled={pending}

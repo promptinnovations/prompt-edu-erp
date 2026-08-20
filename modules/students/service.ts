@@ -20,6 +20,7 @@ export interface StudentRecord {
   user_id: string | null;
   contact_email: string | null;
   login_id?: string | null;
+  photo_file_id?: string | null;
 }
 
 /** §137 follow-up row shape for the searchable admin list — same student
@@ -32,6 +33,15 @@ export interface StudentListRow extends StudentRecord {
   class_name: string | null;
   section_name: string | null;
   roll_number: number | null;
+  /** Primary contact parent — only populated when options.includeParentContact
+   *  is set (§Page-3 follow-up "Name of the Parent" / "Login Credentials"
+   *  columns); left out by default since most existing callers don't need
+   *  the extra join. parent_phone doubles as the student's portal login
+   *  PASSWORD (§137: "password- phone number of parent"), which is why the
+   *  class-wise Student Profile list can show real, working login
+   *  credentials without storing a separate password anywhere. */
+  parent_name?: string | null;
+  parent_phone?: string | null;
 }
 
 const createStudentSchema = z.object({
@@ -70,6 +80,8 @@ export interface ListStudentsForAdminOptions {
    *  everything" — callers pass undefined, never [], when scoping doesn't
    *  apply. */
   classIds?: string[];
+  /** See StudentListRow.parent_name doc comment above. */
+  includeParentContact?: boolean;
 }
 
 /** Search/filter-capable listing for the admin Students page (§137 follow-up
@@ -87,14 +99,23 @@ export async function listStudentsForAdmin(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StudentListRow>(
       `select s.id, s.admission_number, s.full_name, s.full_name_native, s.date_of_birth, s.gender,
-              s.status, s.user_id, s.contact_email, s.login_id,
-              c.id as class_id, c.name as class_name, sec.name as section_name, se.roll_number
+              s.status, s.user_id, s.contact_email, s.login_id, s.photo_file_id,
+              c.id as class_id, c.name as class_name, sec.name as section_name, se.roll_number,
+              case when $5::boolean then pp.full_name else null end as parent_name,
+              case when $5::boolean then pp.phone else null end as parent_phone
          from students s
          left join student_enrollments se
            on se.student_id = s.id and se.status = 'active'
           and se.academic_year_id = (select id from academic_years where institution_id = s.institution_id and is_current = true limit 1)
          left join classes c on c.id = se.class_id
          left join sections sec on sec.id = se.section_id
+         left join lateral (
+           select p.full_name, p.phone
+             from student_parents sp join parents p on p.id = sp.parent_id
+            where sp.student_id = s.id
+            order by sp.is_primary_contact desc, p.full_name
+            limit 1
+         ) pp on $5::boolean
         where ($1::boolean or s.status <> 'withdrawn')
           and ($2::uuid is null or se.class_id = $2::uuid)
           and (
@@ -107,10 +128,37 @@ export async function listStudentsForAdmin(
         order by c.sort_order nulls last, sec.name, s.full_name`,
       [
         options.includeWithdrawn ?? false, options.classId ?? null, options.search?.trim() || null,
-        options.classIds ?? null,
+        options.classIds ?? null, options.includeParentContact ?? false,
       ]
     );
     return rows;
+  });
+}
+
+/** Boys/Girls strength for one class's current-year active roster (§Page-2
+ *  follow-up "Strength: Boys, Girls" on the class detail page). Counts by
+ *  `students.gender` exactly as entered — anything other than 'male'/
+ *  'female' (blank, 'other', etc.) falls into `other` so the three numbers
+ *  always sum to `total`. */
+export interface ClassStrength { boys: number; girls: number; other: number; total: number }
+
+export async function getClassStrength(institutionId: string, authUserId: string, classId: string): Promise<ClassStrength> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ boys: string; girls: string; other: string; total: string }>(
+      `select
+         count(*) filter (where lower(s.gender) = 'male')::text as boys,
+         count(*) filter (where lower(s.gender) = 'female')::text as girls,
+         count(*) filter (where s.gender is null or lower(s.gender) not in ('male', 'female'))::text as other,
+         count(*)::text as total
+         from student_enrollments se
+         join students s on s.id = se.student_id
+        where se.class_id = $1 and se.status = 'active'
+          and se.academic_year_id = (select id from academic_years where institution_id = $2 and is_current = true limit 1)`,
+      [classId, institutionId]
+    );
+    const r = rows[0] ?? { boys: "0", girls: "0", other: "0", total: "0" };
+    return { boys: Number(r.boys), girls: Number(r.girls), other: Number(r.other), total: Number(r.total) };
   });
 }
 
@@ -152,6 +200,38 @@ export async function updateStudent(
   });
 }
 
+/** §Page-3 follow-up ("Student Profile ... Photo") — points students.photo_file_id
+ *  at an already-uploaded file (or null to remove it), mirroring
+ *  updateInstitutionLogo()'s exact ownership-check shape (services/institution/
+ *  institution-service.ts): re-SELECTs the file under THIS institution's own
+ *  scoped context first, since an ordinary UPDATE naming an arbitrary
+ *  existing file id would otherwise satisfy the FK regardless of which
+ *  institution that file actually belongs to (files' RLS only protects the
+ *  SELECT, not a raw UPDATE naming its id). The upload itself happens
+ *  through FileService.uploadFile() in the calling server action; this
+ *  function never touches file bytes. */
+export async function updateStudentPhoto(
+  institutionId: string, authUserId: string, userId: string, studentId: string, photoFileId: string | null
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    if (photoFileId) {
+      const { rows: owned } = await scoped.query<{ id: string }>("select id from files where id = $1", [photoFileId]);
+      if (owned.length === 0) {
+        throw new Error("That file does not belong to this institution — refusing to set it as the student photo.");
+      }
+    }
+    const { rows: before } = await scoped.query<{ photo_file_id: string | null }>(
+      "select photo_file_id from students where id = $1", [studentId]
+    );
+    await scoped.query("update students set photo_file_id = $1, updated_at = now(), updated_by = $2 where id = $3", [photoFileId, userId, studentId]);
+    await recordAudit(scoped, {
+      institutionId, userId, action: "edit", module: "students", entityType: "students", entityId: studentId,
+      before: { photoFileId: before[0]?.photo_file_id ?? null }, after: { photoFileId },
+    });
+  });
+}
+
 /** Soft-delete (§137 follow-up "should be able ... delete") — sets status
  *  to 'withdrawn' rather than a hard DELETE. A hard delete would either
  *  cascade destructively through every module that references student_id
@@ -189,7 +269,7 @@ export async function getStudent(institutionId: string, authUserId: string, stud
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StudentRecord>(
-      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email, login_id
+      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email, login_id, photo_file_id
          from students where id = $1`,
       [studentId]
     );

@@ -17,6 +17,7 @@ export interface ClassRecord {
   name: string;
   sort_order: number;
   academic_stream: string | null;
+  stage: string | null;
 }
 export interface SectionRecord {
   id: string;
@@ -35,13 +36,18 @@ const createClassSchema = z.object({
   name: z.string().min(1).max(100), // Unicode-safe — any script, no Latin assumption (§S.3)
   sortOrder: z.number().int().default(0),
   academicStream: z.string().max(100).nullable().optional(),
+  // Admin-editable grouping (LP/UP/HS/HSS or any institution's own
+  // vocabulary) — replaces the old numeric-name-guessing that lived only in
+  // the Classes hub UI (§Page-2 follow-up). Free text, not an enum, since
+  // stage vocabulary varies by institution/board.
+  stage: z.string().max(50).nullable().optional(),
 });
 
 export async function listClasses(institutionId: string, authUserId: string): Promise<ClassRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ClassRecord>(
-      "select id, name, sort_order, academic_stream from classes order by sort_order, name"
+      "select id, name, sort_order, academic_stream, stage from classes order by sort_order, name"
     );
     return rows;
   });
@@ -59,9 +65,9 @@ export async function createClass(
   const data = createClassSchema.parse(input); // server-side validation, independent of client (§X.2)
   const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<ClassRecord>(
-      `insert into classes (institution_id, name, sort_order, academic_stream)
-       values ($1, $2, $3, $4) returning id, name, sort_order, academic_stream`,
-      [institutionId, data.name, data.sortOrder, data.academicStream ?? null]
+      `insert into classes (institution_id, name, sort_order, academic_stream, stage)
+       values ($1, $2, $3, $4, $5) returning id, name, sort_order, academic_stream, stage`,
+      [institutionId, data.name, data.sortOrder, data.academicStream ?? null, data.stage ?? null]
     );
     await recordAudit(scoped, {
       institutionId,
@@ -83,6 +89,7 @@ const updateClassSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   sortOrder: z.number().int().optional(),
   academicStream: z.string().max(100).nullable().optional(),
+  stage: z.string().max(50).nullable().optional(),
 });
 
 export async function updateClass(
@@ -95,10 +102,14 @@ export async function updateClass(
       `update classes set
          name = coalesce($1, name),
          sort_order = coalesce($2, sort_order),
-         academic_stream = case when $3 then $4 else academic_stream end
+         academic_stream = case when $3 then $4 else academic_stream end,
+         stage = case when $6 then $7 else stage end
        where id = $5
-       returning id, name, sort_order, academic_stream`,
-      [data.name ?? null, data.sortOrder ?? null, "academicStream" in data, data.academicStream ?? null, classId]
+       returning id, name, sort_order, academic_stream, stage`,
+      [
+        data.name ?? null, data.sortOrder ?? null, "academicStream" in data, data.academicStream ?? null, classId,
+        "stage" in data, data.stage ?? null,
+      ]
     );
     if (rows.length === 0) return null;
     await recordAudit(scoped, { institutionId, userId, action: "edit", module: "academic", entityType: "classes", entityId: classId, after: rows[0] });
@@ -436,6 +447,187 @@ export async function listTerms(institutionId: string, authUserId: string, acade
       academicYearId ? [academicYearId] : []
     );
     return rows;
+  });
+}
+
+/** Flips a DIFFERENT, already-existing academic year to current — the only
+ *  prior way to set is_current was passing isCurrent: true to
+ *  createAcademicYear() at creation time. "Archive previous year" (§Page-2
+ *  follow-up) needs no separate archived flag: a year simply stops being
+ *  is_current once a newer one is marked current, and its enrollments/exams/
+ *  attendance remain exactly where they are, permanently queryable. */
+export async function setCurrentAcademicYear(
+  institutionId: string, authUserId: string, userId: string, academicYearId: string
+): Promise<AcademicYearRecord | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query("update academic_years set is_current = false where is_current = true");
+    const { rows } = await scoped.query<AcademicYearRecord>(
+      "update academic_years set is_current = true where id = $1 returning id, name, start_date, end_date, is_current",
+      [academicYearId]
+    );
+    if (rows.length === 0) return null;
+    await recordAudit(scoped, {
+      institutionId, userId, action: "edit", module: "academic",
+      entityType: "academic_years", entityId: academicYearId, after: rows[0],
+    });
+    return rows[0];
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Class promotion (§Page-2 follow-up "Promotion" — full bulk workflow): move
+// a class's whole active roster into a new academic year in one confirmed
+// action, with a per-student override before committing. Nothing here
+// mutates the PRIOR year's enrollment row for promote/repeat — that row is
+// each student's permanent historical record for that year — a NEW
+// student_enrollments row is inserted for the target academic year instead,
+// exactly the same shape createStudentEnrollment already produces elsewhere.
+// Only the non-advancing outcomes (graduate/transfer_out/dropout) touch the
+// CURRENT year's row, closing it out via the existing exit_date/exit_reason
+// columns (0001_foundation.sql) rather than inventing a new mechanism.
+// -----------------------------------------------------------------------------
+
+export type PromotionAction = "promote" | "repeat" | "graduate" | "transfer_out" | "dropout";
+
+export interface PromotionPreviewRow {
+  student_id: string;
+  full_name: string;
+  admission_number: string;
+  roll_number: number | null;
+  gender: string | null;
+  suggested_action: PromotionAction;
+  suggested_class_id: string | null;
+  suggested_class_name: string | null;
+}
+
+/** Suggests, per student, promote-to-the-next-higher-sort_order class (or
+ *  "graduate" if this is already the institution's highest class) — always
+ *  editable per student before promoteClass() is ever called. */
+export async function getPromotionPreview(
+  institutionId: string, authUserId: string, fromClassId: string, fromSectionId?: string
+): Promise<PromotionPreviewRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const currentYear = await scoped.query<{ id: string }>(
+      "select id from academic_years where is_current = true limit 1"
+    );
+    if (currentYear.rows.length === 0) return [];
+
+    const { rows: nextClassRows } = await scoped.query<{ id: string; name: string }>(
+      `select id, name from classes
+        where sort_order > (select sort_order from classes where id = $1)
+        order by sort_order asc limit 1`,
+      [fromClassId]
+    );
+    const nextClass = nextClassRows[0] ?? null;
+
+    const { rows } = await scoped.query<PromotionPreviewRow>(
+      `select s.id as student_id, s.full_name, s.admission_number, se.roll_number, s.gender,
+              $4::text as suggested_action, $5::uuid as suggested_class_id, $6::text as suggested_class_name
+         from student_enrollments se
+         join students s on s.id = se.student_id
+        where se.academic_year_id = $1 and se.class_id = $2
+          and ($3::uuid is null or se.section_id = $3)
+          and se.status = 'active'
+        order by se.roll_number nulls last, s.full_name`,
+      [
+        currentYear.rows[0].id, fromClassId, fromSectionId ?? null,
+        nextClass ? "promote" : "graduate", nextClass?.id ?? null, nextClass?.name ?? null,
+      ]
+    );
+    return rows;
+  });
+}
+
+export interface PromotionDecision {
+  studentId: string;
+  action: PromotionAction;
+  toClassId?: string | null;
+  toSectionId?: string | null;
+}
+
+export interface PromoteClassResult {
+  promoted: number;
+  repeated: number;
+  graduated: number;
+  transferredOut: number;
+  droppedOut: number;
+  skippedAlreadyEnrolled: string[]; // studentIds that already had an active enrollment in the target year
+}
+
+const promoteClassSchema = z.object({
+  fromClassId: z.string().uuid(),
+  fromSectionId: z.string().uuid().nullable().optional(),
+  toAcademicYearId: z.string().uuid(),
+  decisions: z
+    .array(
+      z.object({
+        studentId: z.string().uuid(),
+        action: z.enum(["promote", "repeat", "graduate", "transfer_out", "dropout"]),
+        toClassId: z.string().uuid().nullable().optional(),
+        toSectionId: z.string().uuid().nullable().optional(),
+      })
+    )
+    .min(1),
+});
+
+export async function promoteClass(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof promoteClassSchema>
+): Promise<PromoteClassResult> {
+  const data = promoteClassSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const currentYear = await scoped.query<{ id: string }>(
+      "select id from academic_years where is_current = true limit 1"
+    );
+    if (currentYear.rows.length === 0) throw new Error("No current academic year is set.");
+    const fromAcademicYearId = currentYear.rows[0].id;
+
+    const result: PromoteClassResult = {
+      promoted: 0, repeated: 0, graduated: 0, transferredOut: 0, droppedOut: 0, skippedAlreadyEnrolled: [],
+    };
+
+    for (const decision of data.decisions) {
+      if (decision.action === "promote" || decision.action === "repeat") {
+        if (!decision.toClassId || !decision.toSectionId) {
+          throw new Error(`A target class and section are required to ${decision.action} this student.`);
+        }
+        const { rows: existing } = await scoped.query<{ id: string }>(
+          "select id from student_enrollments where student_id = $1 and academic_year_id = $2 and status = 'active'",
+          [decision.studentId, data.toAcademicYearId]
+        );
+        if (existing.length > 0) {
+          result.skippedAlreadyEnrolled.push(decision.studentId);
+          continue;
+        }
+        await scoped.query(
+          `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id, status)
+           values ($1, $2, $3, $4, $5, 'active')`,
+          [institutionId, decision.studentId, data.toAcademicYearId, decision.toClassId, decision.toSectionId]
+        );
+        if (decision.action === "promote") result.promoted += 1;
+        else result.repeated += 1;
+      } else {
+        const status = decision.action === "graduate" ? "graduated" : decision.action === "transfer_out" ? "transferred" : "removed";
+        const exitReason = decision.action === "graduate" ? "graduated" : decision.action === "transfer_out" ? "transferred_out" : "dropout";
+        await scoped.query(
+          `update student_enrollments
+              set status = $1, exit_date = current_date, exit_reason = $2
+            where student_id = $3 and academic_year_id = $4 and class_id = $5 and status = 'active'`,
+          [status, exitReason, decision.studentId, fromAcademicYearId, data.fromClassId]
+        );
+        if (decision.action === "graduate") result.graduated += 1;
+        else if (decision.action === "transfer_out") result.transferredOut += 1;
+        else result.droppedOut += 1;
+      }
+    }
+
+    await recordAudit(scoped, {
+      institutionId, userId, action: "edit", module: "academic",
+      entityType: "class_promotion", entityId: data.fromClassId, after: result,
+    });
+    return result;
   });
 }
 

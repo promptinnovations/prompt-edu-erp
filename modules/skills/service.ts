@@ -323,29 +323,30 @@ export async function submitSkillSubmission(
 }
 
 export async function listSkillSubmissions(
-  institutionId: string, authUserId: string, status?: string
+  institutionId: string, authUserId: string, status?: string, classId?: string, studentId?: string
 ): Promise<SkillSubmissionRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = status
-      ? await scoped.query<SkillSubmissionRow>(
-          `select ss.id, ss.skill_activity_id, ss.student_id, ss.submitted_at, ss.details_jsonb, ss.status, ss.evidence_file_id,
-                  s.full_name as student_name, sa.name as activity_name
-             from skill_submissions ss
-             join students s on s.id = ss.student_id
-             join skill_activities sa on sa.id = ss.skill_activity_id
-            where ss.status = $1
-            order by ss.submitted_at desc nulls last, ss.created_at desc`,
-          [status]
-        )
-      : await scoped.query<SkillSubmissionRow>(
-          `select ss.id, ss.skill_activity_id, ss.student_id, ss.submitted_at, ss.details_jsonb, ss.status, ss.evidence_file_id,
-                  s.full_name as student_name, sa.name as activity_name
-             from skill_submissions ss
-             join students s on s.id = ss.student_id
-             join skill_activities sa on sa.id = ss.skill_activity_id
-            order by ss.submitted_at desc nulls last, ss.created_at desc`
-        );
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (status) { params.push(status); conditions.push(`ss.status = $${params.length}`); }
+    if (classId) {
+      params.push(classId);
+      conditions.push(
+        `ss.student_id in (select se.student_id from student_enrollments se where se.class_id = $${params.length} and se.status = 'active')`
+      );
+    }
+    if (studentId) { params.push(studentId); conditions.push(`ss.student_id = $${params.length}`); }
+    const { rows } = await scoped.query<SkillSubmissionRow>(
+      `select ss.id, ss.skill_activity_id, ss.student_id, ss.submitted_at, ss.details_jsonb, ss.status, ss.evidence_file_id,
+              s.full_name as student_name, sa.name as activity_name
+         from skill_submissions ss
+         join students s on s.id = ss.student_id
+         join skill_activities sa on sa.id = ss.skill_activity_id
+        ${conditions.length ? `where ${conditions.join(" and ")}` : ""}
+        order by ss.submitted_at desc nulls last, ss.created_at desc`,
+      params
+    );
     return rows;
   });
 }

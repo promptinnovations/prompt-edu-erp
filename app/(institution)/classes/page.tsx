@@ -20,22 +20,12 @@ import { getTeacherClassScope } from "../../../services/scope/teacher-scope-serv
  *
  * "A, B, C, D are divisions, section is like LP, UP, HS, HSS" — the
  * `sections` table (migration 0001) is labelled "Division" throughout
- * this hub instead of "Section" to match that vocabulary; LP/UP/HS/HSS is
- * a purely presentational grouping of numeric class names (the standard
- * Kerala convention: LP 1–4, UP 5–7, HS 8–10, HSS 11–12), computed here,
- * not a stored column — a class named anything else falls into "Other"
- * rather than forcing every institution into this one scheme.
+ * this hub instead of "Section" to match that vocabulary. LP/UP/HS/HSS
+ * grouping is now a real, admin-editable `classes.stage` field (migration
+ * 0032, set per class in Academic Setup) rather than a numeric-name guess —
+ * that guess broke for non-numeric class names (LKG, UKG, madrasa grade
+ * names). A class with no stage set falls into "Other".
  */
-function phaseForClass(className: string): string {
-  const n = Number(className.trim());
-  if (!Number.isInteger(n)) return "Other";
-  if (n >= 1 && n <= 4) return "LP (Lower Primary)";
-  if (n >= 5 && n <= 7) return "UP (Upper Primary)";
-  if (n >= 8 && n <= 10) return "HS (High School)";
-  if (n >= 11 && n <= 12) return "HSS (Higher Secondary)";
-  return "Other";
-}
-
 export default async function ClassesPage() {
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
@@ -78,13 +68,20 @@ export default async function ClassesPage() {
 
   const groups = new Map<string, typeof classes>();
   for (const c of classes) {
-    const phase = phaseForClass(c.name);
+    const phase = c.stage?.trim() || "Other";
     const arr = groups.get(phase) ?? [];
     arr.push(c);
     groups.set(phase, arr);
   }
-  const phaseOrder = ["LP (Lower Primary)", "UP (Upper Primary)", "HS (High School)", "HSS (Higher Secondary)", "Other"];
-  const orderedPhases = phaseOrder.filter((p) => groups.has(p));
+  // Known stages in a sensible reading order, then any institution-specific
+  // custom stage names, then "Other" last.
+  const knownOrder = ["LP", "UP", "HS", "HSS"];
+  const allPhases = Array.from(groups.keys());
+  const orderedPhases = [
+    ...knownOrder.filter((p) => groups.has(p)),
+    ...allPhases.filter((p) => !knownOrder.includes(p) && p !== "Other").sort(),
+    ...(groups.has("Other") ? ["Other"] : []),
+  ];
 
   return (
     <div className="space-y-6">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
@@ -9,6 +10,7 @@ import ClassRow from "./ClassRow";
 import SectionRow from "./SectionRow";
 import ClassSubjectsForm from "./ClassSubjectsForm";
 import AcademicYearForm from "./AcademicYearForm";
+import SetCurrentYearButton from "./SetCurrentYearButton";
 
 export default async function AcademicPage() {
   const ctx = await requireRequestContext();
@@ -43,7 +45,14 @@ export default async function AcademicPage() {
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("title")}</h1>
 
       <section id="academic-years" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Academic years</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Academic years</h2>
+          {can(ctx.permissions, "academic.promote") ? (
+            <Link href="/academic/promotion" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+              Promote a class →
+            </Link>
+          ) : null}
+        </div>
         {canManage ? <AcademicYearForm /> : null}
         <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
           {academicYears.map((y) => (
@@ -55,7 +64,14 @@ export default async function AcademicPage() {
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                   Current
                 </span>
-              ) : null}
+              ) : (
+                <span className="flex items-center gap-2">
+                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                    Archived
+                  </span>
+                  {canManage ? <SetCurrentYearButton academicYearId={y.id} /> : null}
+                </span>
+              )}
             </li>
           ))}
           {academicYears.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
@@ -71,6 +87,7 @@ export default async function AcademicPage() {
               key={c.id}
               classId={c.id}
               name={c.name}
+              stage={c.stage}
               sectionsLabel={(sectionsByClass.get(c.id) ?? []).map((s) => s.name).join(", ") || "—"}
               canManage={canManage}
             />

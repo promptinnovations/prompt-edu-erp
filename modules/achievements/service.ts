@@ -183,30 +183,32 @@ export async function submitAchievement(
   return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
-export async function listAchievements(institutionId: string, authUserId: string, status?: string): Promise<AchievementRow[]> {
+export async function listAchievements(
+  institutionId: string, authUserId: string, status?: string, classId?: string, studentId?: string
+): Promise<AchievementRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = status
-      ? await scoped.query<AchievementRow>(
-          `select a.id, a.student_id, a.category_id, a.level_id, a.title, a."position", a.points, a.status, a.verified_by, a.approved_by, a.certificate_file_id,
-                  s.full_name as student_name, c.name as category_name, l.name as level_name
-             from achievements a
-             join students s on s.id = a.student_id
-             join achievement_categories c on c.id = a.category_id
-             join achievement_levels l on l.id = a.level_id
-            where a.status = $1
-            order by a.created_at desc`,
-          [status]
-        )
-      : await scoped.query<AchievementRow>(
-          `select a.id, a.student_id, a.category_id, a.level_id, a.title, a."position", a.points, a.status, a.verified_by, a.approved_by, a.certificate_file_id,
-                  s.full_name as student_name, c.name as category_name, l.name as level_name
-             from achievements a
-             join students s on s.id = a.student_id
-             join achievement_categories c on c.id = a.category_id
-             join achievement_levels l on l.id = a.level_id
-            order by a.created_at desc`
-        );
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (status) { params.push(status); conditions.push(`a.status = $${params.length}`); }
+    if (classId) {
+      params.push(classId);
+      conditions.push(
+        `a.student_id in (select se.student_id from student_enrollments se where se.class_id = $${params.length} and se.status = 'active')`
+      );
+    }
+    if (studentId) { params.push(studentId); conditions.push(`a.student_id = $${params.length}`); }
+    const { rows } = await scoped.query<AchievementRow>(
+      `select a.id, a.student_id, a.category_id, a.level_id, a.title, a."position", a.points, a.status, a.verified_by, a.approved_by, a.certificate_file_id,
+              s.full_name as student_name, c.name as category_name, l.name as level_name
+         from achievements a
+         join students s on s.id = a.student_id
+         join achievement_categories c on c.id = a.category_id
+         join achievement_levels l on l.id = a.level_id
+        ${conditions.length ? `where ${conditions.join(" and ")}` : ""}
+        order by a.created_at desc`,
+      params
+    );
     return rows;
   });
 }

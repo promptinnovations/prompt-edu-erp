@@ -82,6 +82,8 @@ insert into permissions (code, module, description) values
   ('substitution.manage',  'substitution',  'Generate, edit, and confirm substitutions for an absent teacher'),
   ('substitution.timetable.manage', 'substitution', 'Configure the weekly timetable (class/section/period -> subject/teacher), including bulk upload'),
 
+  ('academic.promote',     'academic',      'Bulk-promote a class roster to a new academic year (promote/repeat/graduate)'),
+
   ('platform.institutions.manage', 'super_admin', 'Create/edit/activate institutions'),
   ('platform.usage.view',          'super_admin', 'View platform usage metrics'),
   ('platform.audit.view',          'super_admin', 'View platform-wide audit logs')

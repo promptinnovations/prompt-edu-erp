@@ -79,30 +79,36 @@ export async function createDisciplineRecord(
   });
 }
 
+/** classId (§Page-2 follow-up "Discipline Records" on the class page) is
+ *  resolved via the student's CURRENT active enrollment, same convention
+ *  listStudentsForAdmin() uses — a discipline record has no class_id of its
+ *  own (it's dated, not year-scoped), so "this class's records" always means
+ *  "records for students currently in this class", not a historical
+ *  as-of-the-record's-date lookup. */
 export async function listDisciplineRecords(
-  institutionId: string, authUserId: string, studentId?: string
+  institutionId: string, authUserId: string, studentId?: string, classId?: string
 ): Promise<DisciplineRecordRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = studentId
-      ? await scoped.query<DisciplineRecordRow>(
-          `select dr.id, dr.student_id, s.full_name as student_name, dr.category_id, dc.name as category_name,
-                  dc.is_positive, dr.date, dr.description, dr.recorded_by, dr.follow_up_notes
-             from discipline_records dr
-             join students s on s.id = dr.student_id
-             join discipline_categories dc on dc.id = dr.category_id
-            where dr.student_id = $1
-            order by dr.date desc`,
-          [studentId]
-        )
-      : await scoped.query<DisciplineRecordRow>(
-          `select dr.id, dr.student_id, s.full_name as student_name, dr.category_id, dc.name as category_name,
-                  dc.is_positive, dr.date, dr.description, dr.recorded_by, dr.follow_up_notes
-             from discipline_records dr
-             join students s on s.id = dr.student_id
-             join discipline_categories dc on dc.id = dr.category_id
-            order by dr.date desc`
-        );
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (studentId) { params.push(studentId); conditions.push(`dr.student_id = $${params.length}`); }
+    if (classId) {
+      params.push(classId);
+      conditions.push(
+        `dr.student_id in (select se.student_id from student_enrollments se where se.class_id = $${params.length} and se.status = 'active')`
+      );
+    }
+    const { rows } = await scoped.query<DisciplineRecordRow>(
+      `select dr.id, dr.student_id, s.full_name as student_name, dr.category_id, dc.name as category_name,
+              dc.is_positive, dr.date, dr.description, dr.recorded_by, dr.follow_up_notes
+         from discipline_records dr
+         join students s on s.id = dr.student_id
+         join discipline_categories dc on dc.id = dr.category_id
+        ${conditions.length ? `where ${conditions.join(" and ")}` : ""}
+        order by dr.date desc`,
+      params
+    );
     return rows;
   });
 }
