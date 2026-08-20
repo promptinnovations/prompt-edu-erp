@@ -1139,6 +1139,84 @@ neither permission short-circuits to an empty list with no query),
 `getInstitutionAttendanceTrend()` omitting untaken days rather than
 showing 0%, and tenant isolation on all three new functions.
 
+## Result (Page 6) follow-up
+
+User-specified page spec for Page 6 "Result": Exam Results, Consolidated
+Marks, and per-student Report Cards already existed from the Phase
+sidebar-redesign work and needed only two small additions; "Result
+Analysis (of selected exam)" — six breakdowns (school-wide, section wise,
+grade wise, class wise, subject wise, teacher wise) — was the genuinely
+new piece. No schema migration was needed: every addition reads existing
+tables (`results`, `student_enrollments`, `grade_bands`,
+`teacher_assignments`, `mv_exam_subject_stats`).
+
+- **Exam Results table** (`/results`) now shows a **Date column** and
+  lists exams in chronological order (earliest first, undated exams
+  last) — a display-only re-sort of `listExaminations()`'s own array;
+  the shared function's "most recently created" ordering is untouched
+  since other pages (Examination setup, Home widgets) still rely on it.
+- **Consolidated Marks** (`/results/[id]/consolidated`) gained a **class
+  dropdown** (`ClassFilterForm.tsx`, `?classId=`), narrowing
+  `getExaminationMarksMatrix()` (now takes an optional `classId`) to one
+  of the exam's own covered classes — populated from a new
+  `listClassesForExamination()`, so the dropdown only ever offers classes
+  this exam is actually relevant to.
+- **Result Analysis** — six new breakdowns added to the existing
+  per-exam `/analytics` page (not a separate page, per the user's own
+  choice, since that page already is "Result > Analysis... exam-specific
+  pattern recognition" and the Results table already links to it):
+  - **School-wide / Section wise / Class wise** (`getResultSchoolSummary()`,
+    `getResultsBySection()`, `getResultsByClass()`, all new in
+    `modules/analytics/service.ts`) read the `results` table directly —
+    average %, student count, and a full grade distribution per group.
+    Each student is attributed to the class/section they were actually
+    enrolled in **during the exam's own academic year** (joined via
+    `student_enrollments.academic_year_id = examinations.academic_year_id`,
+    not today's current enrollment), so a student promoted since the exam
+    took place still shows up under the class they actually sat it in —
+    promotion's own convention of never rewriting a past year's
+    enrollment row (§Page-2/3 follow-up) makes this join safe. Since
+    `results` is written synchronously by `computeResults()`, these three
+    are always live — no "Refresh analytics" needed, unlike the
+    mv-based sections below.
+  - **Grade wise** (`getResultsByGrade()`) groups by the exam's own
+    letter grade bands (A+/A/B+/B/...) and, per the user's explicit
+    request ("Top 5 each grade"), lists the top 5 students by percentage
+    within each band — a `row_number() over (partition by grade_band_id
+    order by percentage desc)` window query. Empty (not an error) for an
+    examination with no grade scale configured.
+  - **Subject wise** — the pre-existing Subject Comparison table, now
+    with an explicit **Rank** column (average marks descending) added in
+    the UI only, no service change.
+  - **Teacher wise** (`getResultsByTeacher()`) attributes each
+    `mv_exam_subject_stats` row to whichever `teacher_assignments` row
+    covers that (subject, class, section) for the exam's own academic
+    year, via `role_type = 'subject_teacher'` — reusing the mapping
+    Staff > Teacher Assignments already collects, per the user's own
+    choice, so no new data entry is required. This closes a gap the
+    codebase had explicitly flagged and deferred back in Phase 5 (the
+    original `getSubjectPerformanceIndicators()` doc comment: "this
+    platform does not yet have a subject-teacher assignment table...
+    once that mapping exists, wiring a teacher_id filter onto this same
+    shape is a small addition, not a redesign"). A teacher teaching the
+    same subject across multiple sections gets one aggregated row.
+    Institutions with no teacher assignments set up simply get an empty
+    list, not an error.
+  - Every ranked breakdown (section/class/subject/teacher-wise) keeps
+    this codebase's existing "neutral signal, requires management
+    interpretation" framing (§N.5) — a plain `#1, #2...` rank number by
+    average, never a "best/worst" label attached server-side.
+
+Tests: `tests/integration/result-analysis-flow.test.ts` (9 tests) — a
+2-section, 4-student exam fixture covering school/section/class-wide
+average and grade-distribution math, section-wise ranking order,
+grade-wise top-5-per-band (including band ordering), teacher-wise
+attribution correctly including an assigned subject and excluding an
+unassigned one, the empty-list case for a nonexistent examination id, the
+Consolidated Marks class filter (unfiltered / own-class / unrelated-class
+cases) plus `listClassesForExamination()`, and tenant isolation across
+every new function.
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

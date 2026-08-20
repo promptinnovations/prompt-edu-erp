@@ -2,16 +2,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
 import { getInstitution } from "../../../../../services/institution/institution-service";
-import { getExamination, getExaminationMarksMatrix } from "../../../../../modules/examination/service";
+import { getExamination, getExaminationMarksMatrix, listClassesForExamination } from "../../../../../modules/examination/service";
 import PrintButton from "../../../../components/PrintButton";
 import PrintLetterhead from "../../../../components/PrintLetterhead";
+import ClassFilterForm from "./ClassFilterForm";
 
 /** "Result > Consolidated marks" — one student per row, one subject per
  *  column (the traditional "consolidated marksheet" format), pivoted
  *  client-side from getExaminationMarksMatrix()'s flat (student, subject)
- *  rows since the column set is dynamic per examination. */
-export default async function ConsolidatedMarksPage({ params }: { params: Promise<{ id: string }> }) {
+ *  rows since the column set is dynamic per examination. §Page-6 follow-up
+ *  "select exam, class from dropdown" — the exam is already selected by
+ *  being on this page (reached via the Results table); `classId` narrows
+ *  the matrix to one of the exam's covered classes. */
+export default async function ConsolidatedMarksPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ classId?: string }>;
+}) {
   const { id } = await params;
+  const { classId = "" } = await searchParams;
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
@@ -19,9 +29,10 @@ export default async function ConsolidatedMarksPage({ params }: { params: Promis
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound();
 
-  const [institution, rows] = await Promise.all([
+  const [institution, rows, classOptions] = await Promise.all([
     getInstitution(institutionId, authUserId),
-    getExaminationMarksMatrix(institutionId, authUserId, id),
+    getExaminationMarksMatrix(institutionId, authUserId, id, classId || null),
+    listClassesForExamination(institutionId, authUserId, id),
   ]);
 
   const subjects = new Map<string, { name: string; maxMarks: string }>();
@@ -45,6 +56,10 @@ export default async function ConsolidatedMarksPage({ params }: { params: Promis
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Consolidated Marks — {examination.name}</h1>
         <PrintButton />
+      </div>
+
+      <div className="no-print">
+        <ClassFilterForm classes={classOptions} classId={classId} />
       </div>
 
       <section className="print-area overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">

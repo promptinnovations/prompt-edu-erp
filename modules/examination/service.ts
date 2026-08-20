@@ -619,7 +619,12 @@ export interface ExaminationMarksMatrixRow {
   marks_obtained: string | null; is_absent: boolean;
 }
 
-export async function getExaminationMarksMatrix(institutionId: string, authUserId: string, examinationId: string): Promise<ExaminationMarksMatrixRow[]> {
+/** `classId` (§Page-6 follow-up "Consolidated Marks — select exam, class
+ *  from dropdown") narrows to one of the exam's covered classes; omitted or
+ *  empty means "every class this exam covers", the original behaviour. */
+export async function getExaminationMarksMatrix(
+  institutionId: string, authUserId: string, examinationId: string, classId?: string | null
+): Promise<ExaminationMarksMatrixRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExaminationMarksMatrixRow>(
@@ -633,8 +638,29 @@ export async function getExaminationMarksMatrix(institutionId: string, authUserI
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
          join students s on s.id = se.student_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
-        where es.examination_id = $1
+        where es.examination_id = $1 and ($2::uuid is null or se.class_id = $2)
         order by s.full_name, sub.name`,
+      [examinationId, classId || null]
+    );
+    return rows;
+  });
+}
+
+/** The distinct classes an examination actually covers (§Page-6 follow-up)
+ *  — powers the Consolidated Marks page's class dropdown, so it only ever
+ *  offers classes this exam is relevant to, not every class in the school. */
+export interface ExaminationClassOption { id: string; name: string }
+export async function listClassesForExamination(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<ExaminationClassOption[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ExaminationClassOption>(
+      `select distinct c.id, c.name
+         from exam_classes ec
+         join classes c on c.id = ec.class_id
+        where ec.examination_id = $1
+        order by c.name`,
       [examinationId]
     );
     return rows;

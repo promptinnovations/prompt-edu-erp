@@ -295,3 +295,259 @@ export async function getSubjectPerformanceIndicators(
     disclaimer_key: "performance_indicator_requires_management_interpretation",
   }));
 }
+
+// ---------------------------------------------------------------------------
+// Result Analysis (§Page-6 follow-up: "Result Analysis (of selected exam) —
+// School-wide, Section wise, Grade wise, Class wise, Subject wise, Teacher
+// wise"). School/section/class/grade-wise below all read `results`
+// directly (computeResults() writes it synchronously, so these are always
+// live — no "Refresh analytics" needed). Subject-wise/teacher-wise reuse
+// the existing mv_exam_subject_stats rollup (same staleness/refresh
+// contract as the pre-existing Subject Comparison table above). Every
+// breakdown is ranked purely by sort order in the returned array (average
+// % descending) — no "best/worst" label is attached server-side, keeping
+// §N.5's "neutral signal, requires management interpretation" framing; the
+// UI attaches a plain rank number.
+// ---------------------------------------------------------------------------
+export interface GradeDistributionRow {
+  grade_band_id: string; grade_label: string; min_percent: number; max_percent: number; student_count: number;
+}
+
+export interface ResultSchoolSummary {
+  total_students: number; average_percent: number | null; grade_distribution: GradeDistributionRow[];
+}
+
+async function getGradeDistribution(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<GradeDistributionRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ grade_band_id: string; grade_label: string; min_percent: string; max_percent: string; student_count: string }>(
+      `select gb.id as grade_band_id, gb.grade_label, gb.min_percent, gb.max_percent,
+              count(r.id)::int as student_count
+         from examinations e
+         join grade_bands gb on gb.grade_scale_id = e.grade_scale_id
+         left join results r on r.grade_band_id = gb.id and r.examination_id = e.id
+        where e.id = $1
+        group by gb.id, gb.grade_label, gb.min_percent, gb.max_percent
+        order by gb.min_percent desc`,
+      [examinationId]
+    );
+    return rows.map((r) => ({
+      grade_band_id: r.grade_band_id, grade_label: r.grade_label,
+      min_percent: Number(r.min_percent), max_percent: Number(r.max_percent),
+      student_count: Number(r.student_count),
+    }));
+  });
+}
+
+/** School-wide summary — every student with a computed result for this
+ *  examination, regardless of class/section. */
+export async function getResultSchoolSummary(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<ResultSchoolSummary> {
+  const db = await getDbClient();
+  const [summary, gradeDistribution] = await Promise.all([
+    db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+      const { rows } = await scoped.query<{ total_students: string; average_percent: string | null }>(
+        `select count(*)::int as total_students, round(avg(percentage), 2) as average_percent
+           from results where examination_id = $1`,
+        [examinationId]
+      );
+      return rows[0];
+    }),
+    getGradeDistribution(institutionId, authUserId, examinationId),
+  ]);
+  return {
+    total_students: Number(summary?.total_students ?? 0),
+    average_percent: summary?.average_percent !== null && summary?.average_percent !== undefined ? Number(summary.average_percent) : null,
+    grade_distribution: gradeDistribution,
+  };
+}
+
+export interface ResultGroupRow {
+  id: string; name: string; parent_name: string | null;
+  student_count: number; average_percent: number | null; grade_counts: Record<string, number>;
+}
+
+/** Shared shape for both section-wise and class-wise breakdowns — each
+ *  student's class/section is resolved via their ACTIVE enrollment for the
+ *  exam's own academic year (not their current-today enrollment), since a
+ *  student promoted since this exam took place must still be attributed to
+ *  the class/section they were actually in when they sat it. Every
+ *  academic year's enrollment row is kept as permanent history (§Page-2/3
+ *  follow-up's promoteClass() never deletes/rewrites a past year's row),
+ *  so this join is safe and stable no matter how many promotions happened
+ *  after the fact. */
+async function getResultGroups(
+  institutionId: string, authUserId: string, examinationId: string, groupBy: "section" | "class"
+): Promise<ResultGroupRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const groupCols = groupBy === "section"
+      ? "se.section_id as id, sec.name as name, c.name as parent_name"
+      : "c.id as id, c.name as name, null::text as parent_name";
+    // c.sort_order drives ordering only (the final array is re-sorted by
+    // average % below anyway) — included via max() so it can appear in
+    // ORDER BY without needing to widen the GROUP BY key.
+    const groupByCols = groupBy === "section" ? "se.section_id, sec.name, c.name" : "c.id, c.name";
+
+    const { rows: base } = await scoped.query<{ id: string; name: string; parent_name: string | null; student_count: string; average_percent: string | null }>(
+      `select ${groupCols},
+              count(r.id)::int as student_count, round(avg(r.percentage), 2) as average_percent
+         from results r
+         join examinations e on e.id = r.examination_id
+         join student_enrollments se on se.student_id = r.student_id and se.academic_year_id = e.academic_year_id and se.status = 'active'
+         join sections sec on sec.id = se.section_id
+         join classes c on c.id = se.class_id
+        where r.examination_id = $1
+        group by ${groupByCols}
+        order by max(c.sort_order), name`,
+      [examinationId]
+    );
+
+    const gradeGroupCol = groupBy === "section" ? "se.section_id" : "c.id";
+    const { rows: gradeRows } = await scoped.query<{ group_id: string; grade_label: string; student_count: string }>(
+      `select ${gradeGroupCol} as group_id, gb.grade_label, count(r.id)::int as student_count
+         from results r
+         join examinations e on e.id = r.examination_id
+         join student_enrollments se on se.student_id = r.student_id and se.academic_year_id = e.academic_year_id and se.status = 'active'
+         join classes c on c.id = se.class_id
+         left join grade_bands gb on gb.id = r.grade_band_id
+        where r.examination_id = $1 and r.grade_band_id is not null
+        group by ${gradeGroupCol}, gb.grade_label`,
+      [examinationId]
+    );
+    const gradesByGroup = new Map<string, Record<string, number>>();
+    for (const g of gradeRows) {
+      if (!gradesByGroup.has(g.group_id)) gradesByGroup.set(g.group_id, {});
+      gradesByGroup.get(g.group_id)![g.grade_label] = Number(g.student_count);
+    }
+
+    return base
+      .map((r) => ({
+        id: r.id, name: r.name, parent_name: r.parent_name,
+        student_count: Number(r.student_count),
+        average_percent: r.average_percent !== null ? Number(r.average_percent) : null,
+        grade_counts: gradesByGroup.get(r.id) ?? {},
+      }))
+      .sort((a, b) => (b.average_percent ?? -1) - (a.average_percent ?? -1));
+  });
+}
+
+export async function getResultsBySection(institutionId: string, authUserId: string, examinationId: string): Promise<ResultGroupRow[]> {
+  return getResultGroups(institutionId, authUserId, examinationId, "section");
+}
+
+export async function getResultsByClass(institutionId: string, authUserId: string, examinationId: string): Promise<ResultGroupRow[]> {
+  return getResultGroups(institutionId, authUserId, examinationId, "class");
+}
+
+export interface GradeTopStudentRow { student_id: string; student_name: string; percentage: number }
+export interface GradeWiseGroup {
+  grade_band_id: string; grade_label: string; min_percent: number; max_percent: number;
+  student_count: number; top_students: GradeTopStudentRow[];
+}
+
+/** "Grade wise" analysis — the letter-grade distribution (reusing
+ *  getGradeDistribution()) plus, per the user's own spec ("Top 5 each
+ *  grade"), the top 5 students within each band by percentage. Empty
+ *  (rather than throwing) when the examination has no grade_scale_id
+ *  configured, matching this codebase's existing "no rule configured"
+ *  convention elsewhere. */
+export async function getResultsByGrade(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<GradeWiseGroup[]> {
+  const db = await getDbClient();
+  const [distribution, topRows] = await Promise.all([
+    getGradeDistribution(institutionId, authUserId, examinationId),
+    db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+      const { rows } = await scoped.query<{ grade_band_id: string; student_id: string; student_name: string; percentage: string }>(
+        `select grade_band_id, student_id, student_name, percentage from (
+           select gb.id as grade_band_id, r.student_id, s.full_name as student_name, r.percentage,
+                  row_number() over (partition by gb.id order by r.percentage desc) as rn
+             from results r
+             join grade_bands gb on gb.id = r.grade_band_id
+             join students s on s.id = r.student_id
+            where r.examination_id = $1
+         ) ranked
+         where rn <= 5
+         order by percentage desc`,
+        [examinationId]
+      );
+      return rows;
+    }),
+  ]);
+
+  const topByBand = new Map<string, GradeTopStudentRow[]>();
+  for (const r of topRows) {
+    if (!topByBand.has(r.grade_band_id)) topByBand.set(r.grade_band_id, []);
+    topByBand.get(r.grade_band_id)!.push({ student_id: r.student_id, student_name: r.student_name, percentage: Number(r.percentage) });
+  }
+
+  return distribution.map((d) => ({
+    ...d,
+    top_students: topByBand.get(d.grade_band_id) ?? [],
+  }));
+}
+
+export interface TeacherResultRow {
+  teacher_user_id: string; teacher_name: string; subject_id: string; subject_name: string;
+  marked_count: number; average_marks: number | null; pass_percentage: number | null;
+}
+
+/** "Teacher wise" analysis — attributes each mv_exam_subject_stats row to
+ *  whichever teacher_assignments row covers that (subject, class, section)
+ *  for the exam's own academic year, via role_type = 'subject_teacher' (the
+ *  same mapping Staff > Teacher Assignments already collects — no new data
+ *  entry, per the user's own choice). A teacher teaching the same subject
+ *  across multiple classes/sections gets ONE aggregated row (weighted
+ *  average, same aggregation shape as getSubjectComparison() above) rather
+ *  than one row per section. Institutions that haven't set up teacher
+ *  assignments simply get an empty list here — not an error. */
+export async function getResultsByTeacher(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<TeacherResultRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: examRow } = await scoped.query<{ academic_year_id: string }>(
+      "select academic_year_id from examinations where id = $1", [examinationId]
+    );
+    if (examRow.length === 0) return [];
+    const academicYearId = examRow[0].academic_year_id;
+
+    const { rows } = await scoped.query<{
+      teacher_user_id: string; teacher_name: string; subject_id: string; subject_name: string;
+      marked_count: string; average_marks: string | null; pass_percentage: string | null;
+    }>(
+      `select ta.user_id as teacher_user_id, u.full_name as teacher_name,
+              v.subject_id, sub.name as subject_name,
+              sum(coalesce(v.marked_count, 0))::int as marked_count,
+              case when sum(coalesce(v.marked_count, 0)) > 0
+                   then round(sum(v.avg_marks * v.marked_count) / sum(v.marked_count), 2)
+                   else null end as average_marks,
+              case when sum(coalesce(v.marked_count, 0)) > 0
+                   then round((sum(coalesce(v.pass_count, 0))::numeric / sum(v.marked_count)) * 100, 2)
+                   else null end as pass_percentage
+         from mv_exam_subject_stats v
+         join subjects sub on sub.id = v.subject_id
+         join teacher_assignments ta on ta.subject_id = v.subject_id and ta.class_id = v.class_id
+              and (ta.section_id is null or ta.section_id = v.section_id)
+              and ta.role_type = 'subject_teacher' and ta.academic_year_id = $3
+         join users u on u.id = ta.user_id
+        where v.institution_id = $1 and v.examination_id = $2
+        group by ta.user_id, u.full_name, v.subject_id, sub.name
+        order by u.full_name, sub.name`,
+      [institutionId, examinationId, academicYearId]
+    );
+    return rows
+      .map((r) => ({
+        teacher_user_id: r.teacher_user_id, teacher_name: r.teacher_name,
+        subject_id: r.subject_id, subject_name: r.subject_name,
+        marked_count: Number(r.marked_count),
+        average_marks: r.average_marks !== null ? Number(r.average_marks) : null,
+        pass_percentage: r.pass_percentage !== null ? Number(r.pass_percentage) : null,
+      }))
+      .sort((a, b) => (b.average_marks ?? -1) - (a.average_marks ?? -1));
+  });
+}
