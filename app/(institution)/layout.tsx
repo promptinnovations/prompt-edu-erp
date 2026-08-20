@@ -128,12 +128,20 @@ export default async function InstitutionLayout({ children }: { children: React.
       ],
     }] : []),
 
+    // §Student Profile feature — "Student profiles" now opens the card-grid
+    // directory (new /students/directory), the front door into each child's
+    // own Profile page. "Enrollment" is the user's own naming for this
+    // group's original page ("add-student form + search + list=
+    // Enrollment") — unchanged. "Portfolio" also opens the directory
+    // (portfolios live under each student's own profile, not on a
+    // standalone page) with a ?tab= hint so picking a card lands straight
+    // on that student's Portfolio tab.
     ...(hasStudentAccess ? [{
       kind: "group" as const, label: "Student Management", icon: ni(StudentIcon),
       items: [
-        { href: "/students", label: "Student profiles" },
+        { href: "/students/directory", label: "Student profiles" },
         { href: "/students", label: "Enrollment" },
-        { href: "/students", label: "Portfolio" },
+        { href: "/students/directory?tab=portfolio", label: "Portfolio" },
       ],
     }] : []),
 

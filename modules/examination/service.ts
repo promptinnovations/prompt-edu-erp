@@ -685,6 +685,73 @@ export async function getResults(institutionId: string, authUserId: string, exam
 }
 
 // ---------------------------------------------------------------------------
+// §Student Profile feature ("Academics" tab / exam-report pie chart) — the
+// one per-student-per-SUBJECT marks getter this module was missing;
+// getMarksGrid() above is per-subject-all-students, getResults() is
+// per-examination-all-students' TOTALS — neither breaks one student's marks
+// down by subject, which is exactly what the reference screenshot's pie
+// chart needs.
+// ---------------------------------------------------------------------------
+export interface StudentSubjectMarkRow {
+  subject_id: string;
+  subject_name: string;
+  marks_obtained: string | null; // numeric(6,2) — comes back as a string, same convention as MarkRow.marks_obtained above
+  max_marks: string;
+  is_absent: boolean;
+}
+
+export interface StudentExamReport {
+  examination_id: string;
+  examination_name: string;
+  subjects: StudentSubjectMarkRow[];
+}
+
+/** Defaults to this student's most recent examination with any
+ *  approved/locked mark on record (pass an explicit examinationId to look at
+ *  a specific one instead — e.g. a dropdown on the Academics tab). Returns
+ *  null when the student has no marks anywhere yet, so the caller can show
+ *  an empty state instead of a misleading all-zero chart. */
+export async function getStudentExamReport(
+  institutionId: string, authUserId: string, studentId: string, examinationId?: string
+): Promise<StudentExamReport | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    let examId = examinationId ?? null;
+    if (!examId) {
+      const { rows } = await scoped.query<{ id: string }>(
+        `select distinct e.id, coalesce(e.start_date, e.created_at::date) as sort_date
+           from examinations e
+           join exam_subjects es on es.examination_id = e.id
+           join marks m on m.exam_subject_id = es.id
+          where m.student_id = $1 and m.entry_status in ('approved','locked')
+          order by sort_date desc limit 1`,
+        [studentId]
+      );
+      examId = rows[0]?.id ?? null;
+    }
+    if (!examId) return null;
+
+    const { rows: examRows } = await scoped.query<{ name: string }>(
+      "select name from examinations where id = $1", [examId]
+    );
+    if (examRows.length === 0) return null;
+
+    const { rows: subjectRows } = await scoped.query<StudentSubjectMarkRow>(
+      `select sub.id as subject_id, sub.name as subject_name, m.marks_obtained, es.max_marks,
+              coalesce(m.is_absent, false) as is_absent
+         from exam_subjects es
+         join subjects sub on sub.id = es.subject_id
+         left join marks m
+           on m.exam_subject_id = es.id and m.student_id = $2 and m.entry_status in ('approved','locked')
+        where es.examination_id = $1
+        order by sub.name`,
+      [examId, studentId]
+    );
+    return { examination_id: examId, examination_name: examRows[0].name, subjects: subjectRows };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Home page widgets ("Institution-wide Pass rate trend (across exams in %)"
 // and "Marks entry status of recent exam")
 // ---------------------------------------------------------------------------

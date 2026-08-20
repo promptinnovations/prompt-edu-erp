@@ -315,6 +315,141 @@ export async function createStudent(
 }
 
 // -----------------------------------------------------------------------------
+// Student Profile Record (§Student Profile feature) — the full template the
+// user supplied (personal/family-background/contact/academic-history/
+// medical/co-curricular sections), stored as nullable text columns added in
+// migration 0035. Deliberately kept OFF StudentRecord/StudentListRow (see
+// those interfaces' own doc comments) so the dozen existing narrow-select
+// callers never pay for 15+ columns they don't use — this section is the
+// only place that reads/writes them, via the student's own Profile page
+// (Personal tab).
+// -----------------------------------------------------------------------------
+export interface StudentProfileRecord extends StudentRecord {
+  contact_phone: string | null;
+  address: string | null;
+  blood_group: string | null;
+  mother_tongue: string | null;
+  national_id: string | null;
+  sibling_details: string | null;
+  permanent_address: string | null;
+  emergency_contact_name: string | null;
+  previous_school: string | null;
+  highest_grade_completed: string | null;
+  known_allergies: string | null;
+  chronic_conditions: string | null;
+  regular_medications: string | null;
+  vision_hearing_support: string | null;
+  hobbies_talents: string | null;
+  sports_preferences: string | null;
+  clubs_interests: string | null;
+  created_at: string; // "Date of Admission" in the template — no separate column needed
+}
+
+export async function getStudentProfile(institutionId: string, authUserId: string, studentId: string): Promise<StudentProfileRecord | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<StudentProfileRecord>(
+      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id,
+              contact_email, login_id, photo_file_id, contact_phone, address,
+              blood_group, mother_tongue, national_id, sibling_details, permanent_address,
+              emergency_contact_name, previous_school, highest_grade_completed, known_allergies,
+              chronic_conditions, regular_medications, vision_hearing_support, hobbies_talents,
+              sports_preferences, clubs_interests, created_at
+         from students where id = $1`,
+      [studentId]
+    );
+    return rows[0] ?? null; // RLS guarantees this is null for another institution's row (§E.3)
+  });
+}
+
+const updateStudentProfileSchema = z.object({
+  contactPhone: z.string().max(30).nullable().optional(),
+  address: z.string().max(500).nullable().optional(),
+  bloodGroup: z.string().max(10).nullable().optional(),
+  motherTongue: z.string().max(100).nullable().optional(),
+  nationalId: z.string().max(50).nullable().optional(),
+  siblingDetails: z.string().max(1000).nullable().optional(),
+  permanentAddress: z.string().max(500).nullable().optional(),
+  emergencyContactName: z.string().max(200).nullable().optional(),
+  previousSchool: z.string().max(200).nullable().optional(),
+  highestGradeCompleted: z.string().max(100).nullable().optional(),
+  knownAllergies: z.string().max(1000).nullable().optional(),
+  chronicConditions: z.string().max(1000).nullable().optional(),
+  regularMedications: z.string().max(1000).nullable().optional(),
+  visionHearingSupport: z.string().max(200).nullable().optional(),
+  hobbiesTalents: z.string().max(500).nullable().optional(),
+  sportsPreferences: z.string().max(500).nullable().optional(),
+  clubsInterests: z.string().max(500).nullable().optional(),
+});
+
+/** Partial-update — every field is independently optional (only keys
+ *  actually present in `input` are touched, same "in data" pattern as
+ *  updateStudent() above), so the Personal tab can save one section (e.g.
+ *  just Medical History) without clobbering the others. None of these are
+ *  the three admission-mandatory groups (those are core `students` columns
+ *  — full_name/date_of_birth/gender/address/contact_phone — validated by
+ *  admitStudent()'s stricter schema below, not here); this function itself
+ *  places no mandatory-ness rule on anything, since it's also how an admin
+ *  fills in a gap on an older, pre-mandatory-rule student record. */
+export async function updateStudentProfile(
+  institutionId: string, authUserId: string, userId: string, studentId: string,
+  input: z.infer<typeof updateStudentProfileSchema>,
+  scopedClient?: DbClient // §Q.1 — admitStudent() below calls this inside its own transaction
+): Promise<void> {
+  const data = updateStudentProfileSchema.parse(input);
+  const run = async (scoped: DbClient) => {
+    const { rows: before } = await scoped.query<{ id: string }>("select id from students where id = $1", [studentId]);
+    if (before.length === 0) throw new Error("Student not found.");
+    await scoped.query(
+      `update students set
+         contact_phone = case when $1 then $2 else contact_phone end,
+         address = case when $3 then $4 else address end,
+         blood_group = case when $5 then $6 else blood_group end,
+         mother_tongue = case when $7 then $8 else mother_tongue end,
+         national_id = case when $9 then $10 else national_id end,
+         sibling_details = case when $11 then $12 else sibling_details end,
+         permanent_address = case when $13 then $14 else permanent_address end,
+         emergency_contact_name = case when $15 then $16 else emergency_contact_name end,
+         previous_school = case when $17 then $18 else previous_school end,
+         highest_grade_completed = case when $19 then $20 else highest_grade_completed end,
+         known_allergies = case when $21 then $22 else known_allergies end,
+         chronic_conditions = case when $23 then $24 else chronic_conditions end,
+         regular_medications = case when $25 then $26 else regular_medications end,
+         vision_hearing_support = case when $27 then $28 else vision_hearing_support end,
+         hobbies_talents = case when $29 then $30 else hobbies_talents end,
+         sports_preferences = case when $31 then $32 else sports_preferences end,
+         clubs_interests = case when $33 then $34 else clubs_interests end,
+         updated_at = now(), updated_by = $35
+       where id = $36`,
+      [
+        "contactPhone" in data, data.contactPhone ?? null,
+        "address" in data, data.address ?? null,
+        "bloodGroup" in data, data.bloodGroup ?? null,
+        "motherTongue" in data, data.motherTongue ?? null,
+        "nationalId" in data, data.nationalId ?? null,
+        "siblingDetails" in data, data.siblingDetails ?? null,
+        "permanentAddress" in data, data.permanentAddress ?? null,
+        "emergencyContactName" in data, data.emergencyContactName ?? null,
+        "previousSchool" in data, data.previousSchool ?? null,
+        "highestGradeCompleted" in data, data.highestGradeCompleted ?? null,
+        "knownAllergies" in data, data.knownAllergies ?? null,
+        "chronicConditions" in data, data.chronicConditions ?? null,
+        "regularMedications" in data, data.regularMedications ?? null,
+        "visionHearingSupport" in data, data.visionHearingSupport ?? null,
+        "hobbiesTalents" in data, data.hobbiesTalents ?? null,
+        "sportsPreferences" in data, data.sportsPreferences ?? null,
+        "clubsInterests" in data, data.clubsInterests ?? null,
+        userId, studentId,
+      ]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "students", entityType: "students", entityId: studentId, after: data });
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+// -----------------------------------------------------------------------------
 // Enrollment (§D.4) — links a student to a class/section for an academic
 // year. Kept minimal in this phase: one active enrollment is created per
 // call; promotion/transfer history (closing out a prior enrollment) is a
@@ -733,6 +868,89 @@ export async function deleteParentRecord(institutionId: string, authUserId: stri
     );
     if (rows.length === 0) return;
     await recordAudit(scoped, { institutionId, userId, action: "delete", module: "students", entityType: "parents", entityId: parentId, before: rows[0] });
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Full admission (§Student Profile feature, "Enrollment" = add-student form +
+// search + list) — the STRICTER sibling of createStudent(). Enforces exactly
+// the three field-groups the user confirmed mandatory at admission: core
+// identity (name, DOB, gender, class & division), family contact (a parent's
+// name + phone), and address. Every other template field (blood group,
+// medical history, hobbies, …) is left optional here, filled in later via
+// updateStudentProfile() from the student's own Personal tab.
+//
+// createStudent() itself is deliberately left untouched — StudentForm.tsx's
+// existing quick-add and the bulk-import path (modules/bulk/service.ts) both
+// still rely on its original lenient schema (e.g. importing historic rows
+// that predate this stricter rule and may never have a DOB on file).
+// -----------------------------------------------------------------------------
+const guardianSchema = z.object({
+  fullName: z.string().min(1).max(200),
+  phone: z.string().max(30).nullable().optional(),
+  occupation: z.string().max(150).nullable().optional(),
+});
+
+const admitStudentSchema = z.object({
+  admissionNumber: z.string().min(1).max(50),
+  fullName: z.string().min(1).max(200), // core identity
+  fullNameNative: z.string().max(200).nullable().optional(),
+  dateOfBirth: z.string().min(1), // core identity — mandatory here (optional on createStudent())
+  gender: z.enum(["male", "female"]), // core identity — mandatory here
+  academicYearId: z.string().uuid(), // class & division, core identity
+  classId: z.string().uuid(),
+  sectionId: z.string().uuid(),
+  address: z.string().min(1).max(500), // mandatory — current residential address
+  father: guardianSchema.nullable().optional(),
+  mother: guardianSchema.nullable().optional(),
+  profile: updateStudentProfileSchema.omit({ address: true, contactPhone: true }).optional(),
+}).refine(
+  (d) => Boolean(d.father?.fullName?.trim()) || Boolean(d.mother?.fullName?.trim()),
+  { message: "Father's or mother's name is required.", path: ["father", "fullName"] }
+).refine(
+  (d) => Boolean(d.father?.phone?.trim()) || Boolean(d.mother?.phone?.trim()),
+  { message: "At least one parent contact number (father's or mother's) is required.", path: ["father", "phone"] }
+);
+
+export interface AdmitStudentResult {
+  student: StudentRecord;
+  enrollment: EnrollmentRecord;
+}
+
+export async function admitStudent(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof admitStudentSchema>
+): Promise<AdmitStudentResult> {
+  const data = admitStudentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const student = await createStudent(institutionId, authUserId, userId, {
+      admissionNumber: data.admissionNumber,
+      fullName: data.fullName,
+      fullNameNative: data.fullNameNative ?? null,
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender,
+    }, scoped);
+
+    await updateStudentProfile(institutionId, authUserId, userId, student.id, {
+      address: data.address,
+      ...(data.profile ?? {}),
+    }, scoped);
+
+    const enrollment = await enrollStudent(institutionId, authUserId, userId, {
+      studentId: student.id, academicYearId: data.academicYearId, classId: data.classId, sectionId: data.sectionId,
+    }, scoped);
+
+    for (const [relationship, guardian] of [["father", data.father], ["mother", data.mother]] as const) {
+      if (!guardian?.fullName?.trim()) continue;
+      const parent = await createParent(institutionId, authUserId, userId, {
+        fullName: guardian.fullName, phone: guardian.phone ?? null, occupation: guardian.occupation ?? null,
+      }, scoped);
+      await linkParentToStudent(institutionId, authUserId, userId, {
+        studentId: student.id, parentId: parent.id, relationship, isPrimaryContact: relationship === "father",
+      }, scoped);
+    }
+
+    return { student, enrollment };
   });
 }
 

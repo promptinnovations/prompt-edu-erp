@@ -1,35 +1,68 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../../services/request-context";
 import { can } from "../../../../services/permissions/permission-service";
-import { getStudent, getCurrentEnrollment, listParentsForStudent, listEnrollmentHistory } from "../../../../modules/students/service";
+import {
+  getStudentProfile, getCurrentEnrollment, listParentsForStudent, listEnrollmentHistory,
+} from "../../../../modules/students/service";
 import { listClasses, listSections, getCurrentAcademicYear } from "../../../../modules/academic/service";
+import { getStudent360 } from "../../../../modules/portfolio/service";
+import { getStudentExamReport } from "../../../../modules/examination/service";
+import { getStudentMonthlyAttendance } from "../../../../modules/attendance/service";
 import EnrollForm from "../EnrollForm";
 import ClassEnrollmentSection from "../ClassEnrollmentSection";
 import ParentSection, { ProvisionStudentAccountForm } from "../ParentSection";
 import EditStudentForm from "../EditStudentForm";
 import StudentLoginSection from "../StudentLoginSection";
 import PhotoForm from "../PhotoForm";
+import StudentProfileForm from "../StudentProfileForm";
+import ProfileTabs from "./ProfileTabs";
+import { MonthlyAttendanceBarChart, ExamSubjectPieChart } from "./ProfileCharts";
 
-export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function formatDate(d: string | Date | null) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+/**
+ * §Student Profile feature — the tabbed per-student Profile page from the
+ * reference screenshots (Personal / Summary / Student Fees / Student
+ * Portfolio / Academics), replacing the old flat single-section detail
+ * page. Every tab's data is fetched once here and handed down as props —
+ * see ProfileTabs.tsx for why switching tabs needs no extra round trip.
+ * ?tab= (set by the Student Management directory's "Portfolio" link, see
+ * students/directory/page.tsx) preselects a starting tab.
+ */
+export default async function StudentDetailPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
-  const t = await getTranslations("students");
 
-  const student = await getStudent(institutionId, authUserId, id);
-  if (!student) notFound(); // RLS already guarantees this is null for another institution's id (§E.3)
+  const profile = await getStudentProfile(institutionId, authUserId, id);
+  if (!profile) notFound(); // RLS already guarantees this is null for another institution's id (§E.3)
 
-  const [enrollment, classes, sections, academicYear, parents, enrollmentHistory] = await Promise.all([
+  const [
+    enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
+  ] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     getCurrentAcademicYear(institutionId, authUserId),
     listParentsForStudent(institutionId, authUserId, id),
     listEnrollmentHistory(institutionId, authUserId, id),
+    getStudent360(institutionId, authUserId, id),
+    getStudentExamReport(institutionId, authUserId, id),
   ]);
+  const monthlyAttendance = academicYear
+    ? await getStudentMonthlyAttendance(institutionId, authUserId, id, academicYear.start_date, academicYear.end_date)
+    : [];
 
   const classById = new Map(classes.map((c) => [c.id, c.name]));
   const sectionOptions = sections.map((s) => ({
@@ -37,81 +70,90 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     classId: s.class_id,
     label: `${classById.get(s.class_id) ?? "?"} — ${s.name}`,
   }));
+  const currentSection = sections.find((s) => s.id === enrollment?.section_id);
+  const classDivisionLabel = enrollment
+    ? `${classById.get(enrollment.class_id) ?? "?"}${currentSection ? ` · Div. ${currentSection.name}` : ""}`
+    : "Not enrolled";
+  const canManage = can(ctx.permissions, "student.edit");
 
-  return (
-    <div className="space-y-4">
-      <Link href="/students" className="text-sm text-zinc-500 dark:text-zinc-400 underline">
-        ← {t("backToList")}
-      </Link>
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{student.full_name}</h1>
-          <div className="flex items-center gap-3">
-            {can(ctx.permissions, "student.edit") ? (
-              <EditStudentForm
-                studentId={student.id}
-                admissionNumber={student.admission_number}
-                fullName={student.full_name}
-                dateOfBirth={student.date_of_birth}
-                gender={student.gender}
-              />
-            ) : null}
-            <Link href={`/students/${student.id}/portfolio`} className="text-sm text-zinc-600 dark:text-zinc-400 underline">
-              View Student 360°
-            </Link>
+  const personalTab = (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Core identity</h2>
+        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+          <div>
+            <dt className="text-zinc-400 dark:text-zinc-500">Admission number</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.admission_number}</dd>
           </div>
-        </div>
-        {can(ctx.permissions, "student.edit") ? (
-          <div className="mt-4">
-            <PhotoForm studentId={student.id} photoUrl={student.photo_file_id ? `/api/files/${student.photo_file_id}` : null} />
+          <div>
+            <dt className="text-zinc-400 dark:text-zinc-500">Roll number</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{enrollment?.roll_number ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-zinc-400 dark:text-zinc-500">Date of admission</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{formatDate(profile.created_at)}</dd>
+          </div>
+          <div>
+            <dt className="text-zinc-400 dark:text-zinc-500">Academic year</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{academicYear?.name ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-zinc-400 dark:text-zinc-500">Date of birth</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.date_of_birth ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-zinc-400 dark:text-zinc-500">Gender</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.gender ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-zinc-400 dark:text-zinc-500">Class & division</dt>
+            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{classDivisionLabel}</dd>
+          </div>
+        </dl>
+        {canManage ? (
+          <div className="mt-3">
+            <EditStudentForm
+              studentId={profile.id}
+              admissionNumber={profile.admission_number}
+              fullName={profile.full_name}
+              dateOfBirth={profile.date_of_birth}
+              gender={profile.gender}
+            />
           </div>
         ) : null}
-        <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <dt className="text-zinc-400 dark:text-zinc-500">{t("admissionNumber")}</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.admission_number}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-400 dark:text-zinc-500">Status</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.status}</dd>
-          </div>
-          {student.date_of_birth ? (
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Date of birth</dt>
-              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.date_of_birth}</dd>
-            </div>
-          ) : null}
-          {student.gender ? (
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Gender</dt>
-              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{student.gender}</dd>
-            </div>
-          ) : null}
-        </dl>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+      {canManage ? (
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Photo</h2>
+          <PhotoForm studentId={profile.id} photoUrl={profile.photo_file_id ? `/api/files/${profile.photo_file_id}` : null} />
+        </div>
+      ) : null}
+
+      {canManage ? <StudentProfileForm profile={profile} /> : null}
+
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Class enrollment</h2>
         {enrollment ? (
           <ClassEnrollmentSection
-            studentId={student.id}
+            studentId={profile.id}
             currentClassLabel={classById.get(enrollment.class_id) ?? null}
             currentRollNumber={enrollment.roll_number ?? null}
             sections={sectionOptions}
             history={enrollmentHistory}
-            canManage={can(ctx.permissions, "student.edit")}
+            canManage={canManage}
           />
         ) : academicYear ? (
           <div className="space-y-4">
-            <EnrollForm studentId={student.id} academicYearId={academicYear.id} sections={sectionOptions} />
+            <EnrollForm studentId={profile.id} academicYearId={academicYear.id} sections={sectionOptions} />
             {enrollmentHistory.length > 0 ? (
               <ClassEnrollmentSection
-                studentId={student.id}
+                studentId={profile.id}
                 currentClassLabel={null}
                 currentRollNumber={null}
                 sections={sectionOptions}
                 history={enrollmentHistory}
-                canManage={can(ctx.permissions, "student.edit")}
+                canManage={canManage}
               />
             ) : null}
           </div>
@@ -120,34 +162,213 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         )}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Parents / guardians (§D.4)</h2>
-        <ParentSection studentId={student.id} parents={parents} canManage={can(ctx.permissions, "student.edit")} />
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Family background — parents / guardians</h2>
+        <ParentSection studentId={profile.id} parents={parents} canManage={canManage} />
       </div>
 
       {can(ctx.permissions, "users.manage") ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
           <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Student portal login (§137)</h2>
           <StudentLoginSection
-            studentId={student.id}
-            loginId={student.login_id ?? null}
+            studentId={profile.id}
+            loginId={profile.login_id ?? null}
             defaultParentPhone={parents.find((p) => p.is_primary_contact)?.phone ?? parents[0]?.phone ?? ""}
           />
-          {!student.login_id && !student.user_id ? (
+          {!profile.login_id && !profile.user_id ? (
             <details className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
               <summary className="cursor-pointer underline">Prefer an email-based login instead?</summary>
               <div className="mt-2">
                 <ProvisionStudentAccountForm
-                  studentId={student.id}
-                  defaultEmail={student.contact_email ?? ""}
-                  defaultName={student.full_name}
-                  alreadyLinked={!!student.user_id}
+                  studentId={profile.id}
+                  defaultEmail={profile.contact_email ?? ""}
+                  defaultName={profile.full_name}
+                  alreadyLinked={!!profile.user_id}
                 />
               </div>
             </details>
           ) : null}
         </div>
       ) : null}
+    </div>
+  );
+
+  const summaryTab = (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Latest result</div>
+          {student360.latestResult ? (
+            <>
+              <div className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{Number(student360.latestResult.percentage).toFixed(1)}%</div>
+              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                {student360.latestResult.examination_name}{student360.latestResult.grade_label ? ` — ${student360.latestResult.grade_label}` : ""}
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">No results yet</div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Attendance (this year)</div>
+          {student360.attendanceSummary ? (
+            <>
+              <div className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{student360.attendanceSummary.present_percent}%</div>
+              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                {student360.attendanceSummary.present_days} / {student360.attendanceSummary.total_days} days
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">No attendance yet</div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:col-span-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Consolidated score</div>
+          {student360.latestConsolidatedScore ? (
+            <>
+              <div className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{student360.latestConsolidatedScore.score}</div>
+              <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{student360.latestConsolidatedScore.period}</div>
+            </>
+          ) : (
+            <div className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">Not computed yet — see the Scoring page.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Monthly attendance</h2>
+          <MonthlyAttendanceBarChart points={monthlyAttendance} />
+        </section>
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Exam report{examReport ? ` — ${examReport.examination_name}` : ""}
+          </h2>
+          {examReport ? <ExamSubjectPieChart subjects={examReport.subjects} /> : (
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">No exam marks recorded yet.</p>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+
+  const feesTab = (
+    <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-8 text-center">
+      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">Fee tracking isn&apos;t set up in this system yet.</p>
+      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+        There is no fees module in PROMPT EDU ERP right now — this tab is a placeholder for when one is added, rather than showing made-up numbers.
+      </p>
+    </div>
+  );
+
+  const portfolioTab = (
+    <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+        Only approved activities appear here — nothing pending or rejected ever shows up (§L.3). This is the original evidence of what {profile.full_name} has done so far.
+      </p>
+      <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+        {student360.recentPortfolioEvents.map((e) => (
+          <li key={e.id} className="flex items-center justify-between py-2 text-sm">
+            <div>
+              <div className="text-zinc-900 dark:text-zinc-50">{e.title}</div>
+              {e.description ? <div className="text-xs text-zinc-500 dark:text-zinc-400">{e.description}</div> : null}
+            </div>
+            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+              {e.score !== null ? <span>{e.score} pts</span> : null}
+              <span>{e.event_date}</span>
+            </div>
+          </li>
+        ))}
+        {student360.recentPortfolioEvents.length === 0 ? (
+          <li className="py-4 text-center text-sm text-zinc-400 dark:text-zinc-500">No approved activities yet.</li>
+        ) : null}
+      </ul>
+    </section>
+  );
+
+  const academicsTab = (
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          {examReport ? examReport.examination_name : "Subject-wise marks"}
+        </h2>
+        {examReport ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <tr>
+                  <th className="py-1.5 pr-4">Subject</th>
+                  <th className="py-1.5 pr-4">Marks</th>
+                  <th className="py-1.5 pr-4">%</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {examReport.subjects.map((s) => (
+                  <tr key={s.subject_id}>
+                    <td className="py-1.5 pr-4 text-zinc-900 dark:text-zinc-50">{s.subject_name}</td>
+                    <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                    </td>
+                    <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {!s.is_absent && s.marks_obtained !== null ? `${Math.round((Number(s.marks_obtained) / Number(s.max_marks)) * 1000) / 10}%` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No exam marks recorded yet.</p>
+        )}
+      </section>
+      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+        For full report cards and past examinations, see <Link href="/results" className="underline">Results</Link>.
+      </p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Link href="/students/directory" className="text-sm text-zinc-500 dark:text-zinc-400 underline">
+        ← Back to Student profiles
+      </Link>
+
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        {profile.photo_file_id ? (
+          // eslint-disable-next-line @next/next/no-img-element -- avatar from an authenticated /api/files route, not a static/optimizable asset
+          <img src={`/api/files/${profile.photo_file_id}`} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800" />
+        ) : (
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-800">
+            {profile.full_name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{profile.full_name}</h1>
+          <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+            {profile.admission_number} · {classDivisionLabel}
+            {profile.status === "withdrawn" ? <span className="ml-2 text-red-600 dark:text-red-400">(removed)</span> : null}
+          </p>
+        </div>
+      </div>
+
+      <ProfileTabs
+        tabs={[
+          { id: "personal", label: "Personal" },
+          { id: "summary", label: "Summary" },
+          { id: "fees", label: "Student Fees" },
+          { id: "portfolio", label: "Student Portfolio" },
+          { id: "academics", label: "Academics" },
+        ]}
+        initialTab={tab}
+      >
+        {personalTab}
+        {summaryTab}
+        {feesTab}
+        {portfolioTab}
+        {academicsTab}
+      </ProfileTabs>
     </div>
   );
 }

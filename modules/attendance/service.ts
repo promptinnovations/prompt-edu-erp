@@ -209,6 +209,40 @@ export async function getStudentAttendanceSummary(
   });
 }
 
+export interface MonthlyAttendancePoint { month: string; present: number; absent: number; total: number }
+
+/** §Student Profile feature (Summary tab attendance bar chart) — same date
+ *  range as getStudentAttendanceSummary() above, just broken down by
+ *  calendar month instead of collapsed into one total. Deliberately only
+ *  present/absent (via counts_as_present), NOT a third "leave" bucket —
+ *  this module's own header comment above states nothing here may assume
+ *  particular status codes, and attendance_statuses only carries a
+ *  present/not-present boolean, not a separate "is this specifically a
+ *  leave, not just an absence" flag; a status named e.g. "On Leave" is
+ *  still, structurally, just one more not-counts-as-present status. */
+export async function getStudentMonthlyAttendance(
+  institutionId: string, authUserId: string, studentId: string, fromDate: string, toDate: string
+): Promise<MonthlyAttendancePoint[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ month: string; present: string; absent: string; total: string }>(
+      `select to_char(ar.date, 'YYYY-MM') as month,
+              count(*) filter (where st.counts_as_present) as present,
+              count(*) filter (where not st.counts_as_present) as absent,
+              count(*) as total
+         from attendance_records ar
+         join attendance_statuses st on st.id = ar.status_id
+        where ar.student_id = $1 and ar.date between $2 and $3
+        group by to_char(ar.date, 'YYYY-MM')
+        order by month`,
+      [studentId, fromDate, toDate]
+    );
+    return rows.map((r) => ({
+      month: r.month, present: Number(r.present), absent: Number(r.absent), total: Number(r.total),
+    }));
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Leave applications (§D.6)
 // ---------------------------------------------------------------------------

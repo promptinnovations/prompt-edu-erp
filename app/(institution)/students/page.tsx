@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { listStudentsForAdmin } from "../../../modules/students/service";
-import { listClasses } from "../../../modules/academic/service";
+import { listClasses, listSections, getCurrentAcademicYear } from "../../../modules/academic/service";
 import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import StudentForm from "./StudentForm";
 import StudentRowActions from "./StudentRowActions";
@@ -31,7 +31,7 @@ export default async function StudentsPage({
     ? undefined
     : Array.from((await getTeacherClassScope(institutionId, ctx.session.authUserId, ctx.userId)).classIds);
 
-  const [students, allClasses] = await Promise.all([
+  const [students, allClasses, allSections, academicYear] = await Promise.all([
     listStudentsForAdmin(institutionId, ctx.session.authUserId, {
       search: q || undefined,
       classId: classId || undefined,
@@ -43,15 +43,21 @@ export default async function StudentsPage({
       includeParentContact: true,
     }),
     listClasses(institutionId, ctx.session.authUserId),
+    listSections(institutionId, ctx.session.authUserId),
+    getCurrentAcademicYear(institutionId, ctx.session.authUserId),
   ]);
   const classes = scopeClassIds ? allClasses.filter((c) => scopeClassIds.includes(c.id)) : allClasses;
+  const classNameById = new Map(allClasses.map((c) => [c.id, c.name]));
+  const sectionOptions = allSections
+    .filter((s) => !scopeClassIds || scopeClassIds.includes(s.class_id))
+    .map((s) => ({ id: s.id, classId: s.class_id, label: `${classNameById.get(s.class_id) ?? "?"} — ${s.name}` }));
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("title")}</h1>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <StudentForm />
+        <StudentForm academicYearId={academicYear?.id ?? null} sections={sectionOptions} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">

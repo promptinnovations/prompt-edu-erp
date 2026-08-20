@@ -1423,6 +1423,94 @@ wording in the promotion-workflow error message
 (`academic-structure-student-mgmt-flow.test.ts`, `super-admin-flow.test.ts`,
 `user-management-flow.test.ts`).
 
+## Student Profile feature — card-grid directory + tabbed per-student
+## profile page
+
+Triggered by the user's own detailed answer describing a "STUDENT PROFILE
+RECORD" template plus three reference screenshots (a card-grid "Employee
+Directory"-style student list, and a tabbed per-student profile page with
+Personal/Summary/Student Fees/Student Portfolio/Academics tabs and a small
+dashboard of charts).
+
+- **Migration `0035_student_profile_record.sql`** adds 15 nullable text
+  columns to `students` covering the template's remaining sections (blood
+  group, mother tongue, national ID, sibling details, permanent address,
+  emergency contact name, previous school, highest grade completed, known
+  allergies, chronic conditions, regular medications, vision/hearing
+  support, hobbies/talents, sports preferences, clubs/interests).
+  Deliberately NOT duplicated: "Class & Division" (already tracked via
+  `student_enrollments`), "Date of Admission" (`students.created_at`
+  already means this), and "Father's/Mother's Name/Occupation/Contact"
+  (the existing `parents`/`student_parents` tables from migration 0001
+  already model this correctly). All new columns are nullable — mandatory-
+  ness is enforced at the service layer, not the database, matching the
+  precedent `date_of_birth`/`gender` already set.
+- **Mandatory-at-admission fields**, per the user's own explicit choice
+  ("Core identity, Family contact, Address" out of every template field):
+  full name, date of birth, gender, class & division (core identity); a
+  parent's name + phone, at least one of father/mother (family contact);
+  current residential address. Every other template field stays optional
+  and is filled in later from the student's own Personal tab. A new
+  `admitStudent()` in `modules/students/service.ts` enforces exactly this
+  — creating the student, its profile row, its class enrollment, and
+  linking father/mother `parents` rows — all inside one transaction. The
+  original lenient `createStudent()` is untouched, since `StudentForm.tsx`'s
+  quick-add (now the full "Enrollment" admission form) is the only caller
+  that switched over; the bulk-import path still needs the lenient rule
+  for historic/imported rows that may not have a DOB on file.
+- **`getStudentProfile()`/`updateStudentProfile()`** — a full read/partial-
+  write pair for the template's fields, kept off `StudentRecord`/
+  `StudentListRow` so the dozen existing narrow-select callers never pay
+  for columns they don't use.
+- **`/students/directory`** — a new card-grid page (circular photo + name
+  tiles, matching the reference "Employee Directory" screenshot) that
+  replaces the old plain table as the front door into a student's Profile
+  page. The original `/students` page (add-student form + search + list)
+  is unchanged in place and is what the sidebar now calls "Enrollment" —
+  the user's own naming ("add-student form + search + list= Enrollment").
+  Its quick-add form was upgraded in place to the full `admitStudent()`
+  admission flow (DOB/gender/class & division/address/parent name+phone),
+  since this page is genuinely where admission-mandatory fields need to be
+  collected.
+- **`/students/[id]`** was rebuilt into the tabbed Profile page from the
+  reference screenshots: a left/top tab rail (`ProfileTabs.tsx`, a small
+  client component — every tab's content is fetched once server-side and
+  just shown/hidden, so switching tabs needs no extra round trip) with
+  Personal (the full template form, `StudentProfileForm.tsx`, plus the
+  existing photo/parents/class-enrollment/portal-login sections folded
+  in), Summary (latest result/attendance/consolidated-score cards plus two
+  new pure-CSS charts — a monthly attendance bar chart and an exam-report
+  donut by subject, `ProfileCharts.tsx`), Student Fees (an explicit "not
+  tracked yet" placeholder — there is no fees module anywhere in this
+  codebase, so this deliberately doesn't fabricate numbers), Student
+  Portfolio (the approved-activity timeline, moved here from the old
+  standalone `/students/[id]/portfolio` page, which now just redirects
+  here), and Academics (subject-wise marks table for the student's most
+  recent examination). The directory's "Portfolio" sidebar entry links
+  here with `?tab=portfolio` to land straight on that tab.
+- **Two new service functions** power the Summary/Academics charts, since
+  neither existed before: `getStudentExamReport()`
+  (`modules/examination/service.ts`) — the one per-student-per-SUBJECT
+  marks getter this module was missing (existing `getMarksGrid()` is per-
+  subject-all-students, `getResults()` is per-examination-all-students'
+  totals) — and `getStudentMonthlyAttendance()`
+  (`modules/attendance/service.ts`) — present/absent counts grouped by
+  calendar month. Deliberately present/absent only, not a third "leave"
+  bucket: this module's own header comment states nothing in it may assume
+  particular attendance-status codes, and `attendance_statuses` only
+  carries a present/not-present boolean, not a separate "is this
+  specifically a leave" flag.
+
+Tests: `tests/integration/student-profile-flow.test.ts` (8 tests) —
+migration 0035 applying cleanly, `admitStudent()`'s mandatory-field
+enforcement (refuses with no parent contact, refuses with a parent name
+but no phone, succeeds with just a mother's contact, links father as
+primary contact when both are given), `getStudentProfile()`/
+`updateStudentProfile()`'s partial-update semantics, `getStudentExamReport()`
+returning null with no marks yet and the correct per-subject breakdown
+once approved, and `getStudentMonthlyAttendance()` grouping correctly
+across a month boundary.
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

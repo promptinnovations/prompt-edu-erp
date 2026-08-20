@@ -8,7 +8,7 @@ import {
   updateStudent, deleteStudent, restoreStudent,
   updateParent, unlinkParentFromStudent, deleteParentRecord,
   transferStudentEnrollment, removeStudentFromClass, restoreEnrollment, assignRollNumbers,
-  updateStudentPhoto,
+  updateStudentPhoto, updateStudentProfile, admitStudent,
 } from "../../../modules/students/service";
 import {
   provisionStudentPortalAccount, provisionParentPortalAccount,
@@ -72,6 +72,41 @@ export async function createStudentAction(_prevState: { error: string | null }, 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create student." };
+  }
+}
+
+/** §Student Profile feature ("Enrollment" = add-student form + search +
+ *  list, per the user's own naming) — the full admission path, replacing
+ *  the old admission-number+name-only quick add. Enforces exactly the
+ *  three field-groups confirmed mandatory at admission: core identity
+ *  (name, DOB, gender, class & division), family contact (a parent's name
+ *  + phone), and address — see modules/students/service.ts's
+ *  admitStudent() doc comment. createStudentAction() above is untouched
+ *  for the bulk-import path, which still needs the original lenient rule. */
+export async function admitStudentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "student.create");
+    const fatherName = String(formData.get("fatherName") ?? "").trim();
+    const motherName = String(formData.get("motherName") ?? "").trim();
+    await admitStudent(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      admissionNumber: String(formData.get("admissionNumber") ?? ""),
+      fullName: String(formData.get("fullName") ?? ""),
+      dateOfBirth: String(formData.get("dateOfBirth") ?? ""),
+      gender: String(formData.get("gender") ?? "") as "male" | "female",
+      academicYearId: String(formData.get("academicYearId") ?? ""),
+      classId: String(formData.get("classId") ?? ""),
+      sectionId: String(formData.get("sectionId") ?? ""),
+      address: String(formData.get("address") ?? ""),
+      father: fatherName ? { fullName: fatherName, phone: String(formData.get("fatherPhone") ?? "") || null } : null,
+      mother: motherName ? { fullName: motherName, phone: String(formData.get("motherPhone") ?? "") || null } : null,
+    });
+    revalidatePath("/students");
+    revalidatePath("/students/directory");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to admit student." };
   }
 }
 
@@ -191,6 +226,46 @@ export async function updateStudentAction(_prevState: { error: string | null }, 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update student." };
+  }
+}
+
+/** §Student Profile feature (Personal tab) — saves the full template's
+ *  remaining fields (everything past core identity/family/address, which
+ *  stay on EditStudentForm/ParentSection/ClassEnrollmentSection): blood
+ *  group, mother tongue, national ID, sibling details, addresses, emergency
+ *  contact, academic history, medical history, co-curricular interests.
+ *  Blank inputs are sent through as "" -> null (clearing a field), same
+ *  convention as updateStudentAction()'s dateOfBirth/gender above. */
+export async function updateStudentProfileAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  const field = (name: string) => String(formData.get(name) ?? "") || null;
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    await updateStudentProfile(ctx.institutionId, ctx.session.authUserId, ctx.userId, studentId, {
+      contactPhone: field("contactPhone"),
+      address: field("address"),
+      bloodGroup: field("bloodGroup"),
+      motherTongue: field("motherTongue"),
+      nationalId: field("nationalId"),
+      siblingDetails: field("siblingDetails"),
+      permanentAddress: field("permanentAddress"),
+      emergencyContactName: field("emergencyContactName"),
+      previousSchool: field("previousSchool"),
+      highestGradeCompleted: field("highestGradeCompleted"),
+      knownAllergies: field("knownAllergies"),
+      chronicConditions: field("chronicConditions"),
+      regularMedications: field("regularMedications"),
+      visionHearingSupport: field("visionHearingSupport"),
+      hobbiesTalents: field("hobbiesTalents"),
+      sportsPreferences: field("sportsPreferences"),
+      clubsInterests: field("clubsInterests"),
+    });
+    revalidatePath(`/students/${studentId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save profile details." };
   }
 }
 
