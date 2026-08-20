@@ -28,17 +28,17 @@
     "welcome": "Welcome, {name}",
     "institution": "Institution",
     "classes": "Classes",
-    "sections": "Sections",
+    "sections": "Divisions",
     "subjects": "Subjects",
     "students": "Students"
   },
   "academic": {
     "title": "Academic Setup",
     "classesHeading": "Classes",
-    "sectionsHeading": "Sections",
+    "sectionsHeading": "Divisions",
     "subjectsHeading": "Subjects",
     "className": "Class name",
-    "sectionName": "Section name",
+    "sectionName": "Division name",
     "subjectName": "Subject name",
     "selectClass": "Select class",
     "add": "Add"

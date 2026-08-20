@@ -29,7 +29,7 @@ export default function AddTimetablePeriodForm({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Section</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Division</label>
         <select name="sectionId" required defaultValue="" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
           <option value="">Select…</option>
           {sections.filter((s) => !classId || s.class_id === classId).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

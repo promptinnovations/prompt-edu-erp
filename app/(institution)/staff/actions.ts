@@ -9,6 +9,7 @@ import {
   recordTeacherObservation, createTeacherAssignment,
   createStaffLoginAccount, resetStaffLoginPassword,
 } from "../../../modules/staff/service";
+import { assignSectionHead, removeSectionHeadAssignment } from "../../../services/scope/section-head-scope-service";
 
 export async function createStaffAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
@@ -164,5 +165,40 @@ export async function createTeacherAssignmentAction(_prevState: { error: string 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create teacher assignment." };
+  }
+}
+
+/** §Attendance-follow-up-3 "section wise for section heads" — reuses
+ *  staff.assignment.manage (same "who oversees what" category of admin
+ *  action as Teacher assignments right above it, rather than a new
+ *  permission code — the assigned user still needs the section_head ROLE
+ *  itself, granted separately via Users & Roles, for this assignment to
+ *  actually unlock anything; this action just records WHICH section(s). */
+export async function assignSectionHeadAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.assignment.manage");
+    await assignSectionHead(
+      ctx.institutionId, ctx.session.authUserId,
+      String(formData.get("userId") ?? ""), String(formData.get("stage") ?? "")
+    );
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to assign Section Head." };
+  }
+}
+
+export async function removeSectionHeadAssignmentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.assignment.manage");
+    await removeSectionHeadAssignment(ctx.institutionId, ctx.session.authUserId, String(formData.get("assignmentId") ?? ""));
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove assignment." };
   }
 }

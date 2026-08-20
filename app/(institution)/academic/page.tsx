@@ -96,7 +96,7 @@ export default async function AcademicPage() {
         </ul>
       </section>
 
-      <section id="sections" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="divisions" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("sectionsHeading")}</h2>
         {canManage ? <SectionForm classes={classes} /> : null}
         <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
@@ -126,7 +126,7 @@ export default async function AcademicPage() {
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="subjects-per-class" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subjects per class</h2>
         <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
           Which subjects each class studies — shown to teachers/students on that class&apos;s own page.

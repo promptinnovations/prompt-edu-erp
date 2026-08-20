@@ -21,7 +21,7 @@ export default function EnrollForm({
       <input type="hidden" name="studentId" value={studentId} />
       <input type="hidden" name="academicYearId" value={academicYearId} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Section</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Division</label>
         <select
           name="sectionAndClass"
           required

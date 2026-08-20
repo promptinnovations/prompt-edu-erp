@@ -19,7 +19,7 @@ export default function RegisterPicker({
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Section</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Division</label>
         <select name="sectionId" defaultValue={sectionId} className="rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="">Select…</option>
           {sections.filter((s) => !classId || s.class_id === classId).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

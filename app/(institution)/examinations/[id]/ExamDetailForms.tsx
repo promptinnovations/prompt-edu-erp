@@ -40,7 +40,7 @@ export function AddExamClassForm({
     <form action={formAction} className="flex items-end gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Section</label>
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Division</label>
         <select name="sectionAndClass" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {sections.map((s) => (
             <option key={s.id} value={`${s.classId}|${s.id}`}>{s.label}</option>

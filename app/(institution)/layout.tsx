@@ -109,16 +109,24 @@ export default async function InstitutionLayout({ children }: { children: React.
   const navItems: NavEntry[] = [
     { kind: "link", href: "/dashboard", label: t("dashboard"), icon: ni(DashboardIcon) },
 
+    // §Sidebar-audit: "Classes overview" (/classes) is a genuinely different
+    // page from /academic's admin CRUD sections, so it no longer sits nested
+    // inside "Academic Structure" (which would otherwise mix two pages under
+    // one heading — every sub-item in a group must anchor into that group's
+    // OWN single page). Promoted to its own top-level link instead, same
+    // href/label non-admins already see below.
+    { kind: "link", href: "/classes", label: "Classes", icon: ni(AcademicIcon) },
+
     ...(hasSettingsAccess ? [{
       kind: "group" as const, label: "Academic Structure", icon: ni(AcademicIcon),
       items: [
-        { href: "/classes", label: "Classes overview" },
-        { href: "/academic#classes", label: "Classes" },
-        { href: "/academic#sections", label: "Sections" },
-        { href: "/academic#subjects", label: "Subjects" },
         { href: "/academic#academic-years", label: "Academic years" },
+        { href: "/academic#classes", label: "Classes" },
+        { href: "/academic#divisions", label: "Divisions" },
+        { href: "/academic#subjects", label: "Subjects" },
+        { href: "/academic#subjects-per-class", label: "Subjects per class" },
       ],
-    }] : [{ kind: "link" as const, href: "/classes", label: "Classes", icon: ni(AcademicIcon) }]),
+    }] : []),
 
     ...(hasStudentAccess ? [{
       kind: "group" as const, label: "Student Management", icon: ni(StudentIcon),
@@ -132,8 +140,11 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasAttendanceAccess ? [{
       kind: "group" as const, label: "Attendance", icon: ni(AttendanceIcon),
       items: [
+        { href: "/attendance#overview", label: "Attendance overview" },
         { href: "/attendance#take", label: "Student attendance" },
         { href: "/attendance#leave", label: "Leave applications" },
+        { href: "/attendance#my-leave", label: "My leave" },
+        { href: "/attendance#staff-leave", label: "Staff leave review" },
         { href: "/attendance/register", label: "Monthly register" },
       ],
     }] : []),
@@ -152,7 +163,11 @@ export default async function InstitutionLayout({ children }: { children: React.
       kind: "group" as const, label: "Result", icon: ni(ResultIcon),
       items: [
         { href: "/results", label: "Results" },
-        { href: "/analytics", label: "Analysis" },
+        // §Sidebar-audit: relabeled from bare "Analysis" — that name
+        // collided with the unrelated cross-module /analysis hub (also in
+        // this sidebar, under Mentoring/top-level). This one is specifically
+        // the exam-pattern page at /analytics.
+        { href: "/analytics", label: "Result Analysis" },
         { href: "/results", label: "Consolidated marks" },
         { href: "/results", label: "Report Cards" },
         ...(hasReportsAccess ? [{ href: "/scoring", label: "Scoring" }] : []),
@@ -161,20 +176,30 @@ export default async function InstitutionLayout({ children }: { children: React.
 
     ...(hasLibraryAccess ? [{
       kind: "group" as const, label: "Library", icon: ni(LibraryIcon),
+      // §Sidebar-audit: expanded from 3 approximate labels to the page's 6
+      // real sections (user's explicit go-ahead) — "Issue/return" and
+      // "Reading history" didn't match any actual section.
       items: [
-        { href: "/library", label: "Catalogue" },
-        { href: "/library", label: "Issue/return" },
-        { href: "/library", label: "Reading history" },
+        { href: "/library#catalogue", label: "Catalogue" },
+        { href: "/library#issue", label: "Issue a book" },
+        { href: "/library#currently-issued", label: "Currently issued" },
+        { href: "/library#reading-reviews", label: "Reading reviews" },
+        { href: "/library#pre-bookings", label: "Pre-bookings (waitlist)" },
+        { href: "/library#review-corner", label: "Review Corner" },
       ],
     }] : []),
 
     ...(hasStaffAccess ? [{
       kind: "group" as const, label: "Staff", icon: ni(StaffIcon),
       items: [
-        { href: "/staff", label: "Staff directory" },
-        { href: "/staff", label: "Staff attendance" },
+        { href: "/staff#directory", label: "Staff directory" },
+        { href: "/staff#staff-attendance", label: "Staff attendance" },
+        { href: "/staff#staff-leave", label: "Staff leave" },
         { href: "/staff/register", label: "Monthly register" },
-        { href: "/staff", label: "Teacher Performance" },
+        { href: "/staff#portion-plans", label: "Portion plans" },
+        { href: "/staff#teacher-observations", label: "Teacher Performance" },
+        { href: "/staff#teacher-assignments", label: "Teacher assignments" },
+        { href: "/staff#section-head-assignments", label: "Section Head assignments" },
       ],
     }] : []),
 
@@ -189,17 +214,19 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasDisciplineAccess ? [{
       kind: "group" as const, label: "Discipline", icon: ni(DisciplineIcon),
       items: [
-        { href: "/discipline", label: "Discipline records" },
-        { href: "/discipline", label: "Character assessments" },
+        { href: "/discipline#records", label: "Discipline records" },
+        { href: "/discipline#character", label: "Character assessments" },
       ],
     }] : []),
 
     ...(hasMentoringAccess ? [{
       kind: "group" as const, label: "Mentoring", icon: ni(MentoringIcon),
+      // §Sidebar-audit: "Goals" and "Action plans" were removed as separate
+      // sub-items (with the user's explicit go-ahead) — the page is one
+      // unified form+table, and Goals/Action plan are just two inline
+      // fields on each mentoring record, not distinct sections.
       items: [
         { href: "/mentoring", label: "Mentor observations" },
-        { href: "/mentoring", label: "Goals" },
-        { href: "/mentoring", label: "Action plans" },
         { href: "/analysis", label: "Pattern analysis" },
       ],
     }] : []),

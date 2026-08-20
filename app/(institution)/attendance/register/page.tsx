@@ -133,7 +133,7 @@ export default async function MonthlyRegisterPage({
         </section>
       ) : (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          {teacherScope && classId && !classInScope ? "You're not assigned to that class." : "Select a class, section, and month to load the register."}
+          {teacherScope && classId && !classInScope ? "You're not assigned to that class." : "Select a class, division, and month to load the register."}
         </p>
       )}
     </div>

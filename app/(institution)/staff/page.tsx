@@ -8,12 +8,14 @@ import {
   listStaff, getStaffAttendanceGrid,
   listPortionPlans, listTeacherObservations, listTeacherAssignments,
 } from "../../../modules/staff/service";
+import { listSectionHeadAssignments, listDistinctStages } from "../../../services/scope/section-head-scope-service";
 import AddStaffForm from "./AddStaffForm";
 import StaffLoginCell from "./StaffLoginCell";
 import StaffAttendanceGrid from "./StaffAttendanceGrid";
 import PortionPlanSection from "./PortionPlanSection";
 import TeacherObservationForm from "./TeacherObservationForm";
 import TeacherAssignmentForm from "./TeacherAssignmentForm";
+import SectionHeadAssignmentForm from "./SectionHeadAssignmentForm";
 
 export default async function StaffPage({
   searchParams,
@@ -28,7 +30,7 @@ export default async function StaffPage({
   const today = new Date().toISOString().slice(0, 10);
   const effectiveDate = date || today;
 
-  const [staff, statuses, classes, sections, subjects, academicYear, portionPlans, observations, assignments] = await Promise.all([
+  const [staff, statuses, classes, sections, subjects, academicYear, portionPlans, observations, assignments, sectionHeadAssignments, distinctStages] = await Promise.all([
     listStaff(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
     listClasses(institutionId, authUserId),
@@ -38,6 +40,8 @@ export default async function StaffPage({
     listPortionPlans(institutionId, authUserId),
     listTeacherObservations(institutionId, authUserId),
     listTeacherAssignments(institutionId, authUserId),
+    listSectionHeadAssignments(institutionId, authUserId),
+    listDistinctStages(institutionId, authUserId),
   ]);
   const attendanceGrid = await getStaffAttendanceGrid(institutionId, authUserId, effectiveDate);
 
@@ -45,7 +49,7 @@ export default async function StaffPage({
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Staff</h1>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="directory" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Directory</h2>
         {can(ctx.permissions, "staff.create") ? (
           <div className="mb-4">
@@ -87,7 +91,7 @@ export default async function StaffPage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="staff-attendance" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff attendance</h2>
         <StaffAttendanceGrid
           rows={attendanceGrid}
@@ -97,7 +101,7 @@ export default async function StaffPage({
         />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="staff-leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff leave</h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Staff now apply for their own leave, and the principal reviews it, on the{" "}
@@ -107,7 +111,7 @@ export default async function StaffPage({
         </p>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="portion-plans" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Portion plans (§D.12)</h2>
         {academicYear ? (
           <PortionPlanSection
@@ -123,7 +127,7 @@ export default async function StaffPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="teacher-observations" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Teacher observations</h2>
         <TeacherObservationForm
           teachers={staff.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -132,7 +136,7 @@ export default async function StaffPage({
         />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="teacher-assignments" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Teacher assignments (§D.3)</h2>
         {academicYear ? (
           <TeacherAssignmentForm
@@ -147,6 +151,23 @@ export default async function StaffPage({
         ) : (
           <p className="text-sm text-zinc-400 dark:text-zinc-500">No current academic year configured.</p>
         )}
+      </section>
+
+      <section id="section-head-assignments" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Section Head assignments</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+          Who oversees which section (KG/LP/UP/HS/HSS) — they also need the &quot;Section Head&quot; role itself,
+          granted separately from Users &amp; Roles, for this to unlock the stage-wide attendance overview on the{" "}
+          <Link href="/attendance#overview" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
+            Attendance page
+          </Link>.
+        </p>
+        <SectionHeadAssignmentForm
+          staff={staff.map((s) => ({ userId: s.user_id, full_name: s.full_name }))}
+          stages={distinctStages}
+          assignments={sectionHeadAssignments}
+          canManage={can(ctx.permissions, "staff.assignment.manage")}
+        />
       </section>
     </div>
   );

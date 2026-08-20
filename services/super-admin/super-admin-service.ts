@@ -84,6 +84,7 @@ const SYSTEM_ROLES: Array<[string, string]> = [
   ["institution_admin", "Institution Admin"],
   ["management", "Principal / Management"],
   ["teacher", "Teacher"],
+  ["section_head", "Section Head"],
   ["staff", "Staff"],
   ["librarian", "Librarian"],
   ["parent", "Parent"],
@@ -117,6 +118,12 @@ const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
     "staff.view", "staff.portion.manage",
     "mentoring.view_own", "mentoring.create", "announcements.view",
   ],
+  // §Attendance-follow-up-3 "section wise for section heads" — kept in sync
+  // with seed.ts's own section_head grant (see that file's comment for the
+  // full rationale). Migration 0034 also self-heals this grant onto every
+  // EXISTING institution's already-created section_head role, so this entry
+  // only matters for institutions created after that migration ran.
+  section_head: ["student.view", "attendance.view", "attendance.view_section", "announcements.view", "calendar.view"],
   librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view"],
   parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply"],
   student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply"],

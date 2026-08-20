@@ -61,6 +61,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     ["institution_admin", "Institution Admin"],
     ["management", "Principal / Management"],
     ["teacher", "Teacher"],
+    ["section_head", "Section Head"],
     ["staff", "Staff"],
     ["librarian", "Librarian"],
     ["parent", "Parent"],
@@ -118,6 +119,13 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       "mentoring.view_own", "mentoring.create", "announcements.view",
       "calendar.view", "substitution.view",
     ],
+    // §Attendance-follow-up-3 "section wise for section heads" — a Section
+    // Head oversees every class within their assigned stage(s) (see
+    // section_head_assignments, migration 0034); attendance.view_section is
+    // the permission that specifically unlocks the stage-wide Daily
+    // overview/trend (distinct from plain attendance.view, which
+    // teacher/management already hold for narrower reasons).
+    section_head: ["student.view", "attendance.view", "attendance.view_section", "announcements.view", "calendar.view"],
     librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view"],
     parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view"],
     student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],

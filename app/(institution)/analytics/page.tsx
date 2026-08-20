@@ -170,8 +170,8 @@ export default async function AnalyticsPage({
                 <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   <tr>
                     <th className="py-1.5">Subject</th>
-                    <th className="py-1.5">Section avg</th>
-                    <th className="py-1.5">Section pass %</th>
+                    <th className="py-1.5">Division avg</th>
+                    <th className="py-1.5">Division pass %</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -247,7 +247,7 @@ export default async function AnalyticsPage({
             </div>
 
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Section wise</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Division wise</h3>
               <p className="mb-2 text-xs text-zinc-400 dark:text-zinc-500">Ranked by average %, highest first.</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -255,7 +255,7 @@ export default async function AnalyticsPage({
                     <tr>
                       <th className="py-1.5">Rank</th>
                       <th className="py-1.5">Class</th>
-                      <th className="py-1.5">Section</th>
+                      <th className="py-1.5">Division</th>
                       <th className="py-1.5">Students</th>
                       <th className="py-1.5">Average %</th>
                       <th className="py-1.5">Grade spread</th>

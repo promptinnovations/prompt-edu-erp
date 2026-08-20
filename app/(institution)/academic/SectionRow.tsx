@@ -47,7 +47,7 @@ export default function SectionRow({
           <form
             action={deleteAction}
             onSubmit={(e) => {
-              if (!confirm(`Delete section "${classLabel} — ${name}"? This can't be undone.`)) e.preventDefault();
+              if (!confirm(`Delete division "${classLabel} — ${name}"? This can't be undone.`)) e.preventDefault();
             }}
           >
             <input type="hidden" name="sectionId" value={sectionId} />

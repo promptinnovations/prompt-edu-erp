@@ -7,6 +7,7 @@ import { listSkillSubmissions } from "../../../modules/skills/service";
 import { listAchievements } from "../../../modules/achievements/service";
 import { listMentoringRecords, getOwnStaffId } from "../../../modules/mentoring/service";
 import { getInstitutionAttendanceTrend } from "../../../modules/attendance/service";
+import { resolveAttendanceVisibility } from "../../../services/scope/attendance-visibility-service";
 
 /** Unified "Analysis" hub — the top-level group is deliberately distinct
  *  from "Result > Analysis" (that one is exam-specific, i.e. /analytics
@@ -24,6 +25,14 @@ export default async function AnalysisPage() {
   const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
 
   const hasAttendanceAnalytics = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.edit"));
+  // §Attendance-follow-up-3: same role-scoped visibility as the Attendance
+  // page and Dashboard widget (see resolveAttendanceVisibility()'s doc
+  // comment) — this card's summary text must reflect the SAME data a
+  // teacher/Section Head would see if they clicked through, not a wider
+  // institution-wide number.
+  const attendanceVisibility = hasAttendanceAnalytics
+    ? await resolveAttendanceVisibility(institutionId, authUserId, ctx.userId, ctx.permissions)
+    : { hasAccess: false, label: "" };
 
   const [discipline, skills, achievements, ownMentorStaffId, attendanceTrend] = await Promise.all([
     enabledModules.has("discipline") && can(ctx.permissions, "discipline.view") ? listDisciplineRecords(institutionId, authUserId) : Promise.resolve([]),
@@ -32,7 +41,9 @@ export default async function AnalysisPage() {
     enabledModules.has("mentoring") ? getOwnStaffId(institutionId, authUserId, ctx.userId) : Promise.resolve(null),
     // §Page-4 follow-up "Attendance analytics...plus analytics" — a one-line
     // summary card here, full detail chart stays on the Attendance page.
-    hasAttendanceAnalytics ? getInstitutionAttendanceTrend(institutionId, authUserId, 14) : Promise.resolve([]),
+    attendanceVisibility.hasAccess
+      ? getInstitutionAttendanceTrend(institutionId, authUserId, 14, attendanceVisibility.scope)
+      : Promise.resolve([]),
   ]);
   const canViewAllMentoring = can(ctx.permissions, "mentoring.view_all");
   const mentoring = enabledModules.has("mentoring")
@@ -63,9 +74,9 @@ export default async function AnalysisPage() {
     },
     {
       title: "Attendance trends",
-      href: "/attendance",
-      visible: hasAttendanceAnalytics,
-      body: attendanceTrendBody,
+      href: "/attendance#overview",
+      visible: attendanceVisibility.hasAccess,
+      body: `${attendanceVisibility.label ? `${attendanceVisibility.label}. ` : ""}${attendanceTrendBody}`,
     },
     {
       title: "Discipline trends",

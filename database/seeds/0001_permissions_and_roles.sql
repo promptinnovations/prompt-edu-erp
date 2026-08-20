@@ -24,6 +24,7 @@ insert into permissions (code, module, description) values
   ('attendance.edit',      'attendance',   'Edit attendance (unrestricted — any class)'),
   ('attendance.leave.apply', 'attendance', 'Apply for leave (own record, or own child as a parent)'),
   ('attendance.leave.review_own_class', 'attendance', 'Approve/reject leave applications for students in own assigned class(es) only'),
+  ('attendance.view_section', 'attendance', 'View the stage-wide attendance overview/trend for own assigned section(s) (Section Head)'),
 
   ('library.view',         'library',      'View library catalogue/records'),
   ('library.issue',        'library',      'Issue a book'),

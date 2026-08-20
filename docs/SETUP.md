@@ -1316,6 +1316,113 @@ excluding un-approved reviews and correctly narrowing by book,
 `reactToReview()`'s full toggle/switch/insert cycle, and tenant isolation
 across every new function.
 
+## Multi-part follow-up — role-scoped attendance visibility, sidebar/page
+## anchor audit, "Section" -> "Division" rename
+
+User's 5-part request, condensed: (1) institution-wide attendance overview
+with a Daily(30 days)/Monthly trend toggle, visible per role (class for
+teacher, section-wide for Section Heads, institution-wide for Principal/
+management); (2) a "give me current visibility per role, then I'll
+approve" gate before building anything ambiguous; (3) the Attendance
+page's leave-apply form made read-only (already covered in the round-2
+follow-up above); (4) an app-wide sidebar audit — every main heading is a
+page, every sub-item must be a real anchor into that one page, ask before
+removing anything; (5) rename the A/B/C class subdivision from "Section"
+to "Division" everywhere in the UI, while introducing "Section" as the
+NEW name for the stage grouping (KG/LP/UP/HS/HSS) via a new "Section
+Head" role. Database table/column names (`sections`, `section_id`) are
+UNCHANGED — this is a display-label rename only.
+
+- **"Section" now means the stage grouping, "Division" means A/B/C/D/E/F**
+  (per the user's own explicit clarification). A new `section_head_role`
+  migration (`0034_section_head_role.sql`) adds `section_head_assignments`
+  (keyed on `users.id`, matching `teacher_assignments.user_id`'s existing
+  convention — a user can head more than one stage) and a new
+  `attendance.view_section` permission, granted only to a new
+  `section_head` system role. Unlike earlier permission additions in this
+  project's history ("backfilled directly in production by hand" — see
+  the attendance-alerts follow-up above), this migration is
+  self-healing: a `do $$ ... $$` block loops over every EXISTING
+  institution and grants the role + permission itself, so the next
+  `npm run db:migrate` (any environment, including production) leaves
+  every institution with a usable Section Head role — no separate manual
+  SQL step. The new role/grant is also kept in sync in the three other
+  places a system role must be declared: `database/seeds/0001_permissions_
+  and_roles.sql`, `database/scripts/seed.ts`, and
+  `services/super-admin/super-admin-service.ts` (that file's own doc
+  comment describes this exact convention).
+- **One shared visibility resolver** (`services/scope/attendance-
+  visibility-service.ts`'s `resolveAttendanceVisibility()`) is now the
+  ONLY place that decides "who sees what attendance overview/trend" —
+  unrestricted (`attendance.edit`) → institution-wide; Section Head
+  (`attendance.view_section`, resolved via the new
+  `services/scope/section-head-scope-service.ts`) → every class within
+  their assigned stage(s); plain teacher → their own assigned class(es)
+  (existing `getTeacherClassScope()`); nobody else → no access. The
+  Attendance page, the Dashboard widget, and the Analysis hub card all
+  import this same function — a genuine pre-existing bug surfaced while
+  implementing this (the Dashboard/Analysis widgets previously showed an
+  UNSCOPED institution-wide trend to every role, including teachers,
+  while the Attendance page itself was scoped) is fixed as a byproduct.
+- **Daily(30 days)/Monthly toggle** on the Attendance page's trend
+  section — plain `?trendView=daily|monthly` query-param links (the page
+  is a Server Component), reusing `getInstitutionAttendanceTrend()` (now
+  `days=30` by default, was 14) for the daily curve and a new
+  `getInstitutionAttendanceTrendMonthly()` (`modules/analytics/service.ts`,
+  reads the existing `mv_attendance_monthly` materialized view) for the
+  monthly one — both accept the same `AttendanceScope` the daily overview
+  uses, so the toggle stays correctly scoped to whichever role is viewing
+  it.
+- **Sidebar/page anchor audit** (`app/(institution)/layout.tsx` +
+  `id="..."` attributes added to the corresponding `<section>`s across
+  `academic`, `attendance`, `discipline`, `staff`, and `library` pages):
+  "Classes overview" (a genuinely different page from `/academic`)
+  promoted out of the "Academic Structure" group to its own top-level
+  link, matching what non-admin users already saw; added a "Subjects per
+  class" anchor that existed on the page but wasn't in the sidebar at
+  all; added the Attendance group's three sections that existed on the
+  page but had no sidebar entry (overview, my leave, staff leave review);
+  expanded the Staff and Library groups from a handful of approximate
+  labels to every real section on each page; consolidated Mentoring's 3
+  sub-items (Mentor observations/Goals/Action plans) down to 1, since the
+  page is one unified form+table, not three sections — done only after
+  the user's explicit go-ahead, per their own "ask before removing
+  anything" instruction; relabeled the Result group's "Analysis" sub-item
+  to "Result Analysis" to disambiguate it from the unrelated cross-module
+  `/analysis` hub (also in the sidebar, under Mentoring and as its own
+  top-level link) — both pages were genuinely named "Analysis"
+  independently before this.
+- **"Section" -> "Division" rename**, scoped to every UI-facing label
+  that means the A/B/C subdivision (headings, table columns, form labels,
+  dropdown labels, user-facing error strings, `i18n/messages/{en,ml}.json`)
+  — left untouched: component/file names that just happen to contain the
+  word "Section" as a generic React-component suffix (e.g.
+  `MyLeaveSection.tsx`), and every genuine use of the NEW "Section"
+  meaning (stage grouping, the Section Head feature).
+- A pre-existing bug was found and fixed while writing tests for this
+  follow-up: migration `0034_section_head_role.sql`'s self-healing `do`
+  block had a corrupted dollar-quote delimiter (`do $` / `end $;`
+  instead of `do $$` / `end $$;`) — a single missing `$` on each end —
+  which would have made the migration fail outright (a hard syntax
+  error, not a silent no-op) the moment it actually ran against a real
+  database; the in-memory test harness caught it immediately.
+
+Tests: `tests/integration/section-head-visibility-flow.test.ts` (17
+tests) — `getStaffSectionScope()`/`assignSectionHead()`/
+`removeSectionHeadAssignment()`'s full assign/idempotent-reassign/remove
+cycle plus tenant isolation, `resolveAttendanceVisibility()`'s all-four
+outcomes (unrestricted, stage-scoped, class-scoped, no-access),
+`getDailyAttendanceOverview()`/`getInstitutionAttendanceTrend()`'s stage
+scope actually filtering out the other stage's data (and correctly
+blending both when unscoped), plus three Division-rename spot-checks (the
+i18n catalogue, `deleteSection()`'s user-facing error string, and the
+platform permission catalogue containing `attendance.view_section`).
+Three pre-existing tests were updated to reflect the new `section_head`
+role appearing in every institution's role list, and the "division"
+wording in the promotion-workflow error message
+(`academic-structure-student-mgmt-flow.test.ts`, `super-admin-flow.test.ts`,
+`user-management-flow.test.ts`).
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

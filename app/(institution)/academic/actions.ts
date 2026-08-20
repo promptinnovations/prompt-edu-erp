@@ -42,7 +42,7 @@ export async function createSectionAction(_prevState: { error: string | null }, 
     revalidatePath("/academic");
     return { error: null };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to create section." };
+    return { error: err instanceof Error ? err.message : "Failed to create division." };
   }
 }
 
@@ -103,7 +103,7 @@ export async function updateSectionAction(_prevState: { error: string | null }, 
     revalidatePath("/academic");
     return { error: null };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update section." };
+    return { error: err instanceof Error ? err.message : "Failed to update division." };
   }
 }
 
@@ -116,7 +116,7 @@ export async function deleteSectionAction(_prevState: { error: string | null }, 
     revalidatePath("/academic");
     return { error: null };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to delete section." };
+    return { error: err instanceof Error ? err.message : "Failed to delete division." };
   }
 }
 

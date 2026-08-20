@@ -10,6 +10,7 @@ import { getInstitutionStats, getTodayAttendanceSummary, getUpcomingItems } from
 import { listMyTodos } from "../../../services/todo/todo-service";
 import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrend } from "../../../modules/examination/service";
 import { getInstitutionAttendanceTrend, getPendingLeaveApplicationsForReviewer } from "../../../modules/attendance/service";
+import { resolveAttendanceVisibility } from "../../../services/scope/attendance-visibility-service";
 import OnboardingChecklist from "./OnboardingChecklist";
 import TodoWidget from "./TodoWidget";
 import {
@@ -38,6 +39,15 @@ export default async function DashboardPage() {
   const hasUnrestrictedLeaveReview = can(ctx.permissions, "attendance.edit");
   const hasScopedLeaveReview = can(ctx.permissions, "attendance.leave.review_own_class");
 
+  // §Attendance-follow-up-3: the compact trend widget below must respect
+  // the SAME role scoping as the Attendance page itself (see that shared
+  // helper's own doc comment for why this was previously an inconsistency
+  // — every role who could reach this page saw an institution-wide trend
+  // here regardless of what the Attendance page itself showed them).
+  const attendanceVisibility = hasAttendanceAccess
+    ? await resolveAttendanceVisibility(institutionId, authUserId, ctx.userId, ctx.permissions)
+    : { hasAccess: false, label: "" };
+
   const [institution, checklist, stats, attendanceToday, todos, recentExam] = await Promise.all([
     getInstitution(institutionId, authUserId),
     canSeeChecklist ? getOnboardingChecklist(institutionId, authUserId) : Promise.resolve([]),
@@ -53,7 +63,9 @@ export default async function DashboardPage() {
     getUpcomingItems(institutionId, authUserId, 6),
     // §Page-4 follow-up "Attendance analytics — growth and fall diagram,
     // recent days", also available on Dashboard (compact) per spec.
-    hasAttendanceAccess ? getInstitutionAttendanceTrend(institutionId, authUserId, 10) : Promise.resolve([]),
+    attendanceVisibility.hasAccess
+      ? getInstitutionAttendanceTrend(institutionId, authUserId, 10, attendanceVisibility.scope)
+      : Promise.resolve([]),
     // §Page-4 follow-up: staff+student pending leave, "appearing in a table
     // in the dashboard...of principal and class teachers" — read-only here
     // (approve/reject stays on the Attendance page); reviewer-scoped so a
@@ -209,12 +221,13 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          {hasAttendanceAccess && attendanceTrend.length > 0 ? (
+          {attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
             <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h3>
-                <Link href="/attendance" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
+                <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
+              <p className="mb-1 text-xs text-zinc-400 dark:text-zinc-500">{attendanceVisibility.label}</p>
               <AttendanceTrendChart points={attendanceTrend} compact />
             </section>
           ) : null}

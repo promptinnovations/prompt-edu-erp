@@ -523,8 +523,21 @@ export interface DailyAttendanceOverview {
   absentees: Array<{ studentId: string; studentName: string; className: string; sectionName: string }>;
 }
 
+/** §Attendance-follow-up-3 role-based scoping, shared by
+ *  getDailyAttendanceOverview() and getInstitutionAttendanceTrend(): pass
+ *  `classIds` for a teacher (their own assigned classes, from
+ *  getTeacherClassScope()) or `stages` for a Section Head (their assigned
+ *  section(s)/stage(s), from getStaffSectionScope()) — never both, and
+ *  omit/pass null for the institution-wide, unrestricted view. Exactly one
+ *  of the two is meaningful per caller; both undefined means "no
+ *  restriction" (the pre-existing behavior, Principal/Management/Admin). */
+export interface AttendanceScope {
+  classIds?: string[] | null;
+  stages?: string[] | null;
+}
+
 export async function getDailyAttendanceOverview(
-  institutionId: string, authUserId: string, date: string
+  institutionId: string, authUserId: string, date: string, scope?: AttendanceScope
 ): Promise<DailyAttendanceOverview> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -542,9 +555,11 @@ export async function getDailyAttendanceOverview(
          left join attendance_records ar on ar.student_id = se.student_id and ar.date = $1
          left join attendance_statuses ast on ast.id = ar.status_id
         where se.status = 'active'
+          and ($2::uuid[] is null or se.class_id = any($2))
+          and ($3::text[] is null or c.stage = any($3))
         group by se.class_id, c.name, se.section_id, sec.name, c.sort_order
         order by c.sort_order, sec.name`,
-      [date]
+      [date, scope?.classIds ?? null, scope?.stages ?? null]
     );
 
     const { rows: absenteeRows } = await scoped.query<{ studentId: string; studentName: string; className: string; sectionName: string }>(
@@ -555,8 +570,10 @@ export async function getDailyAttendanceOverview(
          join classes c on c.id = ar.class_id
          join sections sec on sec.id = ar.section_id
         where ar.date = $1 and ast.counts_as_present = false
+          and ($2::uuid[] is null or ar.class_id = any($2))
+          and ($3::text[] is null or c.stage = any($3))
         order by c.sort_order, sec.name, s.full_name`,
-      [date]
+      [date, scope?.classIds ?? null, scope?.stages ?? null]
     );
 
     return {
@@ -675,7 +692,7 @@ export interface AttendanceTrendPoint { date: string; presentPercent: number; to
  *  getInstitutionPassRateTrend()'s "only count what actually happened"
  *  convention (modules/examination/service.ts). */
 export async function getInstitutionAttendanceTrend(
-  institutionId: string, authUserId: string, days = 14
+  institutionId: string, authUserId: string, days = 14, scope?: AttendanceScope
 ): Promise<AttendanceTrendPoint[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -685,10 +702,13 @@ export async function getInstitutionAttendanceTrend(
               count(*) as total
          from attendance_records ar
          join attendance_statuses ast on ast.id = ar.status_id
+         left join classes c on c.id = ar.class_id
         where ar.date >= current_date - ($1::int - 1)
+          and ($2::uuid[] is null or ar.class_id = any($2))
+          and ($3::text[] is null or c.stage = any($3))
         group by ar.date
         order by ar.date`,
-      [days]
+      [days, scope?.classIds ?? null, scope?.stages ?? null]
     );
     return rows.map((r) => {
       const total = Number(r.total);

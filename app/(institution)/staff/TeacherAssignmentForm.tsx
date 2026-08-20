@@ -39,7 +39,7 @@ export default function TeacherAssignmentForm({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Section (optional)</label>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Division (optional)</label>
             <select name="sectionId" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               <option value="">—</option>
               {sections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -71,7 +71,7 @@ export default function TeacherAssignmentForm({
         <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           <tr>
             <th className="py-1.5">Teacher</th>
-            <th className="py-1.5">Class / Section</th>
+            <th className="py-1.5">Class / Division</th>
             <th className="py-1.5">Subject</th>
             <th className="py-1.5">Role</th>
           </tr>

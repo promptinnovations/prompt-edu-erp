@@ -261,13 +261,13 @@ describe("promotion workflow (§Page-2 'full bulk promotion')", () => {
     expect(preview).toBeDefined(); // sanity: earlier call didn't throw on an empty roster
   });
 
-  it("promoteClass() requires a target class/section for promote/repeat decisions", async () => {
+  it("promoteClass() requires a target class/division for promote/repeat decisions", async () => {
     await expect(
       promoteClass(institutionA, adminAuth, adminUserId, {
         fromClassId: promoClassLower, toAcademicYearId: yearNextId,
         decisions: [{ studentId: promoStudent1, action: "promote" }],
       })
-    ).rejects.toThrow(/target class and section are required/);
+    ).rejects.toThrow(/target class and division are required/);
   });
 
   it("promoteClass() handles every action branch in one confirmed call: promote/repeat/graduate/transfer_out/dropout", async () => {

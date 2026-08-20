@@ -45,7 +45,7 @@ export default async function LibraryPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Library</h1>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="catalogue" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Catalogue</h2>
         {canManage ? (
           <div className="mb-4">
@@ -82,7 +82,7 @@ export default async function LibraryPage() {
       </section>
 
       {canIssue ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <section id="issue" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
           <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Issue a book</h2>
           <IssueBookForm
             students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -92,7 +92,7 @@ export default async function LibraryPage() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="currently-issued" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Currently issued</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -121,12 +121,12 @@ export default async function LibraryPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="reading-reviews" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading reviews</h2>
         <ReadingReviewQueue records={pendingReviews} canReview={canManage} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="pre-bookings" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pre-bookings (waitlist)</h2>
         <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
           A student is notified automatically (in-app + WhatsApp) the moment a copy of a held book is returned.
@@ -134,7 +134,7 @@ export default async function LibraryPage() {
         <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at }))} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="review-corner" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Review Corner</h2>
         <div className="space-y-3">
           {approvedReviews.map((r) => (

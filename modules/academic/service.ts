@@ -226,13 +226,13 @@ export async function deleteSection(institutionId: string, authUserId: string, u
       [sectionId]
     );
     if (Number(enrolled[0]?.count ?? 0) > 0) {
-      throw new Error("This section still has actively enrolled students — move or remove them first.");
+      throw new Error("This division still has actively enrolled students — move or remove them first.");
     }
     let deleted;
     try {
       deleted = await scoped.query<{ id: string; name: string }>("delete from sections where id = $1 returning id, name", [sectionId]);
     } catch {
-      throw new Error("This section can't be deleted yet — it's still referenced by attendance or syllabus records.");
+      throw new Error("This division can't be deleted yet — it's still referenced by attendance or syllabus records.");
     }
     if (deleted.rows.length === 0) return;
     await recordAudit(scoped, { institutionId, userId, action: "delete", module: "academic", entityType: "sections", entityId: sectionId, before: deleted.rows[0] });
@@ -591,7 +591,7 @@ export async function promoteClass(
     for (const decision of data.decisions) {
       if (decision.action === "promote" || decision.action === "repeat") {
         if (!decision.toClassId || !decision.toSectionId) {
-          throw new Error(`A target class and section are required to ${decision.action} this student.`);
+          throw new Error(`A target class and division are required to ${decision.action} this student.`);
         }
         const { rows: existing } = await scoped.query<{ id: string }>(
           "select id from student_enrollments where student_id = $1 and academic_year_id = $2 and status = 'active'",

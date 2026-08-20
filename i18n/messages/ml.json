@@ -28,17 +28,17 @@
     "welcome": "സ്വാഗതം, {name}",
     "institution": "സ്ഥാപനം",
     "classes": "ക്ലാസുകൾ",
-    "sections": "സെക്ഷനുകൾ",
+    "sections": "ഡിവിഷനുകൾ",
     "subjects": "വിഷയങ്ങൾ",
     "students": "വിദ്യാർത്ഥികൾ"
   },
   "academic": {
     "title": "അക്കാദമിക് ക്രമീകരണം",
     "classesHeading": "ക്ലാസുകൾ",
-    "sectionsHeading": "സെക്ഷനുകൾ",
+    "sectionsHeading": "ഡിവിഷനുകൾ",
     "subjectsHeading": "വിഷയങ്ങൾ",
     "className": "ക്ലാസിന്റെ പേര്",
-    "sectionName": "സെക്ഷന്റെ പേര്",
+    "sectionName": "ഡിവിഷന്റെ പേര്",
     "subjectName": "വിഷയത്തിന്റെ പേര്",
     "selectClass": "ക്ലാസ് തിരഞ്ഞെടുക്കുക",
     "add": "ചേർക്കുക"

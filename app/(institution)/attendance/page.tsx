@@ -8,10 +8,13 @@ import {
   listLeaveApplicationsForApplicant, isClassTeacherOfStudent, getDailyAttendanceOverview,
   getInstitutionAttendanceTrend,
 } from "../../../modules/attendance/service";
+import { getInstitutionAttendanceTrendMonthly } from "../../../modules/analytics/service";
 import { listStaff, listStaffLeaveApplications } from "../../../modules/staff/service";
 import { getOwnStaffId } from "../../../modules/mentoring/service";
 import { getTeacherClassScope, scopeIncludesSection } from "../../../services/scope/teacher-scope-service";
+import { resolveAttendanceVisibility } from "../../../services/scope/attendance-visibility-service";
 import AttendanceTrendChart from "../../components/AttendanceTrendChart";
+import MonthlyAttendanceTrendChart from "../../components/MonthlyAttendanceTrendChart";
 import ClassSectionPicker from "./ClassSectionPicker";
 import AttendanceGridForm from "./AttendanceGridForm";
 import LeaveApplications from "./LeaveApplications";
@@ -21,9 +24,9 @@ import StaffLeaveReviewTable from "./StaffLeaveReviewTable";
 export default async function AttendancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ classId?: string; sectionId?: string; date?: string }>;
+  searchParams: Promise<{ classId?: string; sectionId?: string; date?: string; trendView?: string }>;
 }) {
-  const { classId = "", sectionId = "", date = "" } = await searchParams;
+  const { classId = "", sectionId = "", date = "", trendView = "daily" } = await searchParams;
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
@@ -36,6 +39,8 @@ export default async function AttendancePage({
 
   // "Teachers can give access only to their respective classes" follow-up —
   // attendance.enter without attendance.edit means scoped to teacher_assignments.
+  // (Separate from the Daily overview/trend VIEW scope below — this one
+  // gates the "Take attendance" grid/picker specifically.)
   const teacherScope = hasUnrestrictedEdit
     ? null
     : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
@@ -47,12 +52,27 @@ export default async function AttendancePage({
   const effectiveClassId = classInScope ? classId : "";
   const effectiveSectionId = classInScope && sectionInScope ? sectionId : "";
 
+  // §Attendance-follow-up-3 "Daily overview must be visible according to
+  // roles — class for teacher, section wise for section heads, institution
+  // wide - Principal, management" — resolved once by the shared helper (see
+  // its own doc comment for why this must be the SAME logic the Dashboard
+  // and Analysis hub widgets use).
+  const { hasAccess: canSeeOverview, scope: overviewScope, label: overviewLabel } =
+    await resolveAttendanceVisibility(institutionId, authUserId, ctx.userId, ctx.permissions);
+
   // §Page-4 follow-up: self-service leave needs the CALLER's own staffId
   // (never trusted from a form field) — resolved once up front since both
   // the "My leave" section's visibility and its history query depend on it.
   const ownStaffId = await getOwnStaffId(institutionId, authUserId, ctx.userId);
 
-  const [allClasses, allSections, statuses, students, leaves, dailyOverview, myLeaves, attendanceTrend, staffList, staffLeaves] = await Promise.all([
+  // §Attendance-follow-up-3 "monthly also should be available" — last 6
+  // full months, computed once here since both the fetch below and the
+  // "Refresh analytics" hint in the chart need the same range.
+  const monthAgo6 = new Date(); monthAgo6.setMonth(monthAgo6.getMonth() - 5);
+  const fromMonth = monthAgo6.toISOString().slice(0, 7);
+  const toMonth = today.slice(0, 7);
+
+  const [allClasses, allSections, statuses, students, leaves, dailyOverview, myLeaves, attendanceTrend, monthlyTrend, staffList, staffLeaves] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
@@ -63,10 +83,14 @@ export default async function AttendancePage({
     // filtered to still-pending/decided-today so it isn't the entire
     // history.
     effectiveClassId ? listLeaveApplicationsForClassOnDate(institutionId, authUserId, effectiveClassId, effectiveDate) : listLeaveApplications(institutionId, authUserId),
-    hasUnrestrictedEdit ? getDailyAttendanceOverview(institutionId, authUserId, effectiveDate) : Promise.resolve(null),
+    canSeeOverview ? getDailyAttendanceOverview(institutionId, authUserId, effectiveDate, overviewScope) : Promise.resolve(null),
     ownStaffId ? listLeaveApplicationsForApplicant(institutionId, authUserId, "staff", ownStaffId) : Promise.resolve([]),
-    // §Page-4 "Attendance analytics — growth and fall diagram, recent days".
-    getInstitutionAttendanceTrend(institutionId, authUserId, 14),
+    // §Page-4 "Attendance analytics — growth and fall diagram, recent days",
+    // now role-scoped the same way as the Daily overview above it.
+    canSeeOverview ? getInstitutionAttendanceTrend(institutionId, authUserId, 30, overviewScope) : Promise.resolve([]),
+    canSeeOverview && trendView === "monthly"
+      ? getInstitutionAttendanceTrendMonthly(institutionId, authUserId, fromMonth, toMonth, overviewScope)
+      : Promise.resolve([]),
     // Staff leave review (§Page-4 "principal for staff...will approve") is
     // unrestricted-reviewer-only — no point fetching the staff directory or
     // their leave history for a class teacher who could never act on it.
@@ -119,10 +143,33 @@ export default async function AttendancePage({
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Attendance</h1>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h2>
-        <AttendanceTrendChart points={attendanceTrend} />
-      </section>
+      {canSeeOverview ? (
+        <section id="overview" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h2>
+            <div className="flex gap-1 text-xs">
+              <a
+                href={`?trendView=daily${effectiveClassId ? `&classId=${effectiveClassId}` : ""}${effectiveSectionId ? `&sectionId=${effectiveSectionId}` : ""}`}
+                className={`rounded-lg px-2 py-1 ${trendView !== "monthly" ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"}`}
+              >
+                Daily (30 days)
+              </a>
+              <a
+                href={`?trendView=monthly${effectiveClassId ? `&classId=${effectiveClassId}` : ""}${effectiveSectionId ? `&sectionId=${effectiveSectionId}` : ""}`}
+                className={`rounded-lg px-2 py-1 ${trendView === "monthly" ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"}`}
+              >
+                Monthly
+              </a>
+            </div>
+          </div>
+          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">{overviewLabel}</p>
+          {trendView === "monthly" ? (
+            <MonthlyAttendanceTrendChart points={monthlyTrend} />
+          ) : (
+            <AttendanceTrendChart points={attendanceTrend} />
+          )}
+        </section>
+      ) : null}
 
       {dailyOverview ? (
         <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
@@ -130,14 +177,14 @@ export default async function AttendancePage({
             Daily overview — {effectiveDate}
           </h2>
           <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
-            Every class/section&apos;s attendance status for the day, visible to Institution Admin / Principal.
+            {overviewLabel} — every class/division&apos;s attendance status for the day.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 <tr>
                   <th className="py-1.5">Class</th>
-                  <th className="py-1.5">Section</th>
+                  <th className="py-1.5">Division</th>
                   <th className="py-1.5">Enrolled</th>
                   <th className="py-1.5">Marked</th>
                   <th className="py-1.5">Present</th>
@@ -158,7 +205,7 @@ export default async function AttendancePage({
                   </tr>
                 ))}
                 {dailyOverview.classes.length === 0 ? (
-                  <tr><td colSpan={7} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No classes/sections yet.</td></tr>
+                  <tr><td colSpan={7} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No classes/divisions yet.</td></tr>
                 ) : null}
               </tbody>
             </table>
@@ -202,7 +249,7 @@ export default async function AttendancePage({
           <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">
             {teacherScope && classId && !classInScope
               ? "You're not assigned to that class."
-              : "Select a class and section to load the attendance grid."}
+              : "Select a class and division to load the attendance grid."}
           </p>
         )}
       </section>

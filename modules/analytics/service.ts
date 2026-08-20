@@ -19,6 +19,7 @@
  */
 import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
+import type { AttendanceScope } from "../attendance/service";
 
 export interface SubjectStatRow {
   subject_id: string; subject_name: string; class_id: string; section_id: string | null;
@@ -140,6 +141,45 @@ export async function getClassAttendanceTrend(
         group by month
         order by month`,
       [institutionId, classId, sectionId, `${fromMonth}-01`, `${toMonth}-01`]
+    );
+    return rows.map((r) => {
+      const total = Number(r.total_days);
+      const present = Number(r.present_days);
+      return {
+        month: r.month,
+        present_days: present,
+        late_days: Number(r.late_days),
+        total_days: total,
+        present_percent: total > 0 ? Math.round((present / total) * 10000) / 100 : 0,
+      };
+    });
+  });
+}
+
+/** §Attendance-follow-up-3 "can be a curve last 30 days, monthly also
+ *  should be available" — the institution-wide (or role-scoped, same
+ *  AttendanceScope shape getInstitutionAttendanceTrend() and
+ *  getDailyAttendanceOverview() use) MONTHLY companion to that function's
+ *  daily curve. Reads mv_attendance_monthly (§N.3, periodically refreshed —
+ *  "Refresh analytics" applies here, unlike the always-live daily curve
+ *  which reads attendance_records directly) rather than re-aggregating raw
+ *  attendance_records across a potentially long date range on every page
+ *  load. */
+export async function getInstitutionAttendanceTrendMonthly(
+  institutionId: string, authUserId: string, fromMonth: string, toMonth: string, scope?: AttendanceScope
+): Promise<AttendanceTrendRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ month: string; present_days: string; late_days: string; total_days: string }>(
+      `select m.month::text as month, sum(m.present_days) as present_days, sum(m.late_days) as late_days, sum(m.total_days) as total_days
+         from mv_attendance_monthly m
+         left join classes c on c.id = m.class_id
+        where m.institution_id = $1 and m.month between $2::date and $3::date
+          and ($4::uuid[] is null or m.class_id = any($4))
+          and ($5::text[] is null or c.stage = any($5))
+        group by m.month
+        order by m.month`,
+      [institutionId, `${fromMonth}-01`, `${toMonth}-01`, scope?.classIds ?? null, scope?.stages ?? null]
     );
     return rows.map((r) => {
       const total = Number(r.total_days);
