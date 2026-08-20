@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { applyForLeaveAction, approveLeaveAction, rejectLeaveAction } from "./actions";
+import { approveLeaveAction, rejectLeaveAction } from "./actions";
 
 export interface LeaveRow {
   id: string; applicant_type: string; applicant_id: string; applicant_name: string;
@@ -26,49 +26,20 @@ function ReviewButton({ action, label, leaveId }: { action: typeof approveLeaveA
   );
 }
 
+/** §Page-4-follow-up-2 "There should not be the area for filling, only
+ *  showcase applied leaves... no room for entering leaves": this table is
+ *  now READ-ONLY. Students/parents apply for their own leave from the
+ *  parent portal (ApplyLeaveForm.tsx, attendance.leave.apply) — staff no
+ *  longer get a "fill in a leave on a student's behalf" form on this page;
+ *  it only shows what was already applied, plus the class teacher's own
+ *  review (Approve/Reject). */
 export default function LeaveApplications({
   leaves,
-  students,
-  canApply,
 }: {
   leaves: LeaveRow[];
-  students: Array<{ id: string; full_name: string }>;
-  canApply: boolean;
 }) {
-  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(applyForLeaveAction, { error: null });
-
   return (
     <div className="space-y-4">
-      {canApply ? (
-        <form action={formAction} className="flex flex-wrap items-end gap-2">
-          <input type="hidden" name="applicantType" value="student" />
-          <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Student</label>
-            <select name="applicantId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
-              {students.map((s) => (
-                <option key={s.id} value={s.id}>{s.full_name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">From</label>
-            <input type="date" name="startDate" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">To</label>
-            <input type="date" name="endDate" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-          </div>
-          <div className="flex-1">
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Reason</label>
-            <input name="reason" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-          </div>
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
-            Apply
-          </button>
-          {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
-        </form>
-      ) : null}
-
       <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">

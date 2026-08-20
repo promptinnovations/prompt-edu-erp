@@ -1139,6 +1139,23 @@ neither permission short-circuits to an empty list with no query),
 `getInstitutionAttendanceTrend()` omitting untaken days rather than
 showing 0%, and tenant isolation on all three new functions.
 
+## Attendance (Page 4) follow-up, round 2 — leave section made read-only
+
+Second round of user feedback on the same page: the "Leave applications —
+this class" section on `/attendance` still had a staff-facing "apply for a
+student's leave" form (student picker + From/To/Reason + Apply), left over
+from before self-service leave existed. Per explicit instruction ("There
+should not be the area for filling, only showcase applied leaves of that
+day from student/parent portals — no room for entering leaves"), that form
+is removed entirely — `LeaveApplications.tsx` is now a pure read-only
+table (+ the class teacher's existing Approve/Reject review, which stays).
+The dead `applyForLeaveAction` server action (its only caller) was removed
+from `app/(institution)/attendance/actions.ts`; the underlying
+`applyForLeave()` service function is untouched and still backs both the
+parent portal's own apply form and staff's own `applyForOwnLeaveAction()`
+("My leave"). The section heading is now always `Student Leave
+Applications — {date}` (previously conditional/inconsistent wording).
+
 ## Result (Page 6) follow-up
 
 User-specified page spec for Page 6 "Result": Exam Results, Consolidated

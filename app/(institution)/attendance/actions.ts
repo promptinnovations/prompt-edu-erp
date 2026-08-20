@@ -65,26 +65,14 @@ export async function sendAttendanceAlertsAction(
   }
 }
 
-export async function applyForLeaveAction(_prevState: { error: string | null }, formData: FormData) {
-  const ctx = await requireRequestContext();
-  if (!ctx.institutionId) return { error: "No active institution." };
-  try {
-    requirePermission(ctx.permissions, "attendance.enter");
-    await applyForLeave(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
-      applicantType: String(formData.get("applicantType") ?? "student") as "student" | "staff",
-      applicantId: String(formData.get("applicantId") ?? ""),
-      startDate: String(formData.get("startDate") ?? ""),
-      endDate: String(formData.get("endDate") ?? ""),
-      reason: String(formData.get("reason") ?? ""),
-    });
-    revalidatePath("/attendance");
-    return { error: null };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to submit leave application." };
-  }
-}
-
-/** Self-service leave application (§Page-4 follow-up "each staff...should
+/** §Page-4-follow-up-2: the old staff/admin-facing "apply for a student's
+ *  leave" action that used to back LeaveApplications.tsx's form has been
+ *  removed — students/parents apply via their own portal, and staff apply
+ *  for their OWN leave via applyForOwnLeaveAction() below. Both still call
+ *  the same underlying applyForLeave() service function; only this
+ *  particular "someone else fills it in for a student" entry point is gone.
+ *
+ *  Self-service leave application (§Page-4 follow-up "each staff...should
  *  have a portion for applying leave from their own page" — replaces the
  *  old admin-picks-a-name-from-a-dropdown form that used to live on /staff).
  *  Deliberately requires NO attendance.* permission: the caller's OWN

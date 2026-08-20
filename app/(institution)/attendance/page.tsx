@@ -209,16 +209,13 @@ export default async function AttendancePage({
 
       <section id="leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-          Leave applications{effectiveClassId ? ` — this class, ${effectiveDate}` : ""}
+          Student Leave Applications — {effectiveDate}
         </h2>
         <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
-          Class teacher review — approving here is the class teacher&apos;s sign-off.
+          {effectiveClassId ? "This class's" : "Institution-wide"} leaves applied by students/parents from their
+          own portal — class teacher review below is the class teacher&apos;s sign-off. Nothing can be entered here.
         </p>
-        <LeaveApplications
-          leaves={leaveRows}
-          students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
-          canApply={can(ctx.permissions, "attendance.enter")}
-        />
+        <LeaveApplications leaves={leaveRows} />
       </section>
 
       {ownStaffId ? (
