@@ -6,6 +6,7 @@ import { listDisciplineRecords } from "../../../modules/discipline/service";
 import { listSkillSubmissions } from "../../../modules/skills/service";
 import { listAchievements } from "../../../modules/achievements/service";
 import { listMentoringRecords, getOwnStaffId } from "../../../modules/mentoring/service";
+import { getInstitutionAttendanceTrend } from "../../../modules/attendance/service";
 
 /** Unified "Analysis" hub — the top-level group is deliberately distinct
  *  from "Result > Analysis" (that one is exam-specific, i.e. /analytics
@@ -22,11 +23,16 @@ export default async function AnalysisPage() {
   const authUserId = ctx.session.authUserId;
   const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
 
-  const [discipline, skills, achievements, ownMentorStaffId] = await Promise.all([
+  const hasAttendanceAnalytics = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.edit"));
+
+  const [discipline, skills, achievements, ownMentorStaffId, attendanceTrend] = await Promise.all([
     enabledModules.has("discipline") && can(ctx.permissions, "discipline.view") ? listDisciplineRecords(institutionId, authUserId) : Promise.resolve([]),
     enabledModules.has("skills") ? listSkillSubmissions(institutionId, authUserId) : Promise.resolve([]),
     enabledModules.has("achievements") ? listAchievements(institutionId, authUserId) : Promise.resolve([]),
     enabledModules.has("mentoring") ? getOwnStaffId(institutionId, authUserId, ctx.userId) : Promise.resolve(null),
+    // §Page-4 follow-up "Attendance analytics...plus analytics" — a one-line
+    // summary card here, full detail chart stays on the Attendance page.
+    hasAttendanceAnalytics ? getInstitutionAttendanceTrend(institutionId, authUserId, 14) : Promise.resolve([]),
   ]);
   const canViewAllMentoring = can(ctx.permissions, "mentoring.view_all");
   const mentoring = enabledModules.has("mentoring")
@@ -39,12 +45,27 @@ export default async function AnalysisPage() {
   const achievementsByStatus = groupCount(achievements, (a) => a.status);
   const mentoringWithActionPlan = mentoring.filter((m) => m.action_plan || m.goals).length;
 
+  const attendanceTrendBody = (() => {
+    if (attendanceTrend.length === 0) return "No attendance has been taken yet.";
+    const first = attendanceTrend[0].presentPercent;
+    const last = attendanceTrend[attendanceTrend.length - 1].presentPercent;
+    const delta = Math.round((last - first) * 100) / 100;
+    const direction = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+    return `${last}% present most recently, ${direction}${delta !== 0 ? ` ${Math.abs(delta)} pts` : ""} over the last ${attendanceTrend.length} day${attendanceTrend.length === 1 ? "" : "s"}.`;
+  })();
+
   const cards = [
     {
       title: "Examination pattern analysis",
       href: "/analytics",
       visible: can(ctx.permissions, "reports.view"),
       body: "Grade distributions, subject-wise performance trends, and at-risk classification — the full analytics engine.",
+    },
+    {
+      title: "Attendance trends",
+      href: "/attendance",
+      visible: hasAttendanceAnalytics,
+      body: attendanceTrendBody,
     },
     {
       title: "Discipline trends",

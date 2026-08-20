@@ -5,7 +5,6 @@ import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
   createStaffMember, markStaffAttendance,
-  applyForStaffLeave, reviewStaffLeave,
   createPortionPlan, recordPortionCompletion,
   recordTeacherObservation, createTeacherAssignment,
   createStaffLoginAccount, resetStaffLoginPassword,
@@ -83,42 +82,14 @@ export async function markStaffAttendanceAction(_prevState: { error: string | nu
   }
 }
 
-export async function applyForStaffLeaveAction(_prevState: { error: string | null }, formData: FormData) {
-  const ctx = await requireRequestContext();
-  if (!ctx.institutionId) return { error: "No active institution." };
-  try {
-    requirePermission(ctx.permissions, "attendance.enter");
-    await applyForStaffLeave(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
-      staffId: String(formData.get("staffId") ?? ""),
-      startDate: String(formData.get("startDate") ?? ""),
-      endDate: String(formData.get("endDate") ?? ""),
-      reason: String(formData.get("reason") ?? "") || null,
-    });
-    revalidatePath("/staff");
-    return { error: null };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to submit leave application." };
-  }
-}
-
-async function reviewStaffLeaveAction(decision: "approved" | "rejected", formData: FormData) {
-  const ctx = await requireRequestContext();
-  if (!ctx.institutionId) return { error: "No active institution." };
-  try {
-    requirePermission(ctx.permissions, "attendance.edit");
-    await reviewStaffLeave(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("leaveId") ?? ""), decision);
-    revalidatePath("/staff");
-    return { error: null };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to review leave application." };
-  }
-}
-export async function approveStaffLeaveAction(_prevState: { error: string | null }, formData: FormData) {
-  return reviewStaffLeaveAction("approved", formData);
-}
-export async function rejectStaffLeaveAction(_prevState: { error: string | null }, formData: FormData) {
-  return reviewStaffLeaveAction("rejected", formData);
-}
+// applyForStaffLeaveAction/approveStaffLeaveAction/rejectStaffLeaveAction
+// (§Page-4 follow-up) were retired here — staff now apply for their own
+// leave via applyForOwnLeaveAction (app/(institution)/attendance/actions.ts)
+// and the principal reviews it with the same generic approveLeaveAction/
+// rejectLeaveAction every other leave type uses, both on the Attendance
+// page. The underlying applyForStaffLeave()/reviewStaffLeave() service
+// functions (modules/staff/service.ts) are unchanged and still covered by
+// staff-flow.test.ts — only this page's UI wiring moved.
 
 export async function createPortionPlanAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();

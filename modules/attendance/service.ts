@@ -256,6 +256,28 @@ export async function listLeaveApplications(
   });
 }
 
+/** A single applicant's own leave history, regardless of type — powers the
+ *  new staff self-service "My leave" section on the Attendance page (§Page-4
+ *  follow-up "each staff...should have a portion for applying leave from
+ *  their own page"), mirroring listLeaveApplicationsForStudent()'s exact
+ *  self-scoping shape below (never the institution-wide list, so applying
+ *  for your own leave never needs a broad attendance.* permission). */
+export async function listLeaveApplicationsForApplicant(
+  institutionId: string, authUserId: string, applicantType: "student" | "staff", applicantId: string
+): Promise<LeaveApplicationRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<LeaveApplicationRecord>(
+      `select id, applicant_type, applicant_id, start_date, end_date, reason, status, reviewed_by, reviewed_at
+         from leave_applications
+        where applicant_type = $1 and applicant_id = $2
+        order by created_at desc`,
+      [applicantType, applicantId]
+    );
+    return rows;
+  });
+}
+
 /** A student applicant's own leave history — used by the parent portal
  *  (§D.6 follow-up "parents log in need an option to apply for leave"),
  *  scoped to one already-verified-as-own-child studentId rather than the
@@ -589,5 +611,93 @@ export async function reviewLeaveApplication(
     }
 
     return leave;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// §Page-4 follow-up: combined staff+student pending-leave widget (Dashboard)
+// and the institution-wide daily attendance trend chart (Attendance page +
+// Dashboard + Analysis hub).
+// ---------------------------------------------------------------------------
+export interface ReviewableLeaveRow {
+  id: string; applicant_type: string; applicant_id: string; applicant_name: string;
+  start_date: string; end_date: string; reason: string | null; status: string;
+}
+
+/** Every PENDING leave application (staff or student) this caller is
+ *  actually allowed to review, name-resolved — the single source both the
+ *  Dashboard's "Pending leave requests" widget and any other reviewer-facing
+ *  summary read from, rather than each re-deriving the same
+ *  unrestricted-vs-scoped rule canReviewLeaveApplication() already encodes
+ *  per-row. Unrestricted (attendance.edit — institution_admin/management/
+ *  "principal") reviewers see every pending row, staff and student alike.
+ *  Scoped (attendance.leave.review_own_class — class teachers) reviewers see
+ *  only pending STUDENT rows for students currently in one of their own
+ *  assigned classes; they never see staff leave (§Page-4 "principal for
+ *  staff...will approve" — a class teacher approving a colleague's leave was
+ *  never part of the spec). Neither flag set returns an empty list rather
+ *  than erroring, so a caller with no review rights just sees nothing. */
+export async function getPendingLeaveApplicationsForReviewer(
+  institutionId: string, authUserId: string, callerUserId: string,
+  hasUnrestrictedEdit: boolean, hasScopedReview: boolean
+): Promise<ReviewableLeaveRow[]> {
+  if (!hasUnrestrictedEdit && !hasScopedReview) return [];
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ReviewableLeaveRow>(
+      `select la.id, la.applicant_type, la.applicant_id,
+              coalesce(s.full_name, stu.full_name, '—') as applicant_name,
+              la.start_date, la.end_date, la.reason, la.status
+         from leave_applications la
+         left join students s on s.id = la.applicant_id and la.applicant_type = 'student'
+         left join staff st on st.id = la.applicant_id and la.applicant_type = 'staff'
+         left join users stu on stu.id = st.user_id
+        where la.status = 'pending'
+        order by la.created_at desc`
+    );
+    if (hasUnrestrictedEdit) return rows;
+    // Scoped: only pending student rows the caller is class-teacher-of.
+    const studentRows = rows.filter((r) => r.applicant_type === "student");
+    const checks = await Promise.all(
+      studentRows.map((r) => isClassTeacherOfStudent(institutionId, authUserId, callerUserId, r.applicant_id))
+    );
+    return studentRows.filter((_, i) => checks[i]);
+  });
+}
+
+export interface AttendanceTrendPoint { date: string; presentPercent: number; totalMarked: number }
+
+/** Institution-wide daily attendance trend, most recent `days` calendar
+ *  days that actually have marked records (§Page-4 follow-up "Attendance
+ *  analytics — growth and fall diagram, recent days"). Days with zero
+ *  attendance_records rows (weekends, holidays, not-yet-taken) are skipped
+ *  entirely rather than showing as a misleading 0% — mirrors
+ *  getInstitutionPassRateTrend()'s "only count what actually happened"
+ *  convention (modules/examination/service.ts). */
+export async function getInstitutionAttendanceTrend(
+  institutionId: string, authUserId: string, days = 14
+): Promise<AttendanceTrendPoint[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ date: string; present: string; total: string }>(
+      `select ar.date::text as date,
+              count(*) filter (where ast.counts_as_present) as present,
+              count(*) as total
+         from attendance_records ar
+         join attendance_statuses ast on ast.id = ar.status_id
+        where ar.date >= current_date - ($1::int - 1)
+        group by ar.date
+        order by ar.date`,
+      [days]
+    );
+    return rows.map((r) => {
+      const total = Number(r.total);
+      const present = Number(r.present);
+      return {
+        date: r.date,
+        totalMarked: total,
+        presentPercent: total > 0 ? Math.round((present / total) * 10000) / 100 : 0,
+      };
+    });
   });
 }

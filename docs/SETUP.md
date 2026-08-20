@@ -1063,6 +1063,82 @@ the class-scoped examinations lookup, the student photo ownership-check
 rejection, and parent-portal section config defaults/updates/tenant
 isolation.
 
+## Attendance (Page 4) follow-up
+
+User-specified page spec for Page 4 "Attendance": take attendance and the
+monthly register already existed from Phase 4/the earlier attendance
+follow-up and needed no changes. The genuinely new work below required no
+schema migration — every addition is a new query/service function or UI
+wiring over existing tables (`leave_applications`, `attendance_records`,
+`staff`, `students`).
+
+- **Staff self-service leave, old admin-picks-a-name UI retired.** The
+  `/staff` page's old "Staff leave" section (an admin/principal choosing a
+  staff member from a dropdown and applying on their behalf) is gone
+  entirely, per the user's explicit instruction ("old section is not
+  required at all"). In its place, a new **My leave** section on
+  `/attendance#my-leave` lets ANY staff member apply for their OWN leave —
+  no applicant picker. `applyForOwnLeaveAction`
+  (`app/(institution)/attendance/actions.ts`) resolves the caller's own
+  `staff.id` server-side via the existing `getOwnStaffId()` (already used
+  cross-module by `mentoring`/`analysis`), never trusting a client-
+  submitted staffId, and deliberately requires no `attendance.*`
+  permission — a librarian with zero attendance permissions can still
+  apply for their own leave. The underlying `applyForStaffLeave()`/
+  `listStaffLeaveApplications()`/`reviewStaffLeave()` functions in
+  `modules/staff/service.ts` are untouched (still covered by
+  `staff-flow.test.ts`) — only the `/staff` page's UI wiring to them was
+  removed; `/staff` now just links over to `/attendance#my-leave`.
+- **Class-teacher "sign-off" = the existing Approve action.** Per the
+  user's own confirmation, no new "signed" field or extra step was added —
+  approving a student's leave application on the Attendance page already
+  is the class teacher's sign-off; only the UI copy was clarified.
+- **Students still apply only via the parent portal** (existing,
+  unchanged) — the user explicitly declined a second staff-side "apply for
+  a student" form to avoid duplicating that flow.
+- **Combined pending-leave review table**
+  (`getPendingLeaveApplicationsForReviewer()`, new in
+  `modules/attendance/service.ts`): one query joining `leave_applications`
+  to both `students` and `staff→users` (resolving whichever name applies
+  per row's `applicant_type`), reusing the existing
+  `canReviewLeaveApplication()`/`isClassTeacherOfStudent()` scoping rules
+  — unrestricted (`attendance.edit`) reviewers see every pending
+  application, staff and student alike; scoped
+  (`attendance.leave.review_own_class`) reviewers (class teachers) see
+  only pending STUDENT leave for their own class, never any staff leave
+  (staff leave review is principal-only by design, matching the user's
+  spec: "principal for staff and class teacher for students"). Rendered
+  read-only (no approve/reject) as a summary on the Dashboard, and with
+  the existing Approve/Reject actions on the Attendance page itself — the
+  same "Dashboard = summary, full page = action" convention already used
+  for Mark Entry Status / Pass Rate Trend.
+- **Attendance analytics — "growth and fall diagram, recent days."**
+  `getInstitutionAttendanceTrend()` (new) groups `attendance_records` by
+  date directly (not the monthly-granularity, manually-refreshed
+  `mv_attendance_monthly` view — unsuited to a daily "recent days" chart),
+  computing an institution-wide present-percentage per day and *omitting*
+  days with zero records entirely (weekends/holidays/not-yet-taken) rather
+  than showing a misleading 0%, mirroring the existing pass-rate-trend
+  widget's `having count(...) > 0` convention. Rendered by a new shared,
+  reusable server component, `app/components/AttendanceTrendChart.tsx`
+  (plain CSS bars, no chart library — the same convention already
+  established by the Dashboard's exam pass-rate-trend widget), dropped
+  into all three places the user asked for: the Attendance page (full
+  detail, 14 days), the Dashboard (compact, 10 days), and the Analysis hub
+  (a one-line summary card derived from the same 14-day query, linking
+  through to the Attendance page for the full chart).
+
+Tests: `tests/integration/attendance-page4.test.ts` (10 tests) — a staff
+member with zero attendance permissions applying for their own leave,
+`listLeaveApplicationsForApplicant()` scoping to exactly one applicant's
+own history, `canReviewLeaveApplication()` refusing staff-leave review for
+a scoped class-teacher reviewer while allowing it for an unrestricted one,
+`getPendingLeaveApplicationsForReviewer()`'s three visibility cases
+(unrestricted sees all, scoped sees only their own class's student leave,
+neither permission short-circuits to an empty list with no query),
+`getInstitutionAttendanceTrend()` omitting untaken days rather than
+showing 0%, and tenant isolation on all three new functions.
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

@@ -9,12 +9,14 @@ import { can } from "../../../services/permissions/permission-service";
 import { getInstitutionStats, getTodayAttendanceSummary, getUpcomingItems } from "../../../services/home/home-service";
 import { listMyTodos } from "../../../services/todo/todo-service";
 import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrend } from "../../../modules/examination/service";
+import { getInstitutionAttendanceTrend, getPendingLeaveApplicationsForReviewer } from "../../../modules/attendance/service";
 import OnboardingChecklist from "./OnboardingChecklist";
 import TodoWidget from "./TodoWidget";
 import {
   ResultIcon, StaffIcon, AttendanceIcon, StudentIcon, DisciplineIcon, AnalysisIcon,
   SubstitutionIcon, CalendarIcon, ExamIcon, MentoringIcon, SkillsIcon, LibraryIcon,
 } from "../../components/NavIcons";
+import AttendanceTrendChart from "../../components/AttendanceTrendChart";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -33,6 +35,8 @@ export default async function DashboardPage() {
   const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
   const hasExaminationAccess = enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"));
   const hasAttendanceAccess = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"));
+  const hasUnrestrictedLeaveReview = can(ctx.permissions, "attendance.edit");
+  const hasScopedLeaveReview = can(ctx.permissions, "attendance.leave.review_own_class");
 
   const [institution, checklist, stats, attendanceToday, todos, recentExam] = await Promise.all([
     getInstitution(institutionId, authUserId),
@@ -43,10 +47,20 @@ export default async function DashboardPage() {
     hasExaminationAccess ? getMostRecentExamination(institutionId, authUserId) : Promise.resolve(null),
   ]);
 
-  const [markEntryStatus, passRateTrend, upcoming] = await Promise.all([
+  const [markEntryStatus, passRateTrend, upcoming, attendanceTrend, pendingLeave] = await Promise.all([
     hasExaminationAccess && recentExam ? getMarkEntryStatus(institutionId, authUserId, recentExam.id) : Promise.resolve([]),
     hasExaminationAccess ? getInstitutionPassRateTrend(institutionId, authUserId, 5) : Promise.resolve([]),
     getUpcomingItems(institutionId, authUserId, 6),
+    // §Page-4 follow-up "Attendance analytics — growth and fall diagram,
+    // recent days", also available on Dashboard (compact) per spec.
+    hasAttendanceAccess ? getInstitutionAttendanceTrend(institutionId, authUserId, 10) : Promise.resolve([]),
+    // §Page-4 follow-up: staff+student pending leave, "appearing in a table
+    // in the dashboard...of principal and class teachers" — read-only here
+    // (approve/reject stays on the Attendance page); reviewer-scoped so a
+    // class teacher only ever sees their own class's pending student leave.
+    hasAttendanceAccess && (hasUnrestrictedLeaveReview || hasScopedLeaveReview)
+      ? getPendingLeaveApplicationsForReviewer(institutionId, authUserId, ctx.userId, hasUnrestrictedLeaveReview, hasScopedLeaveReview)
+      : Promise.resolve([]),
   ]);
 
   const markExpected = markEntryStatus.reduce((sum, r) => sum + r.expected, 0);
@@ -192,6 +206,39 @@ export default async function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </section>
+          ) : null}
+
+          {hasAttendanceAccess && attendanceTrend.length > 0 ? (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <div className="mb-1 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h3>
+                <Link href="/attendance" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
+              </div>
+              <AttendanceTrendChart points={attendanceTrend} compact />
+            </section>
+          ) : null}
+
+          {hasUnrestrictedLeaveReview || hasScopedLeaveReview ? (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pending leave requests</h3>
+                <Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>
+              </div>
+              {pendingLeave.length === 0 ? (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing pending.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {pendingLeave.map((l) => (
+                    <li key={l.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="truncate text-zinc-700 dark:text-zinc-300">
+                        {l.applicant_name} <span className="text-xs text-zinc-400 dark:text-zinc-500 capitalize">({l.applicant_type})</span>
+                      </span>
+                      <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">{l.start_date} → {l.end_date}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           ) : null}
 

@@ -5,12 +5,18 @@ import { listClasses, listSections } from "../../../modules/academic/service";
 import { listStudents } from "../../../modules/students/service";
 import {
   listAttendanceStatuses, getAttendanceGrid, listLeaveApplications, listLeaveApplicationsForClassOnDate,
-  isClassTeacherOfStudent, getDailyAttendanceOverview,
+  listLeaveApplicationsForApplicant, isClassTeacherOfStudent, getDailyAttendanceOverview,
+  getInstitutionAttendanceTrend,
 } from "../../../modules/attendance/service";
+import { listStaff, listStaffLeaveApplications } from "../../../modules/staff/service";
+import { getOwnStaffId } from "../../../modules/mentoring/service";
 import { getTeacherClassScope, scopeIncludesSection } from "../../../services/scope/teacher-scope-service";
+import AttendanceTrendChart from "../../components/AttendanceTrendChart";
 import ClassSectionPicker from "./ClassSectionPicker";
 import AttendanceGridForm from "./AttendanceGridForm";
 import LeaveApplications from "./LeaveApplications";
+import MyLeaveSection from "./MyLeaveSection";
+import StaffLeaveReviewTable from "./StaffLeaveReviewTable";
 
 export default async function AttendancePage({
   searchParams,
@@ -41,7 +47,12 @@ export default async function AttendancePage({
   const effectiveClassId = classInScope ? classId : "";
   const effectiveSectionId = classInScope && sectionInScope ? sectionId : "";
 
-  const [allClasses, allSections, statuses, students, leaves, dailyOverview] = await Promise.all([
+  // §Page-4 follow-up: self-service leave needs the CALLER's own staffId
+  // (never trusted from a form field) — resolved once up front since both
+  // the "My leave" section's visibility and its history query depend on it.
+  const ownStaffId = await getOwnStaffId(institutionId, authUserId, ctx.userId);
+
+  const [allClasses, allSections, statuses, students, leaves, dailyOverview, myLeaves, attendanceTrend, staffList, staffLeaves] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
@@ -53,6 +64,14 @@ export default async function AttendancePage({
     // history.
     effectiveClassId ? listLeaveApplicationsForClassOnDate(institutionId, authUserId, effectiveClassId, effectiveDate) : listLeaveApplications(institutionId, authUserId),
     hasUnrestrictedEdit ? getDailyAttendanceOverview(institutionId, authUserId, effectiveDate) : Promise.resolve(null),
+    ownStaffId ? listLeaveApplicationsForApplicant(institutionId, authUserId, "staff", ownStaffId) : Promise.resolve([]),
+    // §Page-4 "Attendance analytics — growth and fall diagram, recent days".
+    getInstitutionAttendanceTrend(institutionId, authUserId, 14),
+    // Staff leave review (§Page-4 "principal for staff...will approve") is
+    // unrestricted-reviewer-only — no point fetching the staff directory or
+    // their leave history for a class teacher who could never act on it.
+    hasUnrestrictedEdit ? listStaff(institutionId, authUserId) : Promise.resolve([]),
+    hasUnrestrictedEdit ? listStaffLeaveApplications(institutionId, authUserId) : Promise.resolve([]),
   ]);
   const classes = teacherScope ? allClasses.filter((c) => teacherScope.classIds.has(c.id)) : allClasses;
   const sections = teacherScope
@@ -64,7 +83,16 @@ export default async function AttendancePage({
     : [];
 
   const studentNameById = new Map(students.map((s) => [s.id, s.full_name]));
+  const staffNameById = new Map(staffList.map((s) => [s.id, s.full_name]));
   const studentLeaveRows = leaves.filter((l) => l.applicant_type === "student");
+  const staffLeaveRows = staffLeaves.map((l) => ({
+    id: l.id,
+    applicant_name: staffNameById.get(l.applicant_id) ?? "—",
+    start_date: l.start_date,
+    end_date: l.end_date,
+    reason: l.reason,
+    status: l.status,
+  }));
 
   // §D.6 follow-up "class teacher can sanction it" — per-row, not blanket:
   // unrestricted for attendance.edit holders, otherwise only for leaves
@@ -90,6 +118,11 @@ export default async function AttendancePage({
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Attendance</h1>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h2>
+        <AttendanceTrendChart points={attendanceTrend} />
+      </section>
 
       {dailyOverview ? (
         <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
@@ -178,12 +211,35 @@ export default async function AttendancePage({
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
           Leave applications{effectiveClassId ? ` — this class, ${effectiveDate}` : ""}
         </h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+          Class teacher review — approving here is the class teacher&apos;s sign-off.
+        </p>
         <LeaveApplications
           leaves={leaveRows}
           students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
           canApply={can(ctx.permissions, "attendance.enter")}
         />
       </section>
+
+      {ownStaffId ? (
+        <section id="my-leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">My leave</h2>
+          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+            Apply for your own leave — the principal (Institution Admin/Management) reviews it below.
+          </p>
+          <MyLeaveSection leaves={myLeaves} />
+        </section>
+      ) : null}
+
+      {hasUnrestrictedEdit ? (
+        <section id="staff-leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff leave — principal review</h2>
+          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+            Every staff member&apos;s own leave application, applied from their own &quot;My leave&quot; section above.
+          </p>
+          <StaffLeaveReviewTable leaves={staffLeaveRows} />
+        </section>
+      ) : null}
     </div>
   );
 }

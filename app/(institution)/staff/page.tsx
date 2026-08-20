@@ -1,16 +1,16 @@
+import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { can } from "../../../services/permissions/permission-service";
 import { listClasses, listSections, listSubjects, getCurrentAcademicYear } from "../../../modules/academic/service";
 import { listAttendanceStatuses } from "../../../modules/attendance/service";
 import {
-  listStaff, getStaffAttendanceGrid, listStaffLeaveApplications,
+  listStaff, getStaffAttendanceGrid,
   listPortionPlans, listTeacherObservations, listTeacherAssignments,
 } from "../../../modules/staff/service";
 import AddStaffForm from "./AddStaffForm";
 import StaffLoginCell from "./StaffLoginCell";
 import StaffAttendanceGrid from "./StaffAttendanceGrid";
-import StaffLeaveSection from "./StaffLeaveSection";
 import PortionPlanSection from "./PortionPlanSection";
 import TeacherObservationForm from "./TeacherObservationForm";
 import TeacherAssignmentForm from "./TeacherAssignmentForm";
@@ -28,26 +28,18 @@ export default async function StaffPage({
   const today = new Date().toISOString().slice(0, 10);
   const effectiveDate = date || today;
 
-  const [staff, statuses, classes, sections, subjects, academicYear, leaves, portionPlans, observations, assignments] = await Promise.all([
+  const [staff, statuses, classes, sections, subjects, academicYear, portionPlans, observations, assignments] = await Promise.all([
     listStaff(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     listSubjects(institutionId, authUserId),
     getCurrentAcademicYear(institutionId, authUserId),
-    listStaffLeaveApplications(institutionId, authUserId),
     listPortionPlans(institutionId, authUserId),
     listTeacherObservations(institutionId, authUserId),
     listTeacherAssignments(institutionId, authUserId),
   ]);
   const attendanceGrid = await getStaffAttendanceGrid(institutionId, authUserId, effectiveDate);
-
-  const staffNameById = new Map(staff.map((s) => [s.id, s.full_name]));
-  const leaveRows = leaves.map((l) => ({
-    id: l.id, applicant_id: l.applicant_id,
-    applicant_name: staffNameById.get(l.applicant_id) ?? "—",
-    start_date: l.start_date, end_date: l.end_date, reason: l.reason, status: l.status,
-  }));
 
   return (
     <div className="space-y-6">
@@ -106,13 +98,13 @@ export default async function StaffPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff leave</h2>
-        <StaffLeaveSection
-          leaves={leaveRows}
-          staff={staff.map((s) => ({ id: s.id, full_name: s.full_name }))}
-          canApply={can(ctx.permissions, "attendance.enter")}
-          canReview={can(ctx.permissions, "attendance.edit")}
-        />
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff leave</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Staff now apply for their own leave, and the principal reviews it, on the{" "}
+          <Link href="/attendance#my-leave" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
+            Attendance page
+          </Link>.
+        </p>
       </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
