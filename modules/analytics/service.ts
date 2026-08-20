@@ -591,3 +591,191 @@ export async function getResultsByTeacher(
       .sort((a, b) => (b.average_marks ?? -1) - (a.average_marks ?? -1));
   });
 }
+
+// ---------------------------------------------------------------------------
+// §Teacher-Profile feature ("their exam results of each exam with analysis
+// ... similar to image 1" — a Class/Subject/Students/Average/Pass%/Full
+// Marks/A+/A/Failed breakdown table, plus a growth/fall trend curve).
+// getResultsByTeacher() above rolls a teacher up to ONE row per (subject,
+// examination) across every class they teach it in — not fine-grained
+// enough for a per-class/division table. Grade-band counts have no
+// materialized source at subject granularity (mv_exam_subject_stats has
+// none; only whole-exam `results` does, via computeResults()) so they're
+// computed here on the fly against the institution's own grade scale, the
+// same min_percent/max_percent range-match computeResults() itself uses
+// (modules/examination/service.ts) — no new grading logic invented.
+// ---------------------------------------------------------------------------
+export interface TeacherClassSubjectReportRow {
+  class_id: string; class_name: string;
+  section_id: string | null; section_name: string | null;
+  subject_id: string; subject_name: string;
+  students: number;
+  average_marks: number | null;
+  full_marks: number;
+  pass_percentage: number | null;
+  grade_counts: Record<string, number>;
+  failed_count: number;
+}
+
+export interface TeacherExamReport {
+  examination_id: string;
+  examination_name: string;
+  overall_percentage: number | null;
+  overall_pass_percentage: number | null;
+  rows: TeacherClassSubjectReportRow[];
+}
+
+/** One row per (class, division, subject) this teacher is the
+ *  subject_teacher for, within the given examination, restricted to
+ *  students actually enrolled (student_enrollments, status='active') in
+ *  that exact class/division — so "Students" reflects the real roster size
+ *  (matches image 1's "33" column), not just how many happen to have a
+ *  mark entered yet. Returns null if the examination doesn't exist; an
+ *  empty `rows` array (not null) if the teacher has no subject_teacher
+ *  assignments covering this exam's subjects — not an error, just nothing
+ *  to show yet. */
+export async function getTeacherExamReport(
+  institutionId: string, authUserId: string, teacherUserId: string, examinationId: string
+): Promise<TeacherExamReport | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: examRows } = await scoped.query<{ name: string; academic_year_id: string; grade_scale_id: string | null }>(
+      "select name, academic_year_id, grade_scale_id from examinations where id = $1",
+      [examinationId]
+    );
+    if (examRows.length === 0) return null;
+    const { name: examinationName, academic_year_id: academicYearId, grade_scale_id: gradeScaleId } = examRows[0];
+
+    const { rows: bandRows } = gradeScaleId
+      ? await scoped.query<{ min_percent: string; max_percent: string; grade_label: string }>(
+          "select min_percent, max_percent, grade_label from grade_bands where grade_scale_id = $1 order by min_percent desc",
+          [gradeScaleId]
+        )
+      : { rows: [] as { min_percent: string; max_percent: string; grade_label: string }[] };
+    const bands = bandRows.map((b) => ({ min: Number(b.min_percent), max: Number(b.max_percent), label: b.grade_label }));
+    const bandFor = (pct: number) => bands.find((b) => pct >= b.min && pct <= b.max)?.label ?? null;
+
+    const { rows: assignments } = await scoped.query<{
+      class_id: string; class_name: string; section_id: string | null; section_name: string | null;
+      subject_id: string; subject_name: string;
+    }>(
+      `select distinct ta.class_id, c.name as class_name, ta.section_id, sec.name as section_name,
+              ta.subject_id, sub.name as subject_name
+         from teacher_assignments ta
+         join classes c on c.id = ta.class_id
+         left join sections sec on sec.id = ta.section_id
+         join subjects sub on sub.id = ta.subject_id
+        where ta.user_id = $1 and ta.role_type = 'subject_teacher' and ta.academic_year_id = $2
+              and exists (select 1 from exam_subjects es where es.examination_id = $3 and es.subject_id = ta.subject_id)
+        order by c.name, sec.name, sub.name`,
+      [teacherUserId, academicYearId, examinationId]
+    );
+
+    const rows: TeacherClassSubjectReportRow[] = [];
+    let sumMarks = 0, sumMax = 0, sumPassed = 0, sumMarked = 0;
+
+    for (const a of assignments) {
+      const { rows: examSubjectRows } = await scoped.query<{ id: string; max_marks: string; pass_marks: string }>(
+        "select id, max_marks, pass_marks from exam_subjects where examination_id = $1 and subject_id = $2",
+        [examinationId, a.subject_id]
+      );
+      if (examSubjectRows.length === 0) continue;
+      const examSubjectId = examSubjectRows[0].id;
+      const maxMarks = Number(examSubjectRows[0].max_marks);
+      const passMarks = Number(examSubjectRows[0].pass_marks);
+
+      const { rows: studentRows } = await scoped.query<{ marks_obtained: string | null; is_absent: boolean }>(
+        `select m.marks_obtained, coalesce(m.is_absent, false) as is_absent
+           from student_enrollments se
+           left join marks m on m.exam_subject_id = $1 and m.student_id = se.student_id and m.entry_status in ('approved','locked')
+          where se.status = 'active' and se.academic_year_id = $2 and se.class_id = $3
+                and ($4::uuid is null or se.section_id = $4)`,
+        [examSubjectId, academicYearId, a.class_id, a.section_id]
+      );
+
+      const total = studentRows.length;
+      const marked = studentRows.filter((r) => r.marks_obtained !== null && !r.is_absent);
+      const markedCount = marked.length;
+      const sumObtained = marked.reduce((s, r) => s + Number(r.marks_obtained), 0);
+      const avg = markedCount > 0 ? sumObtained / markedCount : null;
+      const passedCount = marked.filter((r) => Number(r.marks_obtained) >= passMarks).length;
+      const passPct = markedCount > 0 ? Math.round((passedCount / markedCount) * 10000) / 100 : null;
+      const failedCount = markedCount - passedCount;
+
+      const gradeCounts: Record<string, number> = {};
+      for (const r of marked) {
+        const pct = (Number(r.marks_obtained) / maxMarks) * 100;
+        const label = bandFor(pct);
+        if (label) gradeCounts[label] = (gradeCounts[label] ?? 0) + 1;
+      }
+
+      rows.push({
+        class_id: a.class_id, class_name: a.class_name, section_id: a.section_id, section_name: a.section_name,
+        subject_id: a.subject_id, subject_name: a.subject_name,
+        students: total,
+        average_marks: avg !== null ? Math.round(avg * 100) / 100 : null,
+        full_marks: maxMarks, pass_percentage: passPct, grade_counts: gradeCounts, failed_count: failedCount,
+      });
+
+      if (markedCount > 0) {
+        sumMarks += sumObtained; sumMax += markedCount * maxMarks;
+        sumPassed += passedCount; sumMarked += markedCount;
+      }
+    }
+
+    return {
+      examination_id: examinationId, examination_name: examinationName,
+      overall_percentage: sumMax > 0 ? Math.round((sumMarks / sumMax) * 10000) / 100 : null,
+      overall_pass_percentage: sumMarked > 0 ? Math.round((sumPassed / sumMarked) * 10000) / 100 : null,
+      rows,
+    };
+  });
+}
+
+export interface TeacherPerformanceTrendPoint {
+  examinationId: string; examinationName: string; percentage: number; date: string | null;
+}
+
+/** "a curve that shows growth and fall" (§Teacher-Profile) — this teacher's
+ *  own weighted-average percentage (sum of marks obtained / sum of max
+ *  marks, across every student-subject entry in their own subject_teacher
+ *  assignments — same weighting convention getResultsByTeacher() uses)
+ *  collapsed to ONE point per examination, oldest-to-newest, for a single
+ *  trend line. Marks are attributed via student_enrollments matching each
+ *  assignment's own class/division (not just subject+year) so a teacher who
+ *  teaches the same subject in two different classes is correctly summed
+ *  once per student, not double-counted. Only examinations with at least
+ *  one of this teacher's own marks recorded appear. */
+export async function getTeacherPerformanceTrend(
+  institutionId: string, authUserId: string, teacherUserId: string, limit = 10
+): Promise<TeacherPerformanceTrendPoint[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; name: string; date: string | null; sum_marks: string | null; sum_max: string | null }>(
+      `select e.id, e.name, coalesce(e.start_date::text, e.created_at::text) as date,
+              sum(m.marks_obtained) as sum_marks,
+              sum(es.max_marks) as sum_max
+         from examinations e
+         join exam_subjects es on es.examination_id = e.id
+         join teacher_assignments ta on ta.subject_id = es.subject_id and ta.role_type = 'subject_teacher'
+              and ta.academic_year_id = e.academic_year_id and ta.user_id = $1
+         join student_enrollments se on se.class_id = ta.class_id
+              and (ta.section_id is null or se.section_id = ta.section_id)
+              and se.academic_year_id = e.academic_year_id and se.status = 'active'
+         join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
+              and m.entry_status in ('approved','locked') and m.is_absent = false
+        where e.institution_id = $2
+        group by e.id, e.name, date
+        having sum(m.marks_obtained) is not null
+        order by date desc nulls last
+        limit $3`,
+      [teacherUserId, institutionId, limit]
+    );
+    return rows
+      .map((r) => ({
+        examinationId: r.id, examinationName: r.name, date: r.date,
+        percentage: r.sum_max && Number(r.sum_max) > 0 ? Math.round((Number(r.sum_marks) / Number(r.sum_max)) * 10000) / 100 : 0,
+      }))
+      .reverse(); // oldest -> newest, left-to-right on a trend chart
+  });
+}

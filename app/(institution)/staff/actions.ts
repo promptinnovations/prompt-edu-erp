@@ -2,14 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
-import { requirePermission } from "../../../services/permissions/permission-service";
+import { requirePermission, can } from "../../../services/permissions/permission-service";
 import {
   createStaffMember, markStaffAttendance,
   createPortionPlan, recordPortionCompletion,
   recordTeacherObservation, createTeacherAssignment,
   createStaffLoginAccount, resetStaffLoginPassword,
+  updateStaffProfile, updateStaffPhoto,
+  createObservationCriterion, updateObservationCriterion, deleteObservationCriterion,
+  recordTeacherObservationWithRubric,
 } from "../../../modules/staff/service";
 import { assignSectionHead, removeSectionHeadAssignment } from "../../../services/scope/section-head-scope-service";
+import { uploadFile } from "../../../services/storage/file-service";
 
 export async function createStaffAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
@@ -200,5 +204,196 @@ export async function removeSectionHeadAssignmentAction(_prevState: { error: str
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to remove assignment." };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// §Teacher-Profile feature
+// ---------------------------------------------------------------------------
+
+/** Same upload-then-link shape as uploadStudentPhotoAction (app/(institution)/
+ *  students/actions.ts) — upload the bytes via FileService, then point
+ *  staff.photo_file_id at the resulting file id. */
+export async function uploadStaffPhotoAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.edit");
+    const staffId = String(formData.get("staffId") ?? "");
+    const photo = formData.get("photo");
+    if (!(photo instanceof File) || photo.size === 0) return { error: "Choose an image file to upload." };
+
+    const bytes = Buffer.from(await photo.arrayBuffer());
+    const uploaded = await uploadFile(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      entityType: "staff", entityId: staffId, fileName: photo.name, mimeType: photo.type, isPublic: false, bytes,
+    });
+    await updateStaffPhoto(ctx.institutionId, ctx.session.authUserId, ctx.userId, staffId, uploaded.id);
+    revalidatePath(`/staff/${staffId}`);
+    revalidatePath("/staff/directory");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to upload photo." };
+  }
+}
+
+export async function removeStaffPhotoAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.edit");
+    const staffId = String(formData.get("staffId") ?? "");
+    await updateStaffPhoto(ctx.institutionId, ctx.session.authUserId, ctx.userId, staffId, null);
+    revalidatePath(`/staff/${staffId}`);
+    revalidatePath("/staff/directory");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove photo." };
+  }
+}
+
+export async function updateStaffProfileAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const staffId = String(formData.get("staffId") ?? "");
+  const field = (name: string) => String(formData.get(name) ?? "") || null;
+  try {
+    requirePermission(ctx.permissions, "staff.edit");
+    await updateStaffProfile(ctx.institutionId, ctx.session.authUserId, ctx.userId, staffId, {
+      dateOfBirth: field("dateOfBirth"),
+      gender: field("gender"),
+      bloodGroup: field("bloodGroup"),
+      contactPhone: field("contactPhone"),
+      address: field("address"),
+      emergencyContactName: field("emergencyContactName"),
+      emergencyContactPhone: field("emergencyContactPhone"),
+      otherRoles: field("otherRoles"),
+      previousExperience: field("previousExperience"),
+      documentsSubmitted: field("documentsSubmitted"),
+      qualifications: field("qualifications"),
+      certifications: field("certifications"),
+      specialisations: field("specialisations"),
+      languages: field("languages"),
+      skills: field("skills"),
+      subjectCoordinatorOf: field("subjectCoordinatorOf"),
+      clubHouseIncharge: field("clubHouseIncharge"),
+      examEventDuties: field("examEventDuties"),
+      otherResponsibilities: field("otherResponsibilities"),
+      trainingsWorkshops: field("trainingsWorkshops"),
+      pdCertificates: field("pdCertificates"),
+      trainingHistory: field("trainingHistory"),
+      awardsRecognitions: field("awardsRecognitions"),
+      publicationsResearch: field("publicationsResearch"),
+      innovations: field("innovations"),
+      otherAchievements: field("otherAchievements"),
+    });
+    revalidatePath(`/staff/${staffId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save profile details." };
+  }
+}
+
+/** Rubric-driven Term-wise Performance Observation. Branches on which of
+ *  the two observation permissions the caller actually holds (§Teacher-
+ *  Profile AskUserQuestion #2) — unrestricted staff.observation.manage
+ *  holders pass straight through; a staff.observation.manage_section-only
+ *  holder (Section Head) is passed scopedToOwnSection so the service layer
+ *  re-verifies the teacher falls within their own assigned stage(s). */
+export async function recordTeacherObservationWithRubricAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    const hasUnrestricted = can(ctx.permissions, "staff.observation.manage");
+    const hasScoped = can(ctx.permissions, "staff.observation.manage_section");
+    if (!hasUnrestricted && !hasScoped) {
+      return { error: "You don't have permission to record observations." };
+    }
+    const teacherId = String(formData.get("teacherId") ?? "");
+    const criteriaIds = formData.getAll("criteriaId").map(String);
+    const items = criteriaIds
+      .map((criteriaId) => ({ criteriaId, score: Number(formData.get(`score_${criteriaId}`) ?? 0) }))
+      .filter((it) => it.score >= 1 && it.score <= 5);
+
+    await recordTeacherObservationWithRubric(
+      ctx.institutionId, ctx.session.authUserId, ctx.userId,
+      {
+        teacherId,
+        date: String(formData.get("date") ?? ""),
+        term: String(formData.get("term") ?? "") || null,
+        classDiv: String(formData.get("classDiv") ?? "") || null,
+        content: String(formData.get("content") ?? "") || null,
+        items,
+        overallNotes: String(formData.get("overallNotes") ?? "") || null,
+        followUpNotes: String(formData.get("followUpNotes") ?? "") || null,
+      },
+      { scopedToOwnSection: !hasUnrestricted && hasScoped }
+    );
+    revalidatePath(`/staff/${teacherId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to record observation." };
+  }
+}
+
+const levelFromForm = (formData: FormData, score: number) => ({
+  score,
+  descriptor: String(formData.get(`level_${score}_descriptor`) ?? ""),
+  explanation: String(formData.get(`level_${score}_explanation`) ?? ""),
+});
+
+/** Rubric CRUD (§Teacher-Profile AskUserQuestion #1, "Editable by admin") —
+ *  gated on the UNRESTRICTED staff.observation.manage permission only,
+ *  deliberately excluding staff.observation.manage_section: a Section Head
+ *  may record observations against the rubric but shouldn't be able to
+ *  redefine it for the whole institution. */
+export async function createObservationCriterionAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.observation.manage");
+    await createObservationCriterion(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      domain: String(formData.get("domain") ?? ""),
+      criteriaText: String(formData.get("criteriaText") ?? ""),
+      sortOrder: Number(formData.get("sortOrder") ?? 0),
+      levels: [1, 2, 3, 4, 5].map((s) => levelFromForm(formData, s)),
+    });
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to add criterion." };
+  }
+}
+
+export async function updateObservationCriterionAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.observation.manage");
+    await updateObservationCriterion(
+      ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("criterionId") ?? ""),
+      {
+        domain: String(formData.get("domain") ?? ""),
+        criteriaText: String(formData.get("criteriaText") ?? ""),
+        sortOrder: Number(formData.get("sortOrder") ?? 0),
+        levels: [1, 2, 3, 4, 5].map((s) => levelFromForm(formData, s)),
+      }
+    );
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save criterion." };
+  }
+}
+
+export async function deleteObservationCriterionAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.observation.manage");
+    await deleteObservationCriterion(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("criterionId") ?? ""));
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to delete criterion." };
   }
 }

@@ -66,6 +66,7 @@ insert into permissions (code, module, description) values
   ('staff.edit',               'staff', 'Edit a staff member''s record'),
   ('staff.portion.manage',    'staff', 'Create portion plans and record portion completion'),
   ('staff.observation.manage','staff', 'Record and view teacher observations'),
+  ('staff.observation.manage_section', 'staff', 'Record and view classroom observations for teachers within own assigned section(s) (Section Head)'),
   ('staff.assignment.manage', 'staff', 'Manage class/subject teacher assignments'),
 
   ('settings.manage',      'platform',     'Manage institution settings'),

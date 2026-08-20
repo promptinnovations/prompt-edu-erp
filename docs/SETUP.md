@@ -1511,6 +1511,124 @@ returning null with no marks yet and the correct per-subject breakdown
 once approved, and `getStudentMonthlyAttendance()` grouping correctly
 across a month boundary.
 
+## Teacher Profile feature — staff directory + tabbed per-teacher profile,
+## exam-analysis table with growth/fall trend, rubric-driven classroom
+## observations
+
+Triggered by the user's own 6-section "Teacher Profile" template (Personal
+Details/Employment Details/Qualifications & Skills/Responsibilities/
+Professional Development/Achievements), a reference "Result Analysis" image
+(per-class/subject Students/Average/Pass%/Full Marks/A+/A/Failed table with
+an Overall %/Pass % header), and a reference "Teachers Observation" PDF (a
+5-domain, 20-criteria classroom-observation rubric, each criterion scored
+1-5 with its own descriptor + explanation text per level, totalling 100
+marks). Three explicit choices the user made up front (AskUserQuestion)
+shaped the whole design: (1) the observation rubric is **editable by
+admin**, seeded from the PDF as a sensible default; (2) observations may be
+recorded by **Principal/management (unrestricted) and Section Heads
+(scoped to their own assigned stage)**; (3) the full profile applies to
+**teaching staff only** — anyone with at least one `teacher_assignments`
+row — everyone else keeps the existing plain staff record, unchanged.
+
+- **Migration `0036_teacher_profile.sql`** adds 26 nullable columns to
+  `staff` (photo_file_id + the template's Personal/Employment/
+  Qualifications/Responsibilities/PD/Achievements fields) and a new
+  `observation_criteria` table (institution-scoped, RLS dual-gate):
+  `domain`, `criteria_text`, `sort_order`, `levels_jsonb` (a 5-entry JSON
+  array of `{score, descriptor, explanation}`, one per 1-5 score — never a
+  normalized child table, since the five levels of one criterion are only
+  ever rendered together as one dropdown, never independently queried).
+  Deliberately NOT duplicated as new columns: "Classes & Subjects Handled"
+  and "Class Teacher" (already derivable from `teacher_assignments`), and
+  "Joining Date"/"Designation"/"Department" (already on `staff` since
+  migration 0001/0012). A new permission `staff.observation.manage_section`
+  is added (mirrors `attendance.view_section`'s precedent exactly — a
+  distinct code from the existing unrestricted `staff.observation.manage`,
+  rather than widening what that permission already means for
+  institution_admin/management), with a self-healing backfill granting it
+  plus `staff.view` to every existing institution's `section_head` role.
+- **The rubric is lazily seeded, not embedded as literal SQL.** The PDF's
+  full 20-criteria/100-descriptor dataset lives in ONE TypeScript constant
+  (`modules/staff/observation-rubric-defaults.ts`), and
+  `listObservationCriteria()` auto-inserts it the first time any
+  institution has zero `observation_criteria` rows — never re-applied once
+  an institution has any rows (even a partial/edited set), so an admin's
+  own edits are never silently overwritten. `createObservationCriterion()`/
+  `updateObservationCriterion()`/`deleteObservationCriterion()` give admins
+  full CRUD afterward, gated on the unrestricted `staff.observation.manage`
+  permission only (a Section Head can record observations but not redefine
+  the rubric).
+- **`getStaffProfile()`/`updateStaffProfile()`/`updateStaffPhoto()`**
+  (`modules/staff/service.ts`) — a full read/partial-write pair for the
+  template's fields, kept off `StaffRecord`/`StaffRow` so existing narrow-
+  select callers (attendance grids, portion plans, assignment listings)
+  never pay for columns they don't use.
+- **`recordTeacherObservationWithRubric()`** shapes a submitted set of
+  per-criterion scores into `teacher_observations.criteria_jsonb` (no
+  schema change needed — that column was already designed flexible enough,
+  migration 0012's own header comment), computing a `totalScore` scaled
+  against the rubric's actual max-possible (`criteria.length * 5`) rather
+  than a hard-coded /100, so an admin-edited rubric still yields a correct
+  percentage. "Strengths observed"/"Areas to improve" reuse the existing
+  `overall_notes`/`follow_up_notes` columns. When called with
+  `{ scopedToOwnSection: true }` (a Section Head), it re-verifies the
+  target teacher's own `teacher_assignments` classes fall within the
+  caller's assigned stage(s) via `getStaffSectionScope()` — same
+  application-layer enforcement pattern (not a different RLS policy)
+  `attendance.view_section` already established.
+- **`getTeacherExamReport()`/`getTeacherPerformanceTrend()`**
+  (`modules/analytics/service.ts`) — new functions alongside the existing
+  `getResultsByTeacher()`, which only rolls a teacher up to one row per
+  subject across every class they teach it in. The new report breaks one
+  examination down by (class, division, subject), restricted to students
+  actually enrolled in that exact class/division via `student_enrollments`,
+  with per-grade-band counts computed on the fly against the institution's
+  own grade scale (the same min/max-percent range-match `computeResults()`
+  already uses — no new grading logic invented, since no per-subject grade
+  materialization exists). The trend function collapses every examination
+  a teacher has marks in to one weighted-average percentage point, oldest
+  to newest, for the "growth and fall" curve.
+- **`/staff/directory`** — a new card-grid page mirroring the Student
+  Management directory exactly, with a "Teacher" badge on cards for staff
+  who have at least one `teacher_assignments` row. Every card opens
+  `/staff/[id]`.
+- **`/staff/[id]`** branches on that same "has a teacher_assignments row"
+  check: teaching staff get the full Profile page (`ProfileTabs.tsx` —
+  Profile / Exam Results / Observations tabs), everyone else gets a plain,
+  unchanged read-only record (staff ID, designation, department, joining
+  date, employment status). The Profile tab holds the combined 6-section
+  form (`TeacherProfileForm.tsx`) plus a photo uploader; Exam Results holds
+  an examination picker, the per-class/subject table, and the trend curve
+  (`ExamResultsSection.tsx`, `ProfileCharts.tsx` — pure SVG, no chart
+  library, same "stays server-renderable" reasoning as the Student Profile
+  feature's charts); Observations holds the rubric-driven observation form
+  (`ObservationForm.tsx` — one dropdown per criterion, labelled "Score N —
+  Descriptor", whose explanation renders immediately below once picked;
+  this is the practical implementation of "if the observer touches any of
+  the three, the other two appear automatically", since a criterion's
+  score/descriptor/explanation were never independent fields to begin with
+  — see `observation_criteria.levels_jsonb`), a chronological observation
+  history, and, for unrestricted observers only, the rubric admin panel
+  (`RubricAdminSection.tsx`).
+- The existing `/staff` page (directory table, staff attendance, portion
+  plans, the old free-text `TeacherObservationForm.tsx`, teacher
+  assignments, Section Head assignments) is completely unchanged — the new
+  pages are additive, same "profiles vs. the original table" split as
+  Student Management's `/students/directory` vs. `/students`.
+
+Tests: `tests/integration/teacher-profile-flow.test.ts` (12 tests) —
+`getStaffProfile()`/`updateStaffProfile()`'s partial-update semantics,
+`updateStaffPhoto()`'s set/clear/cross-institution-ownership-refusal,
+`listObservationCriteria()`'s lazy default-seed (seeds exactly once, never
+duplicates) and full CRUD, `recordTeacherObservationWithRubric()`'s
+totalScore scaling and the Section Head stage-scoping (allowed within own
+stage, rejected outside it), the `section_head` role's exact permission
+set, `getTeacherExamReport()`'s per-class/subject breakdown against a known
+4-student dataset (students/average/pass%/full marks/grade bands/failed),
+`getTeacherPerformanceTrend()`'s oldest-to-newest ordering across two
+examinations (one "growth", one "fall"), and tenant isolation on staff
+profile fields and observation criteria.
+
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.

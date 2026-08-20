@@ -123,7 +123,11 @@ const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
   // full rationale). Migration 0034 also self-heals this grant onto every
   // EXISTING institution's already-created section_head role, so this entry
   // only matters for institutions created after that migration ran.
-  section_head: ["student.view", "attendance.view", "attendance.view_section", "announcements.view", "calendar.view"],
+  // §Teacher-Profile follow-up — kept in sync with seed.ts's own
+  // section_head grant. Migration 0036 also self-heals this onto every
+  // EXISTING institution's already-created section_head role, so this
+  // entry only matters for institutions created after that migration ran.
+  section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view"],
   librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view"],
   parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply"],
   student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply"],

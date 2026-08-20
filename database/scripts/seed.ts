@@ -125,7 +125,11 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     // the permission that specifically unlocks the stage-wide Daily
     // overview/trend (distinct from plain attendance.view, which
     // teacher/management already hold for narrower reasons).
-    section_head: ["student.view", "attendance.view", "attendance.view_section", "announcements.view", "calendar.view"],
+    // §Teacher-Profile follow-up "Principal + Section Heads, scoped" —
+    // staff.view (to open a teacher's Profile page) + the new
+    // staff.observation.manage_section (migration 0036), mirroring
+    // attendance.view_section's own "own assigned stage only" scoping.
+    section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view"],
     librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view"],
     parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view"],
     student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],

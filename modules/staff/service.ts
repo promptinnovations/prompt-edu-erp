@@ -30,6 +30,8 @@ import {
   reviewLeaveApplication as reviewLeaveApplicationGeneric,
   type LeaveApplicationRecord,
 } from "../attendance/service";
+import { getStaffSectionScope } from "../../services/scope/section-head-scope-service";
+import { DEFAULT_OBSERVATION_CRITERIA } from "./observation-rubric-defaults";
 
 export interface StaffRecord {
   id: string; user_id: string; staff_code: string; designation: string | null;
@@ -215,6 +217,209 @@ export async function updateStaffMember(
     if (rows.length === 0) return null;
     await recordAudit(scoped, { institutionId, userId, action: "edit", module: "staff", entityType: "staff", entityId: staffId, after: rows[0] });
     return rows[0];
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Teacher Profile (§Teacher-Profile feature) — the full 6-section template
+// the user supplied (Personal/Employment/Qualifications & Skills/
+// Responsibilities/Professional Development/Achievements), stored as
+// nullable text/date columns added in migration 0036. Deliberately kept OFF
+// StaffRecord/StaffRow (same reasoning as students' StudentProfileRecord)
+// so the many existing narrow-select callers (attendance grids, portion
+// plans, assignment listings, etc.) never pay for two dozen columns they
+// don't use — only the teacher's own Profile page reads/writes them.
+//
+// Per the user's own explicit choice (AskUserQuestion #3, "Teachers only"):
+// this whole profile is scoped to staff who have at least one
+// teacher_assignments row. getStaffProfile() itself doesn't enforce that
+// (it's a generic staff-record reader, same shape as getStaffMember()) —
+// the route/UI layer decides whether to render the Teacher Profile template
+// or fall back to the plain staff record, by checking
+// listAssignmentsForTeacher(...).length > 0.
+// ---------------------------------------------------------------------------
+export interface StaffProfileRecord extends StaffRow {
+  photo_file_id: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  blood_group: string | null;
+  contact_phone: string | null;
+  address: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  other_roles: string | null;
+  previous_experience: string | null;
+  documents_submitted: string | null;
+  qualifications: string | null;
+  certifications: string | null;
+  specialisations: string | null;
+  languages: string | null;
+  skills: string | null;
+  subject_coordinator_of: string | null;
+  club_house_incharge: string | null;
+  exam_event_duties: string | null;
+  other_responsibilities: string | null;
+  trainings_workshops: string | null;
+  pd_certificates: string | null;
+  training_history: string | null;
+  awards_recognitions: string | null;
+  publications_research: string | null;
+  innovations: string | null;
+  other_achievements: string | null;
+}
+
+export async function getStaffProfile(institutionId: string, authUserId: string, staffId: string): Promise<StaffProfileRecord | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<StaffProfileRecord>(
+      `select st.id, st.user_id, st.staff_code, st.designation, st.department, st.joining_date, st.employment_status,
+              u.full_name, u.email, (u.auth_user_id is not null) as has_login,
+              st.photo_file_id, st.date_of_birth, st.gender, st.blood_group, st.contact_phone, st.address,
+              st.emergency_contact_name, st.emergency_contact_phone, st.other_roles, st.previous_experience,
+              st.documents_submitted, st.qualifications, st.certifications, st.specialisations, st.languages, st.skills,
+              st.subject_coordinator_of, st.club_house_incharge, st.exam_event_duties, st.other_responsibilities,
+              st.trainings_workshops, st.pd_certificates, st.training_history,
+              st.awards_recognitions, st.publications_research, st.innovations, st.other_achievements
+         from staff st join users u on u.id = st.user_id
+        where st.id = $1`,
+      [staffId]
+    );
+    return rows[0] ?? null; // RLS guarantees this is null for another institution's row (§E.3)
+  });
+}
+
+const updateStaffProfileSchema = z.object({
+  dateOfBirth: z.string().nullable().optional(),
+  gender: z.string().max(30).nullable().optional(),
+  bloodGroup: z.string().max(10).nullable().optional(),
+  contactPhone: z.string().max(30).nullable().optional(),
+  address: z.string().max(500).nullable().optional(),
+  emergencyContactName: z.string().max(200).nullable().optional(),
+  emergencyContactPhone: z.string().max(30).nullable().optional(),
+  otherRoles: z.string().max(500).nullable().optional(),
+  previousExperience: z.string().max(2000).nullable().optional(),
+  documentsSubmitted: z.string().max(1000).nullable().optional(),
+  qualifications: z.string().max(2000).nullable().optional(),
+  certifications: z.string().max(2000).nullable().optional(),
+  specialisations: z.string().max(1000).nullable().optional(),
+  languages: z.string().max(500).nullable().optional(),
+  skills: z.string().max(1000).nullable().optional(),
+  subjectCoordinatorOf: z.string().max(500).nullable().optional(),
+  clubHouseIncharge: z.string().max(500).nullable().optional(),
+  examEventDuties: z.string().max(1000).nullable().optional(),
+  otherResponsibilities: z.string().max(1000).nullable().optional(),
+  trainingsWorkshops: z.string().max(2000).nullable().optional(),
+  pdCertificates: z.string().max(2000).nullable().optional(),
+  trainingHistory: z.string().max(2000).nullable().optional(),
+  awardsRecognitions: z.string().max(2000).nullable().optional(),
+  publicationsResearch: z.string().max(2000).nullable().optional(),
+  innovations: z.string().max(2000).nullable().optional(),
+  otherAchievements: z.string().max(2000).nullable().optional(),
+});
+
+/** Partial-update, same "in data"/case-when pattern as students'
+ *  updateStudentProfile() — only keys actually present in `input` are
+ *  touched, so any one of the 6 template sections can be saved
+ *  independently. No mandatory-ness is enforced here (per this feature's
+ *  own template: "any blanks will not be there in the profile" is a
+ *  render-time UI concern, not a write-time validation rule). */
+export async function updateStaffProfile(
+  institutionId: string, authUserId: string, userId: string, staffId: string,
+  input: z.infer<typeof updateStaffProfileSchema>
+): Promise<void> {
+  const data = updateStaffProfileSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<{ id: string }>("select id from staff where id = $1", [staffId]);
+    if (before.length === 0) throw new Error("Staff member not found.");
+    await scoped.query(
+      `update staff set
+         date_of_birth = case when $1 then $2::date else date_of_birth end,
+         gender = case when $3 then $4 else gender end,
+         blood_group = case when $5 then $6 else blood_group end,
+         contact_phone = case when $7 then $8 else contact_phone end,
+         address = case when $9 then $10 else address end,
+         emergency_contact_name = case when $11 then $12 else emergency_contact_name end,
+         emergency_contact_phone = case when $13 then $14 else emergency_contact_phone end,
+         other_roles = case when $15 then $16 else other_roles end,
+         previous_experience = case when $17 then $18 else previous_experience end,
+         documents_submitted = case when $19 then $20 else documents_submitted end,
+         qualifications = case when $21 then $22 else qualifications end,
+         certifications = case when $23 then $24 else certifications end,
+         specialisations = case when $25 then $26 else specialisations end,
+         languages = case when $27 then $28 else languages end,
+         skills = case when $29 then $30 else skills end,
+         subject_coordinator_of = case when $31 then $32 else subject_coordinator_of end,
+         club_house_incharge = case when $33 then $34 else club_house_incharge end,
+         exam_event_duties = case when $35 then $36 else exam_event_duties end,
+         other_responsibilities = case when $37 then $38 else other_responsibilities end,
+         trainings_workshops = case when $39 then $40 else trainings_workshops end,
+         pd_certificates = case when $41 then $42 else pd_certificates end,
+         training_history = case when $43 then $44 else training_history end,
+         awards_recognitions = case when $45 then $46 else awards_recognitions end,
+         publications_research = case when $47 then $48 else publications_research end,
+         innovations = case when $49 then $50 else innovations end,
+         other_achievements = case when $51 then $52 else other_achievements end,
+         updated_at = now()
+       where id = $53`,
+      [
+        "dateOfBirth" in data, data.dateOfBirth ?? null,
+        "gender" in data, data.gender ?? null,
+        "bloodGroup" in data, data.bloodGroup ?? null,
+        "contactPhone" in data, data.contactPhone ?? null,
+        "address" in data, data.address ?? null,
+        "emergencyContactName" in data, data.emergencyContactName ?? null,
+        "emergencyContactPhone" in data, data.emergencyContactPhone ?? null,
+        "otherRoles" in data, data.otherRoles ?? null,
+        "previousExperience" in data, data.previousExperience ?? null,
+        "documentsSubmitted" in data, data.documentsSubmitted ?? null,
+        "qualifications" in data, data.qualifications ?? null,
+        "certifications" in data, data.certifications ?? null,
+        "specialisations" in data, data.specialisations ?? null,
+        "languages" in data, data.languages ?? null,
+        "skills" in data, data.skills ?? null,
+        "subjectCoordinatorOf" in data, data.subjectCoordinatorOf ?? null,
+        "clubHouseIncharge" in data, data.clubHouseIncharge ?? null,
+        "examEventDuties" in data, data.examEventDuties ?? null,
+        "otherResponsibilities" in data, data.otherResponsibilities ?? null,
+        "trainingsWorkshops" in data, data.trainingsWorkshops ?? null,
+        "pdCertificates" in data, data.pdCertificates ?? null,
+        "trainingHistory" in data, data.trainingHistory ?? null,
+        "awardsRecognitions" in data, data.awardsRecognitions ?? null,
+        "publicationsResearch" in data, data.publicationsResearch ?? null,
+        "innovations" in data, data.innovations ?? null,
+        "otherAchievements" in data, data.otherAchievements ?? null,
+        staffId,
+      ]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "staff", entityType: "staff_profile", entityId: staffId, after: data });
+  });
+}
+
+/** Points staff.photo_file_id at an already-uploaded file (or null to
+ *  remove it) — mirrors updateStudentPhoto()'s exact ownership-check shape
+ *  (modules/students/service.ts). The upload itself happens through
+ *  FileService.uploadFile() in the calling server action; this function
+ *  never touches file bytes. */
+export async function updateStaffPhoto(
+  institutionId: string, authUserId: string, userId: string, staffId: string, photoFileId: string | null
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    if (photoFileId) {
+      const { rows: owned } = await scoped.query<{ id: string }>("select id from files where id = $1", [photoFileId]);
+      if (owned.length === 0) {
+        throw new Error("That file does not belong to this institution — refusing to set it as the staff photo.");
+      }
+    }
+    const { rows: before } = await scoped.query<{ photo_file_id: string | null }>(
+      "select photo_file_id from staff where id = $1", [staffId]
+    );
+    await scoped.query("update staff set photo_file_id = $1, updated_at = now() where id = $2", [photoFileId, staffId]);
+    await recordAudit(scoped, {
+      institutionId, userId, action: "edit", module: "staff", entityType: "staff", entityId: staffId,
+      before: { photoFileId: before[0]?.photo_file_id ?? null }, after: { photoFileId },
+    });
   });
 }
 
@@ -610,6 +815,211 @@ export async function listTeacherObservations(
              from teacher_observations order by date desc`
         );
     return rows;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Classroom-observation rubric (observation_criteria, migration 0036) +
+// rubric-driven Term-wise Performance Observation recording.
+//
+// Access rule mirrors resolveAttendanceVisibility()'s two-tier pattern
+// (services/scope/attendance-visibility-service.ts) exactly: an unrestricted
+// staff.observation.manage holder may observe any teacher; a
+// staff.observation.manage_section holder (Section Head) may only observe a
+// teacher whose OWN teacher_assignments intersect the Section Head's own
+// assigned stage(s). The caller (server action) already knows, via can(),
+// which tier the current user holds and passes options.scopedToOwnSection
+// accordingly — this module only re-verifies the stage intersection itself,
+// same division of responsibility getStaffSectionScope()'s own doc comment
+// describes ("this helper only answers... it does not check permissions").
+// ---------------------------------------------------------------------------
+export interface ObservationCriterionLevel { score: number; descriptor: string; explanation: string }
+export interface ObservationCriterionRecord {
+  id: string; domain: string; criteria_text: string; sort_order: number;
+  levels_jsonb: ObservationCriterionLevel[];
+}
+
+/** Lazily provisions the PDF-sourced default 20-criteria rubric
+ *  (modules/staff/observation-rubric-defaults.ts) the first time an
+ *  institution has zero observation_criteria rows — one single source of
+ *  truth, also reused by createInstitution() for brand-new institutions
+ *  (see migration 0036's header comment for why this data isn't embedded as
+ *  literal SQL). Never re-applied once an institution has ANY rows, even a
+ *  partial/edited set, so an admin's own edits are never silently
+ *  overwritten by a later call. */
+export async function listObservationCriteria(institutionId: string, authUserId: string): Promise<ObservationCriterionRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ObservationCriterionRecord>(
+      `select id, domain, criteria_text, sort_order, levels_jsonb from observation_criteria
+        where institution_id = $1 order by sort_order`,
+      [institutionId]
+    );
+    if (rows.length > 0) return rows;
+    for (const c of DEFAULT_OBSERVATION_CRITERIA) {
+      await scoped.query(
+        `insert into observation_criteria (institution_id, domain, criteria_text, sort_order, levels_jsonb)
+         values ($1, $2, $3, $4, $5)`,
+        [institutionId, c.domain, c.criteriaText, c.sortOrder, JSON.stringify(c.levels)]
+      );
+    }
+    const { rows: seeded } = await scoped.query<ObservationCriterionRecord>(
+      `select id, domain, criteria_text, sort_order, levels_jsonb from observation_criteria
+        where institution_id = $1 order by sort_order`,
+      [institutionId]
+    );
+    return seeded;
+  });
+}
+
+const upsertCriterionSchema = z.object({
+  domain: z.string().min(1).max(150),
+  criteriaText: z.string().min(1).max(500),
+  sortOrder: z.number().int().default(0),
+  levels: z.array(z.object({
+    score: z.number().int().min(1).max(5),
+    descriptor: z.string().min(1).max(200),
+    explanation: z.string().min(1).max(1000),
+  })).length(5),
+});
+
+/** Admin-only rubric CRUD (§Teacher-Profile AskUserQuestion #1, "Editable by
+ *  admin"). Touches listObservationCriteria() first so an admin adding ONE
+ *  criterion to a brand-new institution gets the other 20 lazily seeded too,
+ *  rather than ending up with a single orphan row. */
+export async function createObservationCriterion(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof upsertCriterionSchema>
+): Promise<ObservationCriterionRecord> {
+  const data = upsertCriterionSchema.parse(input);
+  await listObservationCriteria(institutionId, authUserId);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ObservationCriterionRecord>(
+      `insert into observation_criteria (institution_id, domain, criteria_text, sort_order, levels_jsonb)
+       values ($1, $2, $3, $4, $5)
+       returning id, domain, criteria_text, sort_order, levels_jsonb`,
+      [institutionId, data.domain, data.criteriaText, data.sortOrder, JSON.stringify(data.levels)]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "staff", entityType: "observation_criteria", entityId: rows[0].id, after: rows[0] });
+    return rows[0];
+  });
+}
+
+export async function updateObservationCriterion(
+  institutionId: string, authUserId: string, userId: string, criterionId: string, input: z.infer<typeof upsertCriterionSchema>
+): Promise<ObservationCriterionRecord | null> {
+  const data = upsertCriterionSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ObservationCriterionRecord>(
+      `update observation_criteria set
+         domain = $1, criteria_text = $2, sort_order = $3, levels_jsonb = $4, updated_at = now()
+       where id = $5
+       returning id, domain, criteria_text, sort_order, levels_jsonb`,
+      [data.domain, data.criteriaText, data.sortOrder, JSON.stringify(data.levels), criterionId]
+    );
+    if (rows.length === 0) return null;
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "staff", entityType: "observation_criteria", entityId: criterionId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+export async function deleteObservationCriterion(
+  institutionId: string, authUserId: string, userId: string, criterionId: string
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query("delete from observation_criteria where id = $1", [criterionId]);
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "staff", entityType: "observation_criteria", entityId: criterionId });
+  });
+}
+
+/** Every distinct classes.stage this teacher (a staff.id) currently has a
+ *  teacher_assignments row against — the same "stage" grouping
+ *  section_head_assignments.stage uses, so it can be intersected directly
+ *  against getStaffSectionScope()'s result. */
+async function getTeacherStages(institutionId: string, authUserId: string, teacherStaffId: string): Promise<Set<string>> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ stage: string | null }>(
+      `select distinct c.stage
+         from teacher_assignments ta
+         join staff st on st.user_id = ta.user_id
+         join classes c on c.id = ta.class_id
+        where st.id = $1 and c.stage is not null and c.stage <> ''`,
+      [teacherStaffId]
+    );
+    return new Set(rows.map((r) => r.stage as string));
+  });
+}
+
+const recordObservationWithRubricSchema = z.object({
+  teacherId: z.string().uuid(), // staff.id being observed
+  date: z.string().min(1),
+  term: z.string().max(100).nullable().optional(),
+  classDiv: z.string().max(100).nullable().optional(),
+  content: z.string().max(500).nullable().optional(),
+  items: z.array(z.object({ criteriaId: z.string().uuid(), score: z.number().int().min(1).max(5) })).min(1),
+  overallNotes: z.string().max(2000).nullable().optional(),  // "Strengths observed"
+  followUpNotes: z.string().max(2000).nullable().optional(), // "Areas to improve"
+});
+
+/** Records one Term-wise classroom observation against the institution's own
+ *  rubric (listObservationCriteria()), computing a totalScore out of 100
+ *  from the submitted per-criterion scores (§Teacher-Profile "give total
+ *  score out of 100") — scaled by the rubric's actual max-possible
+ *  (criteria.length * 5) rather than hard-coded /100, so an admin-edited
+ *  rubric with a different criteria count still yields a correct percentage.
+ *  Everything is shaped into teacher_observations.criteria_jsonb (no schema
+ *  change needed — that column was already designed flexible enough,
+ *  migration 0012); "Strengths observed"/"Areas to improve" reuse the
+ *  existing overall_notes/follow_up_notes columns. One observation per term
+ *  is a UI/workflow convention, not enforced here as a uniqueness
+ *  constraint (an institution may legitimately want to redo one). */
+export async function recordTeacherObservationWithRubric(
+  institutionId: string, authUserId: string, userId: string,
+  input: z.infer<typeof recordObservationWithRubricSchema>,
+  options?: { scopedToOwnSection?: boolean }
+): Promise<TeacherObservationRecord> {
+  const data = recordObservationWithRubricSchema.parse(input);
+
+  if (options?.scopedToOwnSection) {
+    const [scope, teacherStages] = await Promise.all([
+      getStaffSectionScope(institutionId, authUserId, userId),
+      getTeacherStages(institutionId, authUserId, data.teacherId),
+    ]);
+    const inScope = [...teacherStages].some((s) => scope.stages.has(s));
+    if (!inScope) {
+      throw new Error("You can only record observations for teachers within your own assigned section(s).");
+    }
+  }
+
+  const criteria = await listObservationCriteria(institutionId, authUserId);
+  const byId = new Map(criteria.map((c) => [c.id, c]));
+  let rawSum = 0;
+  const items = data.items.map((it) => {
+    const criterion = byId.get(it.criteriaId);
+    if (!criterion) throw new Error("Unknown observation criterion — the rubric may have changed; reload and try again.");
+    const level = criterion.levels_jsonb.find((l) => l.score === it.score);
+    if (!level) throw new Error(`Invalid score ${it.score} for "${criterion.criteria_text}".`);
+    rawSum += it.score;
+    return { criteriaId: it.criteriaId, score: it.score };
+  });
+  const maxPossible = criteria.length * 5;
+  const totalScore = maxPossible > 0 ? Math.round((rawSum / maxPossible) * 10000) / 100 : 0;
+
+  return recordTeacherObservation(institutionId, authUserId, userId, {
+    teacherId: data.teacherId,
+    date: data.date,
+    criteriaJsonb: {
+      term: data.term ?? null,
+      classDiv: data.classDiv ?? null,
+      content: data.content ?? null,
+      items,
+      totalScore,
+    },
+    overallNotes: data.overallNotes ?? null,
+    followUpNotes: data.followUpNotes ?? null,
   });
 }
 

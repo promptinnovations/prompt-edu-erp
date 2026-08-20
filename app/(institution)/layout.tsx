@@ -197,9 +197,17 @@ export default async function InstitutionLayout({ children }: { children: React.
       ],
     }] : []),
 
+    // §Teacher-Profile feature — "Staff profiles" opens the new card-grid
+    // directory (/staff/directory), the front door into each staff member's
+    // own Profile page (teaching staff get the full 6-section template +
+    // exam analysis + observations; everyone else keeps a plain record —
+    // see app/(institution)/staff/[id]/page.tsx). "Staff directory" (the
+    // original add/search/table section on /staff) is unchanged, same
+    // "profiles vs. the original table" split as Student Management above.
     ...(hasStaffAccess ? [{
       kind: "group" as const, label: "Staff", icon: ni(StaffIcon),
       items: [
+        { href: "/staff/directory", label: "Staff profiles" },
         { href: "/staff#directory", label: "Staff directory" },
         { href: "/staff#staff-attendance", label: "Staff attendance" },
         { href: "/staff#staff-leave", label: "Staff leave" },
