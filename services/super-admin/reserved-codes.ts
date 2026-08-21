@@ -14,4 +14,5 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   "skills", "staff", "storage", "students", "super-admin", "suspended",
   "users", "portal", "api", "icons", "icon-badge", "favicon.ico",
   "manifest.webmanifest", "robots.txt", "sitemap.xml", "sw.js", "_next",
+  "calendar", "substitution", "print", "analysis", "results",
 ]);
