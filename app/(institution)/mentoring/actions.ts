@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
-import { createMentoringRecord, updateMentoringRecord, getOwnStaffId } from "../../../modules/mentoring/service";
+import {
+  createMentoringRecord, updateMentoringRecord, getOwnStaffId,
+  createMentorAssignment, setMentorAssignmentActive,
+} from "../../../modules/mentoring/service";
 
 export async function createMentoringRecordAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
@@ -45,5 +48,37 @@ export async function updateMentoringRecordAction(_prevState: { error: string | 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update mentoring record." };
+  }
+}
+
+export async function createMentorAssignmentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "mentoring.assign");
+    const studentId = String(formData.get("studentId") ?? "") || null;
+    const classId = String(formData.get("classId") ?? "") || null;
+    await createMentorAssignment(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      mentorStaffId: String(formData.get("mentorStaffId") ?? ""),
+      studentId,
+      classId,
+    });
+    revalidatePath("/mentoring");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to assign mentor." };
+  }
+}
+
+export async function toggleMentorAssignmentActiveAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "mentoring.assign");
+    await setMentorAssignmentActive(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("assignmentId") ?? ""), formData.get("isActive") === "true");
+    revalidatePath("/mentoring");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update assignment." };
   }
 }

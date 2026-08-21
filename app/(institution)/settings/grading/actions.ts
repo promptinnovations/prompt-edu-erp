@@ -15,6 +15,7 @@ import { requirePermission } from "../../../../services/permissions/permission-s
 import {
   createGradeScale, updateGradeScale, deleteGradeScale, setDefaultGradeScale,
   createGradeBand, updateGradeBand, deleteGradeBand,
+  createExamType, updateExamType, deleteExamType,
 } from "../../../../modules/examination/service";
 import { createScoringRule, updateScoringRule, deleteScoringRule } from "../../../../modules/scoring/service";
 import {
@@ -144,6 +145,55 @@ export async function deleteGradeBandAction(_prev: GradingActionState, formData:
     return OK;
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to delete grade band." };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Exam types
+// ---------------------------------------------------------------------------
+export async function createExamTypeAction(_prev: GradingActionState, formData: FormData): Promise<GradingActionState> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await createExamType(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      code: String(formData.get("code") ?? ""),
+      name: String(formData.get("name") ?? ""),
+      category: String(formData.get("category") ?? "") || null,
+    });
+    revalidatePath(PATH);
+    return OK;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to create exam type." };
+  }
+}
+
+export async function updateExamTypeAction(_prev: GradingActionState, formData: FormData): Promise<GradingActionState> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await updateExamType(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("examTypeId") ?? ""), {
+      name: String(formData.get("name") ?? "") || undefined,
+      category: String(formData.get("category") ?? "") || null,
+    });
+    revalidatePath(PATH);
+    return OK;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update exam type." };
+  }
+}
+
+export async function deleteExamTypeAction(_prev: GradingActionState, formData: FormData): Promise<GradingActionState> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await deleteExamType(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("examTypeId") ?? ""));
+    revalidatePath(PATH);
+    return OK;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to delete exam type." };
   }
 }
 

@@ -27,7 +27,7 @@ import {
 } from "../../modules/discipline/service";
 import {
   getOwnStaffId, createMentoringRecord, listMentoringRecords, getMentoringRecord,
-  updateMentoringRecord, listOpenMentoringGoals, type MentoringScope,
+  updateMentoringRecord, listOpenMentoringGoals, createMentorAssignment, type MentoringScope,
 } from "../../modules/mentoring/service";
 import { getNormalizedScore } from "../../modules/scoring/service";
 import { getStudent360 } from "../../modules/portfolio/service";
@@ -207,6 +207,9 @@ describe("Mentoring (§D.8, §F.4/§75, §F.5)", () => {
   });
 
   it("createMentoringRecord() fixes mentor_id to the ACTING staff member's own id, never a caller-supplied value", async () => {
+    // §355: an admin must assign a mentor to a student before that mentor
+    // can author a record for them.
+    await createMentorAssignment(institutionA, adminAuth, adminUserId, { mentorStaffId: teacher1StaffId, studentId: student1 });
     const record = await createMentoringRecord(institutionA, teacher1Auth, teacher1UserId, {
       studentId: student1, date: "2026-08-10",
       academicObservation: "Doing well in Arabic", goals: "Improve punctuality", actionPlan: "Daily check-in",
@@ -217,6 +220,7 @@ describe("Mentoring (§D.8, §F.4/§75, §F.5)", () => {
   });
 
   it("listMentoringRecords(): view_all sees everyone's records; a non-view_all mentor sees only their own", async () => {
+    await createMentorAssignment(institutionA, adminAuth, adminUserId, { mentorStaffId: teacher2StaffId, studentId: student1 });
     await createMentoringRecord(institutionA, teacher2Auth, teacher2UserId, {
       studentId: student1, date: "2026-08-11", behaviourObservation: "Settling in well", confidentialityLevel: "restricted",
     });

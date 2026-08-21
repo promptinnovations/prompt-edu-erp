@@ -8,6 +8,7 @@ import { listStaff } from "../../../../modules/staff/service";
 import { listTimetable, DAY_NAMES } from "../../../../modules/substitution/service";
 import AddTimetablePeriodForm from "./AddTimetablePeriodForm";
 import DeleteTimetablePeriodButton from "./DeleteTimetablePeriodButton";
+import TimetableTemplateForm from "./TimetableTemplateForm";
 
 export default async function TimetablePage() {
   const ctx = await requireRequestContext();
@@ -42,6 +43,11 @@ export default async function TimetablePage() {
           Bulk upload timetable (Excel) →
         </Link>
       </div>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Configured bulk-upload template</h2>
+        <TimetableTemplateForm classes={classes.map((c) => ({ id: c.id, name: c.name }))} />
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Add / update a period</h2>

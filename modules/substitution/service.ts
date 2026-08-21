@@ -24,6 +24,7 @@
  *   there's never a duplicate/stale row for one slot.
  */
 import { z } from "zod";
+import ExcelJS from "exceljs";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
@@ -135,6 +136,49 @@ export async function deleteTimetablePeriod(institutionId: string, authUserId: s
       institutionId, userId, action: "delete", module: "substitution", entityType: "timetable_periods", entityId: periodId,
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// Configured bulk-upload template ("give institution admin bulk upload
+// timetable, before giving template for bulk upload they should choose
+// days, number of periods... should be able configure according to their
+// needs" — §356). Rather than the generic bulk-import engine's blank
+// two-row template (header + one sample row), this pre-fills one row per
+// class+section x chosen day x chosen period so a big institution doesn't
+// have to hand-type every identifying column — they only fill in Subject/
+// Teacher staff code, then upload the same file through the existing
+// generic "timetable_periods" bulk-import entity (modules/bulk/service.ts)
+// unmodified — same column headers, same parseRow()/insertRow() path.
+// ---------------------------------------------------------------------------
+export async function generateConfiguredTimetableTemplate(
+  institutionId: string, authUserId: string,
+  opts: { classIds: string[]; daysOfWeek: number[]; periodsPerDay: number }
+): Promise<Buffer> {
+  const db = await getDbClient();
+  const rows = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: classSections } = await scoped.query<{ class_name: string; section_name: string }>(
+      `select c.name as class_name, sec.name as section_name
+         from sections sec join classes c on c.id = sec.class_id
+        where sec.class_id = any($1::uuid[])
+        order by c.sort_order, sec.name`,
+      [opts.classIds]
+    );
+    return classSections;
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Timetable");
+  sheet.addRow(["Class name", "Section name", "Day (Monday–Sunday, or 1–7)", "Period number", "Subject", "Teacher staff code (leave blank for a free period)"]);
+  for (const cs of rows) {
+    for (const day of opts.daysOfWeek) {
+      for (let periodNo = 1; periodNo <= opts.periodsPerDay; periodNo++) {
+        sheet.addRow([cs.class_name, cs.section_name, DAY_NAMES[day], periodNo, "", ""]);
+      }
+    }
+  }
+  sheet.columns.forEach((col) => { col.width = 24; });
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
 // ---------------------------------------------------------------------------

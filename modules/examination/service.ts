@@ -18,7 +18,7 @@ import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 
-export interface ExamTypeRecord { id: string; code: string; name: string }
+export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null }
 export interface ExaminationRecord {
   id: string; name: string; status: string; exam_type_id: string;
   academic_year_id: string; term_id: string | null; start_date: string | null; end_date: string | null;
@@ -38,12 +38,18 @@ export interface ResultRow {
 // ---------------------------------------------------------------------------
 // Exam types (config)
 // ---------------------------------------------------------------------------
-const examTypeSchema = z.object({ code: z.string().min(1).max(50), name: z.string().min(1).max(150) });
+// category is free text ("Islamic", "Academic", or anything an institution
+// wants) — never a hard-coded enum (§K), just an optional grouping label an
+// admin can filter/sort the Create Exam dropdown by.
+const examTypeSchema = z.object({
+  code: z.string().min(1).max(50), name: z.string().min(1).max(150),
+  category: z.string().max(100).nullable().optional(),
+});
 
 export async function listExamTypes(institutionId: string, authUserId: string): Promise<ExamTypeRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<ExamTypeRecord>("select id, code, name from exam_types order by name");
+    const { rows } = await scoped.query<ExamTypeRecord>("select id, code, name, category from exam_types order by category nulls last, name");
     return rows;
   });
 }
@@ -55,11 +61,48 @@ export async function createExamType(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExamTypeRecord>(
-      `insert into exam_types (institution_id, code, name) values ($1, $2, $3) returning id, code, name`,
-      [institutionId, data.code, data.name]
+      `insert into exam_types (institution_id, code, name, category) values ($1, $2, $3, $4) returning id, code, name, category`,
+      [institutionId, data.code, data.name, data.category ?? null]
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "exam_types", entityId: rows[0].id, after: rows[0] });
     return rows[0];
+  });
+}
+
+const updateExamTypeSchema = z.object({
+  name: z.string().min(1).max(150).optional(),
+  category: z.string().max(100).nullable().optional(),
+});
+export async function updateExamType(
+  institutionId: string, authUserId: string, userId: string, examTypeId: string, input: z.infer<typeof updateExamTypeSchema>
+): Promise<ExamTypeRecord> {
+  const data = updateExamTypeSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ExamTypeRecord>(
+      `update exam_types set name = coalesce($2, name), category = $3 where id = $1 returning id, code, name, category`,
+      [examTypeId, data.name ?? null, data.category ?? null]
+    );
+    if (!rows[0]) throw new Error("Exam type not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "exam_types", entityId: examTypeId, after: rows[0] });
+    return rows[0];
+  });
+}
+
+/** Guarded like deleteAchievementCategory()/deleteGradeScale() — a real
+ *  examination already created against this type (examinations.exam_type_id
+ *  has no ON DELETE clause) must block deletion with a clear message
+ *  instead of surfacing a raw FK error. */
+export async function deleteExamType(institutionId: string, authUserId: string, userId: string, examTypeId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: used } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from examinations where exam_type_id = $1", [examTypeId]
+    );
+    if (Number(used[0]?.count ?? 0) > 0) throw new Error("This exam type has examinations recorded against it and can't be deleted.");
+    const { rows } = await scoped.query("delete from exam_types where id = $1 returning id", [examTypeId]);
+    if (rows.length === 0) throw new Error("Exam type not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "exam_types", entityId: examTypeId });
   });
 }
 

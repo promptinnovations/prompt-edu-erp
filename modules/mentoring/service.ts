@@ -18,7 +18,15 @@
  */
 import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
+import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+
+export interface MentorAssignmentRow {
+  id: string; mentorStaffId: string; mentorName: string;
+  studentId: string | null; studentName: string | null;
+  classId: string | null; className: string | null;
+  isActive: boolean; createdAt: string;
+}
 
 export interface MentoringRecordRow {
   id: string; student_id: string; student_name: string; mentor_id: string; mentor_name: string;
@@ -45,6 +53,134 @@ export async function getOwnStaffId(institutionId: string, authUserId: string, u
   });
 }
 
+// ---------------------------------------------------------------------------
+// Mentor assignments (§355 "Mentoring will be assigned by admin teacher-
+// student or Class. then follow up will be updated by assigned mentors")
+// ---------------------------------------------------------------------------
+const createAssignmentSchema = z.object({
+  mentorStaffId: z.string().uuid(),
+  studentId: z.string().uuid().nullable().optional(),
+  classId: z.string().uuid().nullable().optional(),
+}).refine((v) => (v.studentId != null) !== (v.classId != null), {
+  message: "Assign to exactly one of a student or a class.",
+});
+
+export async function createMentorAssignment(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createAssignmentSchema>
+): Promise<{ id: string }> {
+  const data = createAssignmentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string }>(
+      `insert into mentor_assignments (institution_id, mentor_staff_id, student_id, class_id, assigned_by)
+       values ($1, $2, $3, $4, $5) returning id`,
+      [institutionId, data.mentorStaffId, data.studentId ?? null, data.classId ?? null, userId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "mentoring", entityType: "mentor_assignments", entityId: rows[0].id, after: data });
+    return rows[0];
+  });
+}
+
+export async function listMentorAssignments(
+  institutionId: string, authUserId: string, opts?: { mentorStaffId?: string; includeInactive?: boolean }
+): Promise<MentorAssignmentRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (!opts?.includeInactive) conditions.push("ma.is_active");
+    if (opts?.mentorStaffId) { params.push(opts.mentorStaffId); conditions.push(`ma.mentor_staff_id = $${params.length}`); }
+    const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
+    const { rows } = await scoped.query<{
+      id: string; mentor_staff_id: string; mentor_name: string;
+      student_id: string | null; student_name: string | null;
+      class_id: string | null; class_name: string | null;
+      is_active: boolean; created_at: string;
+    }>(
+      `select ma.id, ma.mentor_staff_id, u.full_name as mentor_name,
+              ma.student_id, s.full_name as student_name,
+              ma.class_id, c.name as class_name,
+              ma.is_active, ma.created_at
+         from mentor_assignments ma
+         join staff st on st.id = ma.mentor_staff_id
+         join users u on u.id = st.user_id
+         left join students s on s.id = ma.student_id
+         left join classes c on c.id = ma.class_id
+         ${where}
+        order by ma.created_at desc`,
+      params
+    );
+    return rows.map((r) => ({
+      id: r.id, mentorStaffId: r.mentor_staff_id, mentorName: r.mentor_name,
+      studentId: r.student_id, studentName: r.student_name,
+      classId: r.class_id, className: r.class_name,
+      isActive: r.is_active, createdAt: r.created_at,
+    }));
+  });
+}
+
+export async function setMentorAssignmentActive(
+  institutionId: string, authUserId: string, userId: string, assignmentId: string, isActive: boolean
+): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query("update mentor_assignments set is_active = $2 where id = $1 returning id", [assignmentId, isActive]);
+    if (rows.length === 0) throw new Error("Mentor assignment not found.");
+    await recordAudit(scoped, { institutionId, userId, action: isActive ? "activate" : "deactivate", module: "mentoring", entityType: "mentor_assignments", entityId: assignmentId });
+  });
+}
+
+/** Resolves a mentor's full list of assignable students — direct
+ *  student assignments plus every currently-enrolled student in any
+ *  assigned class — so the "create mentoring record for…" picker in the UI
+ *  can offer exactly the students this mentor is allowed to write for,
+ *  instead of showing everyone and letting createMentoringRecord() reject
+ *  the submission after the fact. */
+export async function listAssignedStudentsForMentor(
+  institutionId: string, authUserId: string, mentorStaffId: string
+): Promise<Array<{ id: string; full_name: string }>> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; full_name: string }>(
+      `select distinct s.id, s.full_name
+         from students s
+        where s.id in (
+          select ma.student_id from mentor_assignments ma where ma.mentor_staff_id = $1 and ma.is_active and ma.student_id is not null
+          union
+          select se.student_id from student_enrollments se
+            join mentor_assignments ma on ma.class_id = se.class_id and ma.mentor_staff_id = $1 and ma.is_active
+           where se.status = 'active'
+        )
+        order by s.full_name`,
+      [mentorStaffId]
+    );
+    return rows;
+  });
+}
+
+/** True if this mentor is currently assigned to this student — either
+ *  directly, or via the student's current active enrollment class (same
+ *  "class assignment resolves through active enrollment" convention
+ *  modules/discipline/service.ts's listDisciplineRecords(classId) already
+ *  established). */
+async function isMentorAssignedToStudent(
+  scoped: DbClient, mentorStaffId: string, studentId: string
+): Promise<boolean> {
+  const { rows } = await scoped.query<{ exists: boolean }>(
+    `select exists(
+       select 1 from mentor_assignments ma
+        where ma.mentor_staff_id = $1 and ma.is_active and (
+          ma.student_id = $2
+          or ma.class_id in (
+            select se.class_id from student_enrollments se where se.student_id = $2 and se.status = 'active'
+          )
+        )
+     ) as exists`,
+    [mentorStaffId, studentId]
+  );
+  return rows[0]?.exists ?? false;
+}
+
 const createMentoringRecordSchema = z.object({
   studentId: z.string().uuid(),
   date: z.string().min(1),
@@ -60,7 +196,11 @@ const createMentoringRecordSchema = z.object({
 
 /** Creates a mentoring record authored by (and mentor_id fixed to) the
  *  acting user — throws if they aren't a staff member (§F.5 "Assigned
- *  mentor" is always a staff record, never a bare user account). */
+ *  mentor" is always a staff record, never a bare user account), AND now
+ *  (§355) throws unless an admin has actually assigned them to this
+ *  student (directly or via the student's class) — "follow up will be
+ *  updated by assigned mentors" means an unassigned staff member can no
+ *  longer author a note for an arbitrary student. */
 export async function createMentoringRecord(
   institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createMentoringRecordSchema>
 ): Promise<MentoringRecordRow> {
@@ -70,6 +210,9 @@ export async function createMentoringRecord(
 
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    if (!(await isMentorAssignedToStudent(scoped, ownStaffId, data.studentId))) {
+      throw new Error("You are not the assigned mentor for this student. Ask an admin to assign you first.");
+    }
     const { rows } = await scoped.query<{ id: string }>(
       `insert into mentoring_records
          (institution_id, student_id, mentor_id, date, academic_observation, behaviour_observation,
@@ -199,6 +342,18 @@ export async function updateMentoringRecord(
     await recordAudit(scoped, { institutionId, userId, action: "update", module: "mentoring", entityType: "mentoring_records", entityId: mentoringRecordId, after: data });
     return rows[0];
   });
+}
+
+/** Portal-facing read: a student/parent is inherently authorized to see
+ *  their OWN child's mentoring notes (unlike a staff member browsing
+ *  arbitrary students), so this bypasses the mentor-identity scope
+ *  entirely and instead filters to confidentiality_level = 'standard' —
+ *  "restricted" notes (§75) are never shown outside staff. */
+export async function listMentoringRecordsForPortal(
+  institutionId: string, authUserId: string, studentId: string
+): Promise<MentoringRecordRow[]> {
+  const all = await listMentoringRecords(institutionId, authUserId, { canViewAll: true, ownMentorStaffId: null }, studentId);
+  return all.filter((r) => r.confidentiality_level === "standard");
 }
 
 /** Open (has a future/unset-resolved follow_up_date) mentoring goals for

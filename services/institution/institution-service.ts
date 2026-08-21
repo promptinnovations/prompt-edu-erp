@@ -291,12 +291,14 @@ export async function updateInstitutionLogo(
 
 export const PARENT_PORTAL_SECTION_KEYS = [
   "results", "attendance", "discipline", "achievements", "library", "skills", "portfolio",
+  "character", "mentoring",
 ] as const;
 export type ParentPortalSectionKey = (typeof PARENT_PORTAL_SECTION_KEYS)[number];
 export type ParentPortalSections = Record<ParentPortalSectionKey, boolean>;
 
 const DEFAULT_PARENT_PORTAL_SECTIONS: ParentPortalSections = {
   results: true, attendance: true, discipline: true, achievements: true, library: true, skills: true, portfolio: true,
+  character: true, mentoring: true,
 };
 
 export async function getParentPortalSections(institutionId: string, authUserId: string): Promise<ParentPortalSections> {

@@ -11,6 +11,8 @@ const LABELS: Record<string, string> = {
   library: "Library / reading record",
   skills: "Skills",
   portfolio: "Portfolio timeline",
+  character: "Character assessments",
+  mentoring: "Mentoring notes",
 };
 
 /** §Page-3 follow-up "Student Portfolio Management — designing children's

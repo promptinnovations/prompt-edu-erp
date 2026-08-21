@@ -4,6 +4,10 @@ import { getStudent360 } from "../../../../modules/portfolio/service";
 import { listSkillTypes, listSkillActivities } from "../../../../modules/skills/service";
 import { listAchievementCategories, listAchievementLevels } from "../../../../modules/achievements/service";
 import { listBooks, listReadingRecords, listApprovedReviews, listMyHolds } from "../../../../modules/library/service";
+import {
+  listRecentNegativeDisciplineFlags, listCharacterAssessments, listCharacterRatingLabels,
+} from "../../../../modules/discipline/service";
+import { listMentoringRecordsForPortal } from "../../../../modules/mentoring/service";
 import SubmitSkillForm from "./SubmitSkillForm";
 import SubmitAchievementForm from "./SubmitAchievementForm";
 import MyPendingReviews from "./MyPendingReviews";
@@ -26,7 +30,7 @@ export default async function StudentPortalPage() {
     );
   }
 
-  const [summary, skillTypes, achievementCategories, achievementLevels, books, pendingReviews, approvedReviews, myHolds] = await Promise.all([
+  const [summary, skillTypes, achievementCategories, achievementLevels, books, pendingReviews, approvedReviews, myHolds, disciplineFlags, characterAssessments, ratingLabels, mentoringNotes] = await Promise.all([
     getStudent360(institutionId, authUserId, ownStudentId),
     listSkillTypes(institutionId, authUserId),
     listAchievementCategories(institutionId, authUserId),
@@ -35,7 +39,16 @@ export default async function StudentPortalPage() {
     listReadingRecords(institutionId, authUserId, "pending", undefined, ownStudentId),
     listApprovedReviews(institutionId, authUserId, null, ownStudentId),
     listMyHolds(institutionId, authUserId, ownStudentId),
+    // "This is your own record" — a student sees their own discipline/
+    // character/mentoring the same way they already see their own
+    // achievements/skills, no admin-facing view_all/mentoring.view_all
+    // permission needed (mirrors the parent portal's per-child rule, §357).
+    listRecentNegativeDisciplineFlags(institutionId, authUserId, ownStudentId, "1900-01-01", 20),
+    listCharacterAssessments(institutionId, authUserId, ownStudentId),
+    listCharacterRatingLabels(institutionId, authUserId),
+    listMentoringRecordsForPortal(institutionId, authUserId, ownStudentId),
   ]);
+  const ratingLabelByValue = new Map(ratingLabels.map((r) => [r.rating, r.label]));
   const holdableBooks = books.filter((b) => b.available_copies === 0);
 
   const activitiesByType: Record<string, Awaited<ReturnType<typeof listSkillActivities>>> = {};
@@ -87,6 +100,55 @@ export default async function StudentPortalPage() {
             </li>
           ))}
           {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Discipline</h2>
+        <ul className="space-y-2 text-sm">
+          {disciplineFlags.map((d) => (
+            <li key={d.id} className="border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <div className="flex items-center justify-between">
+                <span>{d.category_name}{d.severity ? ` — ${d.severity}` : ""}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">{d.date}</span>
+              </div>
+              {d.action_taken ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Action taken: {d.action_taken}</p> : null}
+              {d.evidence_photo_file_id ? (
+                <a href={`/api/files/${d.evidence_photo_file_id}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-zinc-500 dark:text-zinc-400 underline">View photo</a>
+              ) : null}
+            </li>
+          ))}
+          {disciplineFlags.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing to flag.</li> : null}
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Character assessments</h2>
+        <ul className="space-y-2 text-sm">
+          {characterAssessments.map((c) => (
+            <li key={c.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <span>{c.attribute_name} — {c.period}</span>
+              <span className="text-zinc-400 dark:text-zinc-500">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
+            </li>
+          ))}
+          {characterAssessments.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Mentoring</h2>
+        <ul className="space-y-2 text-sm">
+          {mentoringNotes.map((m) => (
+            <li key={m.id} className="border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <div className="flex items-center justify-between">
+                <span>{m.mentor_name}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">{m.date}</span>
+              </div>
+              {m.goals ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Goals: {m.goals}</p> : null}
+              {m.action_plan ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Action plan: {m.action_plan}</p> : null}
+            </li>
+          ))}
+          {mentoringNotes.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
         </ul>
       </div>
 

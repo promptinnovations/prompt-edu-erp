@@ -8,15 +8,18 @@ export interface CharacterAssessmentRow {
 }
 
 export default function CharacterAssessmentForm({
-  students, attributes, assessments, canRecord,
+  students, attributes, assessments, ratingLabels, canRecord,
 }: {
   students: Array<{ id: string; full_name: string }>;
   attributes: Array<{ id: string; name: string }>;
   assessments: CharacterAssessmentRow[];
+  ratingLabels: Array<{ rating: number; label: string }>;
   canRecord: boolean;
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(recordCharacterAssessmentAction, { error: null });
   const studentNameById = new Map(students.map((s) => [s.id, s.full_name]));
+  const labelByRating = new Map(ratingLabels.map((r) => [r.rating, r.label]));
+  const sortedLabels = ratingLabels.slice().sort((a, b) => b.rating - a.rating);
 
   return (
     <div className="space-y-4">
@@ -39,8 +42,11 @@ export default function CharacterAssessmentForm({
             <input name="period" required placeholder="Term 1" className="w-24 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Rating (1-5)</label>
-            <input type="number" name="rating" min={1} max={5} required className="w-20 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Rating</label>
+            <select name="rating" required defaultValue="" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+              <option value="" disabled>Select…</option>
+              {sortedLabels.map((r) => <option key={r.rating} value={r.rating}>{r.label} ({r.rating})</option>)}
+            </select>
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Notes</label>
@@ -70,7 +76,7 @@ export default function CharacterAssessmentForm({
               <td className="py-1.5">{studentNameById.get(a.student_id) ?? "—"}</td>
               <td className="py-1.5">{a.attribute_name}</td>
               <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{a.period}</td>
-              <td className="py-1.5">{a.rating} / 5</td>
+              <td className="py-1.5">{labelByRating.get(a.rating) ?? a.rating} ({a.rating}/5)</td>
               <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{a.notes || "—"}</td>
             </tr>
           ))}

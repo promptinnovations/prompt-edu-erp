@@ -413,6 +413,7 @@ describe("parent portal section visibility config (§Page-3 'Student Portfolio M
   it("updateParentPortalSections() persists a partial toggle-off and getParentPortalSections() reflects it", async () => {
     await updateParentPortalSections(institutionA, adminAuth, adminUserId, {
       results: true, attendance: true, discipline: false, achievements: true, library: false, skills: true, portfolio: true,
+      character: true, mentoring: true,
     });
     const sections = await getParentPortalSections(institutionA, adminAuth);
     expect(sections.discipline).toBe(false);

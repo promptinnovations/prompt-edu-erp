@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { can } from "../../../../services/permissions/permission-service";
-import { listGradeScales, getGradeBands } from "../../../../modules/examination/service";
+import { listGradeScales, getGradeBands, listExamTypes } from "../../../../modules/examination/service";
 import { listScoringRules } from "../../../../modules/scoring/service";
 import { listAchievementCategories, listAchievementLevels } from "../../../../modules/achievements/service";
 import { listSkillTypes, listSkillActivitiesForAdmin } from "../../../../modules/skills/service";
 import GradeScaleSection from "./GradeScaleSection";
+import ExamTypeSection from "./ExamTypeSection";
 import ScoringRuleSection from "./ScoringRuleSection";
 import AchievementConfigSection from "./AchievementConfigSection";
 import SkillConfigSection from "./SkillConfigSection";
@@ -31,13 +32,14 @@ export default async function GradingSettingsPage() {
   if (!can(ctx.permissions, "settings.manage")) redirect("/dashboard");
   const canManage = true; // gated above — kept as an explicit prop for the section components' own conditional rendering
 
-  const [gradeScales, scoringRules, achievementCategories, achievementLevels, skillTypes, skillActivities] = await Promise.all([
+  const [gradeScales, scoringRules, achievementCategories, achievementLevels, skillTypes, skillActivities, examTypes] = await Promise.all([
     listGradeScales(institutionId, authUserId),
     listScoringRules(institutionId, authUserId),
     listAchievementCategories(institutionId, authUserId),
     listAchievementLevels(institutionId, authUserId),
     listSkillTypes(institutionId, authUserId),
     listSkillActivitiesForAdmin(institutionId, authUserId),
+    listExamTypes(institutionId, authUserId),
   ]);
 
   const bandsByScale: Record<string, Awaited<ReturnType<typeof getGradeBands>>> = {};
@@ -59,6 +61,11 @@ export default async function GradingSettingsPage() {
           skill types/activities — every institution on PROMPT EDU ERP configures these independently.
         </p>
       </div>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Exam types</h2>
+        <ExamTypeSection examTypes={examTypes} canManage={canManage} />
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Grading scales</h2>

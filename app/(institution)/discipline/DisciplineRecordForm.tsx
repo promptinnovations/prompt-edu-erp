@@ -6,7 +6,10 @@ import { createDisciplineRecordAction, recordDisciplineFollowUpAction } from "./
 export interface DisciplineRow {
   id: string; student_name: string; category_name: string; is_positive: boolean;
   date: string; description: string | null; follow_up_notes: string | null;
+  severity: string | null; action_taken: string | null; evidence_photo_file_id: string | null;
 }
+
+const SEVERITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 
 function FollowUpForm({ disciplineRecordId }: { disciplineRecordId: string }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(recordDisciplineFollowUpAction, { error: null });
@@ -35,7 +38,7 @@ export default function DisciplineRecordForm({
   return (
     <div className="space-y-4">
       {canRecord ? (
-        <form action={formAction} className="flex flex-wrap items-end gap-2">
+        <form action={formAction} encType="multipart/form-data" className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Student</label>
             <select name="studentId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
@@ -52,9 +55,24 @@ export default function DisciplineRecordForm({
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Date</label>
             <input type="date" name="date" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Severity</label>
+            <select name="severity" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+              <option value="">—</option>
+              {SEVERITY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
           <div className="flex-1">
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Description</label>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Action taken</label>
+            <input name="actionTaken" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          </div>
+          <div className="flex-1">
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Remarks</label>
             <input name="description" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Evidence photo</label>
+            <input name="evidencePhoto" type="file" accept="image/*" className="w-40 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Record
@@ -69,8 +87,11 @@ export default function DisciplineRecordForm({
           <tr>
             <th className="py-1.5">Student</th>
             <th className="py-1.5">Category</th>
+            <th className="py-1.5">Severity</th>
             <th className="py-1.5">Date</th>
-            <th className="py-1.5">Description</th>
+            <th className="py-1.5">Remarks</th>
+            <th className="py-1.5">Action taken</th>
+            <th className="py-1.5">Evidence</th>
             <th className="py-1.5">Follow-up</th>
           </tr>
         </thead>
@@ -81,15 +102,22 @@ export default function DisciplineRecordForm({
               <td className="py-1.5">
                 <span className={r.is_positive ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}>{r.category_name}</span>
               </td>
+              <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{r.severity || "—"}</td>
               <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{r.date}</td>
               <td className="py-1.5">{r.description || "—"}</td>
+              <td className="py-1.5">{r.action_taken || "—"}</td>
+              <td className="py-1.5">
+                {r.evidence_photo_file_id ? (
+                  <a href={`/api/files/${r.evidence_photo_file_id}`} target="_blank" rel="noreferrer" className="text-zinc-600 dark:text-zinc-400 underline hover:text-zinc-900 dark:hover:text-white">View</a>
+                ) : "—"}
+              </td>
               <td className="py-1.5">
                 {r.follow_up_notes ? r.follow_up_notes : canRecord ? <FollowUpForm disciplineRecordId={r.id} /> : "—"}
               </td>
             </tr>
           ))}
           {records.length === 0 ? (
-            <tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No discipline records yet.</td></tr>
+            <tr><td colSpan={8} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No discipline records yet.</td></tr>
           ) : null}
         </tbody>
       </table>
