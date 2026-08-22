@@ -102,6 +102,25 @@ describe("Staff directory (§D.4)", () => {
     expect(updated?.designation).toBe("Senior Kithab Teacher");
   });
 
+  it("updateStaffMember() also edits full name (on users) and staff code -- the 'Edit details' UI's core-identity fields", async () => {
+    const updated = await updateStaffMember(institutionA, adminAuth, adminUserId, teacher1Id, {
+      fullName: "Teacher Hoduri Renamed", staffCode: "T-001-R",
+    });
+    expect(updated?.full_name).toBe("Teacher Hoduri Renamed");
+    expect(updated?.staff_code).toBe("T-001-R");
+
+    // Persisted, not just returned -- re-fetch confirms both the staff row
+    // and the joined users row actually changed.
+    const fetched = await getStaffMember(institutionA, adminAuth, teacher1Id);
+    expect(fetched?.full_name).toBe("Teacher Hoduri Renamed");
+    expect(fetched?.staff_code).toBe("T-001-R");
+
+    // Restore for subsequent tests in this file that key off the original name/code.
+    await updateStaffMember(institutionA, adminAuth, adminUserId, teacher1Id, {
+      fullName: "Teacher Hoduri", staffCode: "T-001",
+    });
+  });
+
   it("management (lacks staff.create) cannot create staff, teacher (lacks staff.edit) cannot edit", async () => {
     const managementPerms = await getPermissionsForUser(managementAuth, managementUserId, institutionA);
     expect(() => requirePermission(managementPerms, "staff.view")).not.toThrow();

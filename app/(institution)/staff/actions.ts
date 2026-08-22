@@ -8,7 +8,7 @@ import {
   createPortionPlan, recordPortionCompletion,
   recordTeacherObservation, createTeacherAssignment,
   createStaffLoginAccount, resetStaffLoginPassword,
-  updateStaffProfile, updateStaffPhoto,
+  updateStaffMember, updateStaffProfile, updateStaffPhoto,
   createObservationCriterion, updateObservationCriterion, deleteObservationCriterion,
   recordTeacherObservationWithRubric,
 } from "../../../modules/staff/service";
@@ -248,6 +248,34 @@ export async function removeStaffPhotoAction(_prevState: { error: string | null 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to remove photo." };
+  }
+}
+
+/** Edits a staff member's core fields (name, staff code, designation,
+ *  department, employment status) -- mirrors updateStudentAction()'s "Edit
+ *  details" pattern for the student directory, now available for staff
+ *  too. See EditStaffForm.tsx and updateStaffMember() in
+ *  modules/staff/service.ts (which also updates users.full_name, since
+ *  staff has no full_name column of its own). */
+export async function updateStaffAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const staffId = String(formData.get("staffId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "staff.edit");
+    await updateStaffMember(ctx.institutionId, ctx.session.authUserId, ctx.userId, staffId, {
+      fullName: String(formData.get("fullName") ?? "") || undefined,
+      staffCode: String(formData.get("staffCode") ?? "") || undefined,
+      designation: String(formData.get("designation") ?? "") || null,
+      department: String(formData.get("department") ?? "") || null,
+      employmentStatus: (String(formData.get("employmentStatus") ?? "") || undefined) as
+        "active" | "on_leave" | "resigned" | "terminated" | undefined,
+    });
+    revalidatePath("/staff");
+    revalidatePath(`/staff/${staffId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update staff details." };
   }
 }
 

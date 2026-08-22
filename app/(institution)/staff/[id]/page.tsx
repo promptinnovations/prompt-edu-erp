@@ -9,6 +9,7 @@ import {
 import { listExaminations } from "../../../../modules/examination/service";
 import { getTeacherExamReport, getTeacherPerformanceTrend } from "../../../../modules/analytics/service";
 import PhotoForm from "../PhotoForm";
+import EditStaffForm from "../EditStaffForm";
 import TeacherProfileForm from "../TeacherProfileForm";
 import ProfileTabs from "./ProfileTabs";
 import ExamResultsSection from "./ExamResultsSection";
@@ -162,6 +163,18 @@ export default async function StaffDetailPage({
             <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.email ?? "—"}</dd>
           </div>
         </dl>
+        {canManage ? (
+          <div className="mt-3">
+            <EditStaffForm
+              staffId={profile.id}
+              staffCode={profile.staff_code}
+              fullName={profile.full_name}
+              designation={profile.designation}
+              department={profile.department}
+              employmentStatus={profile.employment_status}
+            />
+          </div>
+        ) : null}
       </div>
 
       {canManage ? (

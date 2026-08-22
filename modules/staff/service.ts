@@ -193,30 +193,48 @@ export async function getStaffMember(institutionId: string, authUserId: string, 
 }
 
 const updateStaffSchema = z.object({
+  fullName: z.string().min(1).max(200).optional(),
+  staffCode: z.string().min(1).max(50).optional(),
   designation: z.string().max(150).nullable().optional(),
   department: z.string().max(150).nullable().optional(),
   employmentStatus: z.enum(["active", "on_leave", "resigned", "terminated"]).optional(),
 });
 
+/** Edits a staff member's own fields -- name (on `users`, since staff has no
+ *  full_name column of its own -- see StaffRow's join), staff code,
+ *  designation, department, employment status. Mirrors students'
+ *  updateStudent()/EditStudentForm pattern (Student-edit follow-up), now
+ *  extended to staff so both directories have an in-app "Edit details"
+ *  option instead of requiring a re-import. */
 export async function updateStaffMember(
   institutionId: string, authUserId: string, userId: string, staffId: string, input: z.infer<typeof updateStaffSchema>
-): Promise<StaffRecord | null> {
+): Promise<StaffRow | null> {
   const data = updateStaffSchema.parse(input);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<StaffRecord>(
+    const { rows: staffRows } = await scoped.query<StaffRecord>(
       `update staff set
-         designation = coalesce($1, designation),
-         department = coalesce($2, department),
-         employment_status = coalesce($3, employment_status),
+         staff_code = coalesce($1, staff_code),
+         designation = coalesce($2, designation),
+         department = coalesce($3, department),
+         employment_status = coalesce($4, employment_status),
          updated_at = now()
-       where id = $4
+       where id = $5
        returning id, user_id, staff_code, designation, department, joining_date, employment_status`,
-      [data.designation ?? null, data.department ?? null, data.employmentStatus ?? null, staffId]
+      [data.staffCode ?? null, data.designation ?? null, data.department ?? null, data.employmentStatus ?? null, staffId]
     );
-    if (rows.length === 0) return null;
-    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "staff", entityType: "staff", entityId: staffId, after: rows[0] });
-    return rows[0];
+    if (staffRows.length === 0) return null;
+    const staffRow = staffRows[0];
+    if (data.fullName) {
+      await scoped.query(`update users set full_name = $1, updated_at = now() where id = $2`, [data.fullName, staffRow.user_id]);
+    }
+    const { rows: userRows } = await scoped.query<{ full_name: string; email: string | null; has_login: boolean }>(
+      `select full_name, email, (auth_user_id is not null) as has_login from users where id = $1`,
+      [staffRow.user_id]
+    );
+    const merged: StaffRow = { ...staffRow, full_name: userRows[0].full_name, email: userRows[0].email, has_login: userRows[0].has_login };
+    await recordAudit(scoped, { institutionId, userId, action: "edit", module: "staff", entityType: "staff", entityId: staffId, after: merged });
+    return merged;
   });
 }
 
