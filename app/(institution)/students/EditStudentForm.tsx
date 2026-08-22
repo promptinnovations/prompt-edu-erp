@@ -47,8 +47,8 @@ export default function EditStudentForm({
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Gender</label>
         <select name="gender" defaultValue={gender ?? ""} className="rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="">—</option>
-          <option value="M">Male</option>
-          <option value="F">Female</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
         </select>
       </div>
       <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
