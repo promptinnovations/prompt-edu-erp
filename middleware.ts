@@ -179,6 +179,21 @@ function getClientKey(request: NextRequest): string {
 }
 
 function buildCsp(nonce: string, isDev: boolean): string {
+  // /api/files/[fileId] and /api/institution-logo/[code] redirect <img>
+  // requests straight to the active storage provider's signed URL when
+  // it isn't the local provider (see services/storage/file-service.ts'
+  // getDownloadUrl()) — for the Supabase provider that's the project's
+  // own *.supabase.co origin. Without allowing it here, every uploaded
+  // student photo / institution logo silently fails CSP and never
+  // renders, even though the upload and DB read both succeeded.
+  let supabaseOrigin = "";
+  try {
+    supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : "";
+  } catch {
+    supabaseOrigin = "";
+  }
   return [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
@@ -186,7 +201,7 @@ function buildCsp(nonce: string, isDev: boolean): string {
     // Refresh/style injection isn't nonce-aware) — production uses the
     // nonce, matching the framework's own documented dev-vs-prod split.
     `style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
-    `img-src 'self' blob: data:`,
+    `img-src 'self' blob: data:${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     `font-src 'self'`,
     `object-src 'none'`,
     `base-uri 'self'`,
