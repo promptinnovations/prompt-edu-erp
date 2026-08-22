@@ -17,6 +17,7 @@ import {
   createGradeBand, updateGradeBand, deleteGradeBand,
   createExamType, updateExamType, deleteExamType,
 } from "../../../../modules/examination/service";
+import { updateInstitutionPassPct } from "../../../../services/institution/institution-service";
 import { createScoringRule, updateScoringRule, deleteScoringRule } from "../../../../modules/scoring/service";
 import {
   createAchievementCategory, updateAchievementCategory, deleteAchievementCategory,
@@ -103,12 +104,14 @@ export async function createGradeBandAction(_prev: GradingActionState, formData:
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
     requirePermission(ctx.permissions, "settings.manage");
+    const color = String(formData.get("color") ?? "").trim();
     await createGradeBand(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       gradeScaleId: String(formData.get("gradeScaleId") ?? ""),
       minPercent: num(formData, "minPercent") ?? 0,
       maxPercent: num(formData, "maxPercent") ?? 0,
       gradeLabel: String(formData.get("gradeLabel") ?? ""),
       gradePoint: num(formData, "gradePoint") ?? null,
+      color: color || null,
     });
     revalidatePath(PATH);
     return OK;
@@ -117,16 +120,37 @@ export async function createGradeBandAction(_prev: GradingActionState, formData:
   }
 }
 
+/** Result Analysis & Reporting spec — tenant-wide default PassPct, edited
+ *  here alongside grade scales/bands since it's the other half of "how
+ *  this institution grades an exam" even though it lives on institutions,
+ *  not grade_scales. */
+export async function updatePassPctAction(_prev: GradingActionState, formData: FormData): Promise<GradingActionState> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await updateInstitutionPassPct(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      passPct: num(formData, "passPct") ?? 35,
+    });
+    revalidatePath(PATH);
+    return OK;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update pass percentage." };
+  }
+}
+
 export async function updateGradeBandAction(_prev: GradingActionState, formData: FormData): Promise<GradingActionState> {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
     requirePermission(ctx.permissions, "settings.manage");
+    const colorRaw = formData.get("color");
     await updateGradeBand(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("gradeBandId") ?? ""), {
       minPercent: num(formData, "minPercent"),
       maxPercent: num(formData, "maxPercent"),
       gradeLabel: String(formData.get("gradeLabel") ?? "") || undefined,
       gradePoint: num(formData, "gradePoint") ?? null,
+      color: colorRaw !== null && String(colorRaw).trim() !== "" ? String(colorRaw).trim() : null,
     });
     revalidatePath(PATH);
     return OK;

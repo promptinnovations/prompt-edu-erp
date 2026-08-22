@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { can } from "../../../../services/permissions/permission-service";
 import { listGradeScales, getGradeBands, listExamTypes } from "../../../../modules/examination/service";
+import { getInstitution } from "../../../../services/institution/institution-service";
+import PassPctForm from "./PassPctForm";
 import { listScoringRules } from "../../../../modules/scoring/service";
 import { listAchievementCategories, listAchievementLevels } from "../../../../modules/achievements/service";
 import { listSkillTypes, listSkillActivitiesForAdmin } from "../../../../modules/skills/service";
@@ -32,7 +34,7 @@ export default async function GradingSettingsPage() {
   if (!can(ctx.permissions, "settings.manage")) redirect("/dashboard");
   const canManage = true; // gated above — kept as an explicit prop for the section components' own conditional rendering
 
-  const [gradeScales, scoringRules, achievementCategories, achievementLevels, skillTypes, skillActivities, examTypes] = await Promise.all([
+  const [gradeScales, scoringRules, achievementCategories, achievementLevels, skillTypes, skillActivities, examTypes, institution] = await Promise.all([
     listGradeScales(institutionId, authUserId),
     listScoringRules(institutionId, authUserId),
     listAchievementCategories(institutionId, authUserId),
@@ -40,6 +42,7 @@ export default async function GradingSettingsPage() {
     listSkillTypes(institutionId, authUserId),
     listSkillActivitiesForAdmin(institutionId, authUserId),
     listExamTypes(institutionId, authUserId),
+    getInstitution(institutionId, authUserId),
   ]);
 
   const bandsByScale: Record<string, Awaited<ReturnType<typeof getGradeBands>>> = {};
@@ -70,6 +73,15 @@ export default async function GradingSettingsPage() {
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Grading scales</h2>
         <GradeScaleSection gradeScales={gradeScales} bandsByScale={bandsByScale} canManage={canManage} />
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pass percentage</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+          The tenant-wide default used to decide pass/fail — separate from grade bands above (a grade label is
+          descriptive only). A subject can still override this via its own pass marks when added to an exam.
+        </p>
+        <PassPctForm passPct={institution?.passPct ?? 35} canManage={canManage} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">

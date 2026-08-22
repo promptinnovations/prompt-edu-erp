@@ -71,7 +71,7 @@ describe("access control — non-super-admins are always rejected", () => {
 
 describe("institution creation", () => {
   it("creates an institution with the generic system-role scaffolding, and institution_admin gets the full grant", async () => {
-    const institution = await createInstitution(superAdminAuth, { code: "green-valley", name: "Green Valley School", type: "school", defaultLocale: "en" });
+    const institution = await createInstitution(superAdminAuth, { code: "green-valley", name: "Green Valley School", type: "school", board: "kerala_state", defaultLocale: "en" });
     expect(institution.status).toBe("trial");
     expect(institution.code).toBe("green-valley");
 
@@ -112,7 +112,7 @@ describe("institution creation", () => {
 describe("creating an institution with its first admin account", () => {
   it("provisions a real, immediately-usable admin: users row, membership, institution_admin role", async () => {
     const institution = await createInstitution(superAdminAuth, {
-      code: "admin-bundle-school", name: "Admin Bundle School", type: "school", defaultLocale: "en",
+      code: "admin-bundle-school", name: "Admin Bundle School", type: "school", board: "kerala_state", defaultLocale: "en",
       adminEmail: "admin@admin-bundle.example", adminFullName: "Bundle Admin", adminPassword: "correct-horse-battery",
     });
 
@@ -140,7 +140,7 @@ describe("creating an institution with its first admin account", () => {
   it("requires all three admin fields together — providing only one is rejected", async () => {
     await expect(
       createInstitution(superAdminAuth, {
-        code: "partial-admin-school", name: "Partial Admin School", type: "school", defaultLocale: "en",
+        code: "partial-admin-school", name: "Partial Admin School", type: "school", board: "kerala_state", defaultLocale: "en",
         adminEmail: "only-email@partial.example",
       })
     ).rejects.toThrow();
@@ -148,7 +148,7 @@ describe("creating an institution with its first admin account", () => {
 
   it("creates the institution with no admin at all when none of the three are given (existing behavior unchanged)", async () => {
     const institution = await createInstitution(superAdminAuth, {
-      code: "no-admin-school", name: "No Admin School", type: "school", defaultLocale: "en",
+      code: "no-admin-school", name: "No Admin School", type: "school", board: "kerala_state", defaultLocale: "en",
     });
     expect(institution.code).toBe("no-admin-school");
   });
@@ -156,7 +156,7 @@ describe("creating an institution with its first admin account", () => {
   it("rejects an admin email that's already used by another user on the platform, and creates nothing (institution rolled back too)", async () => {
     await expect(
       createInstitution(superAdminAuth, {
-        code: "dupe-admin-school", name: "Dupe Admin School", type: "school", defaultLocale: "en",
+        code: "dupe-admin-school", name: "Dupe Admin School", type: "school", board: "kerala_state", defaultLocale: "en",
         adminEmail: "admin@admin-bundle.example", // already used above
         adminFullName: "Someone Else", adminPassword: "another-password-here",
       })
@@ -263,10 +263,16 @@ describe("educational board (§137 follow-up: SKSVB/SKIMVB for madrasa instituti
     ).rejects.toThrow(/educational board/i);
   });
 
-  it("rejects a board given for a non-madrasa type", async () => {
+  it("rejects a madrasa board given for a school (wrong board group)", async () => {
     await expect(
       createInstitution(superAdminAuth, { code: "school-with-board", name: "School With Board", type: "school", board: "sksvb", defaultLocale: "en" })
-    ).rejects.toThrow(/only applies to madrasa/i);
+    ).rejects.toThrow(/doesn't apply to a school/i);
+  });
+
+  it("rejects a board given for a type with no board group at all", async () => {
+    await expect(
+      createInstitution(superAdminAuth, { code: "college-with-board", name: "College With Board", type: "college", board: "sksvb", defaultLocale: "en" })
+    ).rejects.toThrow(/only applies to madrasa or school/i);
   });
 
   it("SKIMVB just records the choice — no auto-provisioning yet", async () => {
@@ -327,5 +333,64 @@ describe("educational board (§137 follow-up: SKSVB/SKIMVB for madrasa instituti
     expect(class2Duroosul?.is_core).toBe(true); // an 80+20 subject, is_core stays true
 
     expect(practicalSubject[0]?.category).toBe("practical");
+  });
+
+  it("requires a curriculum board when type is school", async () => {
+    await expect(
+      createInstitution(superAdminAuth, { code: "no-board-school", name: "No Board School", type: "school", defaultLocale: "en" })
+    ).rejects.toThrow(/curriculum board/i);
+  });
+
+  it("Kerala State board auto-provisions a default 9-band grade scale with resolved hex colors and sets institution pass_pct to 35", async () => {
+    const institution = await createInstitution(superAdminAuth, {
+      code: "kerala-school", name: "Kerala School", type: "school", board: "kerala_state", defaultLocale: "en",
+    });
+    expect(institution.board).toBe("kerala_state");
+
+    const db = await getDbClient();
+    const { scale, bands, passPct } = await db.withInstitutionContext(
+      { institutionId: institution.id, authUserId: superAdminAuth, isSuperAdmin: true },
+      async (scoped) => {
+        const { rows: scale } = await scoped.query<{ id: string; name: string; is_default: boolean; curriculum: string | null }>(
+          "select id, name, is_default, curriculum from grade_scales where institution_id = $1", [institution.id]
+        );
+        const { rows: bands } = await scoped.query<{ grade_label: string; color: string | null; min_percent: string; max_percent: string }>(
+          "select grade_label, color, min_percent, max_percent from grade_bands where grade_scale_id = $1 order by min_percent desc",
+          [scale[0].id]
+        );
+        const { rows: inst } = await scoped.query<{ pass_pct: string }>("select pass_pct from institutions where id = $1", [institution.id]);
+        return { scale: scale[0], bands, passPct: Number(inst[0].pass_pct) };
+      }
+    );
+
+    expect(scale.is_default).toBe(true);
+    expect(scale.curriculum).toBe("Kerala State Curriculum (SCERT)");
+    expect(bands).toHaveLength(9);
+    expect(bands.map((b) => b.grade_label)).toEqual(["A+", "A", "B+", "B", "C+", "C", "D+", "D", "E"]);
+    expect(bands.every((b) => /^#[0-9a-f]{6}$/.test(b.color ?? ""))).toBe(true); // every band got a resolved hex color
+    expect(new Set(bands.map((b) => b.color)).size).toBe(9); // 9 distinct colors, not one flat accent
+    expect(passPct).toBe(35);
+  });
+
+  it("CBSE and ICSE boards each provision their own distinct 9-point preset", async () => {
+    const cbse = await createInstitution(superAdminAuth, { code: "cbse-school", name: "CBSE School", type: "school", board: "cbse", defaultLocale: "en" });
+    const icse = await createInstitution(superAdminAuth, { code: "icse-school", name: "ICSE School", type: "school", board: "icse", defaultLocale: "en" });
+
+    const db = await getDbClient();
+    for (const [inst, expectedFirstLabel, expectedPassPct] of [[cbse, "A1", 33], [icse, "A1", 33]] as const) {
+      const { bands, passPct } = await db.withInstitutionContext(
+        { institutionId: inst.id, authUserId: superAdminAuth, isSuperAdmin: true },
+        async (scoped) => {
+          const { rows: scale } = await scoped.query<{ id: string }>("select id from grade_scales where institution_id = $1", [inst.id]);
+          const { rows: bands } = await scoped.query<{ grade_label: string }>(
+            "select grade_label from grade_bands where grade_scale_id = $1 order by min_percent desc", [scale[0].id]
+          );
+          const { rows: instRow } = await scoped.query<{ pass_pct: string }>("select pass_pct from institutions where id = $1", [inst.id]);
+          return { bands, passPct: Number(instRow[0].pass_pct) };
+        }
+      );
+      expect(bands[0].grade_label).toBe(expectedFirstLabel);
+      expect(passPct).toBe(expectedPassPct);
+    }
   });
 });

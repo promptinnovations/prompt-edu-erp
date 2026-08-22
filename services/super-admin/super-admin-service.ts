@@ -41,11 +41,20 @@ export interface InstitutionRecord {
   created_at: string;
 }
 
-/** Educational boards with modeled configuration (§137 follow-up). Only
- *  meaningful when type = 'madrasa'. SKIMVB is accepted here (so the form
- *  can offer it and record the choice) but has no auto-provisioning yet —
- *  see provisionSksvbDefaults() below, which only runs for 'sksvb'. */
-export const EDUCATIONAL_BOARDS = ["sksvb", "skimvb"] as const;
+/** Educational boards with modeled configuration (§137 follow-up, extended
+ *  by the Result Analysis & Reporting spec to school-type institutions).
+ *  Grouped by which institution `type` each board applies to — a madrasa
+ *  can only pick a madrasa board, a school only a school board (enforced in
+ *  createInstitutionSchema's superRefine below). SKIMVB is accepted (so the
+ *  form can offer it and record the choice) but has no auto-provisioning
+ *  yet — see provisionSksvbDefaults(), which only runs for 'sksvb'. Every
+ *  school board DOES auto-provision — see provisionGradingPreset() — since
+ *  a curriculum choice always implies a starting grading scale (§K "never
+ *  hard-code a grading scale"), unlike SKIMVB which has no class/subject
+ *  syllabus modeled yet. */
+export const MADRASA_BOARDS = ["sksvb", "skimvb"] as const;
+export const SCHOOL_BOARDS = ["kerala_state", "cbse", "icse"] as const;
+export const EDUCATIONAL_BOARDS = [...MADRASA_BOARDS, ...SCHOOL_BOARDS] as const;
 
 const INSTITUTION_STATUSES = ["active", "inactive", "suspended", "trial"] as const;
 
@@ -246,8 +255,17 @@ const createInstitutionSchema = z.object({
   if (data.type === "madrasa" && !data.board) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "Choose an educational board (SKSVB or SKIMVB) for a madrasa." });
   }
-  if (data.type !== "madrasa" && data.board) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "Educational board only applies to madrasa institutions." });
+  if (data.type === "school" && !data.board) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "Choose a curriculum board (Kerala State, CBSE, or ICSE) for a school." });
+  }
+  if (data.type === "madrasa" && data.board && !(MADRASA_BOARDS as readonly string[]).includes(data.board)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "That board doesn't apply to a madrasa — choose SKSVB or SKIMVB." });
+  }
+  if (data.type === "school" && data.board && !(SCHOOL_BOARDS as readonly string[]).includes(data.board)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "That board doesn't apply to a school — choose Kerala State, CBSE, or ICSE." });
+  }
+  if (data.type !== "madrasa" && data.type !== "school" && data.board) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["board"], message: "Educational/curriculum board only applies to madrasa or school institutions." });
   }
 });
 
@@ -299,6 +317,9 @@ export async function createInstitution(
     // not an Institution Admin preference, so it's provisioned right here.
     if (data.board === "sksvb") {
       await provisionSksvbDefaults(scoped, institution.id);
+    }
+    if (data.board && (SCHOOL_BOARDS as readonly string[]).includes(data.board)) {
+      await provisionGradingPreset(scoped, institution.id, data.board as (typeof SCHOOL_BOARDS)[number]);
     }
 
     for (const [roleCode, roleName] of SYSTEM_ROLES) {
@@ -474,6 +495,142 @@ async function provisionSksvbDefaults(scoped: DbClient, institutionId: string): 
   }
 }
 
+// ---------------------------------------------------------------------------
+// Curriculum grading presets (Result Analysis & Reporting spec) — the
+// school-type counterpart of provisionSksvbDefaults() above. A curriculum
+// board choice implies a starting grade_scale/grade_bands (§K "never
+// hard-code a grading scale") so an admin isn't left building one from
+// scratch; every band's color is resolved and stored on the row itself at
+// provisioning time (never re-derived from the label later — labels differ
+// per curriculum, "A+" vs "A1" vs "9"), and everything stays fully editable
+// afterward through the existing grade scale/grade band CRUD
+// (modules/examination/service.ts) exactly like a hand-built custom scale.
+// ---------------------------------------------------------------------------
+interface GradingPresetBand { label: string; min: number; max: number; gradePoint: number | null }
+interface GradingPresetDef { curriculum: string; scaleName: string; passPct: number; bands: GradingPresetBand[] }
+
+/** Auto-suggests a green -> amber -> red gradient across N bands (highest
+ *  band greenest, lowest reddest) — the Result Analysis spec's "custom
+ *  scales auto-suggest a gradient but store resolved hex per band,
+ *  overridable" rule, reused here for presets too rather than duplicating
+ *  a second color scheme. Interpolates through three anchor colors instead
+ *  of a flat two-stop gradient so a middling band reads visually as
+ *  "amber", not a muddy green-red blend. */
+function gradientHex(index: number, total: number): string {
+  const t = total <= 1 ? 0 : index / (total - 1); // 0 = best band, 1 = worst band
+  const stops: [number, number, number][] = [
+    [22, 163, 74],   // #16a34a green (best)
+    [245, 158, 11],  // #f59e0b amber (middle)
+    [220, 38, 38],   // #dc2626 red (worst)
+  ];
+  const seg = t * (stops.length - 1);
+  const i = Math.min(Math.floor(seg), stops.length - 2);
+  const localT = seg - i;
+  const [r1, g1, b1] = stops[i];
+  const [r2, g2, b2] = stops[i + 1];
+  const r = Math.round(r1 + (r2 - r1) * localT);
+  const g = Math.round(g1 + (g2 - g1) * localT);
+  const b = Math.round(b1 + (b2 - b1) * localT);
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Kerala State/SCERT — 9 bands A+ down to E, pass 35%. What KEMHS (a
+ *  Kerala-curriculum school on this platform) uses. */
+const KERALA_STATE_PRESET: GradingPresetDef = {
+  curriculum: "Kerala State Curriculum (SCERT)",
+  scaleName: "Kerala State (SCERT) 9-point",
+  passPct: 35,
+  bands: [
+    { label: "A+", min: 90, max: 100, gradePoint: 9 },
+    { label: "A", min: 80, max: 89.99, gradePoint: 8 },
+    { label: "B+", min: 70, max: 79.99, gradePoint: 7 },
+    { label: "B", min: 60, max: 69.99, gradePoint: 6 },
+    { label: "C+", min: 50, max: 59.99, gradePoint: 5 },
+    { label: "C", min: 40, max: 49.99, gradePoint: 4 },
+    { label: "D+", min: 30, max: 39.99, gradePoint: 3 },
+    { label: "D", min: 20, max: 29.99, gradePoint: 2 },
+    { label: "E", min: 0, max: 19.99, gradePoint: 1 },
+  ],
+};
+
+/** CBSE 9-point scale, pass ~33%. */
+const CBSE_PRESET: GradingPresetDef = {
+  curriculum: "CBSE 9-Point",
+  scaleName: "CBSE 9-point",
+  passPct: 33,
+  bands: [
+    { label: "A1", min: 91, max: 100, gradePoint: 10 },
+    { label: "A2", min: 81, max: 90.99, gradePoint: 9 },
+    { label: "B1", min: 71, max: 80.99, gradePoint: 8 },
+    { label: "B2", min: 61, max: 70.99, gradePoint: 7 },
+    { label: "C1", min: 51, max: 60.99, gradePoint: 6 },
+    { label: "C2", min: 41, max: 50.99, gradePoint: 5 },
+    { label: "D", min: 33, max: 40.99, gradePoint: 4 },
+    { label: "E1", min: 21, max: 32.99, gradePoint: null },
+    { label: "E2", min: 0, max: 20.99, gradePoint: null },
+  ],
+};
+
+/** ICSE — same 9-band shape as CBSE (ICSE itself reports raw percentage;
+ *  this is the common descriptive letter-grade overlay schools apply),
+ *  pass 33%, fully editable afterward like any other scale. */
+const ICSE_PRESET: GradingPresetDef = {
+  curriculum: "ICSE",
+  scaleName: "ICSE 9-point",
+  passPct: 33,
+  bands: [
+    { label: "A1", min: 90, max: 100, gradePoint: 10 },
+    { label: "A2", min: 80, max: 89.99, gradePoint: 9 },
+    { label: "B1", min: 70, max: 79.99, gradePoint: 8 },
+    { label: "B2", min: 60, max: 69.99, gradePoint: 7 },
+    { label: "C1", min: 50, max: 59.99, gradePoint: 6 },
+    { label: "C2", min: 40, max: 49.99, gradePoint: 5 },
+    { label: "D", min: 33, max: 39.99, gradePoint: 4 },
+    { label: "E1", min: 21, max: 32.99, gradePoint: null },
+    { label: "E2", min: 0, max: 20.99, gradePoint: null },
+  ],
+};
+
+const GRADING_PRESETS: Record<(typeof SCHOOL_BOARDS)[number], GradingPresetDef> = {
+  kerala_state: KERALA_STATE_PRESET,
+  cbse: CBSE_PRESET,
+  icse: ICSE_PRESET,
+};
+
+/** Creates the preset grade_scale (marked default) + its grade_bands with
+ *  auto-resolved gradient hex colors, and sets institutions.pass_pct to the
+ *  preset's pass percentage — everything an admin would otherwise have to
+ *  build by hand via the grade scale/grade band CRUD. Idempotent-ish: if
+ *  this exact scale name already exists for the institution (e.g. a board
+ *  is re-selected via updateInstitutionBoard()), a fresh scale is still
+ *  inserted rather than silently reused, since an admin may have since
+ *  edited/deleted the original — matches provisionSksvbDefaults()'s
+ *  "safe to run again" spirit without pretending the two runs are the
+ *  same scale. */
+async function provisionGradingPreset(
+  scoped: DbClient, institutionId: string, board: (typeof SCHOOL_BOARDS)[number]
+): Promise<void> {
+  const preset = GRADING_PRESETS[board];
+
+  await scoped.query("update grade_scales set is_default = false where institution_id = $1 and is_default = true", [institutionId]);
+  const { rows: scaleRows } = await scoped.query<{ id: string }>(
+    `insert into grade_scales (institution_id, name, is_default, curriculum) values ($1, $2, true, $3) returning id`,
+    [institutionId, preset.scaleName, preset.curriculum]
+  );
+  const scaleId = scaleRows[0].id;
+
+  for (let i = 0; i < preset.bands.length; i++) {
+    const band = preset.bands[i];
+    await scoped.query(
+      `insert into grade_bands (institution_id, grade_scale_id, min_percent, max_percent, grade_label, grade_point, color)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [institutionId, scaleId, band.min, band.max, band.label, band.gradePoint, gradientHex(i, preset.bands.length)]
+    );
+  }
+
+  await scoped.query("update institutions set pass_pct = $1, updated_at = now() where id = $2", [preset.passPct, institutionId]);
+}
+
 const updateStatusSchema = z.object({ status: z.enum(INSTITUTION_STATUSES) });
 
 export async function updateInstitutionStatus(
@@ -565,8 +722,16 @@ export async function updateInstitutionBoard(
       "select type, board from institutions where id = $1", [institutionId]
     );
     if (before.length === 0) return null;
-    if (before[0].type !== "madrasa") {
-      throw new Error("Educational board only applies to madrasa institutions.");
+    const isMadrasaBoard = (MADRASA_BOARDS as readonly string[]).includes(data.board);
+    const isSchoolBoard = (SCHOOL_BOARDS as readonly string[]).includes(data.board);
+    if (before[0].type === "madrasa" && !isMadrasaBoard) {
+      throw new Error("This institution is a madrasa — choose SKSVB or SKIMVB.");
+    }
+    if (before[0].type === "school" && !isSchoolBoard) {
+      throw new Error("This institution is a school — choose Kerala State, CBSE, or ICSE.");
+    }
+    if (before[0].type !== "madrasa" && before[0].type !== "school") {
+      throw new Error("Educational/curriculum board only applies to madrasa or school institutions.");
     }
 
     const { rows } = await scoped.query<InstitutionRecord>(
@@ -576,6 +741,9 @@ export async function updateInstitutionBoard(
     );
     if (data.board === "sksvb") {
       await provisionSksvbDefaults(scoped, institutionId);
+    }
+    if (isSchoolBoard) {
+      await provisionGradingPreset(scoped, institutionId, data.board as (typeof SCHOOL_BOARDS)[number]);
     }
     await recordPlatformAudit(scoped, {
       actorUserId: callerUserId, institutionId, action: "board_change", entityType: "institutions", entityId: institutionId,

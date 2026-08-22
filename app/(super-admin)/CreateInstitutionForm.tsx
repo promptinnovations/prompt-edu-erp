@@ -50,6 +50,25 @@ export default function CreateInstitutionForm() {
           </p>
         </div>
       ) : null}
+      {type === "school" ? (
+        <div className="w-full sm:w-auto">
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Board</label>
+          <select
+            name="board"
+            defaultValue="kerala_state"
+            required
+            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          >
+            <option value="kerala_state">Kerala State</option>
+            <option value="cbse">CBSE</option>
+            <option value="icse">ICSE</option>
+          </select>
+          <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500 sm:w-40">
+            Auto-creates a matching grading scale (grade bands + pass %) — editable afterward from this
+            institution&apos;s own Examinations settings.
+          </p>
+        </div>
+      ) : null}
       <div className="w-full sm:w-auto">
         <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Default locale</label>
         <select name="defaultLocale" className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">

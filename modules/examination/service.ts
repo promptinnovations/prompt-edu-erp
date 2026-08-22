@@ -15,7 +15,7 @@
  * (§28 "correction history").
  */
 import { z } from "zod";
-import { getDbClient } from "../../services/db/client";
+import { getDbClient, type DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 
 export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null }
@@ -29,7 +29,7 @@ export interface MarkRow {
   student_id: string; student_name: string; admission_number: string;
   mark_id: string | null; marks_obtained: string | null; is_absent: boolean; entry_status: string | null;
 }
-export interface GradeBandRecord { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null }
+export interface GradeBandRecord { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null }
 export interface ResultRow {
   student_id: string; student_name: string; total_marks: string; max_total_marks: string;
   percentage: string; grade_label: string | null; rank: number | null;
@@ -123,7 +123,7 @@ export async function getGradeBands(institutionId: string, authUserId: string, g
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<GradeBandRecord>(
-      "select id, min_percent, max_percent, grade_label, grade_point from grade_bands where grade_scale_id = $1 order by min_percent desc",
+      "select id, min_percent, max_percent, grade_label, grade_point, color from grade_bands where grade_scale_id = $1 order by min_percent desc",
       [gradeScaleId]
     );
     return rows;
@@ -140,17 +140,24 @@ export async function getGradeBands(institutionId: string, authUserId: string, g
  *  Settings sub-page rather than in-line on /examinations, since a grading
  *  scheme is institution-wide configuration, not a per-examination choice
  *  (an examination merely PICKS one via its own gradeScaleId, unchanged). */
-export interface GradeScaleRecord { id: string; name: string; is_default: boolean }
+export interface GradeScaleRecord { id: string; name: string; is_default: boolean; curriculum: string | null }
 
 export async function listGradeScales(institutionId: string, authUserId: string): Promise<GradeScaleRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<GradeScaleRecord>("select id, name, is_default from grade_scales order by name");
+    const { rows } = await scoped.query<GradeScaleRecord>("select id, name, is_default, curriculum from grade_scales order by name");
     return rows;
   });
 }
 
-const createGradeScaleSchema = z.object({ name: z.string().min(1).max(150), isDefault: z.boolean().optional() });
+const createGradeScaleSchema = z.object({
+  name: z.string().min(1).max(150), isDefault: z.boolean().optional(),
+  // Free-text curriculum name shown in the scale picker (§K — never an
+  // enum, so a fully custom scale can be named anything). Presets set this
+  // to e.g. "Kerala State Curriculum (SCERT)"; a hand-built custom scale
+  // typically leaves it null.
+  curriculum: z.string().max(100).nullable().optional(),
+});
 
 export async function createGradeScale(
   institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createGradeScaleSchema>
@@ -162,8 +169,8 @@ export async function createGradeScale(
       await scoped.query("update grade_scales set is_default = false where is_default = true");
     }
     const { rows } = await scoped.query<GradeScaleRecord>(
-      `insert into grade_scales (institution_id, name, is_default) values ($1, $2, $3) returning id, name, is_default`,
-      [institutionId, data.name, data.isDefault ?? false]
+      `insert into grade_scales (institution_id, name, is_default, curriculum) values ($1, $2, $3, $4) returning id, name, is_default, curriculum`,
+      [institutionId, data.name, data.isDefault ?? false, data.curriculum ?? null]
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "grade_scales", entityId: rows[0].id, after: rows[0] });
     return rows[0];
@@ -225,6 +232,11 @@ const createGradeBandSchema = z.object({
   maxPercent: z.number().min(0).max(100),
   gradeLabel: z.string().min(1).max(20),
   gradePoint: z.number().nullable().optional(),
+  // Hex color for this band, stored on the row itself — never keyed by
+  // grade_label text (§K: labels differ per curriculum, "A+" vs "9" vs "I").
+  // Optional here so admins can set it later via updateGradeBand(); presets
+  // (provisionGradingPreset()) always populate it up front.
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
 });
 
 export async function createGradeBand(
@@ -235,9 +247,9 @@ export async function createGradeBand(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<GradeBandRecord>(
-      `insert into grade_bands (institution_id, grade_scale_id, min_percent, max_percent, grade_label, grade_point)
-       values ($1, $2, $3, $4, $5, $6) returning id, min_percent, max_percent, grade_label, grade_point`,
-      [institutionId, data.gradeScaleId, data.minPercent, data.maxPercent, data.gradeLabel, data.gradePoint ?? null]
+      `insert into grade_bands (institution_id, grade_scale_id, min_percent, max_percent, grade_label, grade_point, color)
+       values ($1, $2, $3, $4, $5, $6, $7) returning id, min_percent, max_percent, grade_label, grade_point, color`,
+      [institutionId, data.gradeScaleId, data.minPercent, data.maxPercent, data.gradeLabel, data.gradePoint ?? null, data.color ?? null]
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "grade_bands", entityId: rows[0].id, after: rows[0] });
     return rows[0];
@@ -249,6 +261,7 @@ const updateGradeBandSchema = z.object({
   maxPercent: z.number().min(0).max(100).optional(),
   gradeLabel: z.string().min(1).max(20).optional(),
   gradePoint: z.number().nullable().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
 });
 
 export async function updateGradeBand(
@@ -262,10 +275,12 @@ export async function updateGradeBand(
          min_percent = coalesce($2, min_percent),
          max_percent = coalesce($3, max_percent),
          grade_label = coalesce($4, grade_label),
-         grade_point = case when $5 then $6 else grade_point end
-       where id = $1 returning id, min_percent, max_percent, grade_label, grade_point`,
+         grade_point = case when $5 then $6 else grade_point end,
+         color = case when $7 then $8 else color end
+       where id = $1 returning id, min_percent, max_percent, grade_label, grade_point, color`,
       [gradeBandId, data.minPercent ?? null, data.maxPercent ?? null, data.gradeLabel ?? null,
-        Object.prototype.hasOwnProperty.call(data, "gradePoint"), data.gradePoint ?? null]
+        Object.prototype.hasOwnProperty.call(data, "gradePoint"), data.gradePoint ?? null,
+        Object.prototype.hasOwnProperty.call(data, "color"), data.color ?? null]
     );
     if (!rows[0]) throw new Error("Grade band not found.");
     if (Number(rows[0].min_percent) > Number(rows[0].max_percent)) throw new Error("Minimum percent cannot exceed maximum percent.");
@@ -282,6 +297,50 @@ export async function deleteGradeBand(institutionId: string, authUserId: string,
     await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "grade_bands", entityId: gradeBandId });
   });
 }
+
+// ---------------------------------------------------------------------------
+// Grading primitives (Result Analysis & Reporting spec) — the ONLY two
+// functions in this codebase allowed to contain grade/pass-fail logic.
+// Every report, chart, or mark-entry screen that needs a grade label,
+// band color, or pass/fail flag MUST call through these rather than
+// re-deriving it inline — that is what keeps grading scale, band
+// boundaries/colors, and pass percentage entirely institution-configured
+// instead of hardcoded anywhere in report/chart code (§K).
+// ---------------------------------------------------------------------------
+export interface GradeLookupResult { id: string; label: string; color: string | null; gradePoint: string | null }
+
+/** Resolves a percentage to its grade band under a given scale. Pure DB
+ *  lookup against grade_bands — min_percent/max_percent/grade_label/color
+ *  are always institution config, never literals here. Returns null if
+ *  scaleId is null (examination has no grade scale attached) or no band
+ *  covers this percentage (e.g. a gap left in a custom scale). */
+export async function lookupGrade(scoped: DbClient, scaleId: string | null, pct: number): Promise<GradeLookupResult | null> {
+  if (scaleId == null) return null;
+  const { rows } = await scoped.query<{ id: string; grade_label: string; color: string | null; grade_point: string | null }>(
+    `select id, grade_label, color, grade_point from grade_bands
+      where grade_scale_id = $1 and $2 >= min_percent and $2 <= max_percent
+      order by min_percent desc limit 1`,
+    [scaleId, pct]
+  );
+  if (!rows[0]) return null;
+  return { id: rows[0].id, label: rows[0].grade_label, color: rows[0].color, gradePoint: rows[0].grade_point };
+}
+
+/** Binary pass/fail. §K: pass/fail semantics don't vary by curriculum
+ *  (unlike grade labels/colors), so this comparison is the one legitimate
+ *  hardcoded rule in the whole codebase — but passPct itself always comes
+ *  from institution config (institutions.pass_pct, or a per-subject
+ *  exam_subjects.pass_marks override), never a literal at the call site. */
+export function isPass(pct: number, passPct: number): boolean {
+  return pct >= passPct;
+}
+
+/** Fixed global pass/fail color pair. Legitimate constants (unlike grade
+ *  band colors) because pass/fail is a single universal binary semantic —
+ *  it doesn't get relabeled or recolored per curriculum the way grade
+ *  bands do. Every pass/fail donut/badge in the UI imports these two. */
+export const PASS_COLOR = "#059669";
+export const FAIL_COLOR = "#dc2626";
 
 // ---------------------------------------------------------------------------
 // Examinations
@@ -552,11 +611,52 @@ export const submitMarks = (institutionId: string, authUserId: string, examSubje
 export const verifyMarks = (institutionId: string, authUserId: string, examSubjectId: string, userId: string) =>
   transitionMarks(institutionId, authUserId, examSubjectId, "submitted", "verified", "verified_by", userId);
 
-export const approveMarks = (institutionId: string, authUserId: string, examSubjectId: string, userId: string) =>
-  transitionMarks(institutionId, authUserId, examSubjectId, "verified", "approved", "approved_by", userId);
+/** Approving/locking a subject's marks is exactly the point at which a
+ *  student's result CAN newly become complete (§28 "once marks are
+ *  approved, they feed the analytics engine") — so both transitions
+ *  auto-recompute results for the whole examination afterward via
+ *  recomputeExaminationResults(), satisfying the Result Analysis spec's
+ *  "live recompute on save, no separate publish/compute step" requirement.
+ *  No-op (harmlessly) if this subject's transition didn't actually move
+ *  any rows. */
+export async function approveMarks(institutionId: string, authUserId: string, examSubjectId: string, userId: string): Promise<number> {
+  const count = await transitionMarks(institutionId, authUserId, examSubjectId, "verified", "approved", "approved_by", userId);
+  if (count > 0) await recomputeExaminationResults(institutionId, authUserId, examSubjectId);
+  return count;
+}
 
-export const lockMarks = (institutionId: string, authUserId: string, examSubjectId: string, userId: string) =>
-  transitionMarks(institutionId, authUserId, examSubjectId, "approved", "locked", null, userId);
+export async function lockMarks(institutionId: string, authUserId: string, examSubjectId: string, userId: string): Promise<number> {
+  const count = await transitionMarks(institutionId, authUserId, examSubjectId, "approved", "locked", null, userId);
+  if (count > 0) await recomputeExaminationResults(institutionId, authUserId, examSubjectId);
+  return count;
+}
+
+/** Looks up the examination an exam_subject belongs to and re-runs
+ *  computeResults() + refreshAnalyticsViews() for it — the shared tail end
+ *  of both approveMarks() and lockMarks() (and safe to call after
+ *  correctMark() too, for the same "no manual publish step" reason). Swallows
+ *  refreshAnalyticsViews() failures rather than letting a matview hiccup
+ *  block the mark-approval transition itself; computeResults() (the live
+ *  `results` table) is the part that must not silently fail. */
+async function recomputeExaminationResults(institutionId: string, authUserId: string, examSubjectId: string): Promise<void> {
+  const db = await getDbClient();
+  const examinationId = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ examination_id: string }>(
+      "select examination_id from exam_subjects where id = $1", [examSubjectId]
+    );
+    return rows[0]?.examination_id ?? null;
+  });
+  if (!examinationId) return;
+  await computeResults(institutionId, authUserId, examinationId);
+  try {
+    const { refreshAnalyticsViews } = await import("../analytics/service");
+    await refreshAnalyticsViews();
+  } catch {
+    // Matview refresh is best-effort here; results table (the live source
+    // of truth for School/Section/Grade/Class-wise reports) is already
+    // correct regardless.
+  }
+}
 
 /** Corrects an already approved/locked mark, preserving history (§28 "correction history").
  *  Caller (server action) must check the marks.lock permission before invoking this — it
@@ -565,9 +665,9 @@ export async function correctMark(
   institutionId: string, authUserId: string, userId: string, markId: string, newValue: number | null, reason: string
 ): Promise<void> {
   const db = await getDbClient();
-  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ marks_obtained: string | null }>(
-      "select marks_obtained from marks where id = $1", [markId]
+  const examSubjectId = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ marks_obtained: string | null; exam_subject_id: string }>(
+      "select marks_obtained, exam_subject_id from marks where id = $1", [markId]
     );
     if (rows.length === 0) throw new Error("Mark not found");
     const oldValue = rows[0].marks_obtained === null ? null : Number(rows[0].marks_obtained);
@@ -582,63 +682,104 @@ export async function correctMark(
       institutionId, userId, action: "correct", module: "examination", entityType: "marks", entityId: markId,
       before: { marks_obtained: oldValue }, after: { marks_obtained: newValue, reason },
     });
+    return rows[0].exam_subject_id;
   });
+  // A correction to an already-approved/locked mark should reflect
+  // immediately in results/reports too (§28, Result Analysis spec "live
+  // recompute, no publish step") — same tail-end as approveMarks/lockMarks.
+  await recomputeExaminationResults(institutionId, authUserId, examSubjectId);
 }
 
 // ---------------------------------------------------------------------------
 // Results (§28 "once marks are approved, they feed the analytics engine")
 // ---------------------------------------------------------------------------
+/** Computes total/percentage/grade + pass-fail for every student who has a
+ *  complete, approved-or-locked mark set for this examination — one subject
+ *  short and the student is skipped as incomplete rather than misrepresented
+ *  with a partial total (§28). Overall pass/fail follows the Result
+ *  Analysis spec exactly: a student fails if failedSubjectCount > 0 OR
+ *  overallPct < institution PassPct — a subject itself fails against its
+ *  own pass_marks override if set, else falls back to the same tenant
+ *  PassPct applied to that subject's max_marks. Grade label/color always
+ *  come from lookupGrade() against the examination's grade scale; the
+ *  binary pass/fail always comes from isPass() — this function never
+ *  compares a percentage to a literal threshold itself.
+ *
+ *  Called automatically whenever marks are locked/approved (no separate
+ *  "compute results" click required — Result Analysis spec "live recompute,
+ *  no publish step") as well as being safely re-runnable on demand. */
 export async function computeResults(institutionId: string, authUserId: string, examinationId: string): Promise<{ computed: number; skippedIncomplete: number }> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: examSubjects } = await scoped.query<{ id: string; max_marks: string }>(
-      "select id, max_marks from exam_subjects where examination_id = $1", [examinationId]
+    const { rows: examSubjects } = await scoped.query<{ id: string; max_marks: string; pass_marks: string | null }>(
+      "select id, max_marks, pass_marks from exam_subjects where examination_id = $1", [examinationId]
     );
     if (examSubjects.length === 0) return { computed: 0, skippedIncomplete: 0 };
     const maxTotal = examSubjects.reduce((sum, s) => sum + Number(s.max_marks), 0);
     const examSubjectIds = examSubjects.map((s) => s.id);
+    const passMarksBySubject = new Map(examSubjects.map((s) => [s.id, s.pass_marks == null ? null : Number(s.pass_marks)]));
 
     const { rows: examRow } = await scoped.query<{ grade_scale_id: string | null }>(
       "select grade_scale_id from examinations where id = $1", [examinationId]
     );
     const gradeScaleId = examRow[0]?.grade_scale_id ?? null;
 
-    // Only students with an approved/locked mark for EVERY exam_subject count —
-    // a partial result would misrepresent the student (§28).
-    const { rows: studentTotals } = await scoped.query<{ student_id: string; total: string; count: string }>(
-      `select student_id, sum(marks_obtained) as total, count(*) as count
+    const { rows: instRow } = await scoped.query<{ pass_pct: string }>(
+      "select pass_pct from institutions where id = $1", [institutionId]
+    );
+    const passPct = Number(instRow[0]?.pass_pct ?? 35);
+
+    // Per-subject marks for approved/locked entries, so failedSubjectCount
+    // can be derived alongside the overall total in one pass.
+    const { rows: subjectMarks } = await scoped.query<{ student_id: string; exam_subject_id: string; marks_obtained: string | null; is_absent: boolean }>(
+      `select student_id, exam_subject_id, marks_obtained, is_absent
          from marks
-        where exam_subject_id = any($1) and entry_status in ('approved','locked') and is_absent = false
-        group by student_id`,
+        where exam_subject_id = any($1) and entry_status in ('approved','locked')`,
       [examSubjectIds]
     );
 
+    const byStudent = new Map<string, typeof subjectMarks>();
+    for (const m of subjectMarks) {
+      if (!byStudent.has(m.student_id)) byStudent.set(m.student_id, []);
+      byStudent.get(m.student_id)!.push(m);
+    }
+
     let computed = 0;
     let skippedIncomplete = 0;
-    for (const st of studentTotals) {
-      if (Number(st.count) !== examSubjects.length) {
+    for (const [studentId, rows] of byStudent) {
+      if (rows.length !== examSubjects.length) {
         skippedIncomplete++;
         continue;
       }
-      const total = Number(st.total);
-      const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
-
-      let gradeBandId: string | null = null;
-      if (gradeScaleId) {
-        const { rows: band } = await scoped.query<{ id: string }>(
-          `select id from grade_bands where grade_scale_id = $1 and $2 >= min_percent and $2 <= max_percent limit 1`,
-          [gradeScaleId, percentage]
-        );
-        gradeBandId = band[0]?.id ?? null;
+      let total = 0;
+      let failedSubjectCount = 0;
+      for (const r of rows) {
+        if (r.is_absent || r.marks_obtained == null) {
+          failedSubjectCount++;
+          continue;
+        }
+        const obtained = Number(r.marks_obtained);
+        total += obtained;
+        const subjectMax = Number(examSubjects.find((s) => s.id === r.exam_subject_id)!.max_marks);
+        const subjectPassMarks = passMarksBySubject.get(r.exam_subject_id);
+        const subjectPct = subjectMax > 0 ? (obtained / subjectMax) * 100 : 0;
+        const subjectPassed = subjectPassMarks != null
+          ? obtained >= subjectPassMarks
+          : isPass(subjectPct, passPct);
+        if (!subjectPassed) failedSubjectCount++;
       }
+      const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+      const grade = await lookupGrade(scoped, gradeScaleId, percentage);
+      const overallPass = failedSubjectCount === 0 && isPass(percentage, passPct);
 
       await scoped.query(
-        `insert into results (institution_id, examination_id, student_id, total_marks, max_total_marks, percentage, grade_band_id, computed_at)
-         values ($1, $2, $3, $4, $5, $6, $7, now())
+        `insert into results (institution_id, examination_id, student_id, total_marks, max_total_marks, percentage, grade_band_id, is_pass, failed_subject_count, computed_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
          on conflict (institution_id, examination_id, student_id)
          do update set total_marks = excluded.total_marks, max_total_marks = excluded.max_total_marks,
-                        percentage = excluded.percentage, grade_band_id = excluded.grade_band_id, computed_at = now()`,
-        [institutionId, examinationId, st.student_id, total, maxTotal, percentage, gradeBandId]
+                        percentage = excluded.percentage, grade_band_id = excluded.grade_band_id,
+                        is_pass = excluded.is_pass, failed_subject_count = excluded.failed_subject_count, computed_at = now()`,
+        [institutionId, examinationId, studentId, total, maxTotal, percentage, grade?.id ?? null, overallPass, failedSubjectCount]
       );
       computed++;
     }

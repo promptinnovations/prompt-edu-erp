@@ -118,6 +118,11 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       "staff.view", "staff.portion.manage",
       "mentoring.view_own", "mentoring.create", "announcements.view",
       "calendar.view", "substitution.view",
+      // Result Analysis & Reporting spec "Teacher defaults to own classes/
+      // subjects" — reports.view is what unlocks /analytics at all; the
+      // page itself scopes a teacher (no marks.approve/settings.manage) to
+      // their own teacher_assignments via getTeacherClassScope().
+      "reports.view",
     ],
     // §Attendance-follow-up-3 "section wise for section heads" — a Section
     // Head oversees every class within their assigned stage(s) (see
@@ -129,7 +134,10 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     // staff.view (to open a teacher's Profile page) + the new
     // staff.observation.manage_section (migration 0036), mirroring
     // attendance.view_section's own "own assigned stage only" scoping.
-    section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view"],
+    // Result Analysis & Reporting spec "Section Head defaults to own
+    // section" (stage) — same reports.view + page-level scoping treatment
+    // as teacher above, via getStaffSectionScope().
+    section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "reports.view"],
     librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view"],
     parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view"],
     student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],

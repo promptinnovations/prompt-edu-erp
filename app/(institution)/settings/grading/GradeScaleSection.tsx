@@ -7,7 +7,7 @@ import {
   type GradingActionState,
 } from "./actions";
 
-interface GradeBand { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null }
+interface GradeBand { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null }
 interface GradeScale { id: string; name: string; is_default: boolean }
 
 const INIT: GradingActionState = { error: null };
@@ -27,6 +27,7 @@ function GradeBandRow({ band, canManage }: { band: GradeBand; canManage: boolean
           <span className="text-xs text-zinc-400">–</span>
           <input name="maxPercent" type="number" step="0.01" defaultValue={band.max_percent} className="w-20 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs" placeholder="Max %" />
           <input name="gradePoint" type="number" step="0.01" defaultValue={band.grade_point ?? ""} className="w-16 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs" placeholder="GP" />
+          <input name="color" type="color" defaultValue={band.color ?? "#94a3b8"} className="h-7 w-9 rounded border border-zinc-300 dark:border-zinc-700 p-0.5" title="Band color" />
           <button type="submit" className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">Cancel</button>
         </form>
@@ -37,7 +38,8 @@ function GradeBandRow({ band, canManage }: { band: GradeBand; canManage: boolean
 
   return (
     <li className="flex items-center justify-between gap-2 py-1 text-sm">
-      <span>
+      <span className="flex items-center gap-2">
+        <span className="inline-block h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: band.color ?? "#94a3b8" }} />
         <strong className="text-zinc-900 dark:text-zinc-50">{band.grade_label}</strong>{" "}
         <span className="text-zinc-500 dark:text-zinc-400">{band.min_percent}%–{band.max_percent}%</span>
         {band.grade_point ? <span className="text-zinc-400 dark:text-zinc-500"> · GP {band.grade_point}</span> : null}
@@ -121,6 +123,10 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Grade point</label>
             <input name="gradePoint" type="number" step="0.01" className="w-16 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Color</label>
+            <input name="color" type="color" defaultValue="#4f46e5" className="h-8 w-10 rounded border border-zinc-300 dark:border-zinc-700 p-0.5" />
           </div>
           <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add band

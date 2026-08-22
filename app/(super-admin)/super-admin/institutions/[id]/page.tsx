@@ -95,13 +95,15 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
         </div>
       </section>
 
-      {institution.type === "madrasa" ? (
+      {institution.type === "madrasa" || institution.type === "school" ? (
         <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Educational board</h2>
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            {institution.type === "school" ? "Board / curriculum" : "Educational board"}
+          </h2>
           <p className="mb-4 text-xs text-zinc-400 dark:text-zinc-500">
-            Current: {institution.board ? institution.board.toUpperCase() : "not set"}.
+            Current: {institution.board ? institution.board.replace(/_/g, " ").toUpperCase() : "not set"}.
           </p>
-          <BoardConfigForm institutionId={id} board={institution.board} />
+          <BoardConfigForm institutionId={id} institutionType={institution.type} board={institution.board} />
         </section>
       ) : null}
 

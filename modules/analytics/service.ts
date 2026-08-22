@@ -20,6 +20,7 @@
 import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
 import type { AttendanceScope } from "../attendance/service";
+import { isPass, PASS_COLOR, FAIL_COLOR } from "../examination/service";
 
 export interface SubjectStatRow {
   subject_id: string; subject_name: string; class_id: string; section_id: string | null;
@@ -351,10 +352,15 @@ export async function getSubjectPerformanceIndicators(
 // ---------------------------------------------------------------------------
 export interface GradeDistributionRow {
   grade_band_id: string; grade_label: string; min_percent: number; max_percent: number; student_count: number;
+  // Resolved straight from grade_bands.color (§K) — null only for a band an
+  // admin created before ever setting a color; never re-derived from the
+  // label here.
+  color: string | null;
 }
 
 export interface ResultSchoolSummary {
   total_students: number; average_percent: number | null; grade_distribution: GradeDistributionRow[];
+  pass_count: number; fail_count: number; pass_percent: number | null;
 }
 
 async function getGradeDistribution(
@@ -362,35 +368,39 @@ async function getGradeDistribution(
 ): Promise<GradeDistributionRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ grade_band_id: string; grade_label: string; min_percent: string; max_percent: string; student_count: string }>(
-      `select gb.id as grade_band_id, gb.grade_label, gb.min_percent, gb.max_percent,
+    const { rows } = await scoped.query<{ grade_band_id: string; grade_label: string; min_percent: string; max_percent: string; student_count: string; color: string | null }>(
+      `select gb.id as grade_band_id, gb.grade_label, gb.min_percent, gb.max_percent, gb.color,
               count(r.id)::int as student_count
          from examinations e
          join grade_bands gb on gb.grade_scale_id = e.grade_scale_id
          left join results r on r.grade_band_id = gb.id and r.examination_id = e.id
         where e.id = $1
-        group by gb.id, gb.grade_label, gb.min_percent, gb.max_percent
+        group by gb.id, gb.grade_label, gb.min_percent, gb.max_percent, gb.color
         order by gb.min_percent desc`,
       [examinationId]
     );
     return rows.map((r) => ({
       grade_band_id: r.grade_band_id, grade_label: r.grade_label,
       min_percent: Number(r.min_percent), max_percent: Number(r.max_percent),
-      student_count: Number(r.student_count),
+      student_count: Number(r.student_count), color: r.color,
     }));
   });
 }
 
 /** School-wide summary — every student with a computed result for this
- *  examination, regardless of class/section. */
+ *  examination, regardless of class/section. Pass/fail counts read
+ *  results.is_pass directly (computeResults() already resolved it via
+ *  isPass()) — never re-derived from percentage here. */
 export async function getResultSchoolSummary(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<ResultSchoolSummary> {
   const db = await getDbClient();
   const [summary, gradeDistribution] = await Promise.all([
     db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-      const { rows } = await scoped.query<{ total_students: string; average_percent: string | null }>(
-        `select count(*)::int as total_students, round(avg(percentage), 2) as average_percent
+      const { rows } = await scoped.query<{ total_students: string; average_percent: string | null; pass_count: string; fail_count: string }>(
+        `select count(*)::int as total_students, round(avg(percentage), 2) as average_percent,
+                count(*) filter (where is_pass = true)::int as pass_count,
+                count(*) filter (where is_pass = false)::int as fail_count
            from results where examination_id = $1`,
         [examinationId]
       );
@@ -398,43 +408,65 @@ export async function getResultSchoolSummary(
     }),
     getGradeDistribution(institutionId, authUserId, examinationId),
   ]);
+  const totalStudents = Number(summary?.total_students ?? 0);
+  const passCount = Number(summary?.pass_count ?? 0);
+  const failCount = Number(summary?.fail_count ?? 0);
   return {
-    total_students: Number(summary?.total_students ?? 0),
+    total_students: totalStudents,
     average_percent: summary?.average_percent !== null && summary?.average_percent !== undefined ? Number(summary.average_percent) : null,
     grade_distribution: gradeDistribution,
+    pass_count: passCount, fail_count: failCount,
+    pass_percent: totalStudents > 0 ? Math.round((passCount / totalStudents) * 10000) / 100 : null,
   };
 }
 
 export interface ResultGroupRow {
   id: string; name: string; parent_name: string | null;
+  // The underlying classes.id this row's students belong to — same value
+  // as `id` for groupBy "class", null for groupBy "stage" (a stage spans
+  // many classes, so there's no single class_id to scope by), and the
+  // owning class for groupBy "section" (a Division). Lets callers apply
+  // getTeacherClassScope()'s classIds restriction to Class-wise/Grade-wise
+  // rows without a second query (§ Result Analysis "Teacher defaults to
+  // own classes/subjects").
+  class_id: string | null;
   student_count: number; average_percent: number | null; grade_counts: Record<string, number>;
+  pass_count: number; fail_count: number; pass_percent: number | null;
 }
 
-/** Shared shape for both section-wise and class-wise breakdowns — each
- *  student's class/section is resolved via their ACTIVE enrollment for the
- *  exam's own academic year (not their current-today enrollment), since a
- *  student promoted since this exam took place must still be attributed to
- *  the class/section they were actually in when they sat it. Every
- *  academic year's enrollment row is kept as permanent history (§Page-2/3
- *  follow-up's promoteClass() never deletes/rewrites a past year's row),
- *  so this join is safe and stable no matter how many promotions happened
- *  after the fact. */
+/** Shared shape for section-wise/class-wise/stage-wise breakdowns — each
+ *  student's class/section/stage is resolved via their ACTIVE enrollment
+ *  for the exam's own academic year (not their current-today enrollment),
+ *  since a student promoted since this exam took place must still be
+ *  attributed to the class/section they were actually in when they sat it.
+ *  Every academic year's enrollment row is kept as permanent history
+ *  (§Page-2/3 follow-up's promoteClass() never deletes/rewrites a past
+ *  year's row), so this join is safe and stable no matter how many
+ *  promotions happened after the fact.
+ *
+ *  groupBy "stage" is classes.stage (§K "Section" in the Result Analysis
+ *  spec — the broader Primary/Middle/High grouping, distinct from the A/B/C
+ *  "Division" the rest of this codebase calls a section) — a nullable free
+ *  text column, grouped here under the literal label "Unassigned" for
+ *  classes an admin hasn't tagged with a stage yet, so those students still
+ *  show up somewhere rather than silently vanishing from the report. */
 async function getResultGroups(
-  institutionId: string, authUserId: string, examinationId: string, groupBy: "section" | "class"
+  institutionId: string, authUserId: string, examinationId: string, groupBy: "section" | "class" | "stage"
 ): Promise<ResultGroupRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const groupCols = groupBy === "section"
-      ? "se.section_id as id, sec.name as name, c.name as parent_name"
-      : "c.id as id, c.name as name, null::text as parent_name";
-    // c.sort_order drives ordering only (the final array is re-sorted by
-    // average % below anyway) — included via max() so it can appear in
-    // ORDER BY without needing to widen the GROUP BY key.
-    const groupByCols = groupBy === "section" ? "se.section_id, sec.name, c.name" : "c.id, c.name";
+      ? "se.section_id as id, sec.name as name, c.name as parent_name, c.id as class_id"
+      : groupBy === "class"
+      ? "c.id as id, c.name as name, null::text as parent_name, c.id as class_id"
+      : "coalesce(c.stage, 'Unassigned') as id, coalesce(c.stage, 'Unassigned') as name, null::text as parent_name, null::uuid as class_id";
+    const groupByCols = groupBy === "section" ? "se.section_id, sec.name, c.name, c.id" : groupBy === "class" ? "c.id, c.name" : "coalesce(c.stage, 'Unassigned')";
 
-    const { rows: base } = await scoped.query<{ id: string; name: string; parent_name: string | null; student_count: string; average_percent: string | null }>(
+    const { rows: base } = await scoped.query<{ id: string; name: string; parent_name: string | null; class_id: string | null; student_count: string; average_percent: string | null; pass_count: string; fail_count: string }>(
       `select ${groupCols},
-              count(r.id)::int as student_count, round(avg(r.percentage), 2) as average_percent
+              count(r.id)::int as student_count, round(avg(r.percentage), 2) as average_percent,
+              count(*) filter (where r.is_pass = true)::int as pass_count,
+              count(*) filter (where r.is_pass = false)::int as fail_count
          from results r
          join examinations e on e.id = r.examination_id
          join student_enrollments se on se.student_id = r.student_id and se.academic_year_id = e.academic_year_id and se.status = 'active'
@@ -442,11 +474,11 @@ async function getResultGroups(
          join classes c on c.id = se.class_id
         where r.examination_id = $1
         group by ${groupByCols}
-        order by max(c.sort_order), name`,
+        order by ${groupBy === "class" ? "max(c.sort_order), name" : "name"}`,
       [examinationId]
     );
 
-    const gradeGroupCol = groupBy === "section" ? "se.section_id" : "c.id";
+    const gradeGroupCol = groupBy === "section" ? "se.section_id" : groupBy === "class" ? "c.id" : "coalesce(c.stage, 'Unassigned')";
     const { rows: gradeRows } = await scoped.query<{ group_id: string; grade_label: string; student_count: string }>(
       `select ${gradeGroupCol} as group_id, gb.grade_label, count(r.id)::int as student_count
          from results r
@@ -465,12 +497,18 @@ async function getResultGroups(
     }
 
     return base
-      .map((r) => ({
-        id: r.id, name: r.name, parent_name: r.parent_name,
-        student_count: Number(r.student_count),
-        average_percent: r.average_percent !== null ? Number(r.average_percent) : null,
-        grade_counts: gradesByGroup.get(r.id) ?? {},
-      }))
+      .map((r) => {
+        const studentCount = Number(r.student_count);
+        const passCount = Number(r.pass_count);
+        return {
+          id: r.id, name: r.name, parent_name: r.parent_name, class_id: r.class_id,
+          student_count: studentCount,
+          average_percent: r.average_percent !== null ? Number(r.average_percent) : null,
+          grade_counts: gradesByGroup.get(r.id) ?? {},
+          pass_count: passCount, fail_count: Number(r.fail_count),
+          pass_percent: studentCount > 0 ? Math.round((passCount / studentCount) * 10000) / 100 : null,
+        };
+      })
       .sort((a, b) => (b.average_percent ?? -1) - (a.average_percent ?? -1));
   });
 }
@@ -481,6 +519,15 @@ export async function getResultsBySection(institutionId: string, authUserId: str
 
 export async function getResultsByClass(institutionId: string, authUserId: string, examinationId: string): Promise<ResultGroupRow[]> {
   return getResultGroups(institutionId, authUserId, examinationId, "class");
+}
+
+/** True "Section-wise" per the Result Analysis spec (Primary/Middle/High —
+ *  classes.stage), distinct from getResultsBySection() above which is
+ *  actually the A/B/C Division level (kept under its original name to
+ *  avoid breaking existing call sites — see this file's header comment on
+ *  the naming collision). */
+export async function getResultsByStage(institutionId: string, authUserId: string, examinationId: string): Promise<ResultGroupRow[]> {
+  return getResultGroups(institutionId, authUserId, examinationId, "stage");
 }
 
 export interface GradeTopStudentRow { student_id: string; student_name: string; percentage: number }
@@ -533,61 +580,119 @@ export async function getResultsByGrade(
 
 export interface TeacherResultRow {
   teacher_user_id: string; teacher_name: string; subject_id: string; subject_name: string;
+  max_marks: number;
   marked_count: number; average_marks: number | null; pass_percentage: number | null;
+  // Result Analysis spec "Teacher-wise" tab — max/avg/median/highest/lowest/
+  // pass%, full-marks count, fail count, plus a per-band breakdown so the UI
+  // can surface "top band(s)" counts without this function ever hardcoding
+  // which label counts as "top" (§K) — grade_counts is keyed by whatever
+  // grade_label the tenant's own scale uses.
+  highest_marks: number | null; lowest_marks: number | null; median_marks: number | null;
+  full_marks_count: number; fail_count: number;
+  grade_counts: Record<string, number>;
 }
 
-/** "Teacher wise" analysis — attributes each mv_exam_subject_stats row to
+/** "Teacher wise" analysis — attributes every approved/locked mark to
  *  whichever teacher_assignments row covers that (subject, class, section)
  *  for the exam's own academic year, via role_type = 'subject_teacher' (the
  *  same mapping Staff > Teacher Assignments already collects — no new data
- *  entry, per the user's own choice). A teacher teaching the same subject
- *  across multiple classes/sections gets ONE aggregated row (weighted
- *  average, same aggregation shape as getSubjectComparison() above) rather
- *  than one row per section. Institutions that haven't set up teacher
- *  assignments simply get an empty list here — not an error. */
+ *  entry). Reads raw `marks` rather than mv_exam_subject_stats (unlike the
+ *  original version of this function) so median/highest/lowest/full-marks-
+ *  count/grade-band counts can be computed — the materialized view only
+ *  ever stored avg/pass_count, not the per-student values these need.
+ *  Still institution-agnostic: a teacher teaching the same subject across
+ *  multiple classes/sections gets ONE aggregated row, not one per class.
+ *  Pass/fail always goes through isPass() against this subject's own
+ *  pass_marks (never a literal comparison here); grade bands always
+ *  through the exam's own grade_scale_id lookup. Institutions that haven't
+ *  set up teacher assignments simply get an empty list — not an error. */
 export async function getResultsByTeacher(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<TeacherResultRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: examRow } = await scoped.query<{ academic_year_id: string }>(
-      "select academic_year_id from examinations where id = $1", [examinationId]
+    const { rows: examRow } = await scoped.query<{ academic_year_id: string; grade_scale_id: string | null }>(
+      "select academic_year_id, grade_scale_id from examinations where id = $1", [examinationId]
     );
     if (examRow.length === 0) return [];
-    const academicYearId = examRow[0].academic_year_id;
+    const { academic_year_id: academicYearId, grade_scale_id: gradeScaleId } = examRow[0];
+
+    const { rows: bandRows } = gradeScaleId
+      ? await scoped.query<{ min_percent: string; max_percent: string; grade_label: string }>(
+          "select min_percent, max_percent, grade_label from grade_bands where grade_scale_id = $1 order by min_percent desc",
+          [gradeScaleId]
+        )
+      : { rows: [] as { min_percent: string; max_percent: string; grade_label: string }[] };
+    const bands = bandRows.map((b) => ({ min: Number(b.min_percent), max: Number(b.max_percent), label: b.grade_label }));
+    const bandFor = (pct: number) => bands.find((b) => pct >= b.min && pct <= b.max)?.label ?? null;
 
     const { rows } = await scoped.query<{
       teacher_user_id: string; teacher_name: string; subject_id: string; subject_name: string;
-      marked_count: string; average_marks: string | null; pass_percentage: string | null;
+      max_marks: string; pass_marks: string; marks_obtained: string;
     }>(
       `select ta.user_id as teacher_user_id, u.full_name as teacher_name,
-              v.subject_id, sub.name as subject_name,
-              sum(coalesce(v.marked_count, 0))::int as marked_count,
-              case when sum(coalesce(v.marked_count, 0)) > 0
-                   then round(sum(v.avg_marks * v.marked_count) / sum(v.marked_count), 2)
-                   else null end as average_marks,
-              case when sum(coalesce(v.marked_count, 0)) > 0
-                   then round((sum(coalesce(v.pass_count, 0))::numeric / sum(v.marked_count)) * 100, 2)
-                   else null end as pass_percentage
-         from mv_exam_subject_stats v
-         join subjects sub on sub.id = v.subject_id
-         join teacher_assignments ta on ta.subject_id = v.subject_id and ta.class_id = v.class_id
-              and (ta.section_id is null or ta.section_id = v.section_id)
+              es.subject_id, sub.name as subject_name, es.max_marks, es.pass_marks, m.marks_obtained
+         from marks m
+         join exam_subjects es on es.id = m.exam_subject_id
+         join subjects sub on sub.id = es.subject_id
+         join student_enrollments se on se.student_id = m.student_id and se.academic_year_id = $3 and se.status = 'active'
+         join teacher_assignments ta on ta.subject_id = es.subject_id and ta.class_id = se.class_id
+              and (ta.section_id is null or ta.section_id = se.section_id)
               and ta.role_type = 'subject_teacher' and ta.academic_year_id = $3
          join users u on u.id = ta.user_id
-        where v.institution_id = $1 and v.examination_id = $2
-        group by ta.user_id, u.full_name, v.subject_id, sub.name
-        order by u.full_name, sub.name`,
+        where es.examination_id = $2 and m.institution_id = $1
+              and m.entry_status in ('approved', 'locked') and m.is_absent = false and m.marks_obtained is not null`,
       [institutionId, examinationId, academicYearId]
     );
-    return rows
-      .map((r) => ({
-        teacher_user_id: r.teacher_user_id, teacher_name: r.teacher_name,
-        subject_id: r.subject_id, subject_name: r.subject_name,
-        marked_count: Number(r.marked_count),
-        average_marks: r.average_marks !== null ? Number(r.average_marks) : null,
-        pass_percentage: r.pass_percentage !== null ? Number(r.pass_percentage) : null,
-      }))
+
+    interface Bucket { teacher_user_id: string; teacher_name: string; subject_id: string; subject_name: string; max_marks: number; pass_marks: number; marks: number[] }
+    const buckets = new Map<string, Bucket>();
+    for (const r of rows) {
+      const key = `${r.teacher_user_id}::${r.subject_id}`;
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          teacher_user_id: r.teacher_user_id, teacher_name: r.teacher_name,
+          subject_id: r.subject_id, subject_name: r.subject_name,
+          max_marks: Number(r.max_marks), pass_marks: Number(r.pass_marks), marks: [],
+        });
+      }
+      buckets.get(key)!.marks.push(Number(r.marks_obtained));
+    }
+
+    const passPct = (b: Bucket) => (b.max_marks > 0 ? (b.pass_marks / b.max_marks) * 100 : 0);
+
+    return Array.from(buckets.values())
+      .map((b): TeacherResultRow => {
+        const sorted = [...b.marks].sort((x, y) => x - y);
+        const n = sorted.length;
+        const median = n === 0 ? null
+          : n % 2 === 1 ? sorted[(n - 1) / 2]
+          : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+        const sum = sorted.reduce((s, v) => s + v, 0);
+        const gradeCounts: Record<string, number> = {};
+        let failCount = 0;
+        let fullMarksCount = 0;
+        for (const v of b.marks) {
+          const pct = b.max_marks > 0 ? (v / b.max_marks) * 100 : 0;
+          const label = bandFor(pct);
+          if (label) gradeCounts[label] = (gradeCounts[label] ?? 0) + 1;
+          if (!isPass(pct, passPct(b))) failCount++;
+          if (v >= b.max_marks) fullMarksCount++;
+        }
+        return {
+          teacher_user_id: b.teacher_user_id, teacher_name: b.teacher_name,
+          subject_id: b.subject_id, subject_name: b.subject_name,
+          max_marks: b.max_marks,
+          marked_count: n,
+          average_marks: n > 0 ? Math.round((sum / n) * 100) / 100 : null,
+          pass_percentage: n > 0 ? Math.round(((n - failCount) / n) * 10000) / 100 : null,
+          highest_marks: n > 0 ? sorted[n - 1] : null,
+          lowest_marks: n > 0 ? sorted[0] : null,
+          median_marks: median,
+          full_marks_count: fullMarksCount, fail_count: failCount,
+          grade_counts: gradeCounts,
+        };
+      })
       .sort((a, b) => (b.average_marks ?? -1) - (a.average_marks ?? -1));
   });
 }
@@ -777,5 +882,204 @@ export async function getTeacherPerformanceTrend(
         percentage: r.sum_max && Number(r.sum_max) > 0 ? Math.round((Number(r.sum_marks) / Number(r.sum_max)) * 10000) / 100 : 0,
       }))
       .reverse(); // oldest -> newest, left-to-right on a trend chart
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Result Analysis — Subject-wise (grouped by Grade/class, never merged
+// across grades — a "Std 6 Maths" score distribution is not comparable to
+// a "Std 10 Maths" one) and the Class-wise marks-distribution histogram.
+// Both added for the Result Analysis & Reporting spec's remaining two
+// report levels; everything above this point in the file already covered
+// School/Section/Grade("class")/Stage("section")/Teacher-wise.
+// ---------------------------------------------------------------------------
+export interface SubjectBelowThresholdRow { student_id: string; student_name: string; marks_obtained: number; percentage: number }
+export interface SubjectGradeGroupRow {
+  class_id: string; class_name: string;
+  subject_id: string; subject_name: string;
+  max_marks: number;
+  count: number; average_percent: number | null; max_obtained: number | null; min_obtained: number | null;
+  pass_count: number; fail_count: number; pass_percentage: number | null;
+  // Top 2-3 bands by rank (min_percent desc) that actually have at least
+  // one student in them for this subject — never hardcoded label names
+  // (§K); the caller decides how many of these to show.
+  top_band_counts: { grade_label: string; color: string | null; count: number }[];
+  // Weakest-first (ascending percentage) — capped so a large class doesn't
+  // return its entire roster.
+  below_threshold: SubjectBelowThresholdRow[];
+}
+
+/** "Subject wise" analysis, grouped by Grade (class) per the Result
+ *  Analysis spec — a subject's stats are only ever meaningful within one
+ *  grade level, so this never merges "Std 6 Maths" and "Std 10 Maths" into
+ *  one row the way a naive subject-only group-by would. Restricted to
+ *  students actually enrolled (student_enrollments, status='active') in
+ *  the exact class/division this exam_classes row covers, matching
+ *  getTeacherExamReport()'s own "Students" roster-size convention. Pass/
+ *  fail always goes through isPass() against this subject's own
+ *  pass_marks; grade bands always through the exam's own grade_scale_id —
+ *  never a literal threshold or label here. */
+export async function getSubjectWiseByGrade(
+  institutionId: string, authUserId: string, examinationId: string, belowThresholdLimit = 15
+): Promise<SubjectGradeGroupRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: examRow } = await scoped.query<{ academic_year_id: string; grade_scale_id: string | null }>(
+      "select academic_year_id, grade_scale_id from examinations where id = $1", [examinationId]
+    );
+    if (examRow.length === 0) return [];
+    const { academic_year_id: academicYearId, grade_scale_id: gradeScaleId } = examRow[0];
+
+    const { rows: bandRows } = gradeScaleId
+      ? await scoped.query<{ min_percent: string; max_percent: string; grade_label: string; color: string | null }>(
+          "select min_percent, max_percent, grade_label, color from grade_bands where grade_scale_id = $1 order by min_percent desc",
+          [gradeScaleId]
+        )
+      : { rows: [] as { min_percent: string; max_percent: string; grade_label: string; color: string | null }[] };
+    const bands = bandRows.map((b) => ({ min: Number(b.min_percent), max: Number(b.max_percent), label: b.grade_label, color: b.color }));
+    const bandFor = (pct: number) => bands.find((b) => pct >= b.min && pct <= b.max) ?? null;
+
+    const { rows } = await scoped.query<{
+      class_id: string; class_name: string; sort_order: number;
+      subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
+      student_id: string; student_name: string; marks_obtained: string | null; is_absent: boolean;
+    }>(
+      `select distinct c.id as class_id, c.name as class_name, c.sort_order,
+              es.subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
+              se.student_id, s.full_name as student_name, m.marks_obtained, coalesce(m.is_absent, false) as is_absent
+         from exam_classes ec
+         join classes c on c.id = ec.class_id
+         join exam_subjects es on es.examination_id = ec.examination_id
+         join subjects sub on sub.id = es.subject_id
+         join student_enrollments se on se.class_id = ec.class_id and se.academic_year_id = $2 and se.status = 'active'
+              and (ec.section_id is null or se.section_id = ec.section_id)
+         join students s on s.id = se.student_id
+         left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id and m.entry_status in ('approved', 'locked')
+        where ec.examination_id = $1
+        order by c.sort_order, sub.name, s.full_name`,
+      [examinationId, academicYearId]
+    );
+
+    interface Bucket {
+      class_id: string; class_name: string; subject_id: string; subject_name: string;
+      max_marks: number; pass_marks: number;
+      entries: { student_id: string; student_name: string; marks_obtained: number | null; is_absent: boolean }[];
+    }
+    const buckets = new Map<string, Bucket>();
+    for (const r of rows) {
+      const key = `${r.class_id}::${r.subject_id}`;
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          class_id: r.class_id, class_name: r.class_name, subject_id: r.subject_id, subject_name: r.subject_name,
+          max_marks: Number(r.max_marks), pass_marks: Number(r.pass_marks), entries: [],
+        });
+      }
+      buckets.get(key)!.entries.push({
+        student_id: r.student_id, student_name: r.student_name,
+        marks_obtained: r.marks_obtained !== null ? Number(r.marks_obtained) : null, is_absent: r.is_absent,
+      });
+    }
+
+    return Array.from(buckets.values()).map((b): SubjectGradeGroupRow => {
+      const passPct = b.max_marks > 0 ? (b.pass_marks / b.max_marks) * 100 : 0;
+      const marked = b.entries.filter((e) => e.marks_obtained !== null && !e.is_absent);
+      const pctOf = (v: number) => (b.max_marks > 0 ? (v / b.max_marks) * 100 : 0);
+
+      const bandCounts = new Map<string, number>();
+      const belowThreshold: SubjectBelowThresholdRow[] = [];
+      let passCount = 0;
+      let sum = 0, max = -Infinity, min = Infinity;
+      for (const e of marked) {
+        const v = e.marks_obtained!;
+        sum += v; max = Math.max(max, v); min = Math.min(min, v);
+        const pct = pctOf(v);
+        const band = bandFor(pct);
+        if (band) bandCounts.set(band.label, (bandCounts.get(band.label) ?? 0) + 1);
+        if (isPass(pct, passPct)) {
+          passCount++;
+        } else {
+          belowThreshold.push({ student_id: e.student_id, student_name: e.student_name, marks_obtained: v, percentage: Math.round(pct * 100) / 100 });
+        }
+      }
+      belowThreshold.sort((a, b2) => a.percentage - b2.percentage);
+
+      const topBandCounts = bands
+        .filter((band) => bandCounts.has(band.label))
+        .slice(0, 3)
+        .map((band) => ({ grade_label: band.label, color: band.color, count: bandCounts.get(band.label)! }));
+
+      return {
+        class_id: b.class_id, class_name: b.class_name, subject_id: b.subject_id, subject_name: b.subject_name,
+        max_marks: b.max_marks,
+        count: marked.length,
+        average_percent: marked.length > 0 ? Math.round((sum / marked.length / b.max_marks) * 10000) / 100 : null,
+        max_obtained: marked.length > 0 ? max : null, min_obtained: marked.length > 0 ? min : null,
+        pass_count: passCount, fail_count: marked.length - passCount,
+        pass_percentage: marked.length > 0 ? Math.round((passCount / marked.length) * 10000) / 100 : null,
+        top_band_counts: topBandCounts,
+        below_threshold: belowThreshold.slice(0, belowThresholdLimit),
+      };
+    }).sort((a, b) => a.class_name.localeCompare(b.class_name) || a.subject_name.localeCompare(b.subject_name));
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Class-wise marks-distribution histogram — bucket edges built dynamically
+// from the tenant's own GradeBand rows (never hardcoded cutoffs), plus a
+// final synthetic "Below PassPct" bucket per the spec.
+// ---------------------------------------------------------------------------
+export interface HistogramBucket { label: string; count: number; color: string }
+
+export async function getClassMarksHistogram(
+  institutionId: string, authUserId: string, examinationId: string, classId: string
+): Promise<HistogramBucket[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: examRow } = await scoped.query<{ academic_year_id: string; grade_scale_id: string | null }>(
+      "select academic_year_id, grade_scale_id from examinations where id = $1", [examinationId]
+    );
+    if (examRow.length === 0) return [];
+    const { grade_scale_id: gradeScaleId } = examRow[0];
+
+    const { rows: bandRows } = gradeScaleId
+      ? await scoped.query<{ grade_label: string; color: string | null; min_percent: string }>(
+          "select grade_label, color, min_percent from grade_bands where grade_scale_id = $1 order by min_percent desc",
+          [gradeScaleId]
+        )
+      : { rows: [] as { grade_label: string; color: string | null; min_percent: string }[] };
+
+    const { rows: countRows } = await scoped.query<{ grade_band_id: string | null; count: string }>(
+      `select r.grade_band_id, count(*)::int as count
+         from results r
+         join student_enrollments se on se.student_id = r.student_id and se.academic_year_id = (select academic_year_id from examinations where id = r.examination_id) and se.status = 'active'
+        where r.examination_id = $1 and se.class_id = $2
+        group by r.grade_band_id`,
+      [examinationId, classId]
+    );
+    const { rows: bandIdRows } = gradeScaleId
+      ? await scoped.query<{ id: string; grade_label: string }>("select id, grade_label from grade_bands where grade_scale_id = $1", [gradeScaleId])
+      : { rows: [] as { id: string; grade_label: string }[] };
+    const labelById = new Map(bandIdRows.map((b) => [b.id, b.grade_label]));
+    const countByLabel = new Map<string, number>();
+    for (const c of countRows) {
+      const label = c.grade_band_id ? labelById.get(c.grade_band_id) : null;
+      if (label) countByLabel.set(label, (countByLabel.get(label) ?? 0) + Number(c.count));
+    }
+
+    const buckets: HistogramBucket[] = bandRows.map((b) => ({
+      label: b.grade_label, count: countByLabel.get(b.grade_label) ?? 0, color: b.color ?? PASS_COLOR,
+    }));
+
+    const { rows: instRow } = await scoped.query<{ pass_pct: string }>("select pass_pct from institutions where id = $1", [institutionId]);
+    const passPct = Number(instRow[0]?.pass_pct ?? 35);
+    const { rows: belowRow } = await scoped.query<{ count: string }>(
+      `select count(*)::int as count from results r
+        join student_enrollments se on se.student_id = r.student_id and se.academic_year_id = (select academic_year_id from examinations where id = r.examination_id) and se.status = 'active'
+        where r.examination_id = $1 and se.class_id = $2 and r.percentage < $3`,
+      [examinationId, classId, passPct]
+    );
+    buckets.push({ label: `Below ${passPct}% (PassPct)`, count: Number(belowRow[0]?.count ?? 0), color: FAIL_COLOR });
+
+    return buckets;
   });
 }

@@ -14,6 +14,11 @@ export interface InstitutionSummary {
   appName: string | null;
   primaryColor: string | null;
   logoFileId: string | null;
+  // Result Analysis & Reporting spec — tenant-wide default pass percentage
+  // (institutions.pass_pct, migration 0038). NOT part of grade_bands; a
+  // grade label is purely descriptive, pass/fail is this separate rule.
+  // Per-subject overrides live on exam_subjects.pass_marks instead.
+  passPct: number;
 }
 
 /** The app's built-in look when an institution hasn't picked its own colour
@@ -26,9 +31,9 @@ export async function getInstitution(institutionId: string, authUserId: string):
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{
-      id: string; code: string; name: string; app_name: string | null; primary_color: string | null; logo_file_id: string | null;
+      id: string; code: string; name: string; app_name: string | null; primary_color: string | null; logo_file_id: string | null; pass_pct: string;
     }>(
-      "select id, code, name, app_name, primary_color, logo_file_id from institutions where id = $1",
+      "select id, code, name, app_name, primary_color, logo_file_id, pass_pct from institutions where id = $1",
       [institutionId]
     );
     if (!rows[0]) return null;
@@ -39,7 +44,37 @@ export async function getInstitution(institutionId: string, authUserId: string):
       appName: rows[0].app_name,
       primaryColor: rows[0].primary_color,
       logoFileId: rows[0].logo_file_id,
+      passPct: Number(rows[0].pass_pct),
     };
+  });
+}
+
+const updatePassPctSchema = z.object({ passPct: z.number().min(0).max(100) });
+
+/** Self-service write for the tenant-wide default pass percentage — same
+ *  institutions_update_self RLS policy / settings.manage permission gate
+ *  as updateInstitutionBranding() above. A curriculum preset
+ *  (provisionGradingPreset(), services/super-admin/super-admin-service.ts)
+ *  sets this automatically at onboarding; this is how an admin changes it
+ *  afterward, or sets it at all for a fully custom scale that never went
+ *  through a preset. */
+export async function updateInstitutionPassPct(
+  institutionId: string,
+  authUserId: string,
+  userId: string,
+  input: z.infer<typeof updatePassPctSchema>
+): Promise<void> {
+  const data = updatePassPctSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<{ pass_pct: string }>(
+      "select pass_pct from institutions where id = $1", [institutionId]
+    );
+    await scoped.query("update institutions set pass_pct = $1, updated_at = now() where id = $2", [data.passPct, institutionId]);
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "platform", entityType: "institutions", entityId: institutionId,
+      before: { passPct: before[0] ? Number(before[0].pass_pct) : null }, after: { passPct: data.passPct },
+    });
   });
 }
 
