@@ -170,11 +170,18 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasExaminationAccess ? [{
       kind: "group" as const, label: "Result", icon: ni(ResultIcon),
       items: [
-        { href: "/results", label: "Results" },
-        // §Sidebar-audit: relabeled from bare "Analysis" — that name
-        // collided with the unrelated cross-module /analysis hub (also in
-        // this sidebar, under Mentoring/top-level). This one is specifically
-        // the exam-pattern page at /analytics.
+        // §Sidebar-audit follow-up: the plain "Results" exam-picker
+        // sub-item was removed and Result Analysis promoted to the top —
+        // Result Analysis (the colorful 360°, exam-dropdown-driven
+        // dashboard at /analytics) is now the primary landing spot for
+        // this group, rather than a bare table of exams. "Consolidated
+        // marks" and "Report Cards" still route through /results itself
+        // (it has no separate canonical URL — the exam is picked on that
+        // page), so /results remains fully reachable via those two links.
+        // relabeled from bare "Analysis" — that name collided with the
+        // unrelated cross-module /analysis hub (also in this sidebar,
+        // under Mentoring/top-level). This one is specifically the
+        // exam-pattern page at /analytics.
         { href: "/analytics", label: "Result Analysis" },
         { href: "/results", label: "Consolidated marks" },
         { href: "/results", label: "Report Cards" },
