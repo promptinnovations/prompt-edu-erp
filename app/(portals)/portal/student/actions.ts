@@ -7,6 +7,7 @@ import { getOwnStudentId } from "../../../../modules/portal/service";
 import { createSkillSubmission, submitSkillSubmission } from "../../../../modules/skills/service";
 import { submitAchievement } from "../../../../modules/achievements/service";
 import { submitOwnReadingReview, reactToReview, placeHold, cancelHold } from "../../../../modules/library/service";
+import { sanitizeRichText, isRichTextEmpty } from "../../../../services/content/rich-text";
 
 /** Every action here resolves the caller's OWN studentId server-side —
  *  studentId is never read from form input, so a student can only ever
@@ -69,8 +70,9 @@ export async function submitOwnReadingReviewAction(_prevState: { error: string |
     requirePermission(ctx.permissions, "library.view");
     const ownStudentId = await getOwnStudentId(ctx.institutionId, ctx.session.authUserId, ctx.userId);
     if (!ownStudentId) return { error: "No student record is linked to your account." };
-    const reviewText = String(formData.get("reviewText") ?? "").trim();
-    if (!reviewText) return { error: "Write something about the book first." };
+    const rawReviewText = String(formData.get("reviewText") ?? "");
+    if (isRichTextEmpty(rawReviewText)) return { error: "Write something about the book first." };
+    const reviewText = sanitizeRichText(rawReviewText);
 
     await submitOwnReadingReview(
       ctx.institutionId, ctx.session.authUserId, ownStudentId,

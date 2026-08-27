@@ -4,6 +4,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { getInstitution, getParentPortalSections } from "../../../services/institution/institution-service";
 import LogoForm from "./LogoForm";
+import InstallAppButton from "./InstallAppButton";
 import ParentPortalSectionsForm from "./ParentPortalSectionsForm";
 
 export default async function SettingsPage() {
@@ -34,6 +35,18 @@ export default async function SettingsPage() {
           app currently shows one.
         </p>
         <LogoForm logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null} />
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Install app</h2>
+        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+          {institution?.name} has its own installable app, separate from every other institution — branded with your
+          own name and logo, and kept independent on shared devices.
+        </p>
+        <InstallAppButton
+          appName={institution?.appName || institution?.name || "This institution"}
+          logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null}
+        />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">

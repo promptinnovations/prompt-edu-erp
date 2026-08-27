@@ -50,6 +50,14 @@ export default async function StaffDetailPage({
   const assignments = await listAssignmentsForTeacher(institutionId, authUserId, profile.user_id);
   const isTeacher = assignments.length > 0;
   const canManage = can(ctx.permissions, "staff.edit");
+  // §Staff-profile-self-service follow-up: a staff member editing their OWN
+  // record (never trusted from the client -- see assertStaffSelfOrEditAccess
+  // in actions.ts, which re-derives this server-side on every submit) can
+  // update their personal/bio fields and photo even without staff.edit.
+  // The "official" record (staff code/designation/department/status) stays
+  // staff.edit-only regardless of ownership -- see EditStaffForm below.
+  const isOwnProfile = profile.user_id === ctx.userId;
+  const canEditSelfFields = canManage || isOwnProfile;
   const photoUrl = profile.photo_file_id ? `/api/files/${profile.photo_file_id}` : null;
 
   const header = (
@@ -73,43 +81,71 @@ export default async function StaffDetailPage({
   );
 
   if (!isTeacher) {
-    // Unchanged, plain staff record — the "Teachers only" scope the user
-    // explicitly chose means nothing new is shown here.
+    // §Staff-profile-self-service follow-up: non-teaching staff previously
+    // had no edit affordance here at all (admin or self) -- only the exam
+    // analysis/observations sections are teacher-only; editing one's own
+    // record and photo is not, so this branch now gets the same
+    // EditStaffForm/Photo/TeacherProfileForm treatment as the teacher
+    // branch below, just without the exam-analysis/observations tabs.
     return (
       <div className="space-y-4">
         <Link href="/staff/directory" className="text-sm text-zinc-500 dark:text-zinc-400 underline">← Back to Staff profiles</Link>
         {header}
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Staff ID</dt>
-              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.staff_code}</dd>
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Core identity &amp; employment</h2>
+            <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-zinc-400 dark:text-zinc-500">Staff ID</dt>
+                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.staff_code}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-400 dark:text-zinc-500">Designation</dt>
+                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.designation ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-400 dark:text-zinc-500">Department</dt>
+                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.department ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-400 dark:text-zinc-500">Joining date</dt>
+                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{formatDate(profile.joining_date)}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-400 dark:text-zinc-500">Employment status</dt>
+                <dd className="mt-0.5 capitalize text-zinc-900 dark:text-zinc-50">{profile.employment_status.replace("_", " ")}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-400 dark:text-zinc-500">Email</dt>
+                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.email ?? "—"}</dd>
+              </div>
+            </dl>
+            {canManage ? (
+              <div className="mt-3">
+                <EditStaffForm
+                  staffId={profile.id}
+                  staffCode={profile.staff_code}
+                  fullName={profile.full_name}
+                  designation={profile.designation}
+                  department={profile.department}
+                  employmentStatus={profile.employment_status}
+                />
+              </div>
+            ) : null}
+            <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">
+              Exam analysis and observation tracking apply only to teaching staff — assign this person a subject via Staff &gt; Teacher
+              assignments to enable those.
+            </p>
+          </div>
+
+          {canEditSelfFields ? (
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Photo</h2>
+              <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
             </div>
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Designation</dt>
-              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.designation ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Department</dt>
-              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.department ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Joining date</dt>
-              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{formatDate(profile.joining_date)}</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Employment status</dt>
-              <dd className="mt-0.5 capitalize text-zinc-900 dark:text-zinc-50">{profile.employment_status.replace("_", " ")}</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-400 dark:text-zinc-500">Email</dt>
-              <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.email ?? "—"}</dd>
-            </div>
-          </dl>
-          <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">
-            The full Teacher Profile (qualifications, responsibilities, exam analysis, observations) is shown for teaching staff — assign this
-            person a subject via Staff &gt; Teacher assignments to enable it.
-          </p>
+          ) : null}
+
+          {canEditSelfFields ? <TeacherProfileForm profile={profile} /> : null}
         </div>
       </div>
     );
@@ -177,14 +213,14 @@ export default async function StaffDetailPage({
         ) : null}
       </div>
 
-      {canManage ? (
+      {canEditSelfFields ? (
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
           <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Photo</h2>
           <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
         </div>
       ) : null}
 
-      {canManage ? (
+      {canEditSelfFields ? (
         <TeacherProfileForm profile={profile} />
       ) : (
         <p className="text-sm text-zinc-400 dark:text-zinc-500">You don&apos;t have permission to edit this profile.</p>

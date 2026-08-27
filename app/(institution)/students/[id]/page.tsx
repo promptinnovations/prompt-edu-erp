@@ -9,6 +9,10 @@ import { listClasses, listSections, getCurrentAcademicYear } from "../../../../m
 import { getStudent360 } from "../../../../modules/portfolio/service";
 import { getStudentExamReport } from "../../../../modules/examination/service";
 import { getStudentMonthlyAttendance } from "../../../../modules/attendance/service";
+import { listAchievements } from "../../../../modules/achievements/service";
+import { listSkillSubmissions } from "../../../../modules/skills/service";
+import { listReadingRecords } from "../../../../modules/library/service";
+import RichTextContent from "../../../components/RichTextContent";
 import EnrollForm from "../EnrollForm";
 import ClassEnrollmentSection from "../ClassEnrollmentSection";
 import ParentSection, { ProvisionStudentAccountForm } from "../ParentSection";
@@ -50,6 +54,7 @@ export default async function StudentDetailPage({
 
   const [
     enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
+    approvedAchievements, approvedSkillSubmissions, approvedReadingRecords,
   ] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
     listClasses(institutionId, authUserId),
@@ -59,6 +64,9 @@ export default async function StudentDetailPage({
     listEnrollmentHistory(institutionId, authUserId, id),
     getStudent360(institutionId, authUserId, id),
     getStudentExamReport(institutionId, authUserId, id),
+    listAchievements(institutionId, authUserId, "approved", undefined, id),
+    listSkillSubmissions(institutionId, authUserId, "approved", undefined, id),
+    listReadingRecords(institutionId, authUserId, "approved", undefined, id),
   ]);
   const monthlyAttendance = academicYear
     ? await getStudentMonthlyAttendance(institutionId, authUserId, id, academicYear.start_date, academicYear.end_date)
@@ -263,29 +271,184 @@ export default async function StudentDetailPage({
     </div>
   );
 
+  // §384 Complete Student Portfolio — every section below reuses an
+  // existing module's own service getter and existing schema (no new
+  // tables/columns). Achievement categories/skill types are each
+  // institution's own configurable free-text taxonomy (Settings ->
+  // Grading & points), so grouping achievements by their real category
+  // name is what naturally produces institution-specific sections like
+  // "Competitions" or "Certifications" rather than a hardcoded split.
+  const achievementsByCategory = new Map<string, typeof approvedAchievements>();
+  for (const a of approvedAchievements) {
+    const list = achievementsByCategory.get(a.category_name) ?? [];
+    list.push(a);
+    achievementsByCategory.set(a.category_name, list);
+  }
+  const certifiedAchievements = approvedAchievements.filter((a) => a.certificate_file_id);
+
   const portfolioTab = (
-    <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-      <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
-        Only approved activities appear here — nothing pending or rejected ever shows up (§L.3). This is the original evidence of what {profile.full_name} has done so far.
+    <div className="space-y-6">
+      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+        Only approved activities appear here — nothing pending or rejected ever shows up (§L.3). This is the verified record of what {profile.full_name} has achieved and worked on so far.
       </p>
-      <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-        {student360.recentPortfolioEvents.map((e) => (
-          <li key={e.id} className="flex items-center justify-between py-2 text-sm">
-            <div>
-              <div className="text-zinc-900 dark:text-zinc-50">{e.title}</div>
-              {e.description ? <div className="text-xs text-zinc-500 dark:text-zinc-400">{e.description}</div> : null}
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Academic performance</h2>
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
+            <div className="text-xs text-zinc-400 dark:text-zinc-500">Latest result</div>
+            <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              {student360.latestResult ? `${Number(student360.latestResult.percentage).toFixed(1)}%` : "—"}
             </div>
-            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-              {e.score !== null ? <span>{e.score} pts</span> : null}
-              <span>{e.event_date}</span>
+            {student360.latestResult ? (
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                {student360.latestResult.examination_name}{student360.latestResult.grade_label ? ` — ${student360.latestResult.grade_label}` : ""}
+              </div>
+            ) : null}
+          </div>
+          <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
+            <div className="text-xs text-zinc-400 dark:text-zinc-500">Attendance (this year)</div>
+            <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              {student360.attendanceSummary ? `${student360.attendanceSummary.present_percent}%` : "—"}
             </div>
-          </li>
-        ))}
-        {student360.recentPortfolioEvents.length === 0 ? (
-          <li className="py-4 text-center text-sm text-zinc-400 dark:text-zinc-500">No approved activities yet.</li>
-        ) : null}
-      </ul>
-    </section>
+          </div>
+          <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
+            <div className="text-xs text-zinc-400 dark:text-zinc-500">Consolidated score</div>
+            <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              {student360.latestConsolidatedScore ? student360.latestConsolidatedScore.score : "—"}
+            </div>
+          </div>
+        </div>
+        {examReport ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <tr><th className="py-1.5 pr-4">Subject</th><th className="py-1.5 pr-4">Marks</th></tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {examReport.subjects.map((s) => (
+                  <tr key={s.subject_id}>
+                    <td className="py-1.5 pr-4 text-zinc-900 dark:text-zinc-50">{s.subject_name}</td>
+                    <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No exam marks recorded yet. Full report cards are under Academics.</p>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Achievements &amp; awards</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Grouped by this institution&apos;s own achievement categories — including competitions, prizes and recognitions.</p>
+        {achievementsByCategory.size === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No approved achievements yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {Array.from(achievementsByCategory.entries()).map(([category, items]) => (
+              <div key={category}>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{category}</h3>
+                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {items!.map((a) => (
+                    <li key={a.id} className="flex items-center justify-between rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
+                      <div>
+                        <div className="text-zinc-900 dark:text-zinc-50">{a.title}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {a.level_name}{a.position ? ` · ${a.position}` : ""}
+                        </div>
+                      </div>
+                      {a.points ? <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{a.points} pts</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Certifications</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Achievements with an uploaded certificate document.</p>
+        {certifiedAchievements.length === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No certificates uploaded yet.</p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {certifiedAchievements.map((a) => (
+              <li key={a.id} className="flex items-center justify-between rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
+                <div>
+                  <div className="text-zinc-900 dark:text-zinc-50">{a.title}</div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">{a.category_name}</div>
+                </div>
+                <a href={`/api/files/${a.certificate_file_id}`} target="_blank" rel="noreferrer" className="text-xs font-medium text-[var(--brand)] underline">
+                  View certificate
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Skills &amp; co-curricular activities</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Approved skill/activity submissions — sports, arts, clubs and other co-curricular participation, per this institution&apos;s own configured activities.</p>
+        {approvedSkillSubmissions.length === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No approved skill submissions yet.</p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {approvedSkillSubmissions.map((s) => (
+              <li key={s.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
+                <div className="text-zinc-900 dark:text-zinc-50">{s.activity_name}</div>
+                {s.submitted_at ? <div className="text-xs text-zinc-500 dark:text-zinc-400">{formatDate(s.submitted_at)}</div> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading record</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Books read with an approved review.</p>
+        {approvedReadingRecords.length === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No approved reading reviews yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {approvedReadingRecords.map((r) => (
+              <li key={r.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
+                <div className="mb-1 font-medium text-zinc-900 dark:text-zinc-50">{r.book_title}</div>
+                {r.review_text ? <RichTextContent html={r.review_text} /> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Activity timeline</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">A chronological view across every module — projects, accomplishments and other development records all flow through here as they&apos;re approved.</p>
+        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          {student360.recentPortfolioEvents.map((e) => (
+            <li key={e.id} className="flex items-center justify-between py-2 text-sm">
+              <div>
+                <div className="text-zinc-900 dark:text-zinc-50">{e.title}</div>
+                {e.description ? <div className="text-xs text-zinc-500 dark:text-zinc-400">{e.description}</div> : null}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                {e.score !== null ? <span>{e.score} pts</span> : null}
+                <span>{e.event_date}</span>
+              </div>
+            </li>
+          ))}
+          {student360.recentPortfolioEvents.length === 0 ? (
+            <li className="py-4 text-center text-sm text-zinc-400 dark:text-zinc-500">No approved activities yet.</li>
+          ) : null}
+        </ul>
+      </section>
+    </div>
   );
 
   const academicsTab = (

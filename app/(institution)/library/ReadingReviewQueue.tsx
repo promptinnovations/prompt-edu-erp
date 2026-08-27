@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { submitReadingReviewAction, approveReadingRecordAction, rejectReadingRecordAction } from "./actions";
+import RichTextContent from "../../components/RichTextContent";
 
 export interface ReadingRecordRow {
   id: string; student_name: string; book_title: string; review_text: string | null; review_status: string;
@@ -57,8 +58,8 @@ export default function ReadingReviewQueue({
           <tr key={r.id}>
             <td className="py-1.5">{r.student_name}</td>
             <td className="py-1.5">{r.book_title}</td>
-            <td className="py-1.5">
-              {r.review_text ?? <SubmitReviewForm readingRecordId={r.id} />}
+            <td className="py-1.5 max-w-xs">
+              {r.review_text ? <RichTextContent html={r.review_text} className="text-sm" /> : <SubmitReviewForm readingRecordId={r.id} />}
             </td>
             <td className="py-1.5">
               {canReview ? (

@@ -8,12 +8,31 @@ import {
   createPortionPlan, recordPortionCompletion,
   recordTeacherObservation, createTeacherAssignment,
   createStaffLoginAccount, resetStaffLoginPassword,
-  updateStaffMember, updateStaffProfile, updateStaffPhoto,
+  updateStaffMember, updateStaffProfile, updateStaffPhoto, getStaffProfile,
   createObservationCriterion, updateObservationCriterion, deleteObservationCriterion,
   recordTeacherObservationWithRubric,
 } from "../../../modules/staff/service";
 import { assignSectionHead, removeSectionHeadAssignment } from "../../../services/scope/section-head-scope-service";
 import { uploadFile } from "../../../services/storage/file-service";
+import type { RequestContext } from "../../../types/context";
+
+/** §Staff-profile-self-service follow-up ("Individual Staff users can view
+ *  and edit their own profile/details") -- the "personal" surface (bio
+ *  fields via updateStaffProfileAction + photo) is editable either by
+ *  someone holding the institution-wide `staff.edit` permission (admin/HR,
+ *  unchanged) OR by the staff member editing their OWN record, identified
+ *  server-side via staff.user_id === the caller's own user id (never
+ *  trusted from the client). The "official" record (staff code,
+ *  designation, department, employment status -- see updateStaffAction)
+ *  deliberately stays `staff.edit`-only: those are HR-owned fields, not
+ *  something a self-edit should be able to change. */
+async function assertStaffSelfOrEditAccess(ctx: RequestContext, staffId: string): Promise<void> {
+  if (can(ctx.permissions, "staff.edit")) return;
+  if (!ctx.institutionId) throw new Error("No active institution.");
+  const profile = await getStaffProfile(ctx.institutionId, ctx.session.authUserId, staffId);
+  if (profile && profile.user_id === ctx.userId) return;
+  throw new Error("You don't have permission to edit this staff profile.");
+}
 
 export async function createStaffAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
@@ -217,9 +236,9 @@ export async function removeSectionHeadAssignmentAction(_prevState: { error: str
 export async function uploadStaffPhotoAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
+  const staffId = String(formData.get("staffId") ?? "");
   try {
-    requirePermission(ctx.permissions, "staff.edit");
-    const staffId = String(formData.get("staffId") ?? "");
+    await assertStaffSelfOrEditAccess(ctx, staffId);
     const photo = formData.get("photo");
     if (!(photo instanceof File) || photo.size === 0) return { error: "Choose an image file to upload." };
 
@@ -239,9 +258,9 @@ export async function uploadStaffPhotoAction(_prevState: { error: string | null 
 export async function removeStaffPhotoAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
+  const staffId = String(formData.get("staffId") ?? "");
   try {
-    requirePermission(ctx.permissions, "staff.edit");
-    const staffId = String(formData.get("staffId") ?? "");
+    await assertStaffSelfOrEditAccess(ctx, staffId);
     await updateStaffPhoto(ctx.institutionId, ctx.session.authUserId, ctx.userId, staffId, null);
     revalidatePath(`/staff/${staffId}`);
     revalidatePath("/staff/directory");
@@ -285,7 +304,7 @@ export async function updateStaffProfileAction(_prevState: { error: string | nul
   const staffId = String(formData.get("staffId") ?? "");
   const field = (name: string) => String(formData.get(name) ?? "") || null;
   try {
-    requirePermission(ctx.permissions, "staff.edit");
+    await assertStaffSelfOrEditAccess(ctx, staffId);
     await updateStaffProfile(ctx.institutionId, ctx.session.authUserId, ctx.userId, staffId, {
       dateOfBirth: field("dateOfBirth"),
       gender: field("gender"),

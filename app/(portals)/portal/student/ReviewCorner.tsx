@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { reactToReviewAction } from "./actions";
+import RichTextContent from "../../../components/RichTextContent";
 
 export interface ApprovedReviewProps {
   id: string; book_title: string; student_name: string; review_text: string;
@@ -44,12 +45,12 @@ export default function ReviewCorner({ reviews }: { reviews: ApprovedReviewProps
   return (
     <div className="space-y-4">
       {reviews.map((r) => (
-        <div key={r.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{r.book_title}</p>
+        <div key={r.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{r.book_title}</p>
             <span className="text-xs text-zinc-400 dark:text-zinc-500">by {r.student_name}</span>
           </div>
-          <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-400">{r.review_text}</p>
+          <RichTextContent html={r.review_text} className="mb-3" />
           <div className="flex items-center gap-2">
             <ReactButton readingRecordId={r.id} reaction="like" label={`👍 ${r.like_count}`} active={r.my_reaction === "like"} />
             <ReactButton readingRecordId={r.id} reaction="dislike" label={`👎 ${r.dislike_count}`} active={r.my_reaction === "dislike"} />

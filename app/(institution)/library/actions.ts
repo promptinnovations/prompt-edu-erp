@@ -7,6 +7,7 @@ import {
   createBook, issueBook, returnBook, submitReadingReview, reviewReadingRecord,
   createAuthor, createPublisher, createBookCategory, createShelf, cancelHold,
 } from "../../../modules/library/service";
+import { sanitizeRichText } from "../../../services/content/rich-text";
 
 // A blank string from an unselected <select> and a blank string from an
 // empty text input are indistinguishable via FormData — normalize both to
@@ -106,7 +107,10 @@ export async function submitReadingReviewAction(_prevState: { error: string | nu
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
     requirePermission(ctx.permissions, "library.view");
-    await submitReadingReview(ctx.institutionId, ctx.session.authUserId, String(formData.get("readingRecordId") ?? ""), String(formData.get("reviewText") ?? ""));
+    await submitReadingReview(
+      ctx.institutionId, ctx.session.authUserId, String(formData.get("readingRecordId") ?? ""),
+      sanitizeRichText(String(formData.get("reviewText") ?? ""))
+    );
     revalidatePath("/library");
     return { error: null };
   } catch (err) {

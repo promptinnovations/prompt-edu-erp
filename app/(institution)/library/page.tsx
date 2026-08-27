@@ -12,6 +12,7 @@ import IssueBookForm from "./IssueBookForm";
 import ReturnBookForm from "./ReturnBookForm";
 import ReadingReviewQueue from "./ReadingReviewQueue";
 import HoldsWaitlist from "./HoldsWaitlist";
+import RichTextContent from "../../components/RichTextContent";
 
 export default async function LibraryPage() {
   const ctx = await requireRequestContext();
@@ -138,14 +139,14 @@ export default async function LibraryPage() {
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Review Corner</h2>
         <div className="space-y-3">
           {approvedReviews.map((r) => (
-            <div key={r.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
-              <div className="mb-1 flex items-center justify-between">
-                <span className="font-medium text-zinc-800 dark:text-zinc-200">{r.book_title}</span>
+            <div key={r.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-sm shadow-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{r.book_title}</span>
                 <span className="text-xs text-zinc-400 dark:text-zinc-500">
                   by {r.student_name} · 👍 {r.like_count} · 👎 {r.dislike_count}
                 </span>
               </div>
-              <p className="text-zinc-600 dark:text-zinc-400">{r.review_text}</p>
+              <RichTextContent html={r.review_text} />
             </div>
           ))}
           {approvedReviews.length === 0 ? (

@@ -2,27 +2,26 @@
 
 import { useActionState } from "react";
 import { submitOwnReadingReviewAction } from "./actions";
+import RichTextEditor from "../../../components/RichTextEditor";
 
 export interface PendingReviewRow { id: string; book_title: string }
 
+/** §Reviews-rich-text follow-up -- was a 2-row plain <textarea>; now a full
+ *  rich-text input (bold/italic/underline, alignment) with a comfortably
+ *  large writing area, reusing the same submitOwnReadingReviewAction and
+ *  reading_records.review_text column. */
 function ReviewForm({ readingRecordId }: { readingRecordId: string }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(submitOwnReadingReviewAction, { error: null });
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2">
+    <form action={formAction} className="space-y-2">
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
-      <div className="flex-1">
-        <textarea
-          name="reviewText"
-          required
-          rows={2}
-          placeholder="What did you think of this book?"
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
-        />
+      <RichTextEditor name="reviewText" placeholder="What did you think of this book?" minHeightClassName="min-h-[8rem]" />
+      <div className="flex items-center gap-2">
+        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-4 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          Post review
+        </button>
+        {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
       </div>
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
-        Post review
-      </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
     </form>
   );
 }
