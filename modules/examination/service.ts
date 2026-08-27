@@ -986,7 +986,7 @@ export async function getInstitutionPassRateTrend(institutionId: string, authUse
          join results r on r.examination_id = e.id
         group by e.id, e.name, e.start_date, e.created_at
        having count(distinct r.student_id) > 0
-        order by coalesce(e.start_date, e.created_at::date) desc
+        order by coalesce(e.start_date, e.created_at::date) desc, e.created_at desc
         limit $1`,
       [limit]
     );
@@ -996,5 +996,73 @@ export async function getInstitutionPassRateTrend(institutionId: string, authUse
         percentage: Number(r.total) > 0 ? Math.round((Number(r.passed) / Number(r.total)) * 10000) / 100 : 0,
       }))
       .reverse();
+  });
+}
+
+export interface PassRateTrendByStagePoint {
+  examinationId: string; examinationName: string; stage: string; percentage: number; totalStudents: number;
+}
+
+/** §Dashboard follow-up ("do the same of attendance trend for [pass rate]
+ * as well — Y axis 0-100%, X-axis each exams — different section different
+ * colour"): the same institution-wide pass-rate trend as
+ * getInstitutionPassRateTrend() above, broken out per school STAGE
+ * (classes.stage) instead of collapsed into one bar per exam — same
+ * "one line per stage" shape as getInstitutionAttendanceTrendByStage() in
+ * modules/attendance/service.ts, just X-axis = exam name instead of date.
+ * A student's stage is resolved via their ACTIVE enrollment for the exam's
+ * own academic year (matches getResultsByStage()'s convention in
+ * modules/analytics/service.ts, so a student promoted since the exam still
+ * counts under the stage they actually sat it in); classes with no stage
+ * set are grouped under 'Unspecified' rather than dropped. Only
+ * examinations that already have at least one computed result are
+ * included, same as the non-stage version. */
+export async function getInstitutionPassRateTrendByStage(institutionId: string, authUserId: string, limit = 5): Promise<PassRateTrendByStagePoint[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: exams } = await scoped.query<{ id: string; name: string }>(
+      `select e.id, e.name
+         from examinations e
+         join results r on r.examination_id = e.id
+        group by e.id, e.name, e.start_date, e.created_at
+       having count(distinct r.student_id) > 0
+        order by coalesce(e.start_date, e.created_at::date) desc, e.created_at desc
+        limit $1`,
+      [limit]
+    );
+    if (exams.length === 0) return [];
+    const examIds = exams.map((e) => e.id);
+
+    const { rows } = await scoped.query<{ examination_id: string; stage: string; total: string; passed: string }>(
+      `select r.examination_id, coalesce(c.stage, 'Unspecified') as stage,
+              count(r.id) as total, count(*) filter (where r.is_pass) as passed
+         from results r
+         join examinations e2 on e2.id = r.examination_id
+         join student_enrollments se on se.student_id = r.student_id and se.academic_year_id = e2.academic_year_id and se.status = 'active'
+         join classes c on c.id = se.class_id
+        where r.examination_id = any($1::uuid[])
+        group by r.examination_id, coalesce(c.stage, 'Unspecified')`,
+      [examIds]
+    );
+
+    const nameById = new Map(exams.map((e) => [e.id, e.name]));
+    // Oldest-to-newest (left-to-right on a trend chart), matching
+    // getInstitutionPassRateTrend()'s own .reverse() of its DESC query.
+    const orderedIds = [...examIds].reverse();
+    return orderedIds.flatMap((examId) =>
+      rows
+        .filter((r) => r.examination_id === examId)
+        .map((r) => {
+          const total = Number(r.total);
+          const passed = Number(r.passed);
+          return {
+            examinationId: examId,
+            examinationName: nameById.get(examId)!,
+            stage: r.stage,
+            percentage: total > 0 ? Math.round((passed / total) * 10000) / 100 : 0,
+            totalStudents: total,
+          };
+        })
+    );
   });
 }

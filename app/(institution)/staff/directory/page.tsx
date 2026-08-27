@@ -48,9 +48,18 @@ export default async function StaffDirectoryPage() {
                   href={`/staff/${s.id}`}
                   className="flex flex-col items-center rounded-xl border border-transparent p-4 text-center hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                 >
-                  <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-800">
-                    {s.full_name.charAt(0).toUpperCase()}
-                  </span>
+                  {s.photo_file_id ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- avatar thumbnail from an authenticated /api/files route, not a static/optimizable asset
+                    <img
+                      src={`/api/files/${s.photo_file_id}`}
+                      alt=""
+                      className="h-20 w-20 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
+                    />
+                  ) : (
+                    <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-800">
+                      {s.full_name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   <div className="mt-3 text-sm font-medium text-zinc-900 dark:text-zinc-50">{s.full_name}</div>
                   <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{s.designation ?? "—"}</div>
                   <div className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{s.staff_code}</div>

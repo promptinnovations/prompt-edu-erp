@@ -8,7 +8,7 @@ import { getOnboardingChecklist } from "../../../services/onboarding/onboarding-
 import { can } from "../../../services/permissions/permission-service";
 import { getInstitutionStats, getTodayAttendanceSummary, getUpcomingItems } from "../../../services/home/home-service";
 import { listMyTodos } from "../../../services/todo/todo-service";
-import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrend } from "../../../modules/examination/service";
+import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrendByStage } from "../../../modules/examination/service";
 import {
   getInstitutionAttendanceTrend, getInstitutionAttendanceTrendByStage, getConsecutiveAbsentees,
   getPendingLeaveApplicationsForReviewer,
@@ -23,6 +23,7 @@ import {
 import AttendanceTrendChart from "../../components/AttendanceTrendChart";
 import AttendanceStageTrendChart from "../../components/AttendanceStageTrendChart";
 import ConsecutiveAbsenteesList from "../../components/ConsecutiveAbsenteesList";
+import PassRateStageTrendChart from "../../components/PassRateStageTrendChart";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -73,9 +74,12 @@ export default async function DashboardPage() {
   // sections" to plot).
   const isSectionOrAbove = attendanceVisibility.hasAccess && !attendanceVisibility.scope?.classIds;
 
-  const [markEntryStatus, passRateTrend, upcoming, attendanceTrend, attendanceTrendByStage, consecutiveAbsentees, pendingLeave] = await Promise.all([
+  const [markEntryStatus, passRateTrendByStage, upcoming, attendanceTrend, attendanceTrendByStage, consecutiveAbsentees, pendingLeave] = await Promise.all([
     hasExaminationAccess && recentExam ? getMarkEntryStatus(institutionId, authUserId, recentExam.id) : Promise.resolve([]),
-    hasExaminationAccess ? getInstitutionPassRateTrend(institutionId, authUserId, 5) : Promise.resolve([]),
+    // §Dashboard follow-up: "do the same of attendance trend for [pass
+    // rate] as well - Y axis 0-100%, X-axis each exams - different section
+    // different colour".
+    hasExaminationAccess ? getInstitutionPassRateTrendByStage(institutionId, authUserId, 5) : Promise.resolve([]),
     getUpcomingItems(institutionId, authUserId, 6),
     // §Page-4 follow-up "Attendance analytics — growth and fall diagram,
     // recent days", also available on Dashboard (compact) per spec. Kept
@@ -138,8 +142,6 @@ export default async function DashboardPage() {
     ["Teachers", stats.teachers],
     ["Staff", stats.staff],
   ];
-
-  const maxPassRate = Math.max(1, ...passRateTrend.map((p) => p.percentage));
 
   return (
     <div className="space-y-6">
@@ -233,18 +235,13 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          {hasExaminationAccess && passRateTrend.length > 0 ? (
+          {hasExaminationAccess && passRateTrendByStage.length > 0 ? (
             <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-              <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pass rate trend</h3>
-              <div className="flex items-end gap-3" style={{ height: 90 }}>
-                {passRateTrend.map((p) => (
-                  <div key={p.examinationId} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{p.percentage}%</span>
-                    <div className="w-full rounded-t bg-[var(--brand)]/70" style={{ height: `${Math.max(4, (p.percentage / maxPassRate) * 60)}px` }} />
-                    <span className="max-w-full truncate text-[10px] text-zinc-400 dark:text-zinc-500" title={p.examinationName}>{p.examinationName}</span>
-                  </div>
-                ))}
+              <div className="mb-1 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pass rate trend</h3>
+                <Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
+              <PassRateStageTrendChart points={passRateTrendByStage} />
             </section>
           ) : null}
 

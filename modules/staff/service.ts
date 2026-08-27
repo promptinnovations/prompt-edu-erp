@@ -39,6 +39,11 @@ export interface StaffRecord {
 }
 export interface StaffRow extends StaffRecord {
   full_name: string; email: string | null; has_login: boolean;
+  // §Staff photo follow-up ("once photo is added it should be visible
+  // everywhere"): listStaff()/getStaffMember() below now select this so
+  // the Staff directory card grid can show the same photo the profile
+  // page already does, instead of only ever rendering initials.
+  photo_file_id: string | null;
 }
 export interface StaffAttendanceGridRow {
   staff_id: string; full_name: string; staff_code: string;
@@ -162,7 +167,7 @@ export async function listStaff(institutionId: string, authUserId: string, emplo
     const { rows } = employmentStatus
       ? await scoped.query<StaffRow>(
           `select st.id, st.user_id, st.staff_code, st.designation, st.department, st.joining_date, st.employment_status,
-                  u.full_name, u.email, (u.auth_user_id is not null) as has_login
+                  st.photo_file_id, u.full_name, u.email, (u.auth_user_id is not null) as has_login
              from staff st join users u on u.id = st.user_id
             where st.employment_status = $1
             order by u.full_name`,
@@ -170,7 +175,7 @@ export async function listStaff(institutionId: string, authUserId: string, emplo
         )
       : await scoped.query<StaffRow>(
           `select st.id, st.user_id, st.staff_code, st.designation, st.department, st.joining_date, st.employment_status,
-                  u.full_name, u.email, (u.auth_user_id is not null) as has_login
+                  st.photo_file_id, u.full_name, u.email, (u.auth_user_id is not null) as has_login
              from staff st join users u on u.id = st.user_id
             order by u.full_name`
         );
@@ -183,7 +188,7 @@ export async function getStaffMember(institutionId: string, authUserId: string, 
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StaffRow>(
       `select st.id, st.user_id, st.staff_code, st.designation, st.department, st.joining_date, st.employment_status,
-              u.full_name, u.email, (u.auth_user_id is not null) as has_login
+              st.photo_file_id, u.full_name, u.email, (u.auth_user_id is not null) as has_login
          from staff st join users u on u.id = st.user_id
         where st.id = $1`,
       [staffId]
@@ -212,7 +217,7 @@ export async function updateStaffMember(
   const data = updateStaffSchema.parse(input);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: staffRows } = await scoped.query<StaffRecord>(
+    const { rows: staffRows } = await scoped.query<StaffRecord & { photo_file_id: string | null }>(
       `update staff set
          staff_code = coalesce($1, staff_code),
          designation = coalesce($2, designation),
@@ -220,7 +225,7 @@ export async function updateStaffMember(
          employment_status = coalesce($4, employment_status),
          updated_at = now()
        where id = $5
-       returning id, user_id, staff_code, designation, department, joining_date, employment_status`,
+       returning id, user_id, staff_code, designation, department, joining_date, employment_status, photo_file_id`,
       [data.staffCode ?? null, data.designation ?? null, data.department ?? null, data.employmentStatus ?? null, staffId]
     );
     if (staffRows.length === 0) return null;

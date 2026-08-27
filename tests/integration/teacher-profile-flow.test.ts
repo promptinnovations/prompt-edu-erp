@@ -19,7 +19,7 @@ import { getPermissionsForUser, requirePermission } from "../../services/permiss
 import { createClass, createSection, createSubject, getCurrentAcademicYear } from "../../modules/academic/service";
 import { createStudent } from "../../modules/students/service";
 import {
-  createStaffMember, createTeacherAssignment,
+  createStaffMember, createTeacherAssignment, listStaff, getStaffMember,
   getStaffProfile, updateStaffProfile, updateStaffPhoto,
   listObservationCriteria, createObservationCriterion, updateObservationCriterion, deleteObservationCriterion,
   recordTeacherObservationWithRubric, listTeacherObservations,
@@ -166,8 +166,18 @@ describe("Staff profile read/write (§Teacher-Profile, migration 0036)", () => {
     await updateStaffPhoto(institutionA, adminAuth, adminUserId, teacherHsId, uploaded.id);
     expect((await getStaffProfile(institutionA, adminAuth, teacherHsId))?.photo_file_id).toBe(uploaded.id);
 
+    // §Staff-photo-visibility follow-up ("once photo is added it should be
+    // visible everywhere") -- listStaff()/getStaffMember() are what feeds
+    // the Staff directory card grid (a DIFFERENT query than
+    // getStaffProfile() above, which only backs the profile page itself),
+    // and must reflect the same photo, not just the profile page.
+    const directoryRow = (await listStaff(institutionA, adminAuth)).find((s) => s.id === teacherHsId);
+    expect(directoryRow?.photo_file_id).toBe(uploaded.id);
+    expect((await getStaffMember(institutionA, adminAuth, teacherHsId))?.photo_file_id).toBe(uploaded.id);
+
     await updateStaffPhoto(institutionA, adminAuth, adminUserId, teacherHsId, null);
     expect((await getStaffProfile(institutionA, adminAuth, teacherHsId))?.photo_file_id).toBeNull();
+    expect((await listStaff(institutionA, adminAuth)).find((s) => s.id === teacherHsId)?.photo_file_id).toBeNull();
 
     const adminB = await seedDemoUser(await getDbClient(), institutionB, "admin@tp-b.example", "TP B Admin", "institution_admin");
     const fileInB = await uploadFile(institutionB, adminB.authUserId, adminB.userId, {
