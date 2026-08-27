@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import ThemeToggle from "./ThemeToggle";
 
 /**
  * Off-canvas sidebar shell shared by (institution)/layout.tsx and
@@ -15,7 +14,7 @@ import ThemeToggle from "./ThemeToggle";
  * surface (independent of the app-wide light/dark content toggle) — the
  * same "nav stays dark, content area can be either" pattern used by most
  * modern dashboards (Vercel, Linear, Discord). A gradient logo badge and
- * the light/dark ThemeToggle live in the rail itself.
+ * A gradient logo badge lives in the rail itself.
  *
  * "Separate apps for each institution ... only their thing should be
  * highlighted" follow-up: the institution's own name/logo is the only
@@ -78,7 +77,6 @@ export default function ResponsiveSidebar({
         </button>
         {badge("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs")}
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{brandLabel}</span>
-        <ThemeToggle compact />
       </div>
 
       {open ? (
@@ -113,12 +111,7 @@ export default function ResponsiveSidebar({
 
         {children}
 
-        <div className="mt-4 flex items-center justify-between border-t border-[var(--sidebar-border)] pt-4">
-          <span className="text-[11px] text-[var(--sidebar-text-muted)]">Appearance</span>
-          <ThemeToggle compact />
-        </div>
-
-        <div className="mt-3 truncate text-center text-[10px] uppercase tracking-wide text-[var(--sidebar-text-muted)]">
+        <div className="mt-4 truncate border-t border-[var(--sidebar-border)] pt-4 text-center text-[10px] uppercase tracking-wide text-[var(--sidebar-text-muted)]">
           PROMPT EDU ERP · Prompt Innovations
         </div>
       </aside>

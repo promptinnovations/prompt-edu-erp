@@ -67,7 +67,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ size
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #16215c 0%, #1d4ed8 55%, #0d9488 100%)",
+          background: `linear-gradient(135deg, ${identity.badgeGradient[0]} 0%, ${identity.badgeGradient[1]} 55%, ${identity.badgeGradient[2]} 100%)`,
         }}
       >
         <div

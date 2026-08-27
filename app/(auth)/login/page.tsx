@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import LoginForm from "./LoginForm";
 import { getInstitutionPublicSummaryByCode } from "../../../services/institution/institution-service";
+import { getPlatformDefaultPalette } from "../../../services/super-admin/super-admin-service";
+import { getPalette, paletteCssVars } from "../../../services/branding/palettes";
 import { ACTIVE_INSTITUTION_COOKIE } from "../../../services/tenant/institution-cookie";
 
 /**
@@ -15,9 +17,21 @@ import { ACTIVE_INSTITUTION_COOKIE } from "../../../services/tenant/institution-
 export default async function LoginPage() {
   const store = await cookies();
   const code = store.get(ACTIVE_INSTITUTION_COOKIE)?.value ?? null;
-  const institution = code ? await getInstitutionPublicSummaryByCode(code).catch(() => null) : null;
+  const [institution, platformDefaultPalette] = await Promise.all([
+    code ? getInstitutionPublicSummaryByCode(code).catch(() => null) : Promise.resolve(null),
+    getPlatformDefaultPalette(),
+  ]);
   const institutionName = institution?.appName || institution?.name || undefined;
   const logoUrl = institution?.hasLogo ? `/api/institution-logo/${institution.code}` : undefined;
+  // "Never use dark ... give colour combination options" follow-up — this
+  // institution's own chosen palette (or the platform default, for the
+  // generic un-prefixed /login) drives the whole screen below.
+  const palette = getPalette(institution?.themePalette ?? platformDefaultPalette);
 
-  return <LoginForm institutionName={institutionName} logoUrl={logoUrl} />;
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
+      <LoginForm institutionName={institutionName} logoUrl={logoUrl} />
+    </>
+  );
 }

@@ -3,6 +3,8 @@ import type { ComponentType, SVGProps } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../services/request-context";
 import { getInstitution, getEnabledUiLanguages } from "../../services/institution/institution-service";
+import { getPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
+import { getPalette, paletteCssVars } from "../../services/branding/palettes";
 import { getEnabledModuleCodes } from "../../services/modules/module-service";
 import { getRoleCodesForUser, can } from "../../services/permissions/permission-service";
 import { resolvePortalDestination } from "../../modules/portal/service";
@@ -49,7 +51,7 @@ export default async function InstitutionLayout({ children }: { children: React.
   if (portalDestination === "student") redirect("/portal/student");
   if (portalDestination === "parent") redirect("/portal/parent");
 
-  const [institution, enabledLocales, enabledModules, t, locale, notifications, unreadCount, viewer] = await Promise.all([
+  const [institution, enabledLocales, enabledModules, t, locale, notifications, unreadCount, viewer, platformDefaultPalette] = await Promise.all([
     getInstitution(ctx.institutionId, ctx.session.authUserId),
     getEnabledUiLanguages(ctx.institutionId, ctx.session.authUserId),
     getEnabledModuleCodes(ctx.institutionId, ctx.session.authUserId),
@@ -58,6 +60,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     listMyNotifications(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUnreadNotificationCount(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUserDisplayInfo(ctx.session.authUserId, ctx.userId),
+    getPlatformDefaultPalette(),
   ]);
 
   // Plain data, not JSX — permission/module gating happens here (Server
@@ -275,11 +278,18 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(ctx.isSuperAdmin ? [{ kind: "link" as const, href: "/super-admin", label: t("superAdmin"), icon: ni(SuperAdminIcon) }] : []),
   ];
 
-  // Design refresh (see globals.css): the app now uses one fixed brand
-  // palette everywhere instead of a per-institution colour — no more
-  // per-tenant CSS variable override here.
+  // "Never use dark ... give colour combination options" follow-up
+  // (migration 0040): resolves to this institution's own chosen palette,
+  // or the platform default if it hasn't picked one, and injects it as a
+  // scoped inline <style> override right before the shell — every
+  // component below already renders purely off the CSS custom properties
+  // globals.css's `:root` defines (--brand, --sidebar-bg, etc.), so this
+  // one block re-colours the whole institution app at once.
+  const palette = getPalette(institution?.themePalette ?? platformDefaultPalette);
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--background)] md:flex-row">
+      <style dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
       <ResponsiveSidebar
         brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}
         logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null}

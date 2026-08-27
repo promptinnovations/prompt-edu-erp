@@ -26,6 +26,7 @@ import { resolveUserByAuthId } from "../tenant/tenant-service";
 import { recordPlatformAudit } from "../audit/audit-service";
 import { getAuthService } from "../auth/auth-service";
 import { RESERVED_INSTITUTION_CODES } from "./reserved-codes";
+import { PALETTE_IDS, DEFAULT_PALETTE_ID } from "../branding/palettes";
 
 export { RESERVED_INSTITUTION_CODES };
 
@@ -819,5 +820,54 @@ export async function listPlatformAuditLogs(authUserId: string, limit = 100): Pr
       [limit]
     );
     return rows;
+  });
+}
+
+/**
+ * Platform-wide default colour palette (migration 0040's `platform_settings`
+ * table) — the Super Admin console's own chrome, and the generic /login
+ * screen reached with no institution context at all, both fall back to
+ * this rather than a hardcoded palette id. Deliberately NOT gated behind
+ * withSuperAdminContext (that requires a signed-in, re-verified Super
+ * Admin, which the generic pre-auth /login page has no session to prove) —
+ * same "narrow, deliberately-safe, isSuperAdmin: true DB-context bypass
+ * for one non-sensitive read" pattern as
+ * services/institution/institution-service.ts's
+ * getInstitutionPublicSummaryByCode(). A colour choice is not sensitive
+ * platform data; only the WRITE (setPlatformDefaultPalette below) needs a
+ * real Super Admin.
+ */
+export async function getPlatformDefaultPalette(): Promise<string> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId: null, isSuperAdmin: true }, async (scoped) => {
+    const { rows } = await scoped.query<{ value: string | null }>(
+      "select value from platform_settings where key = 'default_theme_palette'",
+      []
+    );
+    return rows[0]?.value || DEFAULT_PALETTE_ID;
+  });
+}
+
+const setPlatformPaletteSchema = z.object({ themePalette: z.enum(PALETTE_IDS as [string, ...string[]]) });
+
+export async function setPlatformDefaultPalette(
+  authUserId: string,
+  input: z.infer<typeof setPlatformPaletteSchema>
+): Promise<void> {
+  const data = setPlatformPaletteSchema.parse(input);
+  return withSuperAdminContext(authUserId, async (scoped, callerUserId) => {
+    const { rows: before } = await scoped.query<{ value: string | null }>(
+      "select value from platform_settings where key = 'default_theme_palette'",
+      []
+    );
+    await scoped.query(
+      `insert into platform_settings (key, value, updated_at) values ('default_theme_palette', $1, now())
+       on conflict (key) do update set value = excluded.value, updated_at = now()`,
+      [data.themePalette]
+    );
+    await recordPlatformAudit(scoped, {
+      actorUserId: callerUserId, institutionId: null, action: "update", entityType: "platform_settings", entityId: null,
+      before: { themePalette: before[0]?.value ?? null }, after: { themePalette: data.themePalette },
+    });
   });
 }

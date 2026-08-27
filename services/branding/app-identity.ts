@@ -25,6 +25,8 @@
  *      `id`.
  */
 import { getInstitution, getInstitutionPublicSummaryByCode } from "../institution/institution-service";
+import { getPlatformDefaultPalette } from "../super-admin/super-admin-service";
+import { getPalette } from "./palettes";
 import type { RequestContext } from "../../types/context";
 
 export interface AppIdentity {
@@ -70,19 +72,34 @@ export interface AppIdentity {
    *  generated letter-gradient badge when this is set. Always null for the
    *  generic/Super-Admin identities — neither has an uploadable logo. */
   logoInstitutionCode: string | null;
+  /** "Never use app icon in black" follow-up — the generated letter-badge
+   *  (app/icon-badge/[size]/route.tsx, when there's no uploaded logo) is
+   *  rendered as a gradient across these three stops instead of a fixed
+   *  colour, taken from this identity's resolved palette (the
+   *  institution's own choice, or the platform default) — never black,
+   *  never hardcoded. */
+  badgeGradient: [string, string, string];
 }
 
-const GENERIC: AppIdentity = {
-  name: "PROMPT EDU ERP",
-  shortName: "PROMPT",
-  badgeText: "P",
-  dynamicIcon: false,
-  appId: "/app/platform",
-  scope: "/",
-  startUrl: "/",
-  assetBasePath: "",
-  logoInstitutionCode: null,
-};
+function genericIdentity(gradient: [string, string, string]): AppIdentity {
+  return {
+    name: "PROMPT EDU ERP",
+    shortName: "PROMPT",
+    badgeText: "P",
+    dynamicIcon: false,
+    appId: "/app/platform",
+    scope: "/",
+    startUrl: "/",
+    assetBasePath: "",
+    logoInstitutionCode: null,
+    badgeGradient: gradient,
+  };
+}
+
+async function resolveBadgeGradient(themePalette: string | null): Promise<[string, string, string]> {
+  const palette = getPalette(themePalette ?? (await getPlatformDefaultPalette()));
+  return [palette.vars.brandFrom, palette.vars.brandVia, palette.vars.brandTo];
+}
 
 export async function resolveAppIdentity(ctx: RequestContext | null): Promise<AppIdentity> {
   if (ctx?.institutionId) {
@@ -102,6 +119,7 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
         startUrl: `/${slug}`,
         assetBasePath: `/${slug}`,
         logoInstitutionCode: institution.logoFileId && code ? code : null,
+        badgeGradient: await resolveBadgeGradient(institution.themePalette),
       };
     }
   }
@@ -120,9 +138,10 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
       startUrl: "/super-admin",
       assetBasePath: "",
       logoInstitutionCode: null,
+      badgeGradient: await resolveBadgeGradient(null),
     };
   }
-  return GENERIC;
+  return genericIdentity(await resolveBadgeGradient(null));
 }
 
 /**
@@ -147,9 +166,9 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
  * PWA manifest needs to be fetchable/correct for anyone, logged in or not.
  */
 export async function resolveAppIdentityByCode(code: string | null): Promise<AppIdentity> {
-  if (!code) return GENERIC;
+  if (!code) return genericIdentity(await resolveBadgeGradient(null));
   const institution = await getInstitutionPublicSummaryByCode(code).catch(() => null);
-  if (!institution) return GENERIC;
+  if (!institution) return genericIdentity(await resolveBadgeGradient(null));
   const name = institution.appName || institution.name;
   const trimmedCode = institution.code.trim();
   const label = trimmedCode ? trimmedCode.toUpperCase() : name.trim().charAt(0).toUpperCase();
@@ -164,5 +183,6 @@ export async function resolveAppIdentityByCode(code: string | null): Promise<App
     startUrl: `/${slug}`,
     assetBasePath: `/${slug}`,
     logoInstitutionCode: institution.hasLogo ? trimmedCode : null,
+    badgeGradient: await resolveBadgeGradient(institution.themePalette),
   };
 }

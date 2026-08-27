@@ -44,8 +44,8 @@ export async function GET(request: Request) {
     start_url: identity.startUrl,
     scope: identity.scope,
     display: "standalone",
-    background_color: "#09090b",
-    theme_color: "#4f46e5",
+    background_color: "#ffffff",
+    theme_color: identity.badgeGradient[1],
     icons: identity.dynamicIcon
       ? [
           { src: `${identity.assetBasePath}/icon-badge/192`, sizes: "192x192", type: "image/png" },

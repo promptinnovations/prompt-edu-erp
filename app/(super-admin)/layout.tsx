@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../services/request-context";
 import { getUserDisplayInfo } from "../../services/tenant/tenant-service";
+import { getPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
+import { getPalette, paletteCssVars } from "../../services/branding/palettes";
 import { signOutAction } from "../(institution)/actions";
 import ResponsiveSidebar from "../components/ResponsiveSidebar";
 import NavLinks, { type NavItem } from "../components/NavLinks";
@@ -20,30 +22,36 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   // re-verification on every call (see that file's header comment).
   if (!ctx.isSuperAdmin) redirect("/dashboard");
 
-  const viewer = await getUserDisplayInfo(ctx.session.authUserId, ctx.userId);
+  const [viewer, platformDefaultPalette] = await Promise.all([
+    getUserDisplayInfo(ctx.session.authUserId, ctx.userId),
+    getPlatformDefaultPalette(),
+  ]);
+  const palette = getPalette(platformDefaultPalette);
 
   const navItems: NavItem[] = [
     { href: "/super-admin", label: "Institutions" },
     { href: "/super-admin/audit", label: "Platform Audit" },
+    { href: "/super-admin/appearance", label: "Appearance" },
     ...(ctx.memberships.length > 0 ? [{ href: "/dashboard", label: "← Back to institution app", muted: true }] : []),
   ];
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--background)] md:flex-row">
+      <style dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
       <ResponsiveSidebar brandLabel="Super Admin Console">
         <NavLinks items={navItems} />
         <form action={signOutAction}>
-          <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white">
+          <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)] hover:text-white">
             Sign out
           </button>
         </form>
       </ResponsiveSidebar>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
+        <header className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 sm:px-6">
           <Breadcrumb />
           {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
         </header>
-        <main className="min-w-0 flex-1 bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 md:px-8 md:py-8">{children}</main>
+        <main className="min-w-0 flex-1 bg-[var(--surface-muted)] px-4 py-6 sm:px-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

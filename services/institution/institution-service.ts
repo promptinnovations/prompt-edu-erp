@@ -1,18 +1,23 @@
 /**
  * PROMPT EDU ERP — Institution-level settings reads (§I "module configuration")
- * and self-service branding (§137 follow-up: "options for changing colour
- * codes of the app according to their wish").
+ * and self-service branding: logo (§263) and, since migration 0040, a
+ * curated colour-combination palette ("never use dark ... give colour
+ * combination options, let them choose best for them" follow-up — see
+ * services/branding/palettes.ts for the full palette catalogue and the
+ * rationale for storing an id rather than a raw hex).
  */
 import { z } from "zod";
 import { getDbClient } from "../db/client";
 import { recordAudit } from "../audit/audit-service";
+import { PALETTE_IDS } from "../branding/palettes";
 
 export interface InstitutionSummary {
   id: string;
   code: string;
   name: string;
   appName: string | null;
-  primaryColor: string | null;
+  /** Palette id (services/branding/palettes.ts), or null → platform default. */
+  themePalette: string | null;
   logoFileId: string | null;
   // Result Analysis & Reporting spec — tenant-wide default pass percentage
   // (institutions.pass_pct, migration 0038). NOT part of grade_bands; a
@@ -21,19 +26,13 @@ export interface InstitutionSummary {
   passPct: number;
 }
 
-/** The app's built-in look when an institution hasn't picked its own colour
- *  — the same shade every button/accent used before this feature existed
- *  (Tailwind's zinc-900), so institutions that never touch Settings see no
- *  visual change. */
-export const DEFAULT_BRAND_COLOR = "#18181b";
-
 export async function getInstitution(institutionId: string, authUserId: string): Promise<InstitutionSummary | null> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{
-      id: string; code: string; name: string; app_name: string | null; primary_color: string | null; logo_file_id: string | null; pass_pct: string;
+      id: string; code: string; name: string; app_name: string | null; theme_palette: string | null; logo_file_id: string | null; pass_pct: string;
     }>(
-      "select id, code, name, app_name, primary_color, logo_file_id, pass_pct from institutions where id = $1",
+      "select id, code, name, app_name, theme_palette, logo_file_id, pass_pct from institutions where id = $1",
       [institutionId]
     );
     if (!rows[0]) return null;
@@ -42,7 +41,7 @@ export async function getInstitution(institutionId: string, authUserId: string):
       code: rows[0].code,
       name: rows[0].name,
       appName: rows[0].app_name,
-      primaryColor: rows[0].primary_color,
+      themePalette: rows[0].theme_palette,
       logoFileId: rows[0].logo_file_id,
       passPct: Number(rows[0].pass_pct),
     };
@@ -86,6 +85,14 @@ export interface InstitutionPublicSummary {
    *  reason to hand a pre-auth caller anything more than "should I render
    *  an <img src="/api/institution-logo/<code>">"). */
   hasLogo: boolean;
+  /** Palette id (services/branding/palettes.ts), or null → platform
+   *  default. Deliberately exposed pre-auth — the same cosmetic choice is
+   *  already visible on this institution's own public /<code> URL, so
+   *  there is nothing sensitive about it, unlike status/deployment_mode
+   *  (still never exposed here). Lets the /login screen for THIS
+   *  institution render in the institution's own chosen colours before
+   *  anyone has signed in. */
+  themePalette: string | null;
 }
 
 /**
@@ -101,10 +108,10 @@ export interface InstitutionPublicSummary {
  * context the RLS policy on `institutions` (§E) grants unrestricted SELECT
  * to, and this function is the one deliberately-narrow, deliberately-safe
  * place in the codebase that uses it that way. Kept safe by what it
- * returns, not by who's asking: exactly three non-sensitive columns
- * (code/name/app_name) — the same code and display name already shown
- * un-authenticated in that institution's own shareable URL and on its
- * Super Admin listing row. Never exposes primary_color, status,
+ * returns, not by who's asking: a handful of non-sensitive columns
+ * (code/name/app_name/theme_palette) — the same code, display name, and
+ * colour choice already shown un-authenticated in that institution's own
+ * shareable URL and on its Super Admin listing row. Never exposes status,
  * deployment_mode, or anything else on the row. A code that doesn't match
  * any institution returns null — the login page just falls back to
  * generic branding, exactly as if no institution cookie were set at all.
@@ -112,12 +119,18 @@ export interface InstitutionPublicSummary {
 export async function getInstitutionPublicSummaryByCode(code: string): Promise<InstitutionPublicSummary | null> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId: null, isSuperAdmin: true }, async (scoped) => {
-    const { rows } = await scoped.query<{ code: string; name: string; app_name: string | null; logo_file_id: string | null }>(
-      "select code, name, app_name, logo_file_id from institutions where code = $1",
+    const { rows } = await scoped.query<{ code: string; name: string; app_name: string | null; logo_file_id: string | null; theme_palette: string | null }>(
+      "select code, name, app_name, logo_file_id, theme_palette from institutions where code = $1",
       [code]
     );
     if (!rows[0]) return null;
-    return { code: rows[0].code, name: rows[0].name, appName: rows[0].app_name, hasLogo: rows[0].logo_file_id !== null };
+    return {
+      code: rows[0].code,
+      name: rows[0].name,
+      appName: rows[0].app_name,
+      hasLogo: rows[0].logo_file_id !== null,
+      themePalette: rows[0].theme_palette,
+    };
   });
 }
 
@@ -178,71 +191,42 @@ export async function getEnabledUiLanguages(institutionId: string, authUserId: s
   });
 }
 
-/** Clamps each RGB channel of `hex` towards black by `amount` (0–1) — used to
- *  derive a hover/pressed shade from a single admin-picked brand colour so
- *  Settings only needs to ask for one colour, not two. Pure/deterministic
- *  (no CSS color-mix() dependency, so it works identically in every browser
- *  and is trivially unit-testable) — see getBrandColors() below. */
-export function darkenHex(hex: string, amount: number): string {
-  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
-  if (!m) return hex;
-  const num = parseInt(m[1], 16);
-  const channel = (shift: number) => {
-    const v = (num >> shift) & 0xff;
-    return Math.max(0, Math.round(v * (1 - amount)));
-  };
-  const r = channel(16);
-  const g = channel(8);
-  const b = channel(0);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
-
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
-
-/** The two CSS custom-property values every (institution)/(portal) layout
- *  injects — brand for the resting colour, brandHover for its
- *  hover/pressed state. Falls back to DEFAULT_BRAND_COLOR (and its own
- *  derived hover shade) when the institution hasn't set one. */
-export function getBrandColors(primaryColor: string | null): { brand: string; brandHover: string } {
-  const brand = primaryColor && HEX_COLOR.test(primaryColor) ? primaryColor : DEFAULT_BRAND_COLOR;
-  return { brand, brandHover: darkenHex(brand, 0.15) };
-}
-
-const updateBrandingSchema = z.object({
-  // null explicitly means "reset to the app default" — distinct from
+const updateThemeSchema = z.object({
+  // null explicitly means "reset to the platform default" — distinct from
   // omitting the field, which zod would otherwise treat as "leave
   // unchanged" if this were a partial update; here it's always a full
   // replace, so null is a real, meaningful value, not an absence.
-  primaryColor: z.string().regex(HEX_COLOR, "Must be a hex colour like #2563eb.").nullable(),
+  themePalette: z.enum(PALETTE_IDS as [string, ...string[]]).nullable(),
 });
 
 /**
- * Institution-scoped self-service write (§137) — the one function in this
- * codebase that runs an UPDATE on `institutions` WITHOUT
- * withSuperAdminContext, made possible by migration 0020's narrow
- * institutions_update_self RLS policy (institution_id equality only, same
- * as every other tenant-owned table — see that migration's own comment for
- * the full rationale). Only reachable through
- * app/(institution)/settings/actions.ts, gated on the settings.manage
- * permission at the action layer, same defense-in-depth split as
- * everywhere else in this codebase.
+ * Institution-scoped self-service write (§137, evolved by migration 0040
+ * into whole-palette choice rather than a raw hex — see
+ * services/branding/palettes.ts) — the one function in this codebase that
+ * runs an UPDATE on `institutions` WITHOUT withSuperAdminContext, made
+ * possible by migration 0020's narrow institutions_update_self RLS policy
+ * (institution_id equality only, same as every other tenant-owned table —
+ * see that migration's own comment for the full rationale). Only reachable
+ * through app/(institution)/settings/actions.ts, gated on the
+ * settings.manage permission at the action layer, same defense-in-depth
+ * split as everywhere else in this codebase.
  */
-export async function updateInstitutionBranding(
+export async function updateInstitutionTheme(
   institutionId: string,
   authUserId: string,
   userId: string,
-  input: z.infer<typeof updateBrandingSchema>
+  input: z.infer<typeof updateThemeSchema>
 ): Promise<void> {
-  const data = updateBrandingSchema.parse(input);
+  const data = updateThemeSchema.parse(input);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: before } = await scoped.query<{ primary_color: string | null }>(
-      "select primary_color from institutions where id = $1",
+    const { rows: before } = await scoped.query<{ theme_palette: string | null }>(
+      "select theme_palette from institutions where id = $1",
       [institutionId]
     );
     await scoped.query(
-      "update institutions set primary_color = $1, updated_at = now() where id = $2",
-      [data.primaryColor, institutionId]
+      "update institutions set theme_palette = $1, updated_at = now() where id = $2",
+      [data.themePalette, institutionId]
     );
     await recordAudit(scoped, {
       institutionId,
@@ -251,8 +235,8 @@ export async function updateInstitutionBranding(
       module: "platform",
       entityType: "institutions",
       entityId: institutionId,
-      before: { primaryColor: before[0]?.primary_color ?? null },
-      after: { primaryColor: data.primaryColor },
+      before: { themePalette: before[0]?.theme_palette ?? null },
+      after: { themePalette: data.themePalette },
     });
   });
 }

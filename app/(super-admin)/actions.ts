@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSuperAdminContext } from "../../services/request-context";
-import { createInstitution, updateInstitutionStatus, updateInstitutionCode } from "../../services/super-admin/super-admin-service";
+import { createInstitution, updateInstitutionStatus, updateInstitutionCode, setPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
 
 export async function createInstitutionAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireSuperAdminContext();
@@ -23,6 +23,22 @@ export async function createInstitutionAction(_prevState: { error: string | null
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create institution." };
+  }
+}
+
+/** Platform-wide default palette (migration 0040) — governs the Super
+ *  Admin console's own chrome and the generic /login screen (no
+ *  institution context). "Even in Super Admin's console also it should be
+ *  available" follow-up. */
+export async function updatePlatformPaletteAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireSuperAdminContext();
+  try {
+    await setPlatformDefaultPalette(ctx.session.authUserId, { themePalette: String(formData.get("themePalette") ?? "") });
+    revalidatePath("/super-admin/appearance");
+    revalidatePath("/", "layout");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update the platform default palette." };
   }
 }
 

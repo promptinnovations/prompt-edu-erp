@@ -6,6 +6,7 @@ import { getInstitution, getParentPortalSections } from "../../../services/insti
 import LogoForm from "./LogoForm";
 import InstallAppButton from "./InstallAppButton";
 import ParentPortalSectionsForm from "./ParentPortalSectionsForm";
+import ThemePaletteForm from "./ThemePaletteForm";
 
 export default async function SettingsPage() {
   const ctx = await requireRequestContext();
@@ -51,11 +52,11 @@ export default async function SettingsPage() {
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Appearance</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          PROMPT EDU ERP now uses one consistent look across every institution. Switch between light and dark mode
-          any time using the toggle at the bottom of the sidebar (or in the portal header) — your choice is
-          remembered on this device.
+        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+          Choose a colour combination for {institution?.appName || institution?.name} — applies everywhere for
+          everyone signed in to this institution (sidebar, buttons, login screen).
         </p>
+        <ThemePaletteForm currentId={institution?.themePalette ?? null} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
