@@ -22,7 +22,18 @@ export async function updateThemeAction(_prevState: { error: string | null }, fo
     const themePalette = reset ? null : String(formData.get("themePalette") ?? "");
     await updateInstitutionTheme(ctx.institutionId, ctx.session.authUserId, ctx.userId, { themePalette });
     revalidatePath("/settings");
-    revalidatePath("/", "layout");
+    // §Palette-picker follow-up bug ("selected colour combo, no changes
+    // yet"): revalidatePath("/", "layout") revalidates the layout that
+    // applies to the URL "/" -- which is app/layout.tsx (the true root
+    // layout), NOT app/(institution)/layout.tsx. "/" is its own standalone
+    // redirect page (app/page.tsx), outside the (institution) route group
+    // entirely, so it never actually shared a layout with /settings in the
+    // first place -- this call did nothing useful. The palette <style> tag,
+    // sidebar, and button colours all live in (institution)/layout.tsx,
+    // which wraps /settings itself, so THAT'S the path+type pair that
+    // actually invalidates it (Next.js revalidates every route sharing the
+    // same layout as the given path, not just that literal path).
+    revalidatePath("/settings", "layout");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update the colour theme." };
@@ -55,7 +66,11 @@ export async function uploadInstitutionLogoAction(_prevState: { error: string | 
     });
     await updateInstitutionLogo(ctx.institutionId, ctx.session.authUserId, ctx.userId, uploaded.id);
     revalidatePath("/settings");
-    revalidatePath("/dashboard"); // sidebar badge lives in the shared layout
+    // Same fix as updateThemeAction() above -- the sidebar logo lives in
+    // (institution)/layout.tsx, so the revalidation needs `"layout"` type
+    // to actually reach it, not just the default `"page"` type this used
+    // to have (which only invalidated the /dashboard PAGE segment).
+    revalidatePath("/dashboard", "layout");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to upload logo." };
@@ -73,7 +88,7 @@ export async function removeInstitutionLogoAction(_prevState: { error: string | 
     requirePermission(ctx.permissions, "settings.manage");
     await updateInstitutionLogo(ctx.institutionId, ctx.session.authUserId, ctx.userId, null);
     revalidatePath("/settings");
-    revalidatePath("/dashboard");
+    revalidatePath("/dashboard", "layout");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to remove logo." };

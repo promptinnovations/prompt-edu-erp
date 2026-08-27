@@ -35,7 +35,14 @@ export async function updatePlatformPaletteAction(_prevState: { error: string | 
   try {
     await setPlatformDefaultPalette(ctx.session.authUserId, { themePalette: String(formData.get("themePalette") ?? "") });
     revalidatePath("/super-admin/appearance");
-    revalidatePath("/", "layout");
+    // Same fix as (institution)/settings/actions.ts's updateThemeAction():
+    // revalidatePath("/", "layout") revalidates app/layout.tsx (the root
+    // layout applying to the URL "/", a standalone redirect page outside
+    // this route group), not app/(super-admin)/layout.tsx, which is where
+    // the platform-default palette's <style> tag/sidebar colours actually
+    // live. "/super-admin/appearance" shares that layout, so pairing it
+    // with type "layout" is what actually invalidates it.
+    revalidatePath("/super-admin/appearance", "layout");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update the platform default palette." };
