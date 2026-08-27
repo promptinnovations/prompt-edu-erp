@@ -9,6 +9,24 @@
  * component is just the missing "install" trigger the user can actually
  * find and tap, plus a fallback for browsers (iOS Safari, mainly) that
  * never fire `beforeinstallprompt` at all.
+ *
+ * Follow-up ("Install still offers PROMPT EDU ERP, not the institute's
+ * own app") -- confirmed server-side identity resolution is correct (a
+ * fresh fetch of this exact page's <link rel="manifest"> always returns
+ * the right institution). The mismatch is a client-side browser quirk:
+ * `beforeinstallprompt` fires once per real document load, tied to
+ * whichever manifest was associated with THAT load -- if the user's
+ * very first hard navigation into this app (this tab/session) was to a
+ * non-institution URL (bare domain, /login, a stale bookmark) before
+ * ever reaching /<code>/..., Chrome captures generic branding then and
+ * does not re-evaluate it on subsequent same-tab client-side (SPA)
+ * navigations, even after the <link> tag's href updates. Detected here
+ * by comparing the CURRENT <link rel="manifest"> href against the
+ * current URL's institution segment; on a mismatch, a real
+ * `location.reload()` is offered instead of the (in that case, stale)
+ * captured event -- a genuine fresh document load re-associates the
+ * correct manifest and the next paint fires a correctly-scoped
+ * `beforeinstallprompt`.
  */
 import { useEffect, useState } from "react";
 
@@ -23,6 +41,7 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
   const [isIos, setIsIos] = useState(false);
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<"accepted" | "dismissed" | null>(null);
+  const [manifestMismatch, setManifestMismatch] = useState(false);
 
   useEffect(() => {
     const standalone =
@@ -31,6 +50,15 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     setInstalled(standalone);
     setIsIos(/iphone|ipad|ipod/i.test(window.navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream);
+
+    // Is the manifest <link> actually scoped to the institution this page
+    // is currently under? A mismatch means beforeinstallprompt (if it ever
+    // fires in this tab) was or will be captured against the wrong app.
+    const manifestHref = document.querySelector('link[rel="manifest"]')?.getAttribute("href") ?? "";
+    const institutionSegment = window.location.pathname.split("/").filter(Boolean)[0] ?? "";
+    if (institutionSegment && manifestHref) {
+      setManifestMismatch(!manifestHref.startsWith(`/${institutionSegment}/`));
+    }
 
     function onBeforeInstall(e: Event) {
       e.preventDefault();
@@ -88,7 +116,21 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
         </div>
       </div>
 
-      {deferredPrompt ? (
+      {manifestMismatch ? (
+        <div className="flex flex-col gap-1 sm:ml-auto sm:max-w-xs">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
+          >
+            Refresh to prepare install
+          </button>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Your browser cached a different app&apos;s install info earlier in this tab — refreshing this page fixes that
+            before you install.
+          </p>
+        </div>
+      ) : deferredPrompt ? (
         <button
           type="button"
           onClick={handleInstall}
