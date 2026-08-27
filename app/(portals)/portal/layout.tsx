@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { requireRequestContext } from "../../../services/request-context";
 import { getInstitution } from "../../../services/institution/institution-service";
 import { getPlatformDefaultPalette } from "../../../services/super-admin/super-admin-service";
@@ -27,6 +28,11 @@ export default async function PortalLayout({ children }: { children: React.React
     getPlatformDefaultPalette(),
   ]);
   const palette = getPalette(institution?.themePalette ?? platformDefaultPalette);
+  // §Palette-picker follow-up ("colour palette is still not working"):
+  // same nonce-based CSP fix as (institution)/layout.tsx -- an inline
+  // <style> tag with no `nonce` attribute is silently dropped under this
+  // app's production `style-src 'self' 'nonce-<value>'` CSP.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   // Design refresh (see globals.css): one fixed brand palette everywhere —
   // no more per-institution CSS variable override here.
@@ -37,7 +43,7 @@ export default async function PortalLayout({ children }: { children: React.React
   // small credit line in the page footer instead.
   return (
     <div className="flex min-h-full flex-col bg-[var(--background)]">
-      <style dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
+      <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] text-xs font-bold text-white">

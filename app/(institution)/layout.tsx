@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import type { ComponentType, SVGProps } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../services/request-context";
@@ -286,10 +287,17 @@ export default async function InstitutionLayout({ children }: { children: React.
   // globals.css's `:root` defines (--brand, --sidebar-bg, etc.), so this
   // one block re-colours the whole institution app at once.
   const palette = getPalette(institution?.themePalette ?? platformDefaultPalette);
+  // §Palette-picker follow-up ("colour palette is still not working"):
+  // middleware.ts's CSP is nonce-based in production (`style-src 'self'
+  // 'nonce-<value>'`, not 'unsafe-inline'), so this inline <style> tag was
+  // being silently dropped by the browser with no nonce attribute -- the
+  // saved palette never rendered anywhere, regardless of caching. The
+  // nonce is already forwarded per-request as the `x-nonce` header.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--background)] md:flex-row">
-      <style dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
+      <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
       <ResponsiveSidebar
         brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}
         logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null}

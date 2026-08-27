@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { requireRequestContext } from "../../services/request-context";
 import { getUserDisplayInfo } from "../../services/tenant/tenant-service";
 import { getPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
@@ -27,6 +28,11 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     getPlatformDefaultPalette(),
   ]);
   const palette = getPalette(platformDefaultPalette);
+  // §Palette-picker follow-up ("colour palette is still not working"):
+  // same nonce-based CSP fix as (institution)/layout.tsx -- an inline
+  // <style> tag with no `nonce` attribute is silently dropped under this
+  // app's production `style-src 'self' 'nonce-<value>'` CSP.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   const navItems: NavItem[] = [
     { href: "/super-admin", label: "Institutions" },
@@ -37,7 +43,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--background)] md:flex-row">
-      <style dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
+      <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
       <ResponsiveSidebar brandLabel="Super Admin Console">
         <NavLinks items={navItems} />
         <form action={signOutAction}>
