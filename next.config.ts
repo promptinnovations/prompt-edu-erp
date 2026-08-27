@@ -4,6 +4,25 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // Bug report: "logo is uploaded, it is not working" -- root cause was
+  // Next.js's default 1 MB Server Action request-body limit. Every upload
+  // in this app (institution logo, student/staff photos, achievement
+  // certificates, reading-review evidence, ...) is submitted as a Server
+  // Action FormData post (see LogoForm.tsx -> uploadInstitutionLogoAction),
+  // and services/storage/file-service.ts already enforces its OWN 10 MB
+  // limit (MAX_UPLOAD_BYTES) server-side -- but Next was silently rejecting
+  // anything over 1 MB *before* that code ever ran, with no error surfaced
+  // to the form (uploadState.error never gets set because the action never
+  // executes). Small cropped student photos happened to fit under 1 MB, so
+  // that path looked fine; a real logo export (letterhead-quality PNG) does
+  // not. Raised to match the app's own already-documented 10 MB ceiling so
+  // the two limits agree instead of the framework one silently overriding.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
+
   // ESLint's flat-config integration for eslint-config-next now works via
   // FlatCompat (eslint.config.mjs) — the previous `nextVitals is not
   // iterable` packaging mismatch (§AC, formerly tracked in docs/SETUP.md's
