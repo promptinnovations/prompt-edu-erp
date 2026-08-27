@@ -9,7 +9,10 @@ import { can } from "../../../services/permissions/permission-service";
 import { getInstitutionStats, getTodayAttendanceSummary, getUpcomingItems } from "../../../services/home/home-service";
 import { listMyTodos } from "../../../services/todo/todo-service";
 import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrend } from "../../../modules/examination/service";
-import { getInstitutionAttendanceTrend, getPendingLeaveApplicationsForReviewer } from "../../../modules/attendance/service";
+import {
+  getInstitutionAttendanceTrend, getInstitutionAttendanceTrendByStage, getConsecutiveAbsentees,
+  getPendingLeaveApplicationsForReviewer,
+} from "../../../modules/attendance/service";
 import { resolveAttendanceVisibility } from "../../../services/scope/attendance-visibility-service";
 import OnboardingChecklist from "./OnboardingChecklist";
 import TodoWidget from "./TodoWidget";
@@ -18,6 +21,8 @@ import {
   SubstitutionIcon, CalendarIcon, ExamIcon, MentoringIcon, SkillsIcon, LibraryIcon,
 } from "../../components/NavIcons";
 import AttendanceTrendChart from "../../components/AttendanceTrendChart";
+import AttendanceStageTrendChart from "../../components/AttendanceStageTrendChart";
+import ConsecutiveAbsenteesList from "../../components/ConsecutiveAbsenteesList";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -57,14 +62,36 @@ export default async function DashboardPage() {
     hasExaminationAccess ? getMostRecentExamination(institutionId, authUserId) : Promise.resolve(null),
   ]);
 
-  const [markEntryStatus, passRateTrend, upcoming, attendanceTrend, pendingLeave] = await Promise.all([
+  // §Dashboard follow-up "instead of [plain bars] use the type of graph in
+  // [a labelled multi-colour line chart] ... in the dashboard of section
+  // head, principal, management children absent for more than 3
+  // consecutive days also should be shown" — the redesigned by-stage trend
+  // and the chronic-absentee list are Section-Head/Principal/Management
+  // only (i.e. anyone whose attendance scope isn't narrowed to specific
+  // classes — a plain class teacher keeps the original compact bar widget
+  // below, unchanged, since a single-class view has no "different
+  // sections" to plot).
+  const isSectionOrAbove = attendanceVisibility.hasAccess && !attendanceVisibility.scope?.classIds;
+
+  const [markEntryStatus, passRateTrend, upcoming, attendanceTrend, attendanceTrendByStage, consecutiveAbsentees, pendingLeave] = await Promise.all([
     hasExaminationAccess && recentExam ? getMarkEntryStatus(institutionId, authUserId, recentExam.id) : Promise.resolve([]),
     hasExaminationAccess ? getInstitutionPassRateTrend(institutionId, authUserId, 5) : Promise.resolve([]),
     getUpcomingItems(institutionId, authUserId, 6),
     // §Page-4 follow-up "Attendance analytics — growth and fall diagram,
-    // recent days", also available on Dashboard (compact) per spec.
-    attendanceVisibility.hasAccess
+    // recent days", also available on Dashboard (compact) per spec. Kept
+    // for the class-teacher (single-class) view only — see isSectionOrAbove.
+    attendanceVisibility.hasAccess && !isSectionOrAbove
       ? getInstitutionAttendanceTrend(institutionId, authUserId, 10, attendanceVisibility.scope)
+      : Promise.resolve([]),
+    // §Dashboard follow-up: "left side should be 1-100%, at the bottom
+    // last 15 days, line should show different sections differently".
+    isSectionOrAbove
+      ? getInstitutionAttendanceTrendByStage(institutionId, authUserId, 15, attendanceVisibility.scope)
+      : Promise.resolve([]),
+    // §Dashboard follow-up: "children absent for more than 3 consecutive
+    // days also should be shown".
+    isSectionOrAbove
+      ? getConsecutiveAbsentees(institutionId, authUserId, attendanceVisibility.scope)
       : Promise.resolve([]),
     // §Page-4 follow-up: staff+student pending leave, "appearing in a table
     // in the dashboard...of principal and class teachers" — read-only here
@@ -221,7 +248,16 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          {attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
+          {isSectionOrAbove && attendanceTrendByStage.length > 0 ? (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <div className="mb-1 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h3>
+                <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
+              </div>
+              <p className="mb-1 text-xs text-zinc-400 dark:text-zinc-500">{attendanceVisibility.label} · last 15 days</p>
+              <AttendanceStageTrendChart points={attendanceTrendByStage} />
+            </section>
+          ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
             <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h3>
@@ -229,6 +265,16 @@ export default async function DashboardPage() {
               </div>
               <p className="mb-1 text-xs text-zinc-400 dark:text-zinc-500">{attendanceVisibility.label}</p>
               <AttendanceTrendChart points={attendanceTrend} compact />
+            </section>
+          ) : null}
+
+          {isSectionOrAbove && consecutiveAbsentees.length > 0 ? (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Chronic absentees (3+ days)</h3>
+                <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
+              </div>
+              <ConsecutiveAbsenteesList rows={consecutiveAbsentees} />
             </section>
           ) : null}
 

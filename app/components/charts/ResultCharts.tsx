@@ -239,42 +239,120 @@ export function StackedBarChart({ groups }: { groups: StackedBarGroup[] }) {
 export interface LineSeries {
   label: string;
   color?: string;
-  points: { x: string; y: number }[];
+  /** `y: null` marks a gap (no data for that X position, e.g. a stage
+   *  with no attendance taken that day) — the line breaks there instead of
+   *  interpolating across it or being silently misaligned with other
+   *  series' X positions. */
+  points: { x: string; y: number | null }[];
 }
 
-export function LineTrendChart({ series, height = 180, maxY }: { series: LineSeries[]; height?: number; maxY?: number }) {
+export function LineTrendChart({
+  series, height = 180, maxY, showAxes = false, yAxisSuffix = "", xLabels, yTickCount = 4,
+}: {
+  series: LineSeries[];
+  height?: number;
+  maxY?: number;
+  /** Draws left-side Y gridlines/labels (0..maxY) and bottom X-axis tick
+   *  labels — off by default so the original bare rendering (no axes,
+   *  e.g. inside a tight card) still works unchanged for any caller that
+   *  doesn't opt in. */
+  showAxes?: boolean;
+  /** Appended to each Y-axis label, e.g. "%" for a percentage scale. */
+  yAxisSuffix?: string;
+  /** One label per X position (e.g. formatted dates) — only used when
+   *  showAxes is true. Falls back to each series' own point.x values if
+   *  omitted. */
+  xLabels?: string[];
+  yTickCount?: number;
+}) {
   const nonEmpty = series.filter((s) => s.points.length > 0);
   if (nonEmpty.length === 0) {
     return <p className="text-sm text-zinc-400 dark:text-zinc-500">Not enough data yet to draw a trend.</p>;
   }
   const width = 560;
-  const padX = 32;
-  const padY = 20;
+  const padX = showAxes ? 34 : 32;
+  const padTop = 12;
+  const padBottom = showAxes ? 26 : 20;
   const pointCount = Math.max(...nonEmpty.map((s) => s.points.length));
-  const max = maxY ?? Math.max(100, ...nonEmpty.flatMap((s) => s.points.map((p) => p.y)));
+  const max = maxY ?? Math.max(100, ...nonEmpty.flatMap((s) => s.points.map((p) => p.y ?? 0)));
   const stepX = pointCount > 1 ? (width - padX * 2) / (pointCount - 1) : 0;
+  const plotHeight = height - padTop - padBottom;
   const toXY = (i: number, y: number) => {
     const x = padX + i * stepX;
-    const yy = padY + (1 - y / max) * (height - padY * 2);
+    const yy = padTop + (1 - y / max) * plotHeight;
     return [x, yy] as const;
   };
+  const labels = xLabels ?? nonEmpty[0]?.points.map((p) => p.x) ?? [];
+  const yTicks = Array.from({ length: yTickCount + 1 }, (_, i) => Math.round((max / yTickCount) * i));
 
   return (
     <div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: height + 10 }}>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: height + 20 }}>
+        {showAxes
+          ? yTicks.map((t) => {
+              const [, y] = toXY(0, t);
+              return (
+                <g key={t}>
+                  <line x1={padX} y1={y} x2={width - 4} y2={y} stroke="currentColor" strokeOpacity={0.08} strokeWidth={1} />
+                  <text x={2} y={y + 3} fontSize={9} fill="currentColor" opacity={0.55}>
+                    {t}{yAxisSuffix}
+                  </text>
+                </g>
+              );
+            })
+          : null}
         {nonEmpty.map((s, si) => {
           const color = s.color ?? DEFAULT_SERIES_COLORS[si % DEFAULT_SERIES_COLORS.length];
-          const pts = s.points.map((p, i) => toXY(i, p.y));
-          const d = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
+          // Split into contiguous non-null runs so a gap (missing day for
+          // this series) breaks the line instead of interpolating across
+          // it or shifting every later point out of alignment with the
+          // shared X axis (points are always indexed by POSITION, one per
+          // xLabels/dates entry — a null just means "nothing to plot here").
+          const segments: Array<Array<readonly [number, number]>> = [];
+          let current: Array<readonly [number, number]> = [];
+          s.points.forEach((p, i) => {
+            if (p.y == null) {
+              if (current.length) segments.push(current);
+              current = [];
+              return;
+            }
+            current.push(toXY(i, p.y));
+          });
+          if (current.length) segments.push(current);
           return (
             <g key={s.label}>
-              <path d={d} fill="none" stroke={color} strokeWidth={2} />
-              {pts.map(([x, y], i) => (
-                <circle key={i} cx={x} cy={y} r={3} fill={color} />
+              {segments.map((seg, si2) => (
+                <path
+                  key={si2}
+                  d={seg.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ")}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={2}
+                />
               ))}
+              {s.points.map((p, i) => {
+                if (p.y == null) return null;
+                const [x, y] = toXY(i, p.y);
+                return (
+                  <circle key={i} cx={x} cy={y} r={2.5} fill={color}>
+                    <title>{`${s.label} — ${p.x}: ${p.y}${yAxisSuffix}`}</title>
+                  </circle>
+                );
+              })}
             </g>
           );
         })}
+        {showAxes
+          ? labels.map((label, i) => {
+              if (labels.length > 10 && i % Math.ceil(labels.length / 10) !== 0 && i !== labels.length - 1) return null;
+              const [x] = toXY(i, 0);
+              return (
+                <text key={i} x={x} y={height - 6} fontSize={9} fill="currentColor" opacity={0.55} textAnchor="middle">
+                  {label}
+                </text>
+              );
+            })
+          : null}
       </svg>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
         {nonEmpty.map((s, si) => (

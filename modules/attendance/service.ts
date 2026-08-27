@@ -755,3 +755,133 @@ export async function getInstitutionAttendanceTrend(
     });
   });
 }
+
+export interface AttendanceTrendByStagePoint { stage: string; date: string; presentPercent: number; totalMarked: number }
+
+/**
+ * §Dashboard follow-up ("line should show different sections differently —
+ * use different colours — in the dashboard of section head, principal,
+ * management"): the same institution-wide/scoped daily trend as
+ * getInstitutionAttendanceTrend() above, but broken out per school STAGE
+ * ("Section" in Section Head terminology — see
+ * services/scope/section-head-scope-service.ts's doc comment) instead of
+ * collapsed into one line. A teacher's `classIds` scope naturally still
+ * yields at most their own class(es)' stage(s) (usually just one, so
+ * effectively one line); a Section Head's `stages` scope yields only their
+ * own assigned stage(s); no scope (Principal/Management/Admin) yields
+ * every stage in the institution — the caller decides how many lines that
+ * turns into, this just does the grouping. Classes with no stage set yet
+ * are grouped under 'Unspecified' rather than dropped, so nothing silently
+ * vanishes from the trend just because onboarding hasn't set every class's
+ * stage.
+ */
+export async function getInstitutionAttendanceTrendByStage(
+  institutionId: string, authUserId: string, days = 15, scope?: AttendanceScope
+): Promise<AttendanceTrendByStagePoint[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ stage: string | null; date: string; present: string; total: string }>(
+      `select coalesce(c.stage, 'Unspecified') as stage, ar.date::text as date,
+              count(*) filter (where ast.counts_as_present) as present,
+              count(*) as total
+         from attendance_records ar
+         join attendance_statuses ast on ast.id = ar.status_id
+         left join classes c on c.id = ar.class_id
+        where ar.date >= current_date - ($1::int - 1)
+          and ($2::uuid[] is null or ar.class_id = any($2))
+          and ($3::text[] is null or c.stage = any($3))
+        group by coalesce(c.stage, 'Unspecified'), ar.date
+        order by ar.date`,
+      [days, scope?.classIds ?? null, scope?.stages ?? null]
+    );
+    return rows.map((r) => {
+      const total = Number(r.total);
+      const present = Number(r.present);
+      return {
+        stage: r.stage ?? "Unspecified",
+        date: r.date,
+        totalMarked: total,
+        presentPercent: total > 0 ? Math.round((present / total) * 10000) / 100 : 0,
+      };
+    });
+  });
+}
+
+export interface ConsecutiveAbsenteeRow {
+  studentId: string;
+  studentName: string;
+  className: string;
+  sectionName: string;
+  stage: string | null;
+  streakLength: number;
+  streakStart: string;
+  streakEnd: string;
+}
+
+/**
+ * §Dashboard follow-up ("children absent for more than 3 consecutive days
+ * also should be shown"): students whose MOST RECENT run of marked
+ * attendance days is entirely absent (not counts_as_present) and is at
+ * least `minDays` long — i.e. an ONGOING absence streak reaching right up
+ * to their latest attendance record, not some past dip they've since
+ * recovered from. Classic gaps-and-islands technique: a running count of
+ * present/late days up to each row is constant across a consecutive run of
+ * absences (since nothing increments it), so grouping by that running
+ * count isolates each streak; `min_rn = 1` keeps only the streak that
+ * contains the student's single most recent record. Looked back over a
+ * bounded 45-day window so this stays cheap on a big roster — a streak
+ * this long would already be well past `minDays` within that window.
+ */
+export async function getConsecutiveAbsentees(
+  institutionId: string, authUserId: string, scope?: AttendanceScope, minDays = 3
+): Promise<ConsecutiveAbsenteeRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      student_id: string; student_name: string; class_name: string; section_name: string; stage: string | null;
+      streak_len: string; streak_start: string; streak_end: string;
+    }>(
+      `with marked as (
+         select ar.student_id, ar.date, ast.counts_as_present,
+                s.full_name as student_name, c.name as class_name, sec.name as section_name, c.stage
+           from attendance_records ar
+           join attendance_statuses ast on ast.id = ar.status_id
+           join students s on s.id = ar.student_id
+           join classes c on c.id = ar.class_id
+           join sections sec on sec.id = ar.section_id
+          where ar.date >= current_date - 45
+            and ($1::uuid[] is null or ar.class_id = any($1))
+            and ($2::text[] is null or c.stage = any($2))
+       ),
+       ranked as (
+         select *,
+           row_number() over (partition by student_id order by date desc) as rn,
+           sum(case when counts_as_present then 1 else 0 end) over (partition by student_id order by date) as present_run
+         from marked
+       ),
+       streaks as (
+         select student_id, student_name, class_name, section_name, stage,
+                count(*) as streak_len, min(date) as streak_start, max(date) as streak_end, min(rn) as min_rn
+           from ranked
+          where not counts_as_present
+          group by student_id, student_name, class_name, section_name, stage, present_run
+       )
+       select student_id, student_name, class_name, section_name, stage,
+              streak_len, streak_start::text as streak_start, streak_end::text as streak_end
+         from streaks
+        where min_rn = 1 and streak_len >= $3
+        order by streak_len desc, streak_end desc`,
+      [scope?.classIds ?? null, scope?.stages ?? null, minDays]
+    );
+    return rows.map((r) => ({
+      studentId: r.student_id,
+      studentName: r.student_name,
+      className: r.class_name,
+      sectionName: r.section_name,
+      stage: r.stage,
+      streakLength: Number(r.streak_len),
+      streakStart: r.streak_start,
+      streakEnd: r.streak_end,
+    }));
+  });
+}
