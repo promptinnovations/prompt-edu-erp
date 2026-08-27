@@ -24,7 +24,7 @@
  *      second, independent signal for browsers that don't yet support
  *      `id`.
  */
-import { getInstitution } from "../institution/institution-service";
+import { getInstitution, getInstitutionPublicSummaryByCode } from "../institution/institution-service";
 import type { RequestContext } from "../../types/context";
 
 export interface AppIdentity {
@@ -123,4 +123,46 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
     };
   }
   return GENERIC;
+}
+
+/**
+ * Follow-up ("Install still offers PROMPT EDU ERP, not the institute's own
+ * app" -- confirmed via live testing that resolveAppIdentity(ctx) above
+ * genuinely returns the right institution for an authenticated fetch, yet
+ * the browser's own native install prompt still showed generic branding).
+ * Root cause: resolveAppIdentity(ctx) requires a signed-in session
+ * (getRequestContext() returns null with no session at all) -- but the
+ * fetches a browser's OWN internal installability/manifest engine makes to
+ * evaluate `beforeinstallprompt` are not guaranteed to carry the same
+ * session cookies a same-origin page fetch does (long-standing, still
+ * inconsistent Chromium behavior for manifest/icon requests specifically).
+ * app/manifest.webmanifest/route.ts and app/icon-badge/[size]/route.tsx
+ * both need identity that's correct EVEN when nothing in the request looks
+ * authenticated -- so this variant resolves purely from the institution
+ * CODE already sitting in the URL (middleware.ts's /<code>/... rewrite
+ * forwards it via the `x-institution-code` request header), using the
+ * same intentionally-public, pre-auth lookup the /login page already uses
+ * (getInstitutionPublicSummaryByCode, §137 follow-up) -- no session, no
+ * cookie, no institution membership required, exactly matching what a
+ * PWA manifest needs to be fetchable/correct for anyone, logged in or not.
+ */
+export async function resolveAppIdentityByCode(code: string | null): Promise<AppIdentity> {
+  if (!code) return GENERIC;
+  const institution = await getInstitutionPublicSummaryByCode(code).catch(() => null);
+  if (!institution) return GENERIC;
+  const name = institution.appName || institution.name;
+  const trimmedCode = institution.code.trim();
+  const label = trimmedCode ? trimmedCode.toUpperCase() : name.trim().charAt(0).toUpperCase();
+  const slug = trimmedCode.toLowerCase();
+  return {
+    name,
+    shortName: label.length > 12 ? label.slice(0, 12) : label,
+    badgeText: label,
+    dynamicIcon: true,
+    appId: `/app/${slug}`,
+    scope: `/${slug}/`,
+    startUrl: `/${slug}`,
+    assetBasePath: `/${slug}`,
+    logoInstitutionCode: institution.hasLogo ? trimmedCode : null,
+  };
 }

@@ -275,6 +275,16 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
+  // Follow-up ("Install still offers PROMPT EDU ERP, not the institute's
+  // own app") -- forwards the institution code straight from the URL so
+  // app/manifest.webmanifest/route.ts and app/icon-badge/[size]/route.tsx
+  // can resolve branding WITHOUT depending on a signed-in session/cookie
+  // (see services/branding/app-identity.ts's resolveAppIdentityByCode()
+  // doc comment for why that matters specifically for those two routes).
+  if (routing.setInstitutionCode) {
+    requestHeaders.set("x-institution-code", routing.setInstitutionCode);
+  }
+
   // §137 follow-up, found while verifying "can I install separate apps
   // now" live: response.cookies.set(ACTIVE_INSTITUTION_COOKIE, ...) below
   // (in buildBaseResponse) only changes what the BROWSER sends on its

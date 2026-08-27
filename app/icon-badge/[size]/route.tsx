@@ -13,18 +13,23 @@
 import { NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
 import { getRequestContext } from "../../../services/request-context";
-import { resolveAppIdentity } from "../../../services/branding/app-identity";
+import { resolveAppIdentity, resolveAppIdentityByCode } from "../../../services/branding/app-identity";
 import { getPublicLogoFile } from "../../../services/institution/institution-service";
 import { getStorageProviderByName } from "../../../services/storage/storage-provider";
 
 const SIZES: Record<string, number> = { "192": 192, "512": 512 };
 
-export async function GET(_request: Request, { params }: { params: Promise<{ size: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ size: string }> }) {
   const { size: sizeParam } = await params;
   const size = SIZES[sizeParam] ?? 192;
 
-  const ctx = await getRequestContext().catch(() => null);
-  const identity = await resolveAppIdentity(ctx);
+  // See app/manifest.webmanifest/route.ts's identical fix for why the
+  // URL-derived code (via middleware.ts's x-institution-code header)
+  // takes priority over the session-dependent lookup here.
+  const institutionCode = request.headers.get("x-institution-code");
+  const identity = institutionCode
+    ? await resolveAppIdentityByCode(institutionCode)
+    : await resolveAppIdentity(await getRequestContext().catch(() => null));
 
   // "Can I add institution logo?" follow-up — once an institution has
   // uploaded its own logo, the PWA install icon/favicon use the real image

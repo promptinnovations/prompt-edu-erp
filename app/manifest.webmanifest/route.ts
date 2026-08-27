@@ -1,5 +1,5 @@
 import { getRequestContext } from "../../services/request-context";
-import { resolveAppIdentity } from "../../services/branding/app-identity";
+import { resolveAppIdentity, resolveAppIdentityByCode } from "../../services/branding/app-identity";
 
 /**
  * PROMPT EDU ERP — dynamic PWA manifest (ARCHITECTURE.md §R.1), served at
@@ -23,9 +23,16 @@ import { resolveAppIdentity } from "../../services/branding/app-identity";
  * when no institution context is available (e.g. the public /login page
  * reached without ever visiting an institution's /<code> URL first).
  */
-export async function GET() {
-  const ctx = await getRequestContext().catch(() => null);
-  const identity = await resolveAppIdentity(ctx);
+export async function GET(request: Request) {
+  // Prefer the URL-derived institution code (see middleware.ts's
+  // x-institution-code header + resolveAppIdentityByCode()'s own doc
+  // comment) -- correct even when the browser's own manifest-fetch for
+  // PWA installability doesn't carry session cookies, which a session-only
+  // lookup here silently can't handle.
+  const institutionCode = request.headers.get("x-institution-code");
+  const identity = institutionCode
+    ? await resolveAppIdentityByCode(institutionCode)
+    : await resolveAppIdentity(await getRequestContext().catch(() => null));
 
   const manifest = {
     id: identity.appId,
