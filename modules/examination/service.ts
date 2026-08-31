@@ -46,11 +46,44 @@ const examTypeSchema = z.object({
   category: z.string().max(100).nullable().optional(),
 });
 
+// §Create-Examination follow-up ("type of exam in create exam is not
+// working"): the "Exam type" dropdown on Create Examination is fed
+// directly from this list with no zero-state handling, so an institution
+// with no exam_types rows gets a silently-empty required <select> that
+// can never be submitted -- confirmed live: 7 of 9 production
+// institutions had zero rows, because nothing ever populated exam_types
+// for a real institution except manual one-off testing (createInstitution()
+// and provisionSksvbDefaults() both deliberately stop short of exam_types,
+// see super-admin-service.ts's own doc comment). A universal, editable
+// starting point, not a permanent decision -- any institution (school,
+// college, islamic_school, madrasa alike) can rename/delete/add more via
+// Settings > Grading's existing exam-type CRUD (§353) immediately after.
+const DEFAULT_EXAM_TYPES: Array<[code: string, name: string]> = [
+  ["term1", "Term 1 Exam"],
+  ["term2", "Term 2 Exam"],
+  ["final", "Final Exam"],
+];
+
+/** Lazily provisions DEFAULT_EXAM_TYPES the first time an institution has
+ *  zero exam_types rows -- same one-time, never-repeated pattern as
+ *  modules/staff/service.ts's listObservationCriteria() (see that
+ *  function's own doc comment): only runs when the list is truly empty, so
+ *  an admin's own additions/edits/deletions (even down to zero deliberately
+ *  chosen types, which would be unusual but is technically possible) are
+ *  never silently re-seeded over. */
 export async function listExamTypes(institutionId: string, authUserId: string): Promise<ExamTypeRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExamTypeRecord>("select id, code, name, category from exam_types order by category nulls last, name");
-    return rows;
+    if (rows.length > 0) return rows;
+    for (const [code, name] of DEFAULT_EXAM_TYPES) {
+      await scoped.query(
+        `insert into exam_types (institution_id, code, name) values ($1, $2, $3) on conflict (institution_id, code) do nothing`,
+        [institutionId, code, name]
+      );
+    }
+    const { rows: seeded } = await scoped.query<ExamTypeRecord>("select id, code, name, category from exam_types order by category nulls last, name");
+    return seeded;
   });
 }
 
