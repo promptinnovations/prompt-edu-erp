@@ -21,7 +21,11 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="examTypeId" value={examType.id} />
           <input name="name" defaultValue={examType.name} className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm" />
-          <input name="category" defaultValue={examType.category ?? ""} placeholder="Category (e.g. Islamic, Academic)" className="w-56 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs" />
+          <select name="category" defaultValue={examType.category ?? ""} className="w-40 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs">
+            <option value="">No category</option>
+            <option value="Academic">Academic</option>
+            <option value="Islamic">Islamic</option>
+          </select>
           <button type="submit" className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">Cancel</button>
         </form>
@@ -58,9 +62,9 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
   return (
     <div className="space-y-3">
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        Exam types feed the &quot;Create Exam&quot; dropdown in Examinations. Category is an optional label
-        (e.g. Islamic for Madrasa/Moral Science subjects, Academic for school subjects) — this institution can
-        add as many types and categories as it needs.
+        Exam types feed the &quot;Create Exam&quot; dropdown in Examinations. Category is optional — Academic
+        or Islamic — and drives which track section an exam shows up in wherever this institution splits
+        results by track.
       </p>
       <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {examTypes.length === 0 ? <li className="py-1 text-xs text-zinc-400 dark:text-zinc-500">No exam types yet.</li> : null}
@@ -79,7 +83,11 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Category (optional)</label>
-            <input name="category" placeholder="Islamic / Academic" className="w-48 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" />
+            <select name="category" defaultValue="" className="w-40 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm">
+              <option value="">No category</option>
+              <option value="Academic">Academic</option>
+              <option value="Islamic">Islamic</option>
+            </select>
           </div>
           <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add exam type

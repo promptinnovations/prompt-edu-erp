@@ -33,6 +33,23 @@ export default function CreateInstitutionForm() {
           <option value="other">Other</option>
         </select>
       </div>
+      <div className="w-full sm:w-auto">
+        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Education type</label>
+        <select
+          name="educationMode"
+          defaultValue="academic"
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+        >
+          <option value="academic">Academic only</option>
+          <option value="islamic">Islamic only</option>
+          <option value="both">Both (Academic + Islamic)</option>
+        </select>
+        <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500 sm:w-44">
+          &quot;Both&quot; keeps this institution&apos;s subjects, exam types, portfolio and results split into
+          two dedicated Academic/Islamic sections everywhere — the institution&apos;s own admin can later
+          choose which one shows first.
+        </p>
+      </div>
       {type === "madrasa" ? (
         <div className="w-full sm:w-auto">
           <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Educational board</label>

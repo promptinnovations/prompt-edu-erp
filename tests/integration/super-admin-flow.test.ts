@@ -48,7 +48,7 @@ afterAll(async () => {
 describe("access control — non-super-admins are always rejected", () => {
   it("a full institution_admin cannot call any SuperAdminService function", async () => {
     await expect(listInstitutions(adminAuth)).rejects.toThrow(/Forbidden/);
-    await expect(createInstitution(adminAuth, { code: "sneaky", name: "Sneaky School", type: "other", defaultLocale: "en" })).rejects.toThrow(/Forbidden/);
+    await expect(createInstitution(adminAuth, { code: "sneaky", name: "Sneaky School", type: "other", defaultLocale: "en", educationMode: "academic" })).rejects.toThrow(/Forbidden/);
     await expect(updateInstitutionStatus(adminAuth, institutionA, { status: "suspended" })).rejects.toThrow(/Forbidden/);
     await expect(getPlatformUsageOverview(adminAuth)).rejects.toThrow(/Forbidden/);
     await expect(listPlatformAuditLogs(adminAuth)).rejects.toThrow(/Forbidden/);
@@ -71,7 +71,7 @@ describe("access control — non-super-admins are always rejected", () => {
 
 describe("institution creation", () => {
   it("creates an institution with the generic system-role scaffolding, and institution_admin gets the full grant", async () => {
-    const institution = await createInstitution(superAdminAuth, { code: "green-valley", name: "Green Valley School", type: "school", board: "kerala_state", defaultLocale: "en" });
+    const institution = await createInstitution(superAdminAuth, { code: "green-valley", name: "Green Valley School", type: "school", board: "kerala_state", defaultLocale: "en", educationMode: "academic" });
     expect(institution.status).toBe("trial");
     expect(institution.code).toBe("green-valley");
 
@@ -105,14 +105,14 @@ describe("institution creation", () => {
   });
 
   it("rejects a duplicate/invalid code with a validation error, not a raw DB error leak", async () => {
-    await expect(createInstitution(superAdminAuth, { code: "Not Valid!", name: "Bad Code School", type: "other", defaultLocale: "en" })).rejects.toThrow();
+    await expect(createInstitution(superAdminAuth, { code: "Not Valid!", name: "Bad Code School", type: "other", defaultLocale: "en", educationMode: "academic" })).rejects.toThrow();
   });
 });
 
 describe("creating an institution with its first admin account", () => {
   it("provisions a real, immediately-usable admin: users row, membership, institution_admin role", async () => {
     const institution = await createInstitution(superAdminAuth, {
-      code: "admin-bundle-school", name: "Admin Bundle School", type: "school", board: "kerala_state", defaultLocale: "en",
+      code: "admin-bundle-school", name: "Admin Bundle School", type: "school", board: "kerala_state", defaultLocale: "en", educationMode: "academic",
       adminEmail: "admin@admin-bundle.example", adminFullName: "Bundle Admin", adminPassword: "correct-horse-battery",
     });
 
@@ -140,7 +140,7 @@ describe("creating an institution with its first admin account", () => {
   it("requires all three admin fields together — providing only one is rejected", async () => {
     await expect(
       createInstitution(superAdminAuth, {
-        code: "partial-admin-school", name: "Partial Admin School", type: "school", board: "kerala_state", defaultLocale: "en",
+        code: "partial-admin-school", name: "Partial Admin School", type: "school", board: "kerala_state", defaultLocale: "en", educationMode: "academic",
         adminEmail: "only-email@partial.example",
       })
     ).rejects.toThrow();
@@ -148,7 +148,7 @@ describe("creating an institution with its first admin account", () => {
 
   it("creates the institution with no admin at all when none of the three are given (existing behavior unchanged)", async () => {
     const institution = await createInstitution(superAdminAuth, {
-      code: "no-admin-school", name: "No Admin School", type: "school", board: "kerala_state", defaultLocale: "en",
+      code: "no-admin-school", name: "No Admin School", type: "school", board: "kerala_state", defaultLocale: "en", educationMode: "academic",
     });
     expect(institution.code).toBe("no-admin-school");
   });
@@ -156,7 +156,7 @@ describe("creating an institution with its first admin account", () => {
   it("rejects an admin email that's already used by another user on the platform, and creates nothing (institution rolled back too)", async () => {
     await expect(
       createInstitution(superAdminAuth, {
-        code: "dupe-admin-school", name: "Dupe Admin School", type: "school", board: "kerala_state", defaultLocale: "en",
+        code: "dupe-admin-school", name: "Dupe Admin School", type: "school", board: "kerala_state", defaultLocale: "en", educationMode: "academic",
         adminEmail: "admin@admin-bundle.example", // already used above
         adminFullName: "Someone Else", adminPassword: "another-password-here",
       })
@@ -202,7 +202,7 @@ describe("platform usage overview", () => {
 
 describe("createInstitution audit trail", () => {
   it("records a platform audit entry for institution creation itself", async () => {
-    const institution = await createInstitution(superAdminAuth, { code: "audit-check-school", name: "Audit Check School", type: "other", defaultLocale: "en" });
+    const institution = await createInstitution(superAdminAuth, { code: "audit-check-school", name: "Audit Check School", type: "other", defaultLocale: "en", educationMode: "academic" });
     const logs = await listPlatformAuditLogs(superAdminAuth);
     const createLog = logs.find((l) => l.action === "create" && l.entity_id === institution.id);
     expect(createLog).toBeTruthy();
@@ -212,7 +212,7 @@ describe("createInstitution audit trail", () => {
 
 describe("updateInstitutionCode (§137 follow-up: editable per-institution deep-link URL)", () => {
   it("changes the code and records a platform audit entry", async () => {
-    const institution = await createInstitution(superAdminAuth, { code: "code-change-school", name: "Code Change School", type: "other", defaultLocale: "en" });
+    const institution = await createInstitution(superAdminAuth, { code: "code-change-school", name: "Code Change School", type: "other", defaultLocale: "en", educationMode: "academic" });
     const updated = await updateInstitutionCode(superAdminAuth, institution.id, { code: "code-change-school-v2" });
     expect(updated?.code).toBe("code-change-school-v2");
 
@@ -222,19 +222,19 @@ describe("updateInstitutionCode (§137 follow-up: editable per-institution deep-
   });
 
   it("rejects a code that collides with a reserved top-level route", async () => {
-    const institution = await createInstitution(superAdminAuth, { code: "reserved-check-school", name: "Reserved Check School", type: "other", defaultLocale: "en" });
+    const institution = await createInstitution(superAdminAuth, { code: "reserved-check-school", name: "Reserved Check School", type: "other", defaultLocale: "en", educationMode: "academic" });
     await expect(updateInstitutionCode(superAdminAuth, institution.id, { code: "login" })).rejects.toThrow();
     await expect(updateInstitutionCode(superAdminAuth, institution.id, { code: "super-admin" })).rejects.toThrow();
   });
 
   it("rejects a code already used by another institution", async () => {
-    const first = await createInstitution(superAdminAuth, { code: "clash-school-one", name: "Clash School One", type: "other", defaultLocale: "en" });
-    await createInstitution(superAdminAuth, { code: "clash-school-two", name: "Clash School Two", type: "other", defaultLocale: "en" });
+    const first = await createInstitution(superAdminAuth, { code: "clash-school-one", name: "Clash School One", type: "other", defaultLocale: "en", educationMode: "academic" });
+    await createInstitution(superAdminAuth, { code: "clash-school-two", name: "Clash School Two", type: "other", defaultLocale: "en", educationMode: "academic" });
     await expect(updateInstitutionCode(superAdminAuth, first.id, { code: "clash-school-two" })).rejects.toThrow(/already used/);
   });
 
   it("is a harmless no-op (no audit entry) when the code doesn't actually change", async () => {
-    const institution = await createInstitution(superAdminAuth, { code: "noop-school", name: "No-op School", type: "other", defaultLocale: "en" });
+    const institution = await createInstitution(superAdminAuth, { code: "noop-school", name: "No-op School", type: "other", defaultLocale: "en", educationMode: "academic" });
     const before = (await listPlatformAuditLogs(superAdminAuth)).length;
     const result = await updateInstitutionCode(superAdminAuth, institution.id, { code: "noop-school" });
     expect(result?.code).toBe("noop-school");
@@ -243,7 +243,7 @@ describe("updateInstitutionCode (§137 follow-up: editable per-institution deep-
   });
 
   it("a non-super-admin cannot change any institution's code", async () => {
-    const institution = await createInstitution(superAdminAuth, { code: "forbidden-code-school", name: "Forbidden Code School", type: "other", defaultLocale: "en" });
+    const institution = await createInstitution(superAdminAuth, { code: "forbidden-code-school", name: "Forbidden Code School", type: "other", defaultLocale: "en", educationMode: "academic" });
     await expect(updateInstitutionCode(adminAuth, institution.id, { code: "whatever" })).rejects.toThrow(/Forbidden/);
   });
 });
@@ -251,7 +251,7 @@ describe("updateInstitutionCode (§137 follow-up: editable per-institution deep-
 describe("createInstitution rejects reserved codes up front", () => {
   it("cannot create an institution whose code shadows a real app route", async () => {
     await expect(
-      createInstitution(superAdminAuth, { code: "dashboard", name: "Shadow School", type: "other", defaultLocale: "en" })
+      createInstitution(superAdminAuth, { code: "dashboard", name: "Shadow School", type: "other", defaultLocale: "en", educationMode: "academic" })
     ).rejects.toThrow();
   });
 });
@@ -259,25 +259,25 @@ describe("createInstitution rejects reserved codes up front", () => {
 describe("educational board (§137 follow-up: SKSVB/SKIMVB for madrasa institutions)", () => {
   it("requires a board when type is madrasa", async () => {
     await expect(
-      createInstitution(superAdminAuth, { code: "no-board-madrasa", name: "No Board Madrasa", type: "madrasa", defaultLocale: "en" })
+      createInstitution(superAdminAuth, { code: "no-board-madrasa", name: "No Board Madrasa", type: "madrasa", defaultLocale: "en", educationMode: "academic" })
     ).rejects.toThrow(/educational board/i);
   });
 
   it("rejects a madrasa board given for a school (wrong board group)", async () => {
     await expect(
-      createInstitution(superAdminAuth, { code: "school-with-board", name: "School With Board", type: "school", board: "sksvb", defaultLocale: "en" })
+      createInstitution(superAdminAuth, { code: "school-with-board", name: "School With Board", type: "school", board: "sksvb", defaultLocale: "en", educationMode: "academic" })
     ).rejects.toThrow(/doesn't apply to a school/i);
   });
 
   it("rejects a board given for a type with no board group at all", async () => {
     await expect(
-      createInstitution(superAdminAuth, { code: "college-with-board", name: "College With Board", type: "college", board: "sksvb", defaultLocale: "en" })
+      createInstitution(superAdminAuth, { code: "college-with-board", name: "College With Board", type: "college", board: "sksvb", defaultLocale: "en", educationMode: "academic" })
     ).rejects.toThrow(/only applies to madrasa or school/i);
   });
 
   it("SKIMVB just records the choice — no auto-provisioning yet", async () => {
     const institution = await createInstitution(superAdminAuth, {
-      code: "skimvb-madrasa", name: "SKIMVB Madrasa", type: "madrasa", board: "skimvb", defaultLocale: "en",
+      code: "skimvb-madrasa", name: "SKIMVB Madrasa", type: "madrasa", board: "skimvb", defaultLocale: "en", educationMode: "academic",
     });
     expect(institution.board).toBe("skimvb");
 
@@ -294,7 +294,7 @@ describe("educational board (§137 follow-up: SKSVB/SKIMVB for madrasa instituti
 
   it("SKSVB auto-provisions classes 1-12, the full syllabus, and flags Qur'an & Hifz as the practical-only subject", async () => {
     const institution = await createInstitution(superAdminAuth, {
-      code: "sksvb-madrasa", name: "SKSVB Madrasa", type: "madrasa", board: "sksvb", defaultLocale: "en",
+      code: "sksvb-madrasa", name: "SKSVB Madrasa", type: "madrasa", board: "sksvb", defaultLocale: "en", educationMode: "academic",
     });
     expect(institution.board).toBe("sksvb");
 
@@ -337,13 +337,13 @@ describe("educational board (§137 follow-up: SKSVB/SKIMVB for madrasa instituti
 
   it("requires a curriculum board when type is school", async () => {
     await expect(
-      createInstitution(superAdminAuth, { code: "no-board-school", name: "No Board School", type: "school", defaultLocale: "en" })
+      createInstitution(superAdminAuth, { code: "no-board-school", name: "No Board School", type: "school", defaultLocale: "en", educationMode: "academic" })
     ).rejects.toThrow(/curriculum board/i);
   });
 
   it("Kerala State board auto-provisions a default 9-band grade scale with resolved hex colors and sets institution pass_pct to 35", async () => {
     const institution = await createInstitution(superAdminAuth, {
-      code: "kerala-school", name: "Kerala School", type: "school", board: "kerala_state", defaultLocale: "en",
+      code: "kerala-school", name: "Kerala School", type: "school", board: "kerala_state", defaultLocale: "en", educationMode: "academic",
     });
     expect(institution.board).toBe("kerala_state");
 
@@ -373,8 +373,8 @@ describe("educational board (§137 follow-up: SKSVB/SKIMVB for madrasa instituti
   });
 
   it("CBSE and ICSE boards each provision their own distinct 9-point preset", async () => {
-    const cbse = await createInstitution(superAdminAuth, { code: "cbse-school", name: "CBSE School", type: "school", board: "cbse", defaultLocale: "en" });
-    const icse = await createInstitution(superAdminAuth, { code: "icse-school", name: "ICSE School", type: "school", board: "icse", defaultLocale: "en" });
+    const cbse = await createInstitution(superAdminAuth, { code: "cbse-school", name: "CBSE School", type: "school", board: "cbse", defaultLocale: "en", educationMode: "academic" });
+    const icse = await createInstitution(superAdminAuth, { code: "icse-school", name: "ICSE School", type: "school", board: "icse", defaultLocale: "en", educationMode: "academic" });
 
     const db = await getDbClient();
     for (const [inst, expectedFirstLabel, expectedPassPct] of [[cbse, "A1", 33], [icse, "A1", 33]] as const) {

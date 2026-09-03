@@ -420,6 +420,111 @@ export async function getResultSchoolSummary(
   };
 }
 
+export interface TrackResultSummary {
+  track: "academic" | "islamic";
+  // Only students with a complete, approved/locked mark for every one of
+  // this track's exam_subjects in this examination — same "complete
+  // entry" rule computeResults() itself uses, just computed ad hoc per
+  // track instead of persisted (§ education-track follow-up: a 'both'
+  // institution's overall results.percentage row mixes both tracks'
+  // subjects together, so it can't answer "how did this student do on
+  // just their Islamic subjects" — this can).
+  total_students: number;
+  average_percent: number | null;
+  pass_count: number;
+  fail_count: number;
+  pass_percent: number | null;
+}
+
+/** Track-separated school summary (§ education-track follow-up, verbatim
+ *  ask: "they should be analyzed seperately"). Returns one summary per
+ *  track that actually has at least one exam_subject in this examination
+ *  — empty array for any institution/examination with no tracked subjects
+ *  at all (i.e. every 'academic'-only or 'islamic'-only institution, and
+ *  any 'both' institution before its subjects are tagged), so callers can
+ *  just check `.length > 0` to decide whether to show this section.
+ *  Deliberately does NOT touch the `results` table or computeResults() —
+ *  this is a separate, additive per-track total computed straight from
+ *  marks/exam_subjects/subjects, using the same pass-mark/pass-pct rules
+ *  computeResults() itself uses (§366 isPass()). */
+export async function getTrackWiseSummary(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<TrackResultSummary[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: instRow } = await scoped.query<{ pass_pct: string }>(
+      "select pass_pct from institutions where id = $1", [institutionId]
+    );
+    const passPct = Number(instRow[0]?.pass_pct ?? 35);
+
+    const { rows: examSubjects } = await scoped.query<{
+      id: string; max_marks: string; pass_marks: string | null; track: "academic" | "islamic" | null;
+    }>(
+      `select es.id, es.max_marks, es.pass_marks, sub.track
+         from exam_subjects es join subjects sub on sub.id = es.subject_id
+        where es.examination_id = $1 and sub.track is not null`,
+      [examinationId]
+    );
+    const tracks = Array.from(new Set(examSubjects.map((s) => s.track))) as ("academic" | "islamic")[];
+    if (tracks.length === 0) return [];
+
+    const examSubjectIds = examSubjects.map((s) => s.id);
+    const { rows: marksRows } = await scoped.query<{
+      student_id: string; exam_subject_id: string; marks_obtained: string | null; is_absent: boolean;
+    }>(
+      `select student_id, exam_subject_id, marks_obtained, is_absent
+         from marks where exam_subject_id = any($1) and entry_status in ('approved','locked')`,
+      [examSubjectIds]
+    );
+
+    const summaries: TrackResultSummary[] = [];
+    for (const track of tracks) {
+      const trackSubjects = examSubjects.filter((s) => s.track === track);
+      const trackSubjectIds = new Set(trackSubjects.map((s) => s.id));
+      const maxTotal = trackSubjects.reduce((sum, s) => sum + Number(s.max_marks), 0);
+      const passMarksBySubject = new Map(trackSubjects.map((s) => [s.id, s.pass_marks == null ? null : Number(s.pass_marks)]));
+
+      const byStudent = new Map<string, typeof marksRows>();
+      for (const m of marksRows) {
+        if (!trackSubjectIds.has(m.exam_subject_id)) continue;
+        if (!byStudent.has(m.student_id)) byStudent.set(m.student_id, []);
+        byStudent.get(m.student_id)!.push(m);
+      }
+
+      let totalStudents = 0, passCount = 0, failCount = 0, percentSum = 0;
+      for (const [, rows] of byStudent) {
+        if (rows.length !== trackSubjects.length) continue; // incomplete for this track — skip, same rule computeResults() uses
+        let total = 0;
+        let anyFailedSubject = false;
+        for (const r of rows) {
+          if (r.is_absent || r.marks_obtained == null) { anyFailedSubject = true; continue; }
+          const obtained = Number(r.marks_obtained);
+          total += obtained;
+          const subjectMax = Number(trackSubjects.find((s) => s.id === r.exam_subject_id)!.max_marks);
+          const subjectPassMarks = passMarksBySubject.get(r.exam_subject_id);
+          const subjectPct = subjectMax > 0 ? (obtained / subjectMax) * 100 : 0;
+          const subjectPassed = subjectPassMarks != null ? obtained >= subjectPassMarks : isPass(subjectPct, passPct);
+          if (!subjectPassed) anyFailedSubject = true;
+        }
+        const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+        const overallPass = !anyFailedSubject && isPass(percentage, passPct);
+        totalStudents++;
+        percentSum += percentage;
+        if (overallPass) passCount++; else failCount++;
+      }
+
+      summaries.push({
+        track,
+        total_students: totalStudents,
+        average_percent: totalStudents > 0 ? Math.round((percentSum / totalStudents) * 100) / 100 : null,
+        pass_count: passCount, fail_count: failCount,
+        pass_percent: totalStudents > 0 ? Math.round((passCount / totalStudents) * 10000) / 100 : null,
+      });
+    }
+    return summaries;
+  });
+}
+
 export interface ResultGroupRow {
   id: string; name: string; parent_name: string | null;
   // The underlying classes.id this row's students belong to — same value
@@ -897,6 +1002,9 @@ export interface SubjectBelowThresholdRow { student_id: string; student_name: st
 export interface SubjectGradeGroupRow {
   class_id: string; class_name: string;
   subject_id: string; subject_name: string;
+  // Education Type follow-up — which curriculum track this subject
+  // belongs to; null unless the institution is in 'both' mode.
+  track: "academic" | "islamic" | null;
   max_marks: number;
   count: number; average_percent: number | null; max_obtained: number | null; min_obtained: number | null;
   pass_count: number; fail_count: number; pass_percentage: number | null;
@@ -941,11 +1049,11 @@ export async function getSubjectWiseByGrade(
 
     const { rows } = await scoped.query<{
       class_id: string; class_name: string; sort_order: number;
-      subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
+      subject_id: string; subject_name: string; max_marks: string; pass_marks: string; track: "academic" | "islamic" | null;
       student_id: string; student_name: string; marks_obtained: string | null; is_absent: boolean;
     }>(
       `select distinct c.id as class_id, c.name as class_name, c.sort_order,
-              es.subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
+              es.subject_id, sub.name as subject_name, es.max_marks, es.pass_marks, sub.track,
               se.student_id, s.full_name as student_name, m.marks_obtained, coalesce(m.is_absent, false) as is_absent
          from exam_classes ec
          join classes c on c.id = ec.class_id
@@ -961,7 +1069,7 @@ export async function getSubjectWiseByGrade(
     );
 
     interface Bucket {
-      class_id: string; class_name: string; subject_id: string; subject_name: string;
+      class_id: string; class_name: string; subject_id: string; subject_name: string; track: "academic" | "islamic" | null;
       max_marks: number; pass_marks: number;
       entries: { student_id: string; student_name: string; marks_obtained: number | null; is_absent: boolean }[];
     }
@@ -971,7 +1079,7 @@ export async function getSubjectWiseByGrade(
       if (!buckets.has(key)) {
         buckets.set(key, {
           class_id: r.class_id, class_name: r.class_name, subject_id: r.subject_id, subject_name: r.subject_name,
-          max_marks: Number(r.max_marks), pass_marks: Number(r.pass_marks), entries: [],
+          track: r.track, max_marks: Number(r.max_marks), pass_marks: Number(r.pass_marks), entries: [],
         });
       }
       buckets.get(key)!.entries.push({
@@ -1010,6 +1118,7 @@ export async function getSubjectWiseByGrade(
 
       return {
         class_id: b.class_id, class_name: b.class_name, subject_id: b.subject_id, subject_name: b.subject_name,
+        track: b.track,
         max_marks: b.max_marks,
         count: marked.length,
         average_percent: marked.length > 0 ? Math.round((sum / marked.length / b.max_marks) * 10000) / 100 : null,

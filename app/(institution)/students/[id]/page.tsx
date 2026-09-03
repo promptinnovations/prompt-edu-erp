@@ -8,6 +8,7 @@ import {
 import { listClasses, listSections, getCurrentAcademicYear } from "../../../../modules/academic/service";
 import { getStudent360 } from "../../../../modules/portfolio/service";
 import { getStudentExamReport } from "../../../../modules/examination/service";
+import { getInstitution } from "../../../../services/institution/institution-service";
 import { getStudentMonthlyAttendance } from "../../../../modules/attendance/service";
 import { listAchievements } from "../../../../modules/achievements/service";
 import { listSkillSubmissions } from "../../../../modules/skills/service";
@@ -54,7 +55,7 @@ export default async function StudentDetailPage({
 
   const [
     enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
-    approvedAchievements, approvedSkillSubmissions, approvedReadingRecords,
+    approvedAchievements, approvedSkillSubmissions, approvedReadingRecords, institution,
   ] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
     listClasses(institutionId, authUserId),
@@ -67,7 +68,16 @@ export default async function StudentDetailPage({
     listAchievements(institutionId, authUserId, "approved", undefined, id),
     listSkillSubmissions(institutionId, authUserId, "approved", undefined, id),
     listReadingRecords(institutionId, authUserId, "approved", undefined, id),
+    getInstitution(institutionId, authUserId),
   ]);
+  // Education Type follow-up — "there should be 2 dedicated spaces for
+  // both everywhere like student portfolio... which should come first
+  // will be decided by institute admin" (verbatim ask). Only meaningful
+  // when this institution is in 'both' mode; every other institution's
+  // Academics tab renders exactly as before (a single flat subject list).
+  const educationMode = institution?.educationMode ?? "academic";
+  const trackOrder = institution?.trackOrder ?? ["academic", "islamic"];
+  const TRACK_LABEL: Record<string, string> = { academic: "Academic", islamic: "Islamic" };
   const monthlyAttendance = academicYear
     ? await getStudentMonthlyAttendance(institutionId, authUserId, id, academicYear.start_date, academicYear.end_date)
     : [];
@@ -458,7 +468,78 @@ export default async function StudentDetailPage({
           {examReport ? examReport.examination_name : "Subject-wise marks"}
         </h2>
         {examReport ? (
-          <div className="overflow-x-auto">
+          educationMode === "both" ? (
+            <div className="space-y-5">
+              {trackOrder.map((track) => {
+                const trackSubjects = examReport.subjects.filter((s) => s.track === track);
+                return (
+                  <div key={track}>
+                    <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                      {TRACK_LABEL[track] ?? track}
+                    </h3>
+                    {trackSubjects.length > 0 ? (
+                      <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <tr>
+                  <th className="py-1.5 pr-4">Subject</th>
+                  <th className="py-1.5 pr-4">Marks</th>
+                  <th className="py-1.5 pr-4">%</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {trackSubjects.map((s) => (
+                  <tr key={s.subject_id}>
+                    <td className="py-1.5 pr-4 text-zinc-900 dark:text-zinc-50">{s.subject_name}</td>
+                    <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                    </td>
+                    <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {!s.is_absent && s.marks_obtained !== null ? `${Math.round((Number(s.marks_obtained) / Number(s.max_marks)) * 1000) / 10}%` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+                    ) : (
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500">No {(TRACK_LABEL[track] ?? track).toLowerCase()} subjects tagged yet.</p>
+                    )}
+                  </div>
+                );
+              })}
+              {examReport.subjects.filter((s) => !s.track).length > 0 ? (
+                <div>
+                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Untagged</h3>
+                  <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <tr>
+                  <th className="py-1.5 pr-4">Subject</th>
+                  <th className="py-1.5 pr-4">Marks</th>
+                  <th className="py-1.5 pr-4">%</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {examReport.subjects.filter((s) => !s.track).map((s) => (
+                  <tr key={s.subject_id}>
+                    <td className="py-1.5 pr-4 text-zinc-900 dark:text-zinc-50">{s.subject_name}</td>
+                    <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                    </td>
+                    <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {!s.is_absent && s.marks_obtained !== null ? `${Math.round((Number(s.marks_obtained) / Number(s.max_marks)) * 1000) / 10}%` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 <tr>
@@ -482,6 +563,7 @@ export default async function StudentDetailPage({
               </tbody>
             </table>
           </div>
+          )
         ) : (
           <p className="text-sm text-zinc-400 dark:text-zinc-500">No exam marks recorded yet.</p>
         )}

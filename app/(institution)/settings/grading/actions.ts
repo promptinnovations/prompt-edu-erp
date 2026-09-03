@@ -17,7 +17,7 @@ import {
   createGradeBand, updateGradeBand, deleteGradeBand,
   createExamType, updateExamType, deleteExamType,
 } from "../../../../modules/examination/service";
-import { updateInstitutionPassPct } from "../../../../services/institution/institution-service";
+import { updateInstitutionPassPct, updateInstitutionTrackOrder } from "../../../../services/institution/institution-service";
 import { createScoringRule, updateScoringRule, deleteScoringRule } from "../../../../modules/scoring/service";
 import {
   createAchievementCategory, updateAchievementCategory, deleteAchievementCategory,
@@ -136,6 +136,26 @@ export async function updatePassPctAction(_prev: GradingActionState, formData: F
     return OK;
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update pass percentage." };
+  }
+}
+
+/** Education Type follow-up — "which should come first will be decided by
+ *  institute admin" (verbatim ask). Only shown/used when this institution
+ *  is in 'both' mode (see page.tsx). */
+export async function updateTrackOrderAction(_prev: GradingActionState, formData: FormData): Promise<GradingActionState> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const first = String(formData.get("firstTrack") ?? "academic") as "academic" | "islamic";
+    const second = first === "academic" ? "islamic" : "academic";
+    await updateInstitutionTrackOrder(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      trackOrder: [first, second],
+    });
+    revalidatePath(PATH);
+    return OK;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update track order." };
   }
 }
 

@@ -16,6 +16,7 @@ export async function createInstitutionAction(_prevState: { error: string | null
       name: String(formData.get("name") ?? ""),
       type: (String(formData.get("type") ?? "other")) as "madrasa" | "islamic_school" | "school" | "college" | "dars" | "other",
       board: board as "sksvb" | "skimvb" | undefined,
+      educationMode: (String(formData.get("educationMode") ?? "academic")) as "academic" | "islamic" | "both",
       defaultLocale: (String(formData.get("defaultLocale") ?? "en")) as "en" | "ml",
       adminEmail, adminFullName, adminPassword,
     });

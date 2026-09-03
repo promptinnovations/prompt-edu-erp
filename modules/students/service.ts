@@ -363,7 +363,7 @@ export async function getStudentProfile(institutionId: string, authUserId: strin
 }
 
 const updateStudentProfileSchema = z.object({
-  contactPhone: z.string().max(30).nullable().optional(),
+  contactPhone: z.string().max(50).nullable().optional(),
   address: z.string().max(500).nullable().optional(),
   bloodGroup: z.string().max(10).nullable().optional(),
   motherTongue: z.string().max(100).nullable().optional(),
@@ -716,9 +716,15 @@ export interface ParentLinkRow extends ParentRecord {
   relationship: string | null; is_primary_contact: boolean;
 }
 
+// §Bulk-import follow-up ("increase maximum capacity for bulk uploading"):
+// bumped from 30 -> 50 -- real class-register data (this is exactly the
+// field bulk/service.ts's "Mobile No" student-import column feeds into
+// via createParent()) often has more than one number in this cell
+// ("9876543210 / 9876543211"), which routinely exceeded the old cap and
+// silently failed otherwise-valid rows.
 const createParentSchema = z.object({
   fullName: z.string().min(1).max(200),
-  phone: z.string().max(30).nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
   email: z.string().email().nullable().optional(),
   occupation: z.string().max(150).nullable().optional(),
 });
@@ -797,7 +803,7 @@ export async function listParentsForStudent(institutionId: string, authUserId: s
 
 const updateParentSchema = z.object({
   fullName: z.string().min(1).max(200).optional(),
-  phone: z.string().max(30).nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
   email: z.string().email().nullable().optional(),
   occupation: z.string().max(150).nullable().optional(),
 });
@@ -887,7 +893,7 @@ export async function deleteParentRecord(institutionId: string, authUserId: stri
 // -----------------------------------------------------------------------------
 const guardianSchema = z.object({
   fullName: z.string().min(1).max(200),
-  phone: z.string().max(30).nullable().optional(),
+  phone: z.string().max(50).nullable().optional(),
   occupation: z.string().max(150).nullable().optional(),
 });
 

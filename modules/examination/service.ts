@@ -915,6 +915,11 @@ export interface StudentSubjectMarkRow {
   marks_obtained: string | null; // numeric(6,2) — comes back as a string, same convention as MarkRow.marks_obtained above
   max_marks: string;
   is_absent: boolean;
+  // Education Type follow-up (migration 0041) — which curriculum track
+  // this subject belongs to; null unless the institution is in 'both'
+  // mode. Lets the Student Portfolio's Academics tab split this report
+  // into two sections instead of one flat list.
+  track: "academic" | "islamic" | null;
 }
 
 export interface StudentExamReport {
@@ -955,7 +960,7 @@ export async function getStudentExamReport(
 
     const { rows: subjectRows } = await scoped.query<StudentSubjectMarkRow>(
       `select sub.id as subject_id, sub.name as subject_name, m.marks_obtained, es.max_marks,
-              coalesce(m.is_absent, false) as is_absent
+              coalesce(m.is_absent, false) as is_absent, sub.track
          from exam_subjects es
          join subjects sub on sub.id = es.subject_id
          left join marks m

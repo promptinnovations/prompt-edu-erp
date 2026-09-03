@@ -7,8 +7,8 @@ import {
   getSubjectComparison, getSubjectPerformanceIndicators, getExaminationClassification,
   getClassAttendanceTrend, getClassificationRule,
   getResultSchoolSummary, getResultsBySection, getResultsByClass, getResultsByTeacher,
-  getResultsByStage, getSubjectWiseByGrade, getClassMarksHistogram,
-  type ResultGroupRow, type TeacherResultRow, type SubjectGradeGroupRow,
+  getResultsByStage, getSubjectWiseByGrade, getClassMarksHistogram, getTrackWiseSummary,
+  type ResultGroupRow, type TeacherResultRow, type SubjectGradeGroupRow, type TrackResultSummary,
 } from "../../../modules/analytics/service";
 import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import { getStaffSectionScope } from "../../../services/scope/section-head-scope-service";
@@ -100,14 +100,15 @@ export default async function AnalyticsPage({
     getClassificationRule(institutionId, authUserId),
   ]);
 
-  const [subjectComparison, indicators, classification, schoolSummary] = examinationId
+  const [subjectComparison, indicators, classification, schoolSummary, trackSummaries] = examinationId
     ? await Promise.all([
         getSubjectComparison(institutionId, authUserId, examinationId),
         getSubjectPerformanceIndicators(institutionId, authUserId, examinationId),
         getExaminationClassification(institutionId, authUserId, examinationId),
         getResultSchoolSummary(institutionId, authUserId, examinationId),
+        getTrackWiseSummary(institutionId, authUserId, examinationId),
       ])
-    : [[], [], [], null];
+    : [[], [], [], null, []];
 
   const [byStage, byClass, bySection, bySubject, byTeacher] = examinationId
     ? await Promise.all([
@@ -299,6 +300,35 @@ export default async function AnalyticsPage({
                 <StatCard label="School average %" value={fmtPct(schoolSummary.average_percent)} />
                 <StatCard label="School pass %" value={fmtPct(schoolSummary.pass_percent)} accent={PASS_COLOR} />
               </div>
+
+              {trackSummaries.length > 0 ? (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    Academic vs Islamic (analyzed separately)
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {trackSummaries.map((t: TrackResultSummary) => (
+                      <div key={t.track} className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 capitalize">{t.track}</p>
+                        <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t.total_students}</div>
+                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">Students</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{fmtPct(t.average_percent)}</div>
+                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">Average</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-semibold" style={{ color: PASS_COLOR }}>{fmtPct(t.pass_percent)}</div>
+                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">Pass rate</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Grade distribution</h3>
@@ -512,7 +542,9 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   <tr>
-                    <th className="py-1.5">Subject</th><th className="py-1.5">Count</th><th className="py-1.5">Avg %</th>
+                    <th className="py-1.5">Subject</th>
+                    {subjects.some((s) => s.track) ? <th className="py-1.5">Track</th> : null}
+                    <th className="py-1.5">Count</th><th className="py-1.5">Avg %</th>
                     <th className="py-1.5">Max</th><th className="py-1.5">Min</th>
                     <th className="py-1.5">Pass %</th><th className="py-1.5">Fail %</th><th className="py-1.5">Top bands</th>
                   </tr>
@@ -521,6 +553,9 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
                   {subjects.map((s) => (
                     <tr key={s.subject_id}>
                       <td className="py-1.5">{s.subject_name}</td>
+                      {subjects.some((s2) => s2.track) ? (
+                        <td className="py-1.5 text-xs capitalize text-zinc-500 dark:text-zinc-400">{s.track ?? "—"}</td>
+                      ) : null}
                       <td className="py-1.5">{s.count}</td>
                       <td className="py-1.5">{fmtPct(s.average_percent)}</td>
                       <td className="py-1.5">{s.max_obtained ?? "—"}</td>

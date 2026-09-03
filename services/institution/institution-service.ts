@@ -24,6 +24,16 @@ export interface InstitutionSummary {
   // grade label is purely descriptive, pass/fail is this separate rule.
   // Per-subject overrides live on exam_subjects.pass_marks instead.
   passPct: number;
+  // Education Type follow-up (migration 0041) — which curriculum track(s)
+  // this institution teaches. Drives whether Subjects/Exam Types/Student
+  // Portfolio/Result Analysis ever show an Academic/Islamic split at all;
+  // an 'academic'-only institution (the default) never sees any of it.
+  educationMode: "academic" | "islamic" | "both";
+  // Admin-configurable display order of the two tracks wherever both are
+  // shown side by side — "which should come first will be decided by
+  // institute admin" (verbatim ask). Always the two track ids, just
+  // possibly swapped.
+  trackOrder: ("academic" | "islamic")[];
 }
 
 export async function getInstitution(institutionId: string, authUserId: string): Promise<InstitutionSummary | null> {
@@ -31,8 +41,9 @@ export async function getInstitution(institutionId: string, authUserId: string):
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{
       id: string; code: string; name: string; app_name: string | null; theme_palette: string | null; logo_file_id: string | null; pass_pct: string;
+      education_mode: "academic" | "islamic" | "both"; track_order: ("academic" | "islamic")[];
     }>(
-      "select id, code, name, app_name, theme_palette, logo_file_id, pass_pct from institutions where id = $1",
+      "select id, code, name, app_name, theme_palette, logo_file_id, pass_pct, education_mode, track_order from institutions where id = $1",
       [institutionId]
     );
     if (!rows[0]) return null;
@@ -44,7 +55,44 @@ export async function getInstitution(institutionId: string, authUserId: string):
       themePalette: rows[0].theme_palette,
       logoFileId: rows[0].logo_file_id,
       passPct: Number(rows[0].pass_pct),
+      educationMode: rows[0].education_mode,
+      trackOrder: rows[0].track_order,
     };
+  });
+}
+
+const updateTrackOrderSchema = z.object({
+  trackOrder: z.array(z.enum(["academic", "islamic"])).length(2),
+});
+
+/** Self-service write for which of the two tracks (Academic/Islamic)
+ *  displays first wherever a 'both'-mode institution shows them side by
+ *  side (Student Portfolio, Subjects, Exam Types, Result Analysis) —
+ *  "which should come first will be decided by institute admin" (verbatim
+ *  ask). Same institutions_update_self RLS / settings.manage permission
+ *  gate as updateInstitutionPassPct() above. Meaningless (but harmless) to
+ *  call for an 'academic'-only or 'islamic'-only institution, since those
+ *  never render a track split in the first place. */
+export async function updateInstitutionTrackOrder(
+  institutionId: string,
+  authUserId: string,
+  userId: string,
+  input: z.infer<typeof updateTrackOrderSchema>
+): Promise<void> {
+  const data = updateTrackOrderSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<{ track_order: string[] }>(
+      "select track_order from institutions where id = $1", [institutionId]
+    );
+    await scoped.query(
+      "update institutions set track_order = $1::jsonb, updated_at = now() where id = $2",
+      [JSON.stringify(data.trackOrder), institutionId]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "platform", entityType: "institutions", entityId: institutionId,
+      before: { trackOrder: before[0]?.track_order ?? null }, after: { trackOrder: data.trackOrder },
+    });
   });
 }
 

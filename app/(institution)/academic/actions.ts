@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
-  createClass, createSection, createSubject,
+  createClass, createSection, createSubject, updateSubjectTrack,
   updateClass, deleteClass, updateSection, deleteSection,
   assignSubjectToClass, removeSubjectFromClass, createAcademicYear,
   setCurrentAcademicYear, promoteClass,
@@ -51,13 +51,34 @@ export async function createSubjectAction(_prevState: { error: string | null }, 
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
     requirePermission(ctx.permissions, "settings.manage");
+    const track = String(formData.get("track") ?? "") || undefined;
     await createSubject(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       name: String(formData.get("name") ?? ""),
+      track: track as "academic" | "islamic" | undefined,
     });
     revalidatePath("/academic");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create subject." };
+  }
+}
+
+/** Retags an existing subject's track (§ education-track follow-up) — the
+ *  only way to sort a subject created before this feature (or before this
+ *  institution switched to 'both' mode) into Academic/Islamic. */
+export async function updateSubjectTrackAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const track = String(formData.get("track") ?? "") || null;
+    await updateSubjectTrack(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("subjectId") ?? ""), {
+      track: track as "academic" | "islamic" | null,
+    });
+    revalidatePath("/academic");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update subject track." };
   }
 }
 

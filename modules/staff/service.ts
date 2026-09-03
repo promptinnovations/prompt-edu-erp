@@ -315,7 +315,7 @@ const updateStaffProfileSchema = z.object({
   dateOfBirth: z.string().nullable().optional(),
   gender: z.string().max(30).nullable().optional(),
   bloodGroup: z.string().max(10).nullable().optional(),
-  contactPhone: z.string().max(30).nullable().optional(),
+  contactPhone: z.string().max(50).nullable().optional(),
   address: z.string().max(500).nullable().optional(),
   emergencyContactName: z.string().max(200).nullable().optional(),
   emergencyContactPhone: z.string().max(30).nullable().optional(),

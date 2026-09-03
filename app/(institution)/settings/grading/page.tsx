@@ -4,6 +4,7 @@ import { can } from "../../../../services/permissions/permission-service";
 import { listGradeScales, getGradeBands, listExamTypes } from "../../../../modules/examination/service";
 import { getInstitution } from "../../../../services/institution/institution-service";
 import PassPctForm from "./PassPctForm";
+import TrackOrderForm from "./TrackOrderForm";
 import { listScoringRules } from "../../../../modules/scoring/service";
 import { listAchievementCategories, listAchievementLevels } from "../../../../modules/achievements/service";
 import { listSkillTypes, listSkillActivitiesForAdmin } from "../../../../modules/skills/service";
@@ -83,6 +84,17 @@ export default async function GradingSettingsPage() {
         </p>
         <PassPctForm passPct={institution?.passPct ?? 35} canManage={canManage} />
       </section>
+
+      {institution?.educationMode === "both" ? (
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Academic / Islamic order</h2>
+          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+            This institution teaches both Academic and Islamic curricula side by side — choose which one shows
+            first wherever they&apos;re split into two sections.
+          </p>
+          <TrackOrderForm trackOrder={institution.trackOrder} canManage={canManage} />
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Scoring rules</h2>

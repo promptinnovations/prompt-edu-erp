@@ -3,14 +3,18 @@ import { getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { listClasses, listSections, listSubjects, listClassSubjects, listAcademicYears } from "../../../modules/academic/service";
+import { getInstitution } from "../../../services/institution/institution-service";
 import ClassForm from "./ClassForm";
 import SectionForm from "./SectionForm";
 import SubjectForm from "./SubjectForm";
+import SubjectTrackSelect from "./SubjectTrackSelect";
 import ClassRow from "./ClassRow";
 import SectionRow from "./SectionRow";
 import ClassSubjectsForm from "./ClassSubjectsForm";
 import AcademicYearForm from "./AcademicYearForm";
 import SetCurrentYearButton from "./SetCurrentYearButton";
+
+const TRACK_LABEL: Record<string, string> = { academic: "Academic", islamic: "Islamic" };
 
 export default async function AcademicPage() {
   const ctx = await requireRequestContext();
@@ -18,13 +22,16 @@ export default async function AcademicPage() {
   const t = await getTranslations("academic");
   const canManage = can(ctx.permissions, "settings.manage");
 
-  const [classes, sections, subjects, classSubjects, academicYears] = await Promise.all([
+  const [classes, sections, subjects, classSubjects, academicYears, institution] = await Promise.all([
     listClasses(institutionId, ctx.session.authUserId),
     listSections(institutionId, ctx.session.authUserId),
     listSubjects(institutionId, ctx.session.authUserId),
     listClassSubjects(institutionId, ctx.session.authUserId),
     listAcademicYears(institutionId, ctx.session.authUserId),
+    getInstitution(institutionId, ctx.session.authUserId),
   ]);
+  const educationMode = institution?.educationMode ?? "academic";
+  const trackOrder = institution?.trackOrder ?? ["academic", "islamic"];
 
   const sectionsByClass = new Map<string, typeof sections>();
   for (const s of sections) {
@@ -115,15 +122,51 @@ export default async function AcademicPage() {
 
       <section id="subjects" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("subjectsHeading")}</h2>
-        <SubjectForm />
-        <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
-          {subjects.map((s) => (
-            <li key={s.id} className="py-2">
-              {s.name}
-            </li>
-          ))}
-          {subjects.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
-        </ul>
+        <SubjectForm educationMode={educationMode} />
+        {educationMode === "both" ? (
+          <div className="mt-4 space-y-4">
+            {trackOrder.map((track) => (
+              <div key={track}>
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                  {TRACK_LABEL[track] ?? track}
+                </h3>
+                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+                  {subjects.filter((s) => s.track === track).map((s) => (
+                    <li key={s.id} className="flex items-center justify-between py-2">
+                      <span>{s.name}</span>
+                      {canManage ? <SubjectTrackSelect subjectId={s.id} track={s.track} /> : null}
+                    </li>
+                  ))}
+                  {subjects.filter((s) => s.track === track).length === 0 ? (
+                    <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li>
+                  ) : null}
+                </ul>
+              </div>
+            ))}
+            {subjects.filter((s) => !s.track).length > 0 ? (
+              <div>
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Untagged</h3>
+                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+                  {subjects.filter((s) => !s.track).map((s) => (
+                    <li key={s.id} className="flex items-center justify-between py-2">
+                      <span>{s.name}</span>
+                      {canManage ? <SubjectTrackSelect subjectId={s.id} track={s.track} /> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+            {subjects.map((s) => (
+              <li key={s.id} className="py-2">
+                {s.name}
+              </li>
+            ))}
+            {subjects.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
+          </ul>
+        )}
       </section>
 
       <section id="subjects-per-class" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">

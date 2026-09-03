@@ -30,6 +30,11 @@ export interface SubjectRecord {
   name: string;
   code: string | null;
   category: string | null;
+  // Education Type follow-up (migration 0041) — which curriculum track
+  // this subject belongs to. Only meaningful (and only ever set) for a
+  // 'both'-mode institution; null for every academic-only/islamic-only
+  // institution's subjects.
+  track: "academic" | "islamic" | null;
 }
 
 const createClassSchema = z.object({
@@ -243,13 +248,17 @@ const createSubjectSchema = z.object({
   name: z.string().min(1).max(150),
   code: z.string().max(30).nullable().optional(),
   category: z.string().max(50).nullable().optional(),
+  // Only meaningful for a 'both'-mode institution — the create-subject UI
+  // only offers this field at all when the institution's education_mode is
+  // 'both' (§ education-track follow-up).
+  track: z.enum(["academic", "islamic"]).nullable().optional(),
 });
 
 export async function listSubjects(institutionId: string, authUserId: string): Promise<SubjectRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<SubjectRecord>(
-      "select id, name, code, category from subjects order by name"
+      "select id, name, code, category, track from subjects order by name"
     );
     return rows;
   });
@@ -265,9 +274,9 @@ export async function createSubject(
   const data = createSubjectSchema.parse(input);
   const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<SubjectRecord>(
-      `insert into subjects (institution_id, name, code, category)
-       values ($1, $2, $3, $4) returning id, name, code, category`,
-      [institutionId, data.name, data.code ?? null, data.category ?? null]
+      `insert into subjects (institution_id, name, code, category, track)
+       values ($1, $2, $3, $4, $5) returning id, name, code, category, track`,
+      [institutionId, data.name, data.code ?? null, data.category ?? null, data.track ?? null]
     );
     await recordAudit(scoped, {
       institutionId, userId, action: "create", module: "academic",
@@ -278,6 +287,29 @@ export async function createSubject(
   if (scopedClient) return run(scopedClient);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+const updateSubjectTrackSchema = z.object({ track: z.enum(["academic", "islamic"]).nullable() });
+
+/** Retags an existing subject's track — the only edit surface subjects
+ *  have today (§ education-track follow-up). Lets an admin who created
+ *  subjects before switching this institution to 'both' mode (or before
+ *  this feature existed at all) sort them into Academic/Islamic
+ *  afterward, without needing a full subject-edit form. */
+export async function updateSubjectTrack(
+  institutionId: string, authUserId: string, userId: string,
+  subjectId: string, input: z.infer<typeof updateSubjectTrackSchema>
+): Promise<void> {
+  const data = updateSubjectTrackSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<{ track: string | null }>("select track from subjects where id = $1", [subjectId]);
+    await scoped.query("update subjects set track = $1 where id = $2", [data.track, subjectId]);
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "academic", entityType: "subjects", entityId: subjectId,
+      before: { track: before[0]?.track ?? null }, after: { track: data.track },
+    });
+  });
 }
 
 // -----------------------------------------------------------------------------

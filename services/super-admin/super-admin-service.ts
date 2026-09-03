@@ -40,7 +40,17 @@ export interface InstitutionRecord {
   deployment_mode: string;
   default_locale: string;
   created_at: string;
+  education_mode: "academic" | "islamic" | "both";
 }
+
+/** Education Type (migration 0041 follow-up, verbatim ask): "after type
+ *  give an option for choosing 1. Academics 2. Islamic 3. Both". Offered
+ *  for every institution type (not just madrasa) — a college or school can
+ *  just as well teach both curricula (confirmed live: B CareExc Science, a
+ *  'school' type, already does). Defaults to 'academic' so every existing
+ *  institution-creation flow that doesn't pick one explicitly keeps
+ *  today's behaviour unchanged. */
+export const EDUCATION_MODES = ["academic", "islamic", "both"] as const;
 
 /** Educational boards with modeled configuration (§137 follow-up, extended
  *  by the Result Analysis & Reporting spec to school-type institutions).
@@ -238,6 +248,10 @@ const createInstitutionSchema = z.object({
   // type, and required when type IS 'madrasa', since selecting a board is
   // what drives auto-provisioning (provisionSksvbDefaults()).
   board: z.enum(EDUCATIONAL_BOARDS).optional(),
+  // Education Type — which curriculum track(s) this institution teaches
+  // (§ follow-up). Defaults to 'academic', matching every institution
+  // created before this field existed.
+  educationMode: z.enum(EDUCATION_MODES).default("academic"),
   defaultLocale: z.enum(["en", "ml"]).default("en"),
   // Optional as a TRIO, not individually — either all three are given (the
   // form always sends all three together) or none are, so createInstitution()
@@ -304,10 +318,10 @@ export async function createInstitution(
     // later the same way any other configuration changes (a future Super
     // Admin action, not built as its own UI yet — see docs/SETUP.md).
     const { rows } = await scoped.query<InstitutionRecord>(
-      `insert into institutions (code, name, type, board, default_locale, status, plan_id)
-       values ($1, $2, $3, $4, $5, 'trial', (select id from subscription_plans where is_active = true order by created_at asc limit 1))
-       returning id, code, name, type, board, status, deployment_mode, default_locale, created_at`,
-      [data.code, data.name, data.type, data.board ?? null, data.defaultLocale]
+      `insert into institutions (code, name, type, board, default_locale, education_mode, status, plan_id)
+       values ($1, $2, $3, $4, $5, $6, 'trial', (select id from subscription_plans where is_active = true order by created_at asc limit 1))
+       returning id, code, name, type, board, status, deployment_mode, default_locale, created_at, education_mode`,
+      [data.code, data.name, data.type, data.board ?? null, data.defaultLocale, data.educationMode]
     );
     const institution = rows[0];
 
