@@ -40,6 +40,7 @@ import { recordAudit } from "../audit/audit-service";
 import { assertBelowLimit } from "../limits/limit-service";
 import { getAuthService } from "../auth/auth-service";
 import type { AuthService } from "../auth/auth-service";
+import { sortRoster } from "../academic/roster-order";
 
 export interface InstitutionRoleOption {
   id: string;
@@ -108,6 +109,158 @@ export async function listInstitutionUsers(institutionId: string, authUserId: st
       roleCodes: rolesByUser.get(m.user_id)?.codes ?? [],
       roleNames: rolesByUser.get(m.user_id)?.names ?? [],
       currentPassword: m.phone,
+    }));
+  });
+}
+
+/** §users-roles follow-up ("Staff and Students list should be separated")
+ *  -- root cause was listInstitutionUsers() above lumping every
+ *  user_institution_memberships row together: institution_admin/teacher/
+ *  other staff AND every student/parent portal login (Phase 12 gives both
+ *  a real users row + membership), sorted only alphabetically with no
+ *  class/roll-number grouping at all. Split into this (everyone WITHOUT
+ *  the 'student' or 'parent' role) and listStudentUsersWithParent() below
+ *  (student rows, each paired with its own parent's login) rather than
+ *  filtering listInstitutionUsers()'s output client-side, so RLS/institution
+ *  scoping stays in one query per table like every other list function in
+ *  this codebase. */
+export async function listStaffUsers(institutionId: string, authUserId: string): Promise<InstitutionUserRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: memberRows } = await scoped.query<{
+      user_id: string; email: string | null; full_name: string; auth_user_id: string | null; status: string; phone: string | null;
+    }>(
+      `select u.id as user_id, u.email, u.full_name, u.auth_user_id, uim.status, u.phone
+         from user_institution_memberships uim
+         join users u on u.id = uim.user_id
+        where uim.institution_id = $1
+          and not exists (
+            select 1 from user_roles ur join roles r on r.id = ur.role_id
+             where ur.user_id = u.id and ur.institution_id = $1 and r.code in ('student', 'parent')
+          )
+        order by u.full_name`,
+      [institutionId]
+    );
+
+    const { rows: roleRows } = await scoped.query<{ user_id: string; code: string; name: string }>(
+      `select ur.user_id, r.code, r.name
+         from user_roles ur
+         join roles r on r.id = ur.role_id
+        where ur.institution_id = $1`,
+      [institutionId]
+    );
+    const rolesByUser = new Map<string, { codes: string[]; names: string[] }>();
+    for (const r of roleRows) {
+      const entry = rolesByUser.get(r.user_id) ?? { codes: [], names: [] };
+      entry.codes.push(r.code);
+      entry.names.push(r.name);
+      rolesByUser.set(r.user_id, entry);
+    }
+
+    return memberRows.map((m) => ({
+      userId: m.user_id,
+      email: m.email,
+      fullName: m.full_name,
+      isClaimed: m.auth_user_id !== null,
+      membershipStatus: m.status,
+      roleCodes: rolesByUser.get(m.user_id)?.codes ?? [],
+      roleNames: rolesByUser.get(m.user_id)?.names ?? [],
+      currentPassword: m.phone,
+    }));
+  });
+}
+
+export interface StudentUserRow extends InstitutionUserRow {
+  studentId: string;
+  className: string | null;
+  sectionName: string | null;
+  rollNumber: number | null;
+  /** Primary contact parent's OWN login (student_parents.is_primary_contact
+   *  desc, same "which parent" resolution listStudentsForAdmin() already
+   *  uses) -- null when the student has no linked parent account yet. */
+  parent: {
+    userId: string;
+    fullName: string;
+    isClaimed: boolean;
+    membershipStatus: string;
+    currentPassword: string | null;
+  } | null;
+}
+
+/** The Students table on Users & Roles -- one row per student LOGIN
+ *  (students.user_id), in the same section (stage) -> GRADE -> division ->
+ *  roll number order every other student list/dropdown now follows
+ *  (§users-roles follow-up), with that student's own parent login attached
+ *  inline rather than as a separate, unrelated row elsewhere in the table. */
+export async function listStudentUsersWithParent(institutionId: string, authUserId: string): Promise<StudentUserRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      user_id: string; email: string | null; full_name: string; auth_user_id: string | null; status: string; phone: string | null;
+      student_id: string; gender: string | null; stage: string | null; class_name: string | null; section_name: string | null; roll_number: number | null;
+      parent_user_id: string | null; parent_full_name: string | null; parent_auth_user_id: string | null; parent_status: string | null; parent_phone: string | null;
+    }>(
+      `select u.id as user_id, u.email, u.full_name, u.auth_user_id, uim.status, u.phone,
+              s.id as student_id, s.gender, c.stage, c.name as class_name, sec.name as section_name, se.roll_number,
+              pu.id as parent_user_id, pu.full_name as parent_full_name, pu.auth_user_id as parent_auth_user_id,
+              puim.status as parent_status, pu.phone as parent_phone
+         from user_institution_memberships uim
+         join users u on u.id = uim.user_id
+         join students s on s.user_id = u.id
+         left join student_enrollments se
+           on se.student_id = s.id and se.status = 'active'
+          and se.academic_year_id = (select id from academic_years where institution_id = $1 and is_current = true limit 1)
+         left join classes c on c.id = se.class_id
+         left join sections sec on sec.id = se.section_id
+         left join lateral (
+           select p.user_id from student_parents sp join parents p on p.id = sp.parent_id
+            where sp.student_id = s.id and p.user_id is not null
+            order by sp.is_primary_contact desc limit 1
+         ) pp on true
+         left join users pu on pu.id = pp.user_id
+         left join user_institution_memberships puim on puim.user_id = pu.id and puim.institution_id = $1
+        where uim.institution_id = $1`,
+      [institutionId]
+    );
+
+    const { rows: roleRows } = await scoped.query<{ user_id: string; code: string; name: string }>(
+      `select ur.user_id, r.code, r.name
+         from user_roles ur
+         join roles r on r.id = ur.role_id
+        where ur.institution_id = $1`,
+      [institutionId]
+    );
+    const rolesByUser = new Map<string, { codes: string[]; names: string[] }>();
+    for (const r of roleRows) {
+      const entry = rolesByUser.get(r.user_id) ?? { codes: [], names: [] };
+      entry.codes.push(r.code);
+      entry.names.push(r.name);
+      rolesByUser.set(r.user_id, entry);
+    }
+
+    const sorted = sortRoster(rows.map((r) => ({ ...r, full_name: r.full_name })));
+    return sorted.map((r) => ({
+      userId: r.user_id,
+      email: r.email,
+      fullName: r.full_name,
+      isClaimed: r.auth_user_id !== null,
+      membershipStatus: r.status,
+      roleCodes: rolesByUser.get(r.user_id)?.codes ?? [],
+      roleNames: rolesByUser.get(r.user_id)?.names ?? [],
+      currentPassword: r.phone,
+      studentId: r.student_id,
+      className: r.class_name,
+      sectionName: r.section_name,
+      rollNumber: r.roll_number,
+      parent: r.parent_user_id
+        ? {
+            userId: r.parent_user_id,
+            fullName: r.parent_full_name ?? "",
+            isClaimed: r.parent_auth_user_id !== null,
+            membershipStatus: r.parent_status ?? "active",
+            currentPassword: r.parent_phone,
+          }
+        : null,
     }));
   });
 }

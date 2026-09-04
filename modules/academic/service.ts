@@ -11,6 +11,7 @@ import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+import { sortClasses, sortRoster } from "../../services/academic/roster-order";
 
 export interface ClassRecord {
   id: string;
@@ -52,9 +53,13 @@ export async function listClasses(institutionId: string, authUserId: string): Pr
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ClassRecord>(
-      "select id, name, sort_order, academic_stream, stage from classes order by sort_order, name"
+      "select id, name, sort_order, academic_stream, stage from classes"
     );
-    return rows;
+    // Canonical section (stage) -> GRADE -> division order everywhere a
+    // class dropdown/list is built from this function (§users-roles
+    // follow-up "order MUST BE FOLLOWED EVERYWHERE") rather than the old
+    // admin-set sort_order, which most institutions never touch.
+    return sortClasses(rows.map((r) => ({ ...r, class_name: r.name })));
   });
 }
 
@@ -528,6 +533,7 @@ export interface PromotionPreviewRow {
   admission_number: string;
   roll_number: number | null;
   gender: string | null;
+  section_name: string | null;
   suggested_action: PromotionAction;
   suggested_class_id: string | null;
   suggested_class_name: string | null;
@@ -555,20 +561,23 @@ export async function getPromotionPreview(
     const nextClass = nextClassRows[0] ?? null;
 
     const { rows } = await scoped.query<PromotionPreviewRow>(
-      `select s.id as student_id, s.full_name, s.admission_number, se.roll_number, s.gender,
+      `select s.id as student_id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name as section_name,
               $4::text as suggested_action, $5::uuid as suggested_class_id, $6::text as suggested_class_name
          from student_enrollments se
          join students s on s.id = se.student_id
+         left join sections sec on sec.id = se.section_id
         where se.academic_year_id = $1 and se.class_id = $2
           and ($3::uuid is null or se.section_id = $3)
-          and se.status = 'active'
-        order by se.roll_number nulls last, s.full_name`,
+          and se.status = 'active'`,
       [
         currentYear.rows[0].id, fromClassId, fromSectionId ?? null,
         nextClass ? "promote" : "graduate", nextClass?.id ?? null, nextClass?.name ?? null,
       ]
     );
-    return rows;
+    // Roll-number-order (division, then roll number, then male-alphabetical
+    // -then-female-alphabetical for anyone without one yet) rather than the
+    // old plain roll_number/full_name sort — §users-roles follow-up.
+    return sortRoster(rows);
   });
 }
 

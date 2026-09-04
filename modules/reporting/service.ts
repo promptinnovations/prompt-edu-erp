@@ -30,6 +30,7 @@ import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 import { getDbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+import { sortRoster, sortWithinDivision } from "../../services/academic/roster-order";
 import { listStudents } from "../students/service";
 import { getResults } from "../examination/service";
 import { getStudentAttendanceSummary } from "../attendance/service";
@@ -66,18 +67,24 @@ type QueryFn = (institutionId: string, authUserId: string, params: ReportParams)
 async function queryStudentRoster(institutionId: string, authUserId: string): Promise<Record<string, unknown>[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query(
-      `select s.admission_number, s.full_name, c.name as class_name, sec.name as section_name, s.status
+    const { rows } = await scoped.query<{
+      admission_number: string; full_name: string; class_name: string | null; section_name: string | null;
+      status: string; stage: string | null; roll_number: number | null; gender: string | null;
+    }>(
+      `select s.admission_number, s.full_name, c.name as class_name, sec.name as section_name, s.status,
+              c.stage, se.roll_number, s.gender
          from students s
          left join student_enrollments se on se.student_id = s.id
               and se.status = 'active'
               and se.academic_year_id = (select id from academic_years where institution_id = $1 and is_current = true limit 1)
          left join classes c on c.id = se.class_id
-         left join sections sec on sec.id = se.section_id
-        order by s.full_name`,
+         left join sections sec on sec.id = se.section_id`,
       [institutionId]
     );
-    return rows;
+    // Class (section -> GRADE -> division) then roll-number order
+    // (§users-roles follow-up), not plain name -- this report IS "the
+    // student list".
+    return sortRoster(rows) as unknown as Record<string, unknown>[];
   });
 }
 
@@ -98,14 +105,13 @@ async function queryAttendanceSummary(institutionId: string, authUserId: string,
   }
   const db = await getDbClient();
   const enrolled = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ student_id: string; full_name: string }>(
-      `select se.student_id, s.full_name
+    const { rows } = await scoped.query<{ student_id: string; full_name: string; roll_number: number | null; gender: string | null }>(
+      `select se.student_id, s.full_name, se.roll_number, s.gender
          from student_enrollments se join students s on s.id = se.student_id
-        where se.class_id = $1 and se.section_id = $2 and se.status = 'active'
-        order by s.full_name`,
+        where se.class_id = $1 and se.section_id = $2 and se.status = 'active'`,
       [classId, sectionId]
     );
-    return rows;
+    return sortWithinDivision(rows);
   });
 
   const rows: Record<string, unknown>[] = [];

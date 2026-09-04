@@ -16,6 +16,7 @@
  * never calls this; they're already unrestricted).
  */
 import { getDbClient } from "../db/client";
+import { stageRank } from "../academic/roster-order";
 
 export interface SectionHeadScope {
   /** Every stage this user has been assigned to head. Empty if they hold
@@ -59,10 +60,15 @@ export async function listSectionHeadAssignments(institutionId: string, authUser
     const { rows } = await scoped.query<SectionHeadAssignmentRow>(
       `select sha.id, sha.user_id, u.full_name as user_full_name, sha.stage, sha.created_at
          from section_head_assignments sha
-         join users u on u.id = sha.user_id
-        order by sha.stage, u.full_name`
+         join users u on u.id = sha.user_id`
     );
-    return rows;
+    // Canonical stage order (§users-roles follow-up), then name within a stage.
+    return [...rows].sort((a, b) => {
+      const ra = stageRank(a.stage), rb = stageRank(b.stage);
+      if (ra !== rb) return (ra === -1 ? Infinity : ra) - (rb === -1 ? Infinity : rb);
+      if (ra === -1 && a.stage !== b.stage) return a.stage.localeCompare(b.stage);
+      return a.user_full_name.localeCompare(b.user_full_name);
+    });
   });
 }
 
@@ -73,9 +79,16 @@ export async function listDistinctStages(institutionId: string, authUserId: stri
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{ stage: string }>(
-      "select distinct stage from classes where stage is not null and stage <> '' order by stage"
+      "select distinct stage from classes where stage is not null and stage <> ''"
     );
-    return rows.map((r) => r.stage);
+    // Canonical KG/LP/UP/HS/HSS/GRADUATION/POST GRADUATION order, then any
+    // institution-specific custom stage names alphabetically (§users-roles
+    // follow-up "order MUST BE FOLLOWED EVERYWHERE").
+    return rows.map((r) => r.stage).sort((a, b) => {
+      const ra = stageRank(a), rb = stageRank(b);
+      if (ra !== -1 || rb !== -1) return (ra === -1 ? Infinity : ra) - (rb === -1 ? Infinity : rb);
+      return a.localeCompare(b);
+    });
   });
 }
 

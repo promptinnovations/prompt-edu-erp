@@ -20,6 +20,7 @@ import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+import { sortRoster } from "../../services/academic/roster-order";
 
 export interface MentorAssignmentRow {
   id: string; mentorStaffId: string; mentorName: string;
@@ -141,20 +142,30 @@ export async function listAssignedStudentsForMentor(
 ): Promise<Array<{ id: string; full_name: string }>> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ id: string; full_name: string }>(
-      `select distinct s.id, s.full_name
+    const { rows } = await scoped.query<{
+      id: string; full_name: string; roll_number: number | null; gender: string | null;
+      stage: string | null; class_name: string | null; section_name: string | null;
+    }>(
+      `select distinct s.id, s.full_name, se.roll_number, s.gender, c.stage, c.name as class_name, sec.name as section_name
          from students s
+         left join student_enrollments se
+           on se.student_id = s.id and se.status = 'active'
+          and se.academic_year_id = (select id from academic_years where institution_id = s.institution_id and is_current = true limit 1)
+         left join classes c on c.id = se.class_id
+         left join sections sec on sec.id = se.section_id
         where s.id in (
           select ma.student_id from mentor_assignments ma where ma.mentor_staff_id = $1 and ma.is_active and ma.student_id is not null
           union
-          select se.student_id from student_enrollments se
-            join mentor_assignments ma on ma.class_id = se.class_id and ma.mentor_staff_id = $1 and ma.is_active
-           where se.status = 'active'
-        )
-        order by s.full_name`,
+          select se2.student_id from student_enrollments se2
+            join mentor_assignments ma on ma.class_id = se2.class_id and ma.mentor_staff_id = $1 and ma.is_active
+           where se2.status = 'active'
+        )`,
       [mentorStaffId]
     );
-    return rows;
+    // Class (section -> GRADE -> division) then roll-number order
+    // (§users-roles follow-up "every dropdown where students name to be
+    // selected this should be followed").
+    return sortRoster(rows).map((r) => ({ id: r.id, full_name: r.full_name }));
   });
 }
 

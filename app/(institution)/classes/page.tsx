@@ -93,15 +93,12 @@ export default async function ClassesPage() {
     arr.push(c);
     groups.set(phase, arr);
   }
-  // Known stages in a sensible reading order, then any institution-specific
-  // custom stage names, then "Other" last.
-  const knownOrder = ["LP", "UP", "HS", "HSS"];
-  const allPhases = Array.from(groups.keys());
-  const orderedPhases = [
-    ...knownOrder.filter((p) => groups.has(p)),
-    ...allPhases.filter((p) => !knownOrder.includes(p) && p !== "Other").sort(),
-    ...(groups.has("Other") ? ["Other"] : []),
-  ];
+  // `classes` came from listClasses(), already in the canonical section
+  // (KG/LP/UP/HS/HSS/GRADUATION/POST GRADUATION) -> GRADE order
+  // (§users-roles follow-up "order MUST BE FOLLOWED EVERYWHERE"), so a
+  // Map built by iterating it in order already groups phases correctly --
+  // no separate knownOrder list to keep in sync with STAGE_ORDER.
+  const orderedPhases = Array.from(groups.keys());
 
   return (
     <div className="space-y-6">

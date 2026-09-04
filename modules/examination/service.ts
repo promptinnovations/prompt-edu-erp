@@ -17,6 +17,7 @@
 import { z } from "zod";
 import { getDbClient, type DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+import { sortRoster, sortClasses } from "../../services/academic/roster-order";
 
 export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null; periodicity: string | null; is_daily_assessment: boolean }
 export interface ExaminationRecord {
@@ -27,6 +28,7 @@ export interface ExaminationRecord {
 export interface ExamSubjectRecord { id: string; examination_id: string; subject_id: string; max_marks: string; pass_marks: string }
 export interface MarkRow {
   student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null; section_name: string | null;
   mark_id: string | null; marks_obtained: string | null; is_absent: boolean; entry_status: string | null;
 }
 export interface GradeBandRecord { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null }
@@ -545,20 +547,21 @@ export async function addExamClass(
  *  divisions are already linked instead of only offering an add form with
  *  no visible result (§418's own "make user friendly" ask — the previous
  *  UI had no way to see or undo what had already been linked). */
-export interface ExamClassRow { id: string; class_id: string; section_id: string | null; class_name: string; section_name: string | null }
+export interface ExamClassRow { id: string; class_id: string; section_id: string | null; class_name: string; section_name: string | null; stage: string | null }
 export async function listExamClasses(institutionId: string, authUserId: string, examinationId: string): Promise<ExamClassRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExamClassRow>(
-      `select ec.id, ec.class_id, ec.section_id, c.name as class_name, s.name as section_name
+      `select ec.id, ec.class_id, ec.section_id, c.name as class_name, s.name as section_name, c.stage
          from exam_classes ec
          join classes c on c.id = ec.class_id
          left join sections s on s.id = ec.section_id
-        where ec.examination_id = $1
-        order by c.name, s.name nulls first`,
+        where ec.examination_id = $1`,
       [examinationId]
     );
-    return rows;
+    // Section -> GRADE order, then division (stable sort keeps the
+    // division ordering applied first) -- §users-roles follow-up.
+    return sortClasses([...rows].sort((a, b) => (a.section_name ?? "").localeCompare(b.section_name ?? "")));
   });
 }
 
@@ -670,19 +673,23 @@ export async function getMarksGrid(institutionId: string, authUserId: string, ex
     // left-joined with any existing mark for this exam_subject (draft grid).
     const { rows } = await scoped.query<MarkRow>(
       `select s.id as student_id, s.full_name as student_name, s.admission_number,
+              se.roll_number, s.gender, sec.name as section_name,
               m.id as mark_id, m.marks_obtained, coalesce(m.is_absent, false) as is_absent, m.entry_status
          from exam_subjects es
          join exam_classes ec on ec.examination_id = es.examination_id
          join student_enrollments se on se.class_id = ec.class_id
-              and (ec.section_id is null or se.section_id = ec.section_id)
+              and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
          join students s on s.id = se.student_id
+         left join sections sec on sec.id = se.section_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = s.id
         where es.id = $1
-        group by s.id, s.full_name, s.admission_number, m.id, m.marks_obtained, m.is_absent, m.entry_status
-        order by s.full_name`,
+        group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name, m.id, m.marks_obtained, m.is_absent, m.entry_status`,
       [examSubjectId]
     );
-    return rows;
+    // Division -> roll number order (§users-roles follow-up) -- exam_classes
+    // can cover every division of a class (ec.section_id null), so this
+    // must sort ACROSS divisions too, not just within one.
+    return sortRoster(rows.map((r) => ({ ...r, full_name: r.student_name })));
   });
 }
 
@@ -940,6 +947,7 @@ export async function computeResults(institutionId: string, authUserId: string, 
  *  §P.1's "one query, many renderings" philosophy. */
 export interface ExaminationMarksMatrixRow {
   student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null; section_name: string | null;
   exam_subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
   marks_obtained: string | null; is_absent: boolean;
 }
@@ -954,6 +962,7 @@ export async function getExaminationMarksMatrix(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExaminationMarksMatrixRow>(
       `select distinct se.student_id, s.full_name as student_name, s.admission_number,
+              se.roll_number, s.gender, sec.name as section_name,
               es.id as exam_subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
               m.marks_obtained, coalesce(m.is_absent, false) as is_absent
          from exam_subjects es
@@ -962,12 +971,16 @@ export async function getExaminationMarksMatrix(
          join student_enrollments se on se.class_id = ec.class_id
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
          join students s on s.id = se.student_id
+         left join sections sec on sec.id = se.section_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
         where es.examination_id = $1 and ($2::uuid is null or se.class_id = $2)
-        order by s.full_name, sub.name`,
+        order by sub.name`,
       [examinationId, classId || null]
     );
-    return rows;
+    // Roster order within each subject block (stable sort keeps subject
+    // grouping, then reorders students inside it) -- §users-roles follow-up.
+    return sortRoster(rows.map((r) => ({ ...r, full_name: r.student_name })))
+      .sort((a, b) => a.subject_name.localeCompare(b.subject_name));
   });
 }
 
@@ -980,15 +993,14 @@ export async function listClassesForExamination(
 ): Promise<ExaminationClassOption[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<ExaminationClassOption>(
-      `select distinct c.id, c.name
+    const { rows } = await scoped.query<ExaminationClassOption & { stage: string | null }>(
+      `select distinct c.id, c.name, c.stage
          from exam_classes ec
          join classes c on c.id = ec.class_id
-        where ec.examination_id = $1
-        order by c.name`,
+        where ec.examination_id = $1`,
       [examinationId]
     );
-    return rows;
+    return sortClasses(rows.map((r) => ({ ...r, class_name: r.name })));
   });
 }
 
@@ -1308,6 +1320,7 @@ export async function getDailyAssessment(institutionId: string, authUserId: stri
 
 export interface DailyAssessmentMarkRow {
   student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null; section_name: string | null;
   mark_id: string | null; marks_obtained: string | null; is_absent: boolean;
 }
 
@@ -1319,16 +1332,17 @@ export async function getDailyAssessmentMarksGrid(institutionId: string, authUse
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<DailyAssessmentMarkRow>(
       `select s.id as student_id, s.full_name as student_name, s.admission_number,
+              se.roll_number, s.gender, sec.name as section_name,
               dam.id as mark_id, dam.marks_obtained, coalesce(dam.is_absent, false) as is_absent
          from daily_assessments da
          join student_enrollments se on se.class_id = da.class_id and se.status = 'active'
          join students s on s.id = se.student_id
+         left join sections sec on sec.id = se.section_id
          left join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = s.id
-        where da.id = $1
-        order by s.full_name`,
+        where da.id = $1`,
       [dailyAssessmentId]
     );
-    return rows;
+    return sortRoster(rows.map((r) => ({ ...r, full_name: r.student_name })));
   });
 }
 
@@ -1379,6 +1393,7 @@ export async function enterDailyAssessmentMarks(
 
 export interface DailyConsolidatedRow {
   student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null; section_name: string | null;
   latest_marks_obtained: string | null; latest_max_marks: string | null; latest_assessment_date: string | null;
   cumulative_marks_obtained: string; cumulative_max_marks: string;
   grade_label: string | null; grade_color: string | null;
@@ -1408,19 +1423,20 @@ export async function getDailyAssessmentConsolidatedResult(
     const subjectFilter = subjectId ? "and da.subject_id = $3" : "";
     const params = subjectId ? [examinationId, classId, subjectId] : [examinationId, classId];
 
-    const { rows: totals } = await scoped.query<{ student_id: string; student_name: string; admission_number: string; cumulative_marks_obtained: string; cumulative_max_marks: string }>(
-      `select s.id as student_id, s.full_name as student_name, s.admission_number,
+    const { rows: rawTotals } = await scoped.query<{ student_id: string; student_name: string; admission_number: string; roll_number: number | null; gender: string | null; section_name: string | null; cumulative_marks_obtained: string; cumulative_max_marks: string }>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number, se.roll_number, s.gender, sec.name as section_name,
               coalesce(sum(dam.marks_obtained) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_marks_obtained,
               coalesce(sum(da.max_marks) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_max_marks
          from daily_assessments da
          join student_enrollments se on se.class_id = da.class_id and se.status = 'active'
          join students s on s.id = se.student_id
+         left join sections sec on sec.id = se.section_id
          left join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = s.id
         where da.examination_id = $1 and da.class_id = $2 and da.status = 'completed' ${subjectFilter}
-        group by s.id, s.full_name, s.admission_number
-        order by s.full_name`,
+        group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name`,
       params
     );
+    const totals = sortRoster(rawTotals.map((r) => ({ ...r, full_name: r.student_name })));
 
     const { rows: latest } = await scoped.query<{ student_id: string; marks_obtained: string | null; max_marks: string; assessment_date: string }>(
       `select distinct on (s.id) s.id as student_id, dam.marks_obtained, da.max_marks, da.assessment_date::text
@@ -1442,6 +1458,7 @@ export async function getDailyAssessmentConsolidatedResult(
       const l = latestByStudent.get(r.student_id);
       out.push({
         student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
+        roll_number: r.roll_number, gender: r.gender, section_name: r.section_name,
         latest_marks_obtained: l?.marks_obtained ?? null, latest_max_marks: l?.max_marks ?? null, latest_assessment_date: l?.assessment_date ?? null,
         cumulative_marks_obtained: r.cumulative_marks_obtained, cumulative_max_marks: r.cumulative_max_marks,
         grade_label: grade?.label ?? null, grade_color: grade?.color ?? null,
@@ -1518,19 +1535,18 @@ export interface DailyAssessmentClassAnalysisRow {
 export async function getDailyAssessmentClassAnalysis(institutionId: string, authUserId: string, examinationId: string): Promise<DailyAssessmentClassAnalysisRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ class_id: string; class_name: string; sessions_conducted: string; avg_percent: string | null }>(
-      `select c.id as class_id, c.name as class_name,
+    const { rows } = await scoped.query<{ class_id: string; class_name: string; stage: string | null; sessions_conducted: string; avg_percent: string | null }>(
+      `select c.id as class_id, c.name as class_name, c.stage,
               count(distinct da.id)::text as sessions_conducted,
               avg(case when dam.id is not null and not dam.is_absent and da.max_marks > 0 then dam.marks_obtained / da.max_marks * 100 end) as avg_percent
          from daily_assessments da
          join classes c on c.id = da.class_id
          left join daily_assessment_marks dam on dam.daily_assessment_id = da.id
         where da.examination_id = $1 and da.status = 'completed'
-        group by c.id, c.name
-        order by c.name`,
+        group by c.id, c.name, c.stage`,
       [examinationId]
     );
-    return rows.map((r) => ({
+    return sortClasses(rows).map((r) => ({
       class_id: r.class_id, class_name: r.class_name, sessions_conducted: Number(r.sessions_conducted),
       avg_percent: r.avg_percent !== null ? Math.round(Number(r.avg_percent) * 10) / 10 : 0,
     }));
@@ -1539,6 +1555,7 @@ export async function getDailyAssessmentClassAnalysis(institutionId: string, aut
 
 export interface DailyAssessmentStudentAnalysisRow {
   student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null; section_name: string | null;
   sessions_taken: number; cumulative_marks_obtained: string; cumulative_max_marks: string; avg_percent: number;
 }
 
@@ -1550,24 +1567,26 @@ export async function getDailyAssessmentStudentAnalysis(
 ): Promise<DailyAssessmentStudentAnalysisRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ student_id: string; student_name: string; admission_number: string; sessions_taken: string; cumulative_marks_obtained: string; cumulative_max_marks: string }>(
-      `select s.id as student_id, s.full_name as student_name, s.admission_number,
+    const { rows: rawRows } = await scoped.query<{ student_id: string; student_name: string; admission_number: string; roll_number: number | null; gender: string | null; section_name: string | null; sessions_taken: string; cumulative_marks_obtained: string; cumulative_max_marks: string }>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number, se.roll_number, s.gender, sec.name as section_name,
               count(dam.id) filter (where dam.id is not null and not dam.is_absent)::text as sessions_taken,
               coalesce(sum(dam.marks_obtained) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_marks_obtained,
               coalesce(sum(da.max_marks) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_max_marks
          from daily_assessments da
          join student_enrollments se on se.class_id = da.class_id and se.status = 'active'
          join students s on s.id = se.student_id
+         left join sections sec on sec.id = se.section_id
          left join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = s.id
         where da.examination_id = $1 and da.class_id = $2 and da.status = 'completed'
-        group by s.id, s.full_name, s.admission_number
-        order by s.full_name`,
+        group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name`,
       [examinationId, classId]
     );
+    const rows = sortRoster(rawRows.map((r) => ({ ...r, full_name: r.student_name })));
     return rows.map((r) => {
       const maxTotal = Number(r.cumulative_max_marks);
       return {
         student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
+        roll_number: r.roll_number, gender: r.gender, section_name: r.section_name,
         sessions_taken: Number(r.sessions_taken),
         cumulative_marks_obtained: r.cumulative_marks_obtained, cumulative_max_marks: r.cumulative_max_marks,
         avg_percent: maxTotal > 0 ? Math.round((Number(r.cumulative_marks_obtained) / maxTotal) * 1000) / 10 : 0,

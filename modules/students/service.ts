@@ -8,6 +8,7 @@ import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { assertBelowLimit } from "../../services/limits/limit-service";
+import { sortRoster } from "../../services/academic/roster-order";
 
 export interface StudentRecord {
   id: string;
@@ -31,6 +32,7 @@ export interface StudentRecord {
 export interface StudentListRow extends StudentRecord {
   class_id: string | null;
   class_name: string | null;
+  stage: string | null;
   section_name: string | null;
   roll_number: number | null;
   /** Primary contact parent — only populated when options.includeParentContact
@@ -55,11 +57,25 @@ const createStudentSchema = z.object({
 export async function listStudents(institutionId: string, authUserId: string): Promise<StudentRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<StudentRecord>(
-      `select id, admission_number, full_name, full_name_native, date_of_birth, gender, status, user_id, contact_email, login_id
-         from students order by full_name`
+    const { rows } = await scoped.query<StudentRecord & {
+      stage: string | null; class_name: string | null; section_name: string | null; roll_number: number | null;
+    }>(
+      `select s.id, s.admission_number, s.full_name, s.full_name_native, s.date_of_birth, s.gender,
+              s.status, s.user_id, s.contact_email, s.login_id,
+              c.stage, c.name as class_name, sec.name as section_name, se.roll_number
+         from students s
+         left join student_enrollments se
+           on se.student_id = s.id and se.status = 'active'
+          and se.academic_year_id = (select id from academic_years where institution_id = s.institution_id and is_current = true limit 1)
+         left join classes c on c.id = se.class_id
+         left join sections sec on sec.id = se.section_id`
     );
-    return rows;
+    // Canonical section (stage) -> GRADE -> division -> roll number order
+    // (§users-roles follow-up "in every dropdown where students name to be
+    // selected this should be followed") -- this is the function every
+    // "pick a student" dropdown across discipline/achievements/skills/
+    // library/scoring calls.
+    return sortRoster(rows);
   });
 }
 
@@ -100,7 +116,7 @@ export async function listStudentsForAdmin(
     const { rows } = await scoped.query<StudentListRow>(
       `select s.id, s.admission_number, s.full_name, s.full_name_native, s.date_of_birth, s.gender,
               s.status, s.user_id, s.contact_email, s.login_id, s.photo_file_id,
-              c.id as class_id, c.name as class_name, sec.name as section_name, se.roll_number,
+              c.id as class_id, c.name as class_name, c.stage, sec.name as section_name, se.roll_number,
               case when $5::boolean then pp.full_name else null end as parent_name,
               case when $5::boolean then pp.phone else null end as parent_phone
          from students s
@@ -124,14 +140,18 @@ export async function listStudentsForAdmin(
             or s.admission_number ilike '%' || $3 || '%'
             or coalesce(s.login_id, '') ilike '%' || $3 || '%'
           )
-          and ($4::uuid[] is null or se.class_id = any($4::uuid[]))
-        order by c.sort_order nulls last, sec.name, s.full_name`,
+          and ($4::uuid[] is null or se.class_id = any($4::uuid[]))`,
       [
         options.includeWithdrawn ?? false, options.classId ?? null, options.search?.trim() || null,
         options.classIds ?? null, options.includeParentContact ?? false,
       ]
     );
-    return rows;
+    // Canonical section (stage) -> GRADE -> division -> roll number order
+    // everywhere this list feeds a page/dropdown (§users-roles follow-up
+    // "student list always must follow class & roll number order... in
+    // every dropdown where students name to be selected this should be
+    // followed"), replacing the old admin-set sort_order.
+    return sortRoster(rows);
   });
 }
 

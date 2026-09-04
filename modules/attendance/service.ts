@@ -17,12 +17,14 @@ import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { notifyUser } from "../../services/notification/notification-service";
+import { sortWithinDivision, sortRoster, sortClasses } from "../../services/academic/roster-order";
 
 export interface AttendanceStatusRecord {
   id: string; code: string; label: string; counts_as_present: boolean; is_default: boolean;
 }
 export interface AttendanceGridRow {
   student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null;
   record_id: string | null; status_id: string | null; is_late: boolean; late_minutes: number | null;
 }
 export interface AttendanceSummary {
@@ -84,16 +86,18 @@ export async function getAttendanceGrid(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<AttendanceGridRow>(
       `select s.id as student_id, s.full_name as student_name, s.admission_number,
+              se.roll_number, s.gender,
               ar.id as record_id, ar.status_id, coalesce(ar.is_late, false) as is_late, ar.late_minutes
          from student_enrollments se
          join students s on s.id = se.student_id
          join academic_years ay on ay.id = se.academic_year_id and ay.is_current = true
          left join attendance_records ar on ar.student_id = s.id and ar.date = $3
-        where se.class_id = $1 and se.section_id = $2 and se.status = 'active'
-        order by s.full_name`,
+        where se.class_id = $1 and se.section_id = $2 and se.status = 'active'`,
       [classId, sectionId, date]
     );
-    return rows;
+    // Roll-number order (male-alphabetical-then-female-alphabetical for
+    // anyone without a roll number yet) rather than plain name sort.
+    return sortWithinDivision(rows.map((r) => ({ ...r, full_name: r.student_name })));
   });
 }
 
@@ -104,7 +108,7 @@ export async function getAttendanceGrid(
  *  Map<isoDate, statusCode>>` rather than a wide pre-pivoted row shape —
  *  the UI decides how many day-columns to render (28-31, weekends
  *  greyed out, etc.), this just supplies the underlying facts. */
-export interface MonthlyRegisterRow { student_id: string; student_name: string; admission_number: string }
+export interface MonthlyRegisterRow { student_id: string; student_name: string; admission_number: string; roll_number: number | null; gender: string | null }
 export interface MonthlyRegisterEntry { student_id: string; date: string; status_code: string }
 
 export async function getMonthlyAttendanceRegister(
@@ -112,15 +116,15 @@ export async function getMonthlyAttendanceRegister(
 ): Promise<{ students: MonthlyRegisterRow[]; entries: MonthlyRegisterEntry[] }> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: students } = await scoped.query<MonthlyRegisterRow>(
-      `select s.id as student_id, s.full_name as student_name, s.admission_number
+    const { rows: rawStudents } = await scoped.query<MonthlyRegisterRow>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number, se.roll_number, s.gender
          from student_enrollments se
          join students s on s.id = se.student_id
          join academic_years ay on ay.id = se.academic_year_id and ay.is_current = true
-        where se.class_id = $1 and se.section_id = $2 and se.status = 'active'
-        order by s.full_name`,
+        where se.class_id = $1 and se.section_id = $2 and se.status = 'active'`,
       [classId, sectionId]
     );
+    const students = sortWithinDivision(rawStudents.map((r) => ({ ...r, full_name: r.student_name })));
     const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
     const { rows: entries } = await scoped.query<MonthlyRegisterEntry>(
       `select ar.student_id, to_char(ar.date, 'YYYY-MM-DD') as date, ast.code as status_code
@@ -450,23 +454,24 @@ export async function getAttendanceAlertCandidates(
     const { rows: instRows } = await scoped.query<{ name: string }>("select name from institutions limit 1");
     const institutionName = instRows[0]?.name ?? "your institution";
 
-    const { rows } = await scoped.query<{
-      student_id: string; student_name: string; admission_number: string;
+    const { rows: rawRows } = await scoped.query<{
+      student_id: string; student_name: string; admission_number: string; roll_number: number | null; gender: string | null;
       status_label: string; counts_as_present: boolean; is_late: boolean; late_minutes: number | null;
       phone: string | null;
     }>(
-      `select s.id as student_id, s.full_name as student_name, s.admission_number,
+      `select s.id as student_id, s.full_name as student_name, s.admission_number, se.roll_number, s.gender,
               ast.label as status_label, ast.counts_as_present, coalesce(ar.is_late, false) as is_late,
               ar.late_minutes, u.phone
          from attendance_records ar
          join students s on s.id = ar.student_id
          join attendance_statuses ast on ast.id = ar.status_id
          left join users u on u.id = s.user_id
+         left join student_enrollments se on se.student_id = s.id and se.class_id = ar.class_id and se.section_id = ar.section_id and se.status = 'active'
         where ar.class_id = $1 and ar.section_id = $2 and ar.date = $3
-          and (ast.counts_as_present = false or coalesce(ar.is_late, false) = true)
-        order by s.full_name`,
+          and (ast.counts_as_present = false or coalesce(ar.is_late, false) = true)`,
       [classId, sectionId, date]
     );
+    const rows = sortWithinDivision(rawRows.map((r) => ({ ...r, full_name: r.student_name })));
 
     return rows.map((r): AttendanceAlertCandidate => {
       const defaultMessage = !r.counts_as_present
@@ -575,8 +580,8 @@ export async function getDailyAttendanceOverview(
 ): Promise<DailyAttendanceOverview> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: classRows } = await scoped.query<DailyClassAttendanceRow & { enrolled: string; marked: string; present: string; absent: string; late: string }>(
-      `select se.class_id as "classId", c.name as "className", se.section_id as "sectionId", sec.name as "sectionName",
+    const { rows: rawClassRows } = await scoped.query<DailyClassAttendanceRow & { enrolled: string; marked: string; present: string; absent: string; late: string; stage: string | null }>(
+      `select se.class_id as "classId", c.name as "className", c.stage, se.section_id as "sectionId", sec.name as "sectionName",
               count(distinct se.student_id) as enrolled,
               count(distinct ar.student_id) as marked,
               count(distinct ar.student_id) filter (where ast.counts_as_present) as present,
@@ -591,23 +596,32 @@ export async function getDailyAttendanceOverview(
         where se.status = 'active'
           and ($2::uuid[] is null or se.class_id = any($2))
           and ($3::text[] is null or c.stage = any($3))
-        group by se.class_id, c.name, se.section_id, sec.name, c.sort_order
-        order by c.sort_order, sec.name`,
+        group by se.class_id, c.name, c.stage, se.section_id, sec.name, c.sort_order`,
       [date, scope?.classIds ?? null, scope?.stages ?? null]
     );
+    // Section (stage) -> GRADE -> division order (§users-roles follow-up)
+    // -- Array.sort is stable, so sorting by division first then by class
+    // preserves the division ordering within each class group.
+    const classRows = sortClasses(
+      [...rawClassRows].sort((a, b) => (a.sectionName ?? "").localeCompare(b.sectionName ?? "")).map((r) => ({ ...r, class_name: r.className }))
+    );
 
-    const { rows: absenteeRows } = await scoped.query<{ studentId: string; studentName: string; className: string; sectionName: string }>(
-      `select s.id as "studentId", s.full_name as "studentName", c.name as "className", sec.name as "sectionName"
+    const { rows: rawAbsenteeRows } = await scoped.query<{ studentId: string; studentName: string; className: string; sectionName: string; stage: string | null; roll_number: number | null; gender: string | null }>(
+      `select s.id as "studentId", s.full_name as "studentName", c.name as "className", c.stage, sec.name as "sectionName",
+              se.roll_number, s.gender
          from attendance_records ar
          join students s on s.id = ar.student_id
          join attendance_statuses ast on ast.id = ar.status_id
          join classes c on c.id = ar.class_id
          join sections sec on sec.id = ar.section_id
+         left join student_enrollments se on se.student_id = s.id and se.class_id = ar.class_id and se.section_id = ar.section_id and se.status = 'active'
         where ar.date = $1 and ast.counts_as_present = false
           and ($2::uuid[] is null or ar.class_id = any($2))
-          and ($3::text[] is null or c.stage = any($3))
-        order by c.sort_order, sec.name, s.full_name`,
+          and ($3::text[] is null or c.stage = any($3))`,
       [date, scope?.classIds ?? null, scope?.stages ?? null]
+    );
+    const absenteeRows = sortRoster(
+      rawAbsenteeRows.map((r) => ({ ...r, full_name: r.studentName, class_name: r.className, section_name: r.sectionName }))
     );
 
     return {
@@ -616,7 +630,7 @@ export async function getDailyAttendanceOverview(
         enrolled: Number(r.enrolled), marked: Number(r.marked), present: Number(r.present),
         absent: Number(r.absent), late: Number(r.late),
       })),
-      absentees: absenteeRows,
+      absentees: absenteeRows.map((r) => ({ studentId: r.studentId, studentName: r.studentName, className: r.className, sectionName: r.sectionName })),
     };
   });
 }
