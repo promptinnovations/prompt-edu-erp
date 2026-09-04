@@ -10,6 +10,7 @@ import { getAuthService } from "./auth/auth-service";
 import { resolveActiveInstitution, resolveUserByAuthId, getMembershipsForUser } from "./tenant/tenant-service";
 import { getPermissionsForUser, getAllInstitutionPermissionCodes } from "./permissions/permission-service";
 import { getInstitutionForSuperAdmin } from "./super-admin/super-admin-service";
+import { getSamplePortalTarget } from "./super-admin/sample-portal-service";
 import { ACTIVE_INSTITUTION_COOKIE } from "./tenant/institution-cookie";
 import type { RequestContext } from "../types/context";
 
@@ -18,6 +19,20 @@ import type { RequestContext } from "../types/context";
  *  see RequestContext.viewingInstitutionAsSuperAdmin's own doc comment for
  *  the full rationale. */
 const SUPER_ADMIN_VIEW_INSTITUTION_COOKIE = "perp_super_admin_view_institution_id";
+
+/** Set only via setSuperAdminViewAsUser() below, from the "View as" buttons
+ *  on /super-admin/sample-portals — see RequestContext.viewingAsUser's own
+ *  doc comment for the full rationale. Stores a small JSON payload; the
+ *  userId/institutionId inside are re-verified fresh against the DB on
+ *  EVERY request by getSamplePortalTarget() below — the cookie's own
+ *  fullName/roleLabel are cosmetic-only (banner text), never trusted for
+ *  any authorization decision (§X "never trust the client"). */
+const SUPER_ADMIN_VIEW_AS_USER_COOKIE = "perp_super_admin_view_as_user";
+interface SuperAdminViewAsUserCookie {
+  userId: string;
+  institutionId: string;
+  roleLabel: string;
+}
 
 /** Pure decision function, factored out for direct unit testing without
  *  needing next/headers' cookies() (which requires a real Next.js request
@@ -83,25 +98,70 @@ export async function getRequestContext(): Promise<RequestContext | null> {
     }
   }
 
+  // "Sample Portals" follow-up ("add different sample portals ... chosen
+  // from any institution, not fake data"): a Super Admin who is already
+  // viewing an institution (above) can additionally pick a specific REAL
+  // person there to act as, instead of the full-catalogue "super admin"
+  // view — /super-admin/sample-portals' "View as Principal/Management/
+  // Class Teacher/Student/Parent" buttons. Only ever consulted when
+  // viewingInstitutionAsSuperAdmin is already true (never lets a real
+  // institution_admin/teacher/etc. spoof a DIFFERENT real person — that
+  // path never sets this cookie in the first place, see
+  // setSuperAdminViewAsUser()'s own re-verification below).
+  let effectiveUserId = resolvedUser.userId;
+  let effectiveSession = session;
+  let viewingAsUser: { userId: string; fullName: string; roleLabel: string } | null = null;
+  if (institutionId && viewingInstitutionAsSuperAdmin) {
+    const viewAsRaw = cookieStore.get(SUPER_ADMIN_VIEW_AS_USER_COOKIE)?.value ?? null;
+    if (viewAsRaw) {
+      try {
+        const parsed = JSON.parse(viewAsRaw) as SuperAdminViewAsUserCookie;
+        if (parsed.institutionId === institutionId && parsed.userId && parsed.roleLabel) {
+          // Re-derives userId/authUserId/fullName fresh from the DB every
+          // request (§X "never trust the client") — the cookie's own
+          // userId is only a LOOKUP KEY here, roleLabel is cosmetic-only.
+          const target = await getSamplePortalTarget(session.authUserId, institutionId, parsed.userId);
+          if (target) {
+            effectiveUserId = target.userId;
+            effectiveSession = { authUserId: target.authUserId, email: target.email };
+            viewingAsUser = { userId: target.userId, fullName: target.fullName, roleLabel: parsed.roleLabel };
+          }
+          // A stale cookie pointing at a person who lost their membership/
+          // login since — same "fail closed, fall back silently" shape as
+          // every other override cookie in this function — falls through
+          // to the plain full-catalogue super-admin view below.
+        }
+      } catch {
+        // Malformed cookie — ignore, same fallback.
+      }
+    }
+  }
+
   const permissions = !institutionId
     ? new Set<string>()
-    : viewingInstitutionAsSuperAdmin
-      // No role row of their own in this institution to derive permissions
-      // from — grant the full catalogue, matching what RLS already allows
-      // them unconditionally at the database layer (see this field's own
-      // doc comment in types/context.ts).
-      ? await getAllInstitutionPermissionCodes()
-      : await getPermissionsForUser(session.authUserId, resolvedUser.userId, institutionId);
+    : viewingAsUser
+      // A specific real person's OWN role-derived permissions — not the
+      // full catalogue — so "View as Class Teacher" genuinely shows only
+      // what a class teacher can do, not everything an admin can.
+      ? await getPermissionsForUser(effectiveSession.authUserId, effectiveUserId, institutionId)
+      : viewingInstitutionAsSuperAdmin
+        // No role row of their own in this institution to derive permissions
+        // from — grant the full catalogue, matching what RLS already allows
+        // them unconditionally at the database layer (see this field's own
+        // doc comment in types/context.ts).
+        ? await getAllInstitutionPermissionCodes()
+        : await getPermissionsForUser(session.authUserId, resolvedUser.userId, institutionId);
 
   return {
-    session,
-    userId: resolvedUser.userId,
+    session: effectiveSession,
+    userId: effectiveUserId,
     institutionId,
     isSuperAdmin: resolvedUser.isSuperAdmin,
     memberships,
     permissions,
     institutionBlockedReason,
     viewingInstitutionAsSuperAdmin,
+    viewingAsUser,
   };
 }
 
@@ -145,8 +205,42 @@ export async function setSuperAdminViewInstitution(institutionId: string) {
 
 /** Called by the "Exit — back to Super Admin console" banner action, and by
  *  signOutAction (so a stray cookie never survives a sign-out/sign-in as a
- *  different account). */
+ *  different account). Also clears the "view as" cookie below — leaving
+ *  the institution but keeping a stale "viewing as" identity around would
+ *  otherwise resurrect it the next time this same institution is opened. */
 export async function clearSuperAdminViewInstitution() {
   const store = await cookies();
   store.delete(SUPER_ADMIN_VIEW_INSTITUTION_COOKIE);
+  store.delete(SUPER_ADMIN_VIEW_AS_USER_COOKIE);
+}
+
+/** Called only from the "View as Principal/Management/Class Teacher/
+ *  Student/Parent" buttons on /super-admin/sample-portals — re-verifies
+ *  isSuperAdmin AND that this userId genuinely has an active, real login
+ *  in institutionId (via getSamplePortalTarget(), same re-verification
+ *  getRequestContext() itself repeats on every subsequent request — this
+ *  call is only the FIRST check, never the only one, per §X.2). Requires
+ *  the institution-view cookie to already be set for this SAME
+ *  institutionId — "view as" only ever narrows an already-opened
+ *  institution, it never opens one on its own. */
+export async function setSuperAdminViewAsUser(institutionId: string, userId: string, roleLabel: string) {
+  const ctx = await requireSuperAdminContext();
+  const institution = await getInstitutionForSuperAdmin(ctx.session.authUserId, institutionId);
+  if (!institution) throw new Error("Institution not found.");
+  const target = await getSamplePortalTarget(ctx.session.authUserId, institutionId, userId);
+  if (!target) throw new Error("That person no longer has an active login in this institution.");
+  const store = await cookies();
+  store.set(SUPER_ADMIN_VIEW_INSTITUTION_COOKIE, institutionId, { httpOnly: true, sameSite: "lax", path: "/" });
+  const payload: SuperAdminViewAsUserCookie = { userId, institutionId, roleLabel };
+  store.set(SUPER_ADMIN_VIEW_AS_USER_COOKIE, JSON.stringify(payload), { httpOnly: true, sameSite: "lax", path: "/" });
+}
+
+/** Called by the "Exit sample portal" banner action (institution/portal
+ *  layouts) — drops back to the plain full-catalogue "viewing this
+ *  institution as Super Admin" state (task #138) rather than leaving the
+ *  institution entirely, since that's almost always what someone browsing
+ *  through several sample portals in a row wants next. */
+export async function clearSuperAdminViewAsUser() {
+  const store = await cookies();
+  store.delete(SUPER_ADMIN_VIEW_AS_USER_COOKIE);
 }

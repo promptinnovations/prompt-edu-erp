@@ -8,7 +8,7 @@ import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { listMyNotifications, getUnreadNotificationCount } from "../../../services/notification/notification-service";
 import NotificationBell from "../../components/NotificationBell";
 import SignedInAs from "../../components/SignedInAs";
-import { signOutAction } from "../../(institution)/actions";
+import { signOutAction, exitSuperAdminViewAction, exitSamplePortalAction } from "../../(institution)/actions";
 import { getOwnStudentId, getOwnParentId } from "../../../modules/portal/service";
 import PortalRoleToggle from "./PortalRoleToggle";
 
@@ -53,6 +53,36 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-full flex-col bg-[var(--background)]">
       <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
+      {ctx.viewingInstitutionAsSuperAdmin ? (
+        <div className="flex flex-col items-start gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span>
+            {ctx.viewingAsUser ? (
+              <>
+                Sample Portal — viewing <strong>{institution?.name}</strong> as <strong>{ctx.viewingAsUser.roleLabel}</strong>{" "}
+                (<strong>{ctx.viewingAsUser.fullName}</strong>&apos;s real account) — every action here is fully real.
+              </>
+            ) : (
+              <>
+                Viewing <strong>{institution?.name}</strong> as Super Admin — every action here is fully real.
+              </>
+            )}
+          </span>
+          <div className="flex shrink-0 gap-2">
+            {ctx.viewingAsUser ? (
+              <form action={exitSamplePortalAction}>
+                <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+                  Exit sample portal
+                </button>
+              </form>
+            ) : null}
+            <form action={exitSuperAdminViewAction}>
+              <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+                Exit to Super Admin console
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] text-xs font-bold text-white">

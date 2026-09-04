@@ -36,6 +36,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
 
   const navItems: NavItem[] = [
     { href: "/super-admin", label: "Institutions" },
+    { href: "/super-admin/sample-portals", label: "Sample Portals" },
     { href: "/super-admin/audit", label: "Platform Audit" },
     { href: "/super-admin/appearance", label: "Appearance" },
     ...(ctx.memberships.length > 0 ? [{ href: "/dashboard", label: "← Back to institution app", muted: true }] : []),

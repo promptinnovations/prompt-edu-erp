@@ -4,11 +4,22 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SUPPORTED_LOCALES, LOCALE_COOKIE } from "../../i18n/request";
 import { getAuthService } from "../../services/auth/auth-service";
-import { clearSuperAdminViewInstitution } from "../../services/request-context";
+import { clearSuperAdminViewInstitution, clearSuperAdminViewAsUser } from "../../services/request-context";
 
 export async function exitSuperAdminViewAction() {
   await clearSuperAdminViewInstitution();
   redirect("/super-admin");
+}
+
+/** "Exit sample portal" — from the amber banner while a Super Admin is
+ *  "viewing as" a specific real person (services/request-context.ts's
+ *  viewingAsUser, set from /super-admin/sample-portals). Drops back to the
+ *  plain full-catalogue "viewing this institution as Super Admin" state
+ *  (task #138) rather than leaving the institution entirely — see
+ *  clearSuperAdminViewAsUser()'s own doc comment. */
+export async function exitSamplePortalAction() {
+  await clearSuperAdminViewAsUser();
+  redirect("/dashboard");
 }
 
 export async function setLocaleAction(formData: FormData) {

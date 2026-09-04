@@ -51,4 +51,18 @@ export interface RequestContext {
    *  Exit" banner whenever this is true, so it's never ambiguous whose
    *  data is on screen. */
   viewingInstitutionAsSuperAdmin: boolean;
+  /** Set only when viewingInstitutionAsSuperAdmin is true AND the Super
+   *  Admin picked a specific real person from /super-admin/sample-portals
+   *  ("view as Principal/Management/Class Teacher/Student/Parent",
+   *  services/super-admin/sample-portal-service.ts). When set, userId/
+   *  session.authUserId above are OVERRIDDEN to that real person's own —
+   *  not the Super Admin's — so every existing permission check,
+   *  RLS `users_select_self`-style policy, and audit_logs.user_id
+   *  attribution behaves exactly as if that person were signed in
+   *  themselves (permissions is their genuine role-derived set, not the
+   *  full catalogue viewingInstitutionAsSuperAdmin alone would grant —
+   *  see services/request-context.ts). roleLabel is a cosmetic-only
+   *  string ("Principal", "Class Teacher", …) for the banner; it is never
+   *  used for any authorization decision. */
+  viewingAsUser: { userId: string; fullName: string; roleLabel: string } | null;
 }

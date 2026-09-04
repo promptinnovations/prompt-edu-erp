@@ -22,7 +22,7 @@ import {
   UsersIcon, SettingsIcon, SuperAdminIcon, ImportIcon, AnnouncementIcon, StorageIcon,
   CalendarIcon, SubstitutionIcon, FeesIcon, AccountsIcon, MessagesIcon,
 } from "../components/NavIcons";
-import { setLocaleAction, signOutAction, exitSuperAdminViewAction } from "./actions";
+import { setLocaleAction, signOutAction, exitSuperAdminViewAction, exitSamplePortalAction } from "./actions";
 
 export default async function InstitutionLayout({ children }: { children: React.ReactNode }) {
   let ctx;
@@ -343,13 +343,31 @@ export default async function InstitutionLayout({ children }: { children: React.
         {ctx.viewingInstitutionAsSuperAdmin ? (
           <div className="flex flex-col items-start gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <span>
-              Viewing <strong>{institution?.name}</strong> as Super Admin — every action here is fully real.
+              {ctx.viewingAsUser ? (
+                <>
+                  Sample Portal — viewing <strong>{institution?.name}</strong> as <strong>{ctx.viewingAsUser.roleLabel}</strong>{" "}
+                  (<strong>{ctx.viewingAsUser.fullName}</strong>&apos;s real account) — every action here is fully real.
+                </>
+              ) : (
+                <>
+                  Viewing <strong>{institution?.name}</strong> as Super Admin — every action here is fully real.
+                </>
+              )}
             </span>
-            <form action={exitSuperAdminViewAction}>
-              <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
-                Exit to Super Admin console
-              </button>
-            </form>
+            <div className="flex shrink-0 gap-2">
+              {ctx.viewingAsUser ? (
+                <form action={exitSamplePortalAction}>
+                  <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+                    Exit sample portal
+                  </button>
+                </form>
+              ) : null}
+              <form action={exitSuperAdminViewAction}>
+                <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+                  Exit to Super Admin console
+                </button>
+              </form>
+            </div>
           </div>
         ) : null}
         <header data-app-shell className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
