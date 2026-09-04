@@ -13,6 +13,7 @@ import {
 import {
   provisionStudentPortalAccount, provisionParentPortalAccount,
   createStudentLoginAccount, resetStudentLoginPassword,
+  linkExistingParentAccountToStudent, linkExistingStudentAccountToParent,
 } from "../../../modules/portal/service";
 import { uploadFile } from "../../../services/storage/file-service";
 
@@ -410,6 +411,45 @@ export async function provisionParentPortalAccountAction(_prevState: { error: st
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to provision parent portal account." };
+  }
+}
+
+/** Phase D §3 "same credential" — reuse a parent's EXISTING portal login as
+ *  this same student's login too, instead of minting a second account.
+ *  See modules/portal/service.ts's linkExistingParentAccountToStudent(). */
+export async function linkExistingParentAccountToStudentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "users.manage");
+    await linkExistingParentAccountToStudent(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      parentId: String(formData.get("parentId") ?? ""),
+      studentId,
+    });
+    revalidatePath(`/students/${studentId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to link the parent's login to this student." };
+  }
+}
+
+/** The reverse: reuse a student's EXISTING portal login as a given
+ *  parent's login too. */
+export async function linkExistingStudentAccountToParentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "users.manage");
+    await linkExistingStudentAccountToParent(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      studentId,
+      parentId: String(formData.get("parentId") ?? ""),
+    });
+    revalidatePath(`/students/${studentId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to link the student's login to this parent." };
   }
 }
 

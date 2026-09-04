@@ -9,8 +9,13 @@ import { listSkillSubmissions } from "../../../../modules/skills/service";
 import { listReadingRecords } from "../../../../modules/library/service";
 import { listCharacterAssessments, listCharacterRatingLabels } from "../../../../modules/discipline/service";
 import { listMentoringRecordsForPortal } from "../../../../modules/mentoring/service";
+import { listStudentFeeInvoices } from "../../../../modules/fees/service";
+import { listStaff } from "../../../../modules/staff/service";
 import ChildPicker from "./ChildPicker";
 import ApplyLeaveForm from "./ApplyLeaveForm";
+import PayFeeForm from "./PayFeeForm";
+import SendMessageForm from "./SendMessageForm";
+import SendKudosForm from "./SendKudosForm";
 
 export default async function ParentPortalPage({
   searchParams,
@@ -59,7 +64,7 @@ export default async function ParentPortalPage({
   // every student's.
   const sections = await getParentPortalSections(institutionId, authUserId);
 
-  const [summary, childLeaves, achievements, skillSubmissions, readingRecords, characterAssessments, ratingLabels, mentoringNotes] = await Promise.all([
+  const [summary, childLeaves, achievements, skillSubmissions, readingRecords, characterAssessments, ratingLabels, mentoringNotes, pendingInvoices, staffDirectory] = await Promise.all([
     getStudent360(institutionId, authUserId, selectedChildId, 10, { canViewDiscipline: sections.discipline }),
     can(ctx.permissions, "attendance.leave.apply")
       ? listLeaveApplicationsForStudent(institutionId, authUserId, selectedChildId)
@@ -70,6 +75,12 @@ export default async function ParentPortalPage({
     sections.character ? listCharacterAssessments(institutionId, authUserId, selectedChildId) : Promise.resolve([]),
     sections.character ? listCharacterRatingLabels(institutionId, authUserId) : Promise.resolve([]),
     sections.mentoring ? listMentoringRecordsForPortal(institutionId, authUserId, selectedChildId) : Promise.resolve([]),
+    can(ctx.permissions, "fees.pay_own")
+      ? listStudentFeeInvoices(institutionId, authUserId, { studentId: selectedChildId }).then((rows) => rows.filter((r) => r.status === "pending" || r.status === "partial"))
+      : Promise.resolve([]),
+    can(ctx.permissions, "messages.send_to_staff") || can(ctx.permissions, "kudos.send")
+      ? listStaff(institutionId, authUserId)
+      : Promise.resolve([]),
   ]);
   const ratingLabelByValue = new Map(ratingLabels.map((r) => [r.rating, r.label]));
 
@@ -234,6 +245,40 @@ export default async function ParentPortalPage({
           studentName={children.find((c) => c.id === selectedChildId)?.full_name ?? "your child"}
           leaves={childLeaves}
         />
+      ) : null}
+
+      {can(ctx.permissions, "fees.pay_own") ? (
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pay fees</h2>
+          <PayFeeForm
+            invoices={pendingInvoices.map((i) => ({
+              id: i.id,
+              label: `${i.category_name} — ₹${(Number(i.amount_due) - Number(i.amount_paid)).toFixed(2)} pending (due ${i.due_date ?? "—"})`,
+              balance: Number(i.amount_due) - Number(i.amount_paid),
+            }))}
+          />
+        </div>
+      ) : null}
+
+      {can(ctx.permissions, "messages.send_to_staff") ? (
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Message a teacher or the principal</h2>
+          <SendMessageForm
+            studentId={selectedChildId}
+            staffOptions={staffDirectory.map((s) => ({ userId: s.user_id, label: `${s.full_name}${s.designation ? ` — ${s.designation}` : ""}` }))}
+          />
+        </div>
+      ) : null}
+
+      {can(ctx.permissions, "kudos.send") ? (
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Send a flower or congratulations 🌸</h2>
+          <SendKudosForm
+            studentId={selectedChildId}
+            studentName={children.find((c) => c.id === selectedChildId)?.full_name ?? "your child"}
+            staffOptions={staffDirectory.map((s) => ({ id: s.id, full_name: s.full_name }))}
+          />
+        </div>
       ) : null}
     </div>
   );

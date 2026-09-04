@@ -113,6 +113,23 @@ export const SubstitutionIcon = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}><circle cx="8" cy="8" r="3" /><path d="M2.5 20c0-3.3 2.5-5.7 5.5-5.7 1.2 0 2.3.4 3.2 1" /><path d="M14.5 6.5h6M17.5 3.5v6" /><path d="M14.5 14.5h6M17.5 11.5v6" /></Base>
 );
 
+// Phase D — Fee/Accounts/Communication modules.
+export const FeesIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><rect x="3.5" y="6" width="17" height="12" rx="2" /><path d="M3.5 10h17" /><path d="M7 14.5h4" /></Base>
+);
+
+export const AccountsIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><path d="M12 3v18M8 6.5h5.5a2.5 2.5 0 0 1 0 5H10a2.5 2.5 0 0 0 0 5h6" /></Base>
+);
+
+export const MessagesIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><path d="M4 5.5h16v11H9l-4 3.5v-3.5H4Z" /></Base>
+);
+
+export const KudosIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><path d="M12 20s-6.5-4.2-9-8.2C1.2 8.7 2.6 5.5 6 5c2-.3 3.6.7 6 3 2.4-2.3 4-3.3 6-3 3.4.5 4.8 3.7 3 6.8-2.5 4-9 8.2-9 8.2Z" /></Base>
+);
+
 export const ChevronIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0 transition-transform" aria-hidden="true" {...p}>
     <path d="m9 6 6 6-6 6" />

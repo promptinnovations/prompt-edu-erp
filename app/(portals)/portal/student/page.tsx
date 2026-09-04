@@ -8,6 +8,7 @@ import {
   listRecentNegativeDisciplineFlags, listCharacterAssessments, listCharacterRatingLabels,
 } from "../../../../modules/discipline/service";
 import { listMentoringRecordsForPortal } from "../../../../modules/mentoring/service";
+import { listKudosForStudent } from "../../../../modules/communication/service";
 import SubmitSkillForm from "./SubmitSkillForm";
 import SubmitAchievementForm from "./SubmitAchievementForm";
 import MyPendingReviews from "./MyPendingReviews";
@@ -30,7 +31,7 @@ export default async function StudentPortalPage() {
     );
   }
 
-  const [summary, skillTypes, achievementCategories, achievementLevels, books, pendingReviews, approvedReviews, myHolds, disciplineFlags, characterAssessments, ratingLabels, mentoringNotes] = await Promise.all([
+  const [summary, skillTypes, achievementCategories, achievementLevels, books, pendingReviews, approvedReviews, myHolds, disciplineFlags, characterAssessments, ratingLabels, mentoringNotes, kudosReceived] = await Promise.all([
     getStudent360(institutionId, authUserId, ownStudentId),
     listSkillTypes(institutionId, authUserId),
     listAchievementCategories(institutionId, authUserId),
@@ -47,6 +48,7 @@ export default async function StudentPortalPage() {
     listCharacterAssessments(institutionId, authUserId, ownStudentId),
     listCharacterRatingLabels(institutionId, authUserId),
     listMentoringRecordsForPortal(institutionId, authUserId, ownStudentId),
+    listKudosForStudent(institutionId, authUserId, ownStudentId),
   ]);
   const ratingLabelByValue = new Map(ratingLabels.map((r) => [r.rating, r.label]));
   const holdableBooks = books.filter((b) => b.available_copies === 0);
@@ -201,6 +203,20 @@ export default async function StudentPortalPage() {
           myHolds={myHolds.map((h) => ({ id: h.id, book_title: h.book_title, status: h.status }))}
         />
       </div>
+
+      {kudosReceived.length > 0 ? (
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Kudos received 🌸</h2>
+          <ul className="space-y-2 text-sm">
+            {kudosReceived.map((k) => (
+              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+                <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">{k.created_at}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

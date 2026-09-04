@@ -14,6 +14,8 @@ import { listAchievements } from "../../../../modules/achievements/service";
 import { listSkillSubmissions } from "../../../../modules/skills/service";
 import { listReadingRecords } from "../../../../modules/library/service";
 import { listDisciplineRecords, listCharacterAssessments } from "../../../../modules/discipline/service";
+import { listStudentFeeInvoices } from "../../../../modules/fees/service";
+import { listKudosForStudent } from "../../../../modules/communication/service";
 import RichTextContent from "../../../components/RichTextContent";
 import EnrollForm from "../EnrollForm";
 import ClassEnrollmentSection from "../ClassEnrollmentSection";
@@ -66,7 +68,7 @@ export default async function StudentDetailPage({
   const [
     enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
     approvedAchievements, approvedSkillSubmissions, approvedReadingRecords, allReadingRecords, institution,
-    disciplineRecords, characterAssessments,
+    disciplineRecords, characterAssessments, feeInvoices, kudosReceived,
   ] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
     listClasses(institutionId, authUserId),
@@ -87,6 +89,8 @@ export default async function StudentDetailPage({
     getInstitution(institutionId, authUserId),
     canViewDiscipline ? listDisciplineRecords(institutionId, authUserId, id) : Promise.resolve([]),
     canViewDiscipline ? listCharacterAssessments(institutionId, authUserId, id) : Promise.resolve([]),
+    listStudentFeeInvoices(institutionId, authUserId, { studentId: id }),
+    listKudosForStudent(institutionId, authUserId, id),
   ]);
   // Education Type follow-up — "there should be 2 dedicated spaces for
   // both everywhere like student portfolio... which should come first
@@ -200,7 +204,7 @@ export default async function StudentDetailPage({
 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Family background — parents / guardians</h2>
-        <ParentSection studentId={profile.id} parents={parents} canManage={canManage} />
+        <ParentSection studentId={profile.id} parents={parents} canManage={canManage} studentHasAccount={!!profile.user_id} />
       </div>
 
       {can(ctx.permissions, "users.manage") ? (
@@ -220,6 +224,7 @@ export default async function StudentDetailPage({
                   defaultEmail={profile.contact_email ?? ""}
                   defaultName={profile.full_name}
                   alreadyLinked={!!profile.user_id}
+                  linkedParentsWithLogin={parents.filter((p) => p.user_id).map((p) => ({ id: p.id, full_name: p.full_name }))}
                 />
               </div>
             </details>
@@ -290,12 +295,35 @@ export default async function StudentDetailPage({
     </div>
   );
 
-  const feesTab = (
+  // Phase D §1 — real Fee module data now backs this tab (was a
+  // placeholder before the Fee module existed).
+  const feesTab = feeInvoices.length === 0 ? (
     <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-8 text-center">
-      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">Fee tracking isn&apos;t set up in this system yet.</p>
-      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-        There is no fees module in PROMPT EDU ERP right now — this tab is a placeholder for when one is added, rather than showing made-up numbers.
-      </p>
+      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">No fee invoices for this student yet.</p>
+      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Assign a fee structure from the Fees page to generate one.</p>
+    </div>
+  ) : (
+    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Fee invoices</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="text-xs text-zinc-500 dark:text-zinc-400">
+              <th className="py-1.5 pr-3">Category</th><th className="py-1.5 pr-3">Due</th><th className="py-1.5 pr-3">Paid</th><th className="py-1.5 pr-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {feeInvoices.map((i) => (
+              <tr key={i.id} className="border-t border-zinc-100 dark:border-zinc-800">
+                <td className="py-1.5 pr-3">{i.category_name}</td>
+                <td className="py-1.5 pr-3">₹{i.amount_due}</td>
+                <td className="py-1.5 pr-3">₹{i.amount_paid}</td>
+                <td className="py-1.5 pr-3 capitalize">{i.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -563,6 +591,20 @@ export default async function StudentDetailPage({
           ) : null}
         </ul>
       </section>
+
+      {kudosReceived.length > 0 ? (
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Kudos received</h2>
+          <ul className="space-y-2 text-sm">
+            {kudosReceived.map((k) => (
+              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+                <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">{k.created_at}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 

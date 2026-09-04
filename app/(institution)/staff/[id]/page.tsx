@@ -8,6 +8,7 @@ import {
 } from "../../../../modules/staff/service";
 import { listExaminations } from "../../../../modules/examination/service";
 import { getTeacherExamReport, getTeacherPerformanceTrend } from "../../../../modules/analytics/service";
+import { listKudosForStaff } from "../../../../modules/communication/service";
 import PhotoForm from "../PhotoForm";
 import EditStaffForm from "../EditStaffForm";
 import TeacherProfileForm from "../TeacherProfileForm";
@@ -49,6 +50,7 @@ export default async function StaffDetailPage({
 
   const assignments = await listAssignmentsForTeacher(institutionId, authUserId, profile.user_id);
   const isTeacher = assignments.length > 0;
+  const kudos = await listKudosForStaff(institutionId, authUserId, profile.id);
   const canManage = can(ctx.permissions, "staff.edit");
   // §Staff-profile-self-service follow-up: a staff member editing their OWN
   // record (never trusted from the client -- see assertStaffSelfOrEditAccess
@@ -91,6 +93,20 @@ export default async function StaffDetailPage({
       <div className="space-y-4">
         <Link href="/staff/directory" className="text-sm text-zinc-500 dark:text-zinc-400 underline">← Back to Staff profiles</Link>
         {header}
+      {kudos.length > 0 ? (
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Kudos received</h2>
+          <ul className="space-y-2 text-sm">
+            {kudos.map((k) => (
+              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+                <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">{k.created_at}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
         <div className="space-y-6">
           <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
             <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Core identity &amp; employment</h2>
@@ -232,6 +248,20 @@ export default async function StaffDetailPage({
     <div className="space-y-4">
       <Link href="/staff/directory" className="text-sm text-zinc-500 dark:text-zinc-400 underline">← Back to Staff profiles</Link>
       {header}
+
+      {kudos.length > 0 ? (
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Kudos received</h2>
+          <ul className="space-y-2 text-sm">
+            {kudos.map((k) => (
+              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+                <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">{k.created_at}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <ProfileTabs
         tabs={[

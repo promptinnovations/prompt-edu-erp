@@ -64,6 +64,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     ["section_head", "Section Head"],
     ["staff", "Staff"],
     ["librarian", "Librarian"],
+    ["accounts_staff", "Accounts Staff"], // Phase D §1 — "admin or account staff will update payment status"
     ["parent", "Parent"],
     ["student", "Student"],
   ];
@@ -76,7 +77,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
   }
 
   const { rows: moduleRows } = await db.query<{ id: string }>(
-    `select id from modules where code in ('academic','students','examination','attendance','library','skills','achievements','staff','discipline','mentoring','calendar','substitution')`
+    `select id from modules where code in ('academic','students','examination','attendance','library','skills','achievements','staff','discipline','mentoring','calendar','substitution','fees','accounts')`
   );
   for (const m of moduleRows) {
     await db.query(
@@ -109,14 +110,14 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       "mentoring.view_all", "data.import", "data.export", "announcements.publish", "announcements.view",
       "files.manage", "calendar.view", "calendar.manage",
       "substitution.view", "substitution.manage", "substitution.timetable.manage",
-      "academic.promote",
+      "academic.promote", "fees.view", "accounts.view", "messages.view",
     ],
     teacher: [
       "student.view", "marks.view", "marks.enter", "marks.verify",
       "attendance.view", "attendance.enter", "attendance.leave.review_own_class", "skills.review",
       "achievements.submit", "portfolio.view_own", "discipline.record",
       "staff.view", "staff.portion.manage",
-      "mentoring.view_own", "mentoring.create", "announcements.view",
+      "mentoring.view_own", "mentoring.create", "announcements.view", "messages.view",
       "calendar.view", "substitution.view",
       // Result Analysis & Reporting spec "Teacher defaults to own classes/
       // subjects" — reports.view is what unlocks /analytics at all; the
@@ -137,11 +138,13 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     // Result Analysis & Reporting spec "Section Head defaults to own
     // section" (stage) — same reports.view + page-level scoping treatment
     // as teacher above, via getStaffSectionScope().
-    section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "reports.view"],
-    librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view"],
-    parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view"],
+    section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "reports.view", "messages.view"],
+    librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view", "messages.view"],
+    parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view", "fees.pay_own", "messages.send_to_staff", "kudos.send"],
     student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],
-    staff: ["staff.view", "announcements.view", "calendar.view", "substitution.view"],
+    staff: ["staff.view", "announcements.view", "calendar.view", "substitution.view", "messages.view"],
+    // Phase D §1/§2 — "admin or account staff will update payment status".
+    accounts_staff: ["fees.manage", "fees.collect", "fees.view", "accounts.manage", "accounts.view"],
   };
   for (const [roleCode, permCodes] of Object.entries(roleGrants)) {
     await db.query(

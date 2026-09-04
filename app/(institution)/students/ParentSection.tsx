@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import {
   createParentAction, provisionStudentPortalAccountAction, provisionParentPortalAccountAction,
   updateParentAction, removeParentFromStudentAction,
+  linkExistingParentAccountToStudentAction, linkExistingStudentAccountToParentAction,
 } from "./actions";
 
 export interface ParentLinkRow {
@@ -82,10 +83,38 @@ function ProvisionParentAccountForm({ parentId, studentId, defaultEmail, default
   );
 }
 
+function LinkStudentLoginToParentButton({ studentId, parentId }: { studentId: string; parentId: string }) {
+  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(linkExistingStudentAccountToParentAction, { error: null });
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="studentId" value={studentId} />
+      <input type="hidden" name="parentId" value={parentId} />
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+        Use the student&apos;s login for this parent (same credential)
+      </button>
+      {state.error ? <div className="text-xs text-red-600 dark:text-red-400">{state.error}</div> : null}
+    </form>
+  );
+}
+
+function LinkParentLoginToStudentButton({ studentId, parentId }: { studentId: string; parentId: string }) {
+  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(linkExistingParentAccountToStudentAction, { error: null });
+  return (
+    <form action={formAction} className="mt-1">
+      <input type="hidden" name="studentId" value={studentId} />
+      <input type="hidden" name="parentId" value={parentId} />
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+        Use this login for the student (same credential)
+      </button>
+      {state.error ? <div className="text-xs text-red-600 dark:text-red-400">{state.error}</div> : null}
+    </form>
+  );
+}
+
 export default function ParentSection({
-  studentId, parents, canManage,
+  studentId, parents, canManage, studentHasAccount,
 }: {
-  studentId: string; parents: ParentLinkRow[]; canManage: boolean;
+  studentId: string; parents: ParentLinkRow[]; canManage: boolean; studentHasAccount: boolean;
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(createParentAction, { error: null });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -149,7 +178,12 @@ export default function ParentSection({
                   {p.user_id ? (
                     <span className="text-emerald-700 dark:text-emerald-400">Linked</span>
                   ) : canManage ? (
-                    <ProvisionParentAccountForm parentId={p.id} studentId={studentId} defaultEmail={p.email ?? ""} defaultName={p.full_name} />
+                    <div className="space-y-1">
+                      <ProvisionParentAccountForm parentId={p.id} studentId={studentId} defaultEmail={p.email ?? ""} defaultName={p.full_name} />
+                      {studentHasAccount ? (
+                        <LinkStudentLoginToParentButton studentId={studentId} parentId={p.id} />
+                      ) : null}
+                    </div>
                   ) : (
                     "—"
                   )}
@@ -178,24 +212,38 @@ export default function ParentSection({
 }
 
 export function ProvisionStudentAccountForm({
-  studentId, defaultEmail, defaultName, alreadyLinked,
+  studentId, defaultEmail, defaultName, alreadyLinked, linkedParentsWithLogin = [],
 }: {
   studentId: string; defaultEmail: string; defaultName: string; alreadyLinked: boolean;
+  /** Phase D §3 "same credential" — parents already linked to this student
+   *  who have a portal login of their own; offering to reuse one of those
+   *  logins here instead of creating a brand-new student account. */
+  linkedParentsWithLogin?: Array<{ id: string; full_name: string }>;
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(provisionStudentPortalAccountAction, { error: null });
   if (alreadyLinked) return <p className="text-sm text-emerald-700 dark:text-emerald-400">Portal account linked.</p>;
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2">
-      <input type="hidden" name="studentId" value={studentId} />
-      <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Login email</label>
-        <input name="email" type="email" defaultValue={defaultEmail} required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-      </div>
-      <input type="hidden" name="fullName" value={defaultName} />
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
-        Create student portal login
-      </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
-    </form>
+    <div className="space-y-3">
+      <form action={formAction} className="flex flex-wrap items-end gap-2">
+        <input type="hidden" name="studentId" value={studentId} />
+        <div>
+          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Login email</label>
+          <input name="email" type="email" defaultValue={defaultEmail} required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        </div>
+        <input type="hidden" name="fullName" value={defaultName} />
+        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          Create student portal login
+        </button>
+        {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+      </form>
+      {linkedParentsWithLogin.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">…or reuse a parent&apos;s existing login instead:</p>
+          {linkedParentsWithLogin.map((p) => (
+            <LinkParentLoginToStudentButton key={p.id} studentId={studentId} parentId={p.id} />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -107,6 +107,7 @@ const SYSTEM_ROLES: Array<[string, string]> = [
   ["section_head", "Section Head"],
   ["staff", "Staff"],
   ["librarian", "Librarian"],
+  ["accounts_staff", "Accounts Staff"], // Phase D §1 — "admin or account staff will update payment status"
   ["parent", "Parent"],
   ["student", "Student"],
 ];
@@ -129,14 +130,14 @@ const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
     "discipline.view", "portfolio.view_all", "reports.view", "reports.export", "audit.view",
     "staff.view", "staff.edit", "staff.portion.manage", "staff.observation.manage", "staff.assignment.manage",
     "mentoring.view_all", "data.import", "data.export", "announcements.publish", "announcements.view",
-    "files.manage",
+    "files.manage", "fees.view", "accounts.view", "messages.view",
   ],
   teacher: [
     "student.view", "marks.view", "marks.enter", "marks.verify",
     "attendance.view", "attendance.enter", "attendance.leave.review_own_class", "skills.review",
     "achievements.submit", "portfolio.view_own", "discipline.record",
     "staff.view", "staff.portion.manage",
-    "mentoring.view_own", "mentoring.create", "announcements.view",
+    "mentoring.view_own", "mentoring.create", "announcements.view", "messages.view",
   ],
   // §Attendance-follow-up-3 "section wise for section heads" — kept in sync
   // with seed.ts's own section_head grant (see that file's comment for the
@@ -147,11 +148,13 @@ const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
   // section_head grant. Migration 0036 also self-heals this onto every
   // EXISTING institution's already-created section_head role, so this
   // entry only matters for institutions created after that migration ran.
-  section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view"],
-  librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view"],
-  parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply"],
+  section_head: ["student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "messages.view"],
+  librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "messages.view"],
+  parent: ["student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "fees.pay_own", "messages.send_to_staff", "kudos.send"],
   student: ["student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply"],
-  staff: ["staff.view", "announcements.view"],
+  staff: ["staff.view", "announcements.view", "messages.view"],
+  // Phase D §1/§2 — "admin or account staff will update payment status".
+  accounts_staff: ["fees.manage", "fees.collect", "fees.view", "accounts.manage", "accounts.view"],
 };
 
 /** Default attendance statuses (§D.6, §36 "one status per institution must

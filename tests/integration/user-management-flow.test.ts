@@ -49,7 +49,7 @@ describe("listInstitutionRoles", () => {
     const roles = await listInstitutionRoles(institutionId, adminAuth);
     const codes = roles.map((r) => r.code).sort();
     expect(codes).toEqual(
-      ["institution_admin", "librarian", "management", "parent", "section_head", "staff", "student", "teacher"].sort()
+      ["accounts_staff", "institution_admin", "librarian", "management", "parent", "section_head", "staff", "student", "teacher"].sort()
     );
   });
 });

@@ -393,3 +393,113 @@ export function resolvePortalDestination(roleCodes: Set<string>): "institution" 
   if (roleCodes.has("parent")) return "parent";
   return "student";
 }
+
+// -----------------------------------------------------------------------------
+// Same-credential Parent/Student unification (Phase D §3 "Parent and
+// Student Portal Shall be with the same credential, on the top give toggle
+// for switching to parent or back to student").
+//
+// provisionStudentPortalAccount()/provisionParentPortalAccount() above
+// always MINT a new `users` row and refuse if the target already has one
+// linked — the right behavior when a family genuinely wants two separate
+// logins. These two functions are the other path: reuse an ALREADY
+// EXISTING login (a parent's account, or a student's own account) as the
+// login for the OTHER role too, by granting the extra role and pointing
+// the target row's user_id at that same users.id.
+//
+// This needs zero schema changes (see migration 0014_portal_identity.sql):
+// students.user_id and parents.user_id are independently unique per table,
+// but nothing stops the SAME user_id being referenced by both at once, and
+// resolvePortalDestination() above already knows how to route a user
+// holding both roles (defaults to "parent", with the toggle in
+// app/(portals)/portal/layout.tsx letting them switch to "student").
+//
+// A student_parents relationship between the two is required — this is
+// explicitly for "make my own child's login double as my login" (or vice
+// versa), not a general "attach any login to any student" tool.
+// -----------------------------------------------------------------------------
+
+async function assertParentChildRelationship(scoped: DbClient, parentId: string, studentId: string): Promise<void> {
+  const { rows } = await scoped.query(
+    "select 1 from student_parents where parent_id = $1 and student_id = $2", [parentId, studentId]
+  );
+  if (rows.length === 0) throw new Error("This parent and student aren't linked as family — link them first.");
+}
+
+const linkParentToStudentSchema = z.object({ parentId: z.string().uuid(), studentId: z.string().uuid() });
+/** The parent ALREADY has a portal login (parents.user_id is set) — reuse
+ *  that same login as this (their own) child's student login too. Grants
+ *  the 'student' role and sets students.user_id to the parent's existing
+ *  user_id. Throws if the student already has a different linked account
+ *  (never silently overwrites an existing login). */
+export async function linkExistingParentAccountToStudent(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof linkParentToStudentSchema>
+): Promise<{ userId: string }> {
+  const data = linkParentToStudentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await assertParentChildRelationship(scoped, data.parentId, data.studentId);
+
+    const { rows: parentRows } = await scoped.query<{ user_id: string | null }>("select user_id from parents where id = $1", [data.parentId]);
+    if (parentRows.length === 0) throw new Error("Parent not found.");
+    const parentUserId = parentRows[0].user_id;
+    if (!parentUserId) throw new Error("This parent doesn't have a portal login yet — create one first, then link the student to it.");
+
+    const { rows: studentRows } = await scoped.query<{ user_id: string | null }>("select user_id from students where id = $1", [data.studentId]);
+    if (studentRows.length === 0) throw new Error("Student not found.");
+    if (studentRows[0].user_id) throw new Error("This student already has a portal account linked.");
+
+    const { rows: roleRows } = await scoped.query<{ id: string }>(
+      `select id from roles where institution_id = $1 and code = 'student'`, [institutionId]
+    );
+    if (roleRows.length > 0) {
+      await scoped.query(
+        `insert into user_roles (user_id, institution_id, role_id) values ($1, $2, $3) on conflict do nothing`,
+        [parentUserId, institutionId, roleRows[0].id]
+      );
+    }
+
+    await scoped.query("update students set user_id = $1, updated_at = now() where id = $2", [parentUserId, data.studentId]);
+    await recordAudit(scoped, { institutionId, userId, action: "link_shared_portal_account", module: "students", entityType: "students", entityId: data.studentId, after: { sharedUserId: parentUserId, sharedFrom: "parent" } });
+    return { userId: parentUserId };
+  });
+}
+
+const linkStudentToParentSchema = z.object({ studentId: z.string().uuid(), parentId: z.string().uuid() });
+/** The reverse: the student ALREADY has a portal login (students.user_id is
+ *  set) — reuse that same login as their parent's login too. Grants the
+ *  'parent' role and sets parents.user_id to the student's existing
+ *  user_id. Throws if the parent already has a different linked account. */
+export async function linkExistingStudentAccountToParent(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof linkStudentToParentSchema>
+): Promise<{ userId: string }> {
+  const data = linkStudentToParentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await assertParentChildRelationship(scoped, data.parentId, data.studentId);
+
+    const { rows: studentRows } = await scoped.query<{ user_id: string | null }>("select user_id from students where id = $1", [data.studentId]);
+    if (studentRows.length === 0) throw new Error("Student not found.");
+    const studentUserId = studentRows[0].user_id;
+    if (!studentUserId) throw new Error("This student doesn't have a portal login yet — create one first, then link the parent to it.");
+
+    const { rows: parentRows } = await scoped.query<{ user_id: string | null }>("select user_id from parents where id = $1", [data.parentId]);
+    if (parentRows.length === 0) throw new Error("Parent not found.");
+    if (parentRows[0].user_id) throw new Error("This parent already has a portal account linked.");
+
+    const { rows: roleRows } = await scoped.query<{ id: string }>(
+      `select id from roles where institution_id = $1 and code = 'parent'`, [institutionId]
+    );
+    if (roleRows.length > 0) {
+      await scoped.query(
+        `insert into user_roles (user_id, institution_id, role_id) values ($1, $2, $3) on conflict do nothing`,
+        [studentUserId, institutionId, roleRows[0].id]
+      );
+    }
+
+    await scoped.query("update parents set user_id = $1 where id = $2", [studentUserId, data.parentId]);
+    await recordAudit(scoped, { institutionId, userId, action: "link_shared_portal_account", module: "students", entityType: "parents", entityId: data.parentId, after: { sharedUserId: studentUserId, sharedFrom: "student" } });
+    return { userId: studentUserId };
+  });
+}
+

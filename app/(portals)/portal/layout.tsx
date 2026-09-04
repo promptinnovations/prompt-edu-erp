@@ -9,6 +9,8 @@ import { listMyNotifications, getUnreadNotificationCount } from "../../../servic
 import NotificationBell from "../../components/NotificationBell";
 import SignedInAs from "../../components/SignedInAs";
 import { signOutAction } from "../../(institution)/actions";
+import { getOwnStudentId, getOwnParentId } from "../../../modules/portal/service";
+import PortalRoleToggle from "./PortalRoleToggle";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   let ctx;
@@ -20,13 +22,20 @@ export default async function PortalLayout({ children }: { children: React.React
   if (ctx.institutionBlockedReason) redirect(`/suspended?reason=${ctx.institutionBlockedReason}`);
   if (!ctx.institutionId) redirect("/login");
 
-  const [institution, notifications, unreadCount, viewer, platformDefaultPalette] = await Promise.all([
+  const [institution, notifications, unreadCount, viewer, platformDefaultPalette, ownStudentId, ownParentId] = await Promise.all([
     getInstitution(ctx.institutionId, ctx.session.authUserId),
     listMyNotifications(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUnreadNotificationCount(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUserDisplayInfo(ctx.session.authUserId, ctx.userId),
     getPlatformDefaultPalette(),
+    getOwnStudentId(ctx.institutionId, ctx.session.authUserId, ctx.userId),
+    getOwnParentId(ctx.institutionId, ctx.session.authUserId, ctx.userId),
   ]);
+  // Phase D §3 "on the top give toggle for switching to parent or back to
+  // student" — only shown when this login resolves BOTH a student AND a
+  // parent id (see modules/portal/service.ts's linkExisting*AccountTo*()
+  // for how one login ends up holding both).
+  const hasDualPortalAccess = Boolean(ownStudentId && ownParentId);
   const palette = getPalette(institution?.themePalette ?? platformDefaultPalette);
   // §Palette-picker follow-up ("colour palette is still not working"):
   // same nonce-based CSP fix as (institution)/layout.tsx -- an inline
@@ -54,6 +63,7 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2.5">
+          {hasDualPortalAccess ? <PortalRoleToggle /> : null}
           {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
           <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
           <form action={signOutAction}>

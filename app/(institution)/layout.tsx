@@ -20,7 +20,7 @@ import {
   DashboardIcon, AcademicIcon, StudentIcon, AttendanceIcon, ExamIcon, ResultIcon, LibraryIcon,
   StaffIcon, SkillsIcon, DisciplineIcon, MentoringIcon, AnalysisIcon, PrintIcon,
   UsersIcon, SettingsIcon, SuperAdminIcon, ImportIcon, AnnouncementIcon, StorageIcon,
-  CalendarIcon, SubstitutionIcon,
+  CalendarIcon, SubstitutionIcon, FeesIcon, AccountsIcon, MessagesIcon,
 } from "../components/NavIcons";
 import { setLocaleAction, signOutAction, exitSuperAdminViewAction } from "./actions";
 
@@ -100,6 +100,10 @@ export default async function InstitutionLayout({ children }: { children: React.
   const hasSettingsAccess = can(ctx.permissions, "settings.manage");
   const hasCalendarAccess = enabledModules.has("calendar") && can(ctx.permissions, "calendar.view");
   const hasSubstitutionAccess = enabledModules.has("substitution") && can(ctx.permissions, "substitution.view");
+  // Phase D §1/§2 — Fee/Accounts modules.
+  const hasFeesAccess = enabledModules.has("fees") && can(ctx.permissions, "fees.view");
+  const hasAccountsAccess = enabledModules.has("accounts") && can(ctx.permissions, "accounts.view");
+  const hasMessagesAccess = can(ctx.permissions, "messages.view");
 
   // Icons must be pre-rendered elements, not bare component references —
   // GroupedNavLinks is a "use client" component, and a Server Component
@@ -261,6 +265,9 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasReportsAccess ? [{ kind: "link" as const, href: "/analysis", label: "Analysis", icon: ni(AnalysisIcon) }] : []),
     ...(hasSubstitutionAccess ? [{ kind: "link" as const, href: "/substitution", label: "Substitution", icon: ni(SubstitutionIcon) }] : []),
     ...(hasCalendarAccess ? [{ kind: "link" as const, href: "/calendar", label: "Academic Calendar", icon: ni(CalendarIcon) }] : []),
+    ...(hasFeesAccess ? [{ kind: "link" as const, href: "/fees", label: "Fees", icon: ni(FeesIcon) }] : []),
+    ...(hasAccountsAccess ? [{ kind: "link" as const, href: "/accounts", label: "Accounts", icon: ni(AccountsIcon) }] : []),
+    ...(hasMessagesAccess ? [{ kind: "link" as const, href: "/messages", label: "Messages", icon: ni(MessagesIcon) }] : []),
     { kind: "link", href: "/print", label: "Print Center", icon: ni(PrintIcon) },
 
     ...(can(ctx.permissions, "data.import") || can(ctx.permissions, "data.export")

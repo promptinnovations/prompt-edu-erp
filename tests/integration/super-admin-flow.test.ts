@@ -81,7 +81,7 @@ describe("institution creation", () => {
       return rows.map((r) => r.code);
     });
     expect(roleCodes.sort()).toEqual(
-      ["institution_admin", "librarian", "management", "parent", "section_head", "staff", "student", "teacher"].sort()
+      ["accounts_staff", "institution_admin", "librarian", "management", "parent", "section_head", "staff", "student", "teacher"].sort()
     );
 
     const grantCount = await db.withInstitutionContext({ institutionId: institution.id, authUserId: superAdminAuth, isSuperAdmin: true }, async (scoped) => {
