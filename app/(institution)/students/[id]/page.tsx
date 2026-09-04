@@ -7,7 +7,7 @@ import {
 } from "../../../../modules/students/service";
 import { listClasses, listSections, getCurrentAcademicYear } from "../../../../modules/academic/service";
 import { getStudent360 } from "../../../../modules/portfolio/service";
-import { getStudentExamReport } from "../../../../modules/examination/service";
+import { getStudentExamReport, getStudentDailyAssessmentHistory } from "../../../../modules/examination/service";
 import { getInstitution } from "../../../../services/institution/institution-service";
 import { getStudentMonthlyAttendance } from "../../../../modules/attendance/service";
 import { listAchievements } from "../../../../modules/achievements/service";
@@ -68,7 +68,7 @@ export default async function StudentDetailPage({
   const [
     enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
     approvedAchievements, approvedSkillSubmissions, approvedReadingRecords, allReadingRecords, institution,
-    disciplineRecords, characterAssessments, feeInvoices, kudosReceived,
+    disciplineRecords, characterAssessments, feeInvoices, kudosReceived, dailyAssessmentHistory,
   ] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
     listClasses(institutionId, authUserId),
@@ -91,6 +91,9 @@ export default async function StudentDetailPage({
     canViewDiscipline ? listCharacterAssessments(institutionId, authUserId, id) : Promise.resolve([]),
     listStudentFeeInvoices(institutionId, authUserId, { studentId: id }),
     listKudosForStudent(institutionId, authUserId, id),
+    // §Daily Assessment "In the Student Profile, show daily performance
+    // with Date, Subject, Portion and Marks."
+    getStudentDailyAssessmentHistory(institutionId, authUserId, id),
   ]);
   // Education Type follow-up — "there should be 2 dedicated spaces for
   // both everywhere like student portfolio... which should come first
@@ -715,6 +718,33 @@ export default async function StudentDetailPage({
           <p className="text-sm text-zinc-400 dark:text-zinc-500">No exam marks recorded yet.</p>
         )}
       </section>
+      {dailyAssessmentHistory.length > 0 ? (
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Daily performance</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <tr>
+                  <th className="py-1.5 pr-4">Date</th>
+                  <th className="py-1.5 pr-4">Subject</th>
+                  <th className="py-1.5 pr-4">Portion</th>
+                  <th className="py-1.5 pr-4">Marks</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {dailyAssessmentHistory.map((d, i) => (
+                  <tr key={i}>
+                    <td className="py-1.5 pr-4 text-zinc-900 dark:text-zinc-50">{formatDate(d.assessment_date)}</td>
+                    <td className="py-1.5 pr-4">{d.subject_name}</td>
+                    <td className="py-1.5 pr-4 max-w-xs truncate" title={d.portion}>{d.portion}</td>
+                    <td className="py-1.5 pr-4">{d.is_absent ? "Absent" : d.marks_obtained !== null ? `${d.marks_obtained}/${d.max_marks}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
         For full report cards and past examinations, see <Link href="/results" className="underline">Results</Link>.
       </p>

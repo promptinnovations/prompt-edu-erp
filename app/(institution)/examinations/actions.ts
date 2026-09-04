@@ -6,6 +6,7 @@ import { requirePermission } from "../../../services/permissions/permission-serv
 import {
   createExamination, addExamSubject, addExamClass, removeExamClass, removeExamSubject,
   enterMarks, submitMarks, verifyMarks, approveMarks, lockMarks, computeResults,
+  createDailyAssessment, enterDailyAssessmentMarks,
 } from "../../../modules/examination/service";
 
 export async function createExaminationAction(_prevState: { error: string | null }, formData: FormData) {
@@ -212,5 +213,63 @@ export async function computeResultsAction(_prevState: { error: string | null },
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to compute results." };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Daily Assessment (§Daily Assessment) -- day-to-day teaching actions, so
+// these are gated on "marks.enter" (the same permission the standard
+// per-subject marks entry form above uses) rather than "settings.manage"
+// (admin-only, used for the monthly register's own creation via
+// createExaminationAction above). A teacher without an institution-wide
+// grant is further scoped to their own assigned classes/subjects, exactly
+// like the marks entry page already does -- see
+// app/(institution)/examinations/[id]/daily/[assessmentId]/page.tsx.
+// ---------------------------------------------------------------------------
+
+export async function createDailyAssessmentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "marks.enter");
+    await createDailyAssessment(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      examinationId,
+      classId: String(formData.get("classId") ?? ""),
+      subjectId: String(formData.get("subjectId") ?? ""),
+      assessmentDate: String(formData.get("assessmentDate") ?? ""),
+      portion: String(formData.get("portion") ?? ""),
+      maxMarks: Number(formData.get("maxMarks") ?? 20),
+    });
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to add the day's assessment." };
+  }
+}
+
+export async function saveDailyAssessmentMarksAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const dailyAssessmentId = String(formData.get("dailyAssessmentId") ?? "");
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "marks.enter");
+    const studentIds = formData.getAll("studentId").map(String);
+    const entries = studentIds.map((studentId) => {
+      const raw = formData.get(`marks_${studentId}`);
+      const isAbsent = formData.get(`absent_${studentId}`) === "on";
+      return {
+        studentId,
+        marksObtained: isAbsent || raw === "" || raw === null ? null : Number(raw),
+        isAbsent,
+      };
+    });
+    await enterDailyAssessmentMarks(ctx.institutionId, ctx.session.authUserId, ctx.userId, dailyAssessmentId, entries);
+    revalidatePath(`/examinations/${examinationId}/daily/${dailyAssessmentId}`);
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save marks." };
   }
 }

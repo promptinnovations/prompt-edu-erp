@@ -1,14 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
-import { listClasses, listSections, listSubjects } from "../../../../modules/academic/service";
+import { can } from "../../../../services/permissions/permission-service";
+import { listClasses, listSections, listSubjects, listClassSubjects } from "../../../../modules/academic/service";
 import {
   getExamination, listExamSubjects, listExamClasses, getResults, listExamTypes,
+  listDailyAssessments, getDailyAssessmentConsolidatedResult,
+  getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
 } from "../../../../modules/examination/service";
 import { ExamScopeSection, ExamSubjectsSection, ComputeResultsButton } from "./ExamDetailForms";
+import DailyAssessmentSection from "./DailyAssessmentSection";
 
-export default async function ExaminationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ExaminationDetailPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ classId?: string; subjectId?: string }>;
+}) {
   const { id } = await params;
+  const { classId: classParam, subjectId: subjectParam } = await searchParams;
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
@@ -16,18 +26,77 @@ export default async function ExaminationDetailPage({ params }: { params: Promis
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound(); // RLS-guaranteed null across institutions (§E.3)
 
-  const [examSubjects, examClasses, subjects, classes, sections, examTypes, results] = await Promise.all([
+  const examTypes = await listExamTypes(institutionId, authUserId);
+  const examType = examTypes.find((t) => t.id === examination.exam_type_id);
+
+  // §Daily Assessment "integrated directly into the existing Exam Create ->
+  // Exam Type workflow" -- an examination created under the Daily
+  // Assessment exam type gets a completely different detail view (the
+  // monthly register + consolidated result + analysis) instead of the
+  // standard scope/subjects/results sections below, which don't fit its
+  // per-day, per-class, per-subject shape (see migration 0048's doc
+  // comment for why).
+  if (examType?.is_daily_assessment) {
+    const [classes, subjects, classSubjects, entries] = await Promise.all([
+      listClasses(institutionId, authUserId),
+      listSubjects(institutionId, authUserId),
+      listClassSubjects(institutionId, authUserId),
+      listDailyAssessments(institutionId, authUserId, id, undefined),
+    ]);
+    const subjectsByClass: Record<string, Array<{ id: string; name: string }>> = {};
+    for (const cs of classSubjects) {
+      const list = subjectsByClass[cs.class_id] ?? [];
+      list.push({ id: cs.subject_id, name: cs.subject_name });
+      subjectsByClass[cs.class_id] = list;
+    }
+    const allSubjects = subjects.map((s) => ({ id: s.id, name: s.name }));
+    const classOptions = classes.map((c) => ({ id: c.id, name: c.name }));
+
+    const [consolidated, subjectAnalysis, classAnalysis, studentAnalysis] = await Promise.all([
+      classParam ? getDailyAssessmentConsolidatedResult(institutionId, authUserId, id, classParam, subjectParam || undefined) : Promise.resolve([]),
+      getDailyAssessmentSubjectAnalysis(institutionId, authUserId, id),
+      getDailyAssessmentClassAnalysis(institutionId, authUserId, id),
+      classParam ? getDailyAssessmentStudentAnalysis(institutionId, authUserId, id, classParam) : Promise.resolve([]),
+    ]);
+
+    return (
+      <div className="space-y-6">
+        <Link href="/examinations" className="text-sm text-zinc-500 dark:text-zinc-400 underline">
+          ← Back to examinations
+        </Link>
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{examination.name}</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Daily Assessment · {examination.status}</p>
+        </div>
+        <DailyAssessmentSection
+          examinationId={id}
+          canManage={can(ctx.permissions, "marks.enter")}
+          classes={classOptions}
+          subjectsByClass={subjectsByClass}
+          allSubjects={allSubjects}
+          entries={entries}
+          classParam={classParam ?? ""}
+          subjectParam={subjectParam ?? ""}
+          consolidated={consolidated}
+          subjectAnalysis={subjectAnalysis}
+          classAnalysis={classAnalysis}
+          studentAnalysis={studentAnalysis}
+        />
+      </div>
+    );
+  }
+
+  const [examSubjects, examClasses, subjects, classes, sections, results] = await Promise.all([
     listExamSubjects(institutionId, authUserId, id),
     listExamClasses(institutionId, authUserId, id),
     listSubjects(institutionId, authUserId),
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
-    listExamTypes(institutionId, authUserId),
     getResults(institutionId, authUserId, id),
   ]);
 
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
-  const examTypeName = examTypes.find((t) => t.id === examination.exam_type_id)?.name ?? "—";
+  const examTypeName = examType?.name ?? "—";
 
   // §418 "confirm scope of exam, section, grade, division — make user
   // friendly": classes grouped with their own divisions, for the

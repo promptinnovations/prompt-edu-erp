@@ -52,16 +52,16 @@ afterAll(async () => {
 });
 
 describe("listExamTypes() default lazy-seed", () => {
-  it("provisions the 3 universal defaults the first time an institution has zero exam types", async () => {
+  it("provisions the 4 universal defaults the first time an institution has zero exam types", async () => {
     const types = await listExamTypes(institutionA, adminAuth);
-    expect(types.map((t) => t.code).sort()).toEqual(["final", "term1", "term2"]);
-    expect(types.map((t) => t.name).sort()).toEqual(["Final Exam", "Term 1 Exam", "Term 2 Exam"]);
+    expect(types.map((t) => t.code).sort()).toEqual(["daily_assessment", "final", "term1", "term2"]);
+    expect(types.map((t) => t.name).sort()).toEqual(["Daily Assessment", "Final Exam", "Term 1 Exam", "Term 2 Exam"]);
   });
 
   it("does not duplicate on a second call", async () => {
     await listExamTypes(institutionA, adminAuth);
     const types = await listExamTypes(institutionA, adminAuth);
-    expect(types).toHaveLength(3);
+    expect(types).toHaveLength(4);
   });
 
   it("never re-seeds over an admin's own edits -- deleting down to zero again is left alone", async () => {
@@ -71,14 +71,14 @@ describe("listExamTypes() default lazy-seed", () => {
     // might realistically choose.
     await createExamType(institutionA, adminAuth, adminUserId, { code: "kithab_main", name: "Kithab Main Exam" });
     const types = await listExamTypes(institutionA, adminAuth);
-    expect(types).toHaveLength(1);
-    expect(types[0].code).toBe("kithab_main");
+    expect(types).toHaveLength(2);
+    expect(types.map((t) => t.code).sort()).toEqual(["daily_assessment", "kithab_main"]);
   });
 
   it("tenant isolation: seeding institution A's defaults does not touch institution B", async () => {
     const typesB = await listExamTypes(institutionB, adminAuth);
     // institutionB still has its own seedDemoInstitution() exam types
     // (never wiped in this test), not institutionA's defaults.
-    expect(typesB.map((t) => t.code).sort()).toEqual(["academic_main", "academic_model", "kithab_main", "kithab_model"]);
+    expect(typesB.map((t) => t.code).sort()).toEqual(["academic_main", "academic_model", "daily_assessment", "kithab_main", "kithab_model"]);
   });
 });

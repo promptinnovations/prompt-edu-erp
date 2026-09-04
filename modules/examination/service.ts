@@ -18,7 +18,7 @@ import { z } from "zod";
 import { getDbClient, type DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 
-export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null; periodicity: string | null }
+export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null; periodicity: string | null; is_daily_assessment: boolean }
 export interface ExaminationRecord {
   id: string; name: string; status: string; exam_type_id: string;
   academic_year_id: string; term_id: string | null; start_date: string | null; end_date: string | null;
@@ -72,19 +72,41 @@ const DEFAULT_EXAM_TYPES: Array<[code: string, name: string]> = [
  *  an admin's own additions/edits/deletions (even down to zero deliberately
  *  chosen types, which would be unusual but is technically possible) are
  *  never silently re-seeded over. */
+const EXAM_TYPES_SELECT = "select id, code, name, category, periodicity, is_daily_assessment from exam_types order by category nulls last, name";
+
 export async function listExamTypes(institutionId: string, authUserId: string): Promise<ExamTypeRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<ExamTypeRecord>("select id, code, name, category, periodicity from exam_types order by category nulls last, name");
-    if (rows.length > 0) return rows;
-    for (const [code, name] of DEFAULT_EXAM_TYPES) {
-      await scoped.query(
-        `insert into exam_types (institution_id, code, name) values ($1, $2, $3) on conflict (institution_id, code) do nothing`,
-        [institutionId, code, name]
-      );
+    let { rows } = await scoped.query<ExamTypeRecord>(EXAM_TYPES_SELECT);
+    if (rows.length === 0) {
+      for (const [code, name] of DEFAULT_EXAM_TYPES) {
+        await scoped.query(
+          `insert into exam_types (institution_id, code, name) values ($1, $2, $3) on conflict (institution_id, code) do nothing`,
+          [institutionId, code, name]
+        );
+      }
+      rows = (await scoped.query<ExamTypeRecord>(EXAM_TYPES_SELECT)).rows;
     }
-    const { rows: seeded } = await scoped.query<ExamTypeRecord>("select id, code, name, category, periodicity from exam_types order by category nulls last, name");
-    return seeded;
+    // Daily Assessment self-heal (§Daily Assessment "Add Daily Assessment
+    // as a new Exam Type in Exam Create") -- runs independently of the
+    // zero-row seed above, because an institution created (or already
+    // populated with its own exam types) before this feature shipped would
+    // otherwise never gain the Daily Assessment type at all: a one-time
+    // migration backfill only reaches institutions that already existed at
+    // migration time (the exact gap already hit once this project, for the
+    // accounts_staff role -- see migration 0045's doc comment). Self-heal-
+    // on-read instead guarantees every institution, past or future, sees
+    // exactly one is_daily_assessment=true row the first time this runs.
+    if (!rows.some((r) => r.is_daily_assessment)) {
+      await scoped.query(
+        `insert into exam_types (institution_id, code, name, periodicity, is_daily_assessment)
+         values ($1, 'daily_assessment', 'Daily Assessment', 'Daily', true)
+         on conflict (institution_id, code) do update set is_daily_assessment = true`,
+        [institutionId]
+      );
+      rows = (await scoped.query<ExamTypeRecord>(EXAM_TYPES_SELECT)).rows;
+    }
+    return rows;
   });
 }
 
@@ -95,7 +117,7 @@ export async function createExamType(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExamTypeRecord>(
-      `insert into exam_types (institution_id, code, name, category, periodicity) values ($1, $2, $3, $4, $5) returning id, code, name, category, periodicity`,
+      `insert into exam_types (institution_id, code, name, category, periodicity) values ($1, $2, $3, $4, $5) returning id, code, name, category, periodicity, is_daily_assessment`,
       [institutionId, data.code, data.name, data.category ?? null, data.periodicity ?? null]
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "exam_types", entityId: rows[0].id, after: rows[0] });
@@ -115,7 +137,7 @@ export async function updateExamType(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExamTypeRecord>(
-      `update exam_types set name = coalesce($2, name), category = $3, periodicity = $4 where id = $1 returning id, code, name, category, periodicity`,
+      `update exam_types set name = coalesce($2, name), category = $3, periodicity = $4 where id = $1 returning id, code, name, category, periodicity, is_daily_assessment`,
       [examTypeId, data.name ?? null, data.category ?? null, data.periodicity ?? null]
     );
     if (!rows[0]) throw new Error("Exam type not found.");
@@ -422,6 +444,42 @@ export async function createExamination(
       const { rows: def } = await scoped.query<{ id: string }>("select id from grade_scales where is_default = true limit 1");
       gradeScaleId = def[0]?.id ?? null;
     }
+
+    // §Daily Assessment "Maintain one monthly Daily Assessment Register" --
+    // reuses the same Create Examination form/action every other exam type
+    // goes through (no separate creation UI), but an examination whose
+    // exam_type is flagged is_daily_assessment (migration 0048) gets two
+    // special behaviours instead of the plain insert below: (1) its name
+    // and start_date/end_date are always derived from the current calendar
+    // month server-side (current_date, never the browser's clock) rather
+    // than the free-text Name field, and (2) re-submitting Create
+    // Examination for the same exam type + month returns the EXISTING
+    // register row instead of inserting a duplicate, so "one register per
+    // month" holds even if an admin (or a re-rendered form) submits twice.
+    const { rows: etRows } = await scoped.query<{ is_daily_assessment: boolean }>(
+      "select is_daily_assessment from exam_types where id = $1", [data.examTypeId]
+    );
+    if (etRows[0]?.is_daily_assessment) {
+      const { rows: existing } = await scoped.query<ExaminationRecord>(
+        `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id
+           from examinations
+          where exam_type_id = $1 and academic_year_id = $2
+            and date_trunc('month', start_date) = date_trunc('month', current_date)`,
+        [data.examTypeId, data.academicYearId]
+      );
+      if (existing[0]) return existing[0];
+
+      const { rows: created } = await scoped.query<ExaminationRecord>(
+        `insert into examinations (institution_id, exam_type_id, academic_year_id, term_id, name, grade_scale_id, start_date, end_date)
+         values ($1, $2, $3, $4, 'Daily Assessment — ' || to_char(current_date, 'FMMonth YYYY'), $5,
+                 date_trunc('month', current_date)::date, (date_trunc('month', current_date) + interval '1 month - 1 day')::date)
+         returning id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id`,
+        [institutionId, data.examTypeId, data.academicYearId, data.termId ?? null, gradeScaleId]
+      );
+      await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "examinations", entityId: created[0].id, after: created[0] });
+      return created[0];
+    }
+
     const { rows } = await scoped.query<ExaminationRecord>(
       `insert into examinations (institution_id, exam_type_id, academic_year_id, term_id, name, grade_scale_id)
        values ($1, $2, $3, $4, $5, $6)
@@ -1152,5 +1210,368 @@ export async function getInstitutionPassRateTrendByStage(institutionId: string, 
           };
         })
     );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Daily Assessment (§Daily Assessment — a new Exam Type, migration 0048)
+//
+// The monthly "register" is just an `examinations` row whose exam_type is
+// flagged is_daily_assessment (see createExamination()'s special case
+// above) — every function below operates within one such examination_id.
+// Each row of `daily_assessments` is one (date, class, subject) session;
+// `daily_assessment_marks` holds the per-student marks for that session.
+// Nothing here is cached/materialized: the consolidated result, student
+// history, and analysis functions all read live off these two tables, so
+// "automatically update... as marks are entered" is just what a fresh
+// query returns on the next page load, not a separate recompute step.
+// ---------------------------------------------------------------------------
+
+export interface DailyAssessmentRow {
+  id: string; examination_id: string; class_id: string; class_name: string;
+  subject_id: string; subject_name: string; assessment_date: string;
+  portion: string; max_marks: string; status: string;
+}
+
+const createDailyAssessmentSchema = z.object({
+  examinationId: z.string().uuid(),
+  classId: z.string().uuid(),
+  subjectId: z.string().uuid(),
+  assessmentDate: z.string().min(1),
+  portion: z.string().min(1).max(500),
+  maxMarks: z.number().positive().default(20),
+});
+
+/** Creates one day's assessment session for a class/subject — "Date,
+ *  Class, Subject, Portion, Maximum Mark" from the spec, plus Status
+ *  (always 'pending' at creation; enterDailyAssessmentMarks() flips it).
+ *  No uniqueness constraint on (class, subject, date): the spec explicitly
+ *  calls for "the same subject can be assessed on consecutive days" — nor
+ *  does this block a SECOND session for the same subject on the SAME day
+ *  (e.g. a make-up session), since nothing in the request forbids that
+ *  either. */
+export async function createDailyAssessment(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createDailyAssessmentSchema>
+): Promise<DailyAssessmentRow> {
+  const data = createDailyAssessmentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; examination_id: string; class_id: string; subject_id: string; assessment_date: string; portion: string; max_marks: string; status: string }>(
+      `insert into daily_assessments (institution_id, examination_id, class_id, subject_id, assessment_date, portion, max_marks, created_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       returning id, examination_id, class_id, subject_id, assessment_date::text, portion, max_marks, status`,
+      [institutionId, data.examinationId, data.classId, data.subjectId, data.assessmentDate, data.portion, data.maxMarks, userId]
+    );
+    const { rows: names } = await scoped.query<{ class_name: string; subject_name: string }>(
+      `select (select name from classes where id = $1) as class_name, (select name from subjects where id = $2) as subject_name`,
+      [data.classId, data.subjectId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "daily_assessments", entityId: rows[0].id, after: rows[0] });
+    return { ...rows[0], class_name: names[0]?.class_name ?? "—", subject_name: names[0]?.subject_name ?? "—" };
+  });
+}
+
+export async function listDailyAssessments(
+  institutionId: string, authUserId: string, examinationId: string, classId?: string
+): Promise<DailyAssessmentRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<DailyAssessmentRow>(
+      `select da.id, da.examination_id, da.class_id, c.name as class_name, da.subject_id, sub.name as subject_name,
+              da.assessment_date::text, da.portion, da.max_marks, da.status
+         from daily_assessments da
+         join classes c on c.id = da.class_id
+         join subjects sub on sub.id = da.subject_id
+        where da.examination_id = $1 ${classId ? "and da.class_id = $2" : ""}
+        order by da.assessment_date desc, c.name, sub.name`,
+      classId ? [examinationId, classId] : [examinationId]
+    );
+    return rows;
+  });
+}
+
+export async function getDailyAssessment(institutionId: string, authUserId: string, id: string): Promise<DailyAssessmentRow | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<DailyAssessmentRow>(
+      `select da.id, da.examination_id, da.class_id, c.name as class_name, da.subject_id, sub.name as subject_name,
+              da.assessment_date::text, da.portion, da.max_marks, da.status
+         from daily_assessments da
+         join classes c on c.id = da.class_id
+         join subjects sub on sub.id = da.subject_id
+        where da.id = $1`,
+      [id]
+    );
+    return rows[0] ?? null;
+  });
+}
+
+export interface DailyAssessmentMarkRow {
+  student_id: string; student_name: string; admission_number: string;
+  mark_id: string | null; marks_obtained: string | null; is_absent: boolean;
+}
+
+/** Roster for one daily assessment session = every actively-enrolled
+ *  student in its class, left-joined with any mark already saved for this
+ *  session — same shape as the standard exam module's getMarksGrid(). */
+export async function getDailyAssessmentMarksGrid(institutionId: string, authUserId: string, dailyAssessmentId: string): Promise<DailyAssessmentMarkRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<DailyAssessmentMarkRow>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number,
+              dam.id as mark_id, dam.marks_obtained, coalesce(dam.is_absent, false) as is_absent
+         from daily_assessments da
+         join student_enrollments se on se.class_id = da.class_id and se.status = 'active'
+         join students s on s.id = se.student_id
+         left join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = s.id
+        where da.id = $1
+        order by s.full_name`,
+      [dailyAssessmentId]
+    );
+    return rows;
+  });
+}
+
+const dailyMarkEntrySchema = z.array(
+  z.object({
+    studentId: z.string().uuid(),
+    marksObtained: z.number().nullable(),
+    isAbsent: z.boolean().default(false),
+  })
+);
+
+/** "Mark entry must be completed on the same day after the assessment" —
+ *  enforced here (not just as a UI hint) against current_date, the same
+ *  DB-side clock createExamination()'s month math uses above, rather than
+ *  any client-supplied date. Marks may be saved and re-saved any number of
+ *  times while assessment_date is still today; once the day has passed
+ *  this throws for everyone (no admin override — the spec states this as
+ *  a firm same-day rule, not a default). Saving flips daily_assessments
+ *  .status to 'completed', which is what the monthly consolidated result
+ *  and analysis queries below key off of. */
+export async function enterDailyAssessmentMarks(
+  institutionId: string, authUserId: string, userId: string, dailyAssessmentId: string, entries: z.infer<typeof dailyMarkEntrySchema>
+): Promise<{ updated: number }> {
+  const data = dailyMarkEntrySchema.parse(entries);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: daRows } = await scoped.query<{ is_today: boolean }>(
+      "select (assessment_date = current_date) as is_today from daily_assessments where id = $1", [dailyAssessmentId]
+    );
+    if (!daRows[0]) throw new Error("Daily assessment entry not found.");
+    if (!daRows[0].is_today) throw new Error("Marks for a Daily Assessment can only be entered on the same day it was conducted.");
+
+    for (const e of data) {
+      await scoped.query(
+        `insert into daily_assessment_marks (institution_id, daily_assessment_id, student_id, marks_obtained, is_absent, entered_by)
+         values ($1, $2, $3, $4, $5, $6)
+         on conflict (institution_id, daily_assessment_id, student_id)
+         do update set marks_obtained = excluded.marks_obtained, is_absent = excluded.is_absent,
+                        entered_by = excluded.entered_by, updated_at = now()`,
+        [institutionId, dailyAssessmentId, e.studentId, e.isAbsent ? null : e.marksObtained, e.isAbsent, userId]
+      );
+    }
+    await scoped.query("update daily_assessments set status = 'completed', updated_at = now() where id = $1", [dailyAssessmentId]);
+    await recordAudit(scoped, { institutionId, userId, action: "enter_marks", module: "examination", entityType: "daily_assessments", entityId: dailyAssessmentId, after: { count: data.length } });
+    return { updated: data.length };
+  });
+}
+
+export interface DailyConsolidatedRow {
+  student_id: string; student_name: string; admission_number: string;
+  latest_marks_obtained: string | null; latest_max_marks: string | null; latest_assessment_date: string | null;
+  cumulative_marks_obtained: string; cumulative_max_marks: string;
+  grade_label: string | null; grade_color: string | null;
+}
+
+/** "As each day's marks are entered, automatically update the monthly
+ *  consolidated class-wise result" — student name, latest day's mark
+ *  ("19/20"), cumulative mark across every completed session this month
+ *  ("183/200"), and the grade the cumulative percentage falls into under
+ *  the register's own grade scale (falls back to the institution default,
+ *  same resolution createExamination()/getStudentExamReport() already
+ *  use). Computed fresh on every call — no stored/stale column. */
+export async function getDailyAssessmentConsolidatedResult(
+  institutionId: string, authUserId: string, examinationId: string, classId: string, subjectId?: string
+): Promise<DailyConsolidatedRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: examRows } = await scoped.query<{ grade_scale_id: string | null }>(
+      "select grade_scale_id from examinations where id = $1", [examinationId]
+    );
+    let gradeScaleId = examRows[0]?.grade_scale_id ?? null;
+    if (!gradeScaleId) {
+      const { rows: def } = await scoped.query<{ id: string }>("select id from grade_scales where is_default = true limit 1");
+      gradeScaleId = def[0]?.id ?? null;
+    }
+
+    const subjectFilter = subjectId ? "and da.subject_id = $3" : "";
+    const params = subjectId ? [examinationId, classId, subjectId] : [examinationId, classId];
+
+    const { rows: totals } = await scoped.query<{ student_id: string; student_name: string; admission_number: string; cumulative_marks_obtained: string; cumulative_max_marks: string }>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number,
+              coalesce(sum(dam.marks_obtained) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_marks_obtained,
+              coalesce(sum(da.max_marks) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_max_marks
+         from daily_assessments da
+         join student_enrollments se on se.class_id = da.class_id and se.status = 'active'
+         join students s on s.id = se.student_id
+         left join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = s.id
+        where da.examination_id = $1 and da.class_id = $2 and da.status = 'completed' ${subjectFilter}
+        group by s.id, s.full_name, s.admission_number
+        order by s.full_name`,
+      params
+    );
+
+    const { rows: latest } = await scoped.query<{ student_id: string; marks_obtained: string | null; max_marks: string; assessment_date: string }>(
+      `select distinct on (s.id) s.id as student_id, dam.marks_obtained, da.max_marks, da.assessment_date::text
+         from daily_assessments da
+         join student_enrollments se on se.class_id = da.class_id and se.status = 'active'
+         join students s on s.id = se.student_id
+         join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = s.id
+        where da.examination_id = $1 and da.class_id = $2 and da.status = 'completed' ${subjectFilter}
+        order by s.id, da.assessment_date desc, da.created_at desc`,
+      params
+    );
+    const latestByStudent = new Map(latest.map((r) => [r.student_id, r]));
+
+    const out: DailyConsolidatedRow[] = [];
+    for (const r of totals) {
+      const maxTotal = Number(r.cumulative_max_marks);
+      const pct = maxTotal > 0 ? (Number(r.cumulative_marks_obtained) / maxTotal) * 100 : 0;
+      const grade = maxTotal > 0 ? await lookupGrade(scoped, gradeScaleId, pct) : null;
+      const l = latestByStudent.get(r.student_id);
+      out.push({
+        student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
+        latest_marks_obtained: l?.marks_obtained ?? null, latest_max_marks: l?.max_marks ?? null, latest_assessment_date: l?.assessment_date ?? null,
+        cumulative_marks_obtained: r.cumulative_marks_obtained, cumulative_max_marks: r.cumulative_max_marks,
+        grade_label: grade?.label ?? null, grade_color: grade?.color ?? null,
+      });
+    }
+    return out;
+  });
+}
+
+export interface StudentDailyAssessmentRow {
+  assessment_date: string; subject_name: string; portion: string;
+  marks_obtained: string | null; max_marks: string; is_absent: boolean;
+}
+
+/** Student Profile "daily performance" — Date, Subject, Portion, Marks for
+ *  every completed session this student has a mark row for, across every
+ *  Daily Assessment register (not just the current month), most recent
+ *  first. */
+export async function getStudentDailyAssessmentHistory(institutionId: string, authUserId: string, studentId: string): Promise<StudentDailyAssessmentRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<StudentDailyAssessmentRow>(
+      `select da.assessment_date::text, sub.name as subject_name, da.portion, dam.marks_obtained, da.max_marks, dam.is_absent
+         from daily_assessment_marks dam
+         join daily_assessments da on da.id = dam.daily_assessment_id
+         join subjects sub on sub.id = da.subject_id
+        where dam.student_id = $1
+        order by da.assessment_date desc, da.created_at desc`,
+      [studentId]
+    );
+    return rows;
+  });
+}
+
+export interface DailyAssessmentSubjectAnalysisRow {
+  subject_id: string; subject_name: string; sessions_conducted: number; portions: string[]; avg_percent: number;
+}
+
+/** Monthly subject-wise analysis — how many sessions this register ran for
+ *  each subject, which portions were covered (verbatim, in the order
+ *  conducted), and the class average percentage across all of them. */
+export async function getDailyAssessmentSubjectAnalysis(
+  institutionId: string, authUserId: string, examinationId: string, classId?: string
+): Promise<DailyAssessmentSubjectAnalysisRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ subject_id: string; subject_name: string; sessions_conducted: string; portions: string[]; avg_percent: string | null }>(
+      `select sub.id as subject_id, sub.name as subject_name,
+              count(distinct da.id)::text as sessions_conducted,
+              array_agg(distinct da.portion order by da.portion) filter (where da.portion is not null) as portions,
+              avg(case when dam.id is not null and not dam.is_absent and da.max_marks > 0 then dam.marks_obtained / da.max_marks * 100 end) as avg_percent
+         from daily_assessments da
+         join subjects sub on sub.id = da.subject_id
+         left join daily_assessment_marks dam on dam.daily_assessment_id = da.id
+        where da.examination_id = $1 and da.status = 'completed' ${classId ? "and da.class_id = $2" : ""}
+        group by sub.id, sub.name
+        order by sub.name`,
+      classId ? [examinationId, classId] : [examinationId]
+    );
+    return rows.map((r) => ({
+      subject_id: r.subject_id, subject_name: r.subject_name,
+      sessions_conducted: Number(r.sessions_conducted), portions: r.portions ?? [],
+      avg_percent: r.avg_percent !== null ? Math.round(Number(r.avg_percent) * 10) / 10 : 0,
+    }));
+  });
+}
+
+export interface DailyAssessmentClassAnalysisRow {
+  class_id: string; class_name: string; sessions_conducted: number; avg_percent: number;
+}
+
+/** Monthly class-wise analysis — sessions conducted and average
+ *  performance for every class this register has entries for. */
+export async function getDailyAssessmentClassAnalysis(institutionId: string, authUserId: string, examinationId: string): Promise<DailyAssessmentClassAnalysisRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ class_id: string; class_name: string; sessions_conducted: string; avg_percent: string | null }>(
+      `select c.id as class_id, c.name as class_name,
+              count(distinct da.id)::text as sessions_conducted,
+              avg(case when dam.id is not null and not dam.is_absent and da.max_marks > 0 then dam.marks_obtained / da.max_marks * 100 end) as avg_percent
+         from daily_assessments da
+         join classes c on c.id = da.class_id
+         left join daily_assessment_marks dam on dam.daily_assessment_id = da.id
+        where da.examination_id = $1 and da.status = 'completed'
+        group by c.id, c.name
+        order by c.name`,
+      [examinationId]
+    );
+    return rows.map((r) => ({
+      class_id: r.class_id, class_name: r.class_name, sessions_conducted: Number(r.sessions_conducted),
+      avg_percent: r.avg_percent !== null ? Math.round(Number(r.avg_percent) * 10) / 10 : 0,
+    }));
+  });
+}
+
+export interface DailyAssessmentStudentAnalysisRow {
+  student_id: string; student_name: string; admission_number: string;
+  sessions_taken: number; cumulative_marks_obtained: string; cumulative_max_marks: string; avg_percent: number;
+}
+
+/** Monthly student-wise analysis for one class — every session taken,
+ *  cumulative marks, and average percentage across all subjects (not
+ *  filtered to one), for whichever class is selected. */
+export async function getDailyAssessmentStudentAnalysis(
+  institutionId: string, authUserId: string, examinationId: string, classId: string
+): Promise<DailyAssessmentStudentAnalysisRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ student_id: string; student_name: string; admission_number: string; sessions_taken: string; cumulative_marks_obtained: string; cumulative_max_marks: string }>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number,
+              count(dam.id) filter (where dam.id is not null and not dam.is_absent)::text as sessions_taken,
+              coalesce(sum(dam.marks_obtained) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_marks_obtained,
+              coalesce(sum(da.max_marks) filter (where dam.id is not null and not dam.is_absent), 0)::text as cumulative_max_marks
+         from daily_assessments da
+         join student_enrollments se on se.class_id = da.class_id and se.status = 'active'
+         join students s on s.id = se.student_id
+         left join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = s.id
+        where da.examination_id = $1 and da.class_id = $2 and da.status = 'completed'
+        group by s.id, s.full_name, s.admission_number
+        order by s.full_name`,
+      [examinationId, classId]
+    );
+    return rows.map((r) => {
+      const maxTotal = Number(r.cumulative_max_marks);
+      return {
+        student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
+        sessions_taken: Number(r.sessions_taken),
+        cumulative_marks_obtained: r.cumulative_marks_obtained, cumulative_max_marks: r.cumulative_max_marks,
+        avg_percent: maxTotal > 0 ? Math.round((Number(r.cumulative_marks_obtained) / maxTotal) * 1000) / 10 : 0,
+      };
+    });
   });
 }
