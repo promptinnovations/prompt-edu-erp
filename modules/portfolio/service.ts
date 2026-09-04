@@ -84,7 +84,7 @@ export interface LatestResultSummary {
   examination_name: string; percentage: string; grade_label: string | null; computed_at: string;
 }
 export interface Student360Record {
-  student: { id: string; full_name: string; admission_number: string; status: string } | null;
+  student: { id: string; full_name: string; admission_number: string; status: string; photo_file_id: string | null } | null;
   enrollment: { class_id: string; section_id: string; academic_year_id: string } | null;
   latestResult: LatestResultSummary | null;
   attendanceSummary: { present_days: number; total_days: number; present_percent: number } | null;
@@ -147,7 +147,7 @@ export async function getStudent360(
     : null;
 
   return {
-    student: student ? { id: student.id, full_name: student.full_name, admission_number: student.admission_number, status: student.status } : null,
+    student: student ? { id: student.id, full_name: student.full_name, admission_number: student.admission_number, status: student.status, photo_file_id: student.photo_file_id ?? null } : null,
     enrollment: enrollment ? { class_id: enrollment.class_id, section_id: enrollment.section_id, academic_year_id: enrollment.academic_year_id } : null,
     latestResult,
     attendanceSummary: attendanceSummary

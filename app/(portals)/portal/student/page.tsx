@@ -1,221 +1,144 @@
-import { requireRequestContext } from "../../../../services/request-context";
-import { getOwnStudentId } from "../../../../modules/portal/service";
+import Link from "next/link";
 import { getStudent360 } from "../../../../modules/portfolio/service";
-import { listSkillTypes, listSkillActivities } from "../../../../modules/skills/service";
-import { listAchievementCategories, listAchievementLevels } from "../../../../modules/achievements/service";
-import { listBooks, listReadingRecords, listApprovedReviews, listMyHolds } from "../../../../modules/library/service";
-import {
-  listRecentNegativeDisciplineFlags, listCharacterAssessments, listCharacterRatingLabels,
-} from "../../../../modules/discipline/service";
-import { listMentoringRecordsForPortal } from "../../../../modules/mentoring/service";
 import { listKudosForStudent } from "../../../../modules/communication/service";
-import SubmitSkillForm from "./SubmitSkillForm";
-import SubmitAchievementForm from "./SubmitAchievementForm";
-import MyPendingReviews from "./MyPendingReviews";
-import ReviewCorner from "./ReviewCorner";
-import PreBookSection from "./PreBookSection";
+import { listApprovedReviews } from "../../../../modules/library/service";
+import { listClasses, listSections } from "../../../../modules/academic/service";
+import { requireOwnStudentId, NotLinkedNotice, Card } from "./_lib";
 
-export default async function StudentPortalPage() {
-  const ctx = await requireRequestContext();
-  const institutionId = ctx.institutionId!;
-  const authUserId = ctx.session.authUserId;
+/** Dashboard — the student portal's landing page (§ student-portal redesign:
+ *  "what should be seen primarily is the portfolio, dashboard, exam
+ *  performance, library reading, reviews posted"). At-a-glance stats plus a
+ *  short recent-activity peek; the full detail for each area lives on its
+ *  own sub-route, reachable from the sidebar.
+ *
+ *  §Follow-up "all reviews should not be seen in student portal front
+ *  page — only review posted by the concerned child": this page only ever
+ *  shows THIS student's own posted reviews (filtered client-side below,
+ *  same as listApprovedReviews' viewerStudentId param elsewhere is only
+ *  used for reaction state, not filtering) — browsing everyone else's
+ *  reviews now lives on the Library & reading page instead. */
+export default async function StudentDashboardPage() {
+  const { institutionId, authUserId, ownStudentId } = await requireOwnStudentId();
+  if (!ownStudentId) return <NotLinkedNotice />;
 
-  const ownStudentId = await getOwnStudentId(institutionId, authUserId, ctx.userId);
-  if (!ownStudentId) {
-    return (
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Your account isn&apos;t linked to a student record yet. Ask your institution admin to set this up.
-        </p>
-      </div>
-    );
-  }
-
-  const [summary, skillTypes, achievementCategories, achievementLevels, books, pendingReviews, approvedReviews, myHolds, disciplineFlags, characterAssessments, ratingLabels, mentoringNotes, kudosReceived] = await Promise.all([
-    getStudent360(institutionId, authUserId, ownStudentId),
-    listSkillTypes(institutionId, authUserId),
-    listAchievementCategories(institutionId, authUserId),
-    listAchievementLevels(institutionId, authUserId),
-    listBooks(institutionId, authUserId),
-    listReadingRecords(institutionId, authUserId, "pending", undefined, ownStudentId),
-    listApprovedReviews(institutionId, authUserId, null, ownStudentId),
-    listMyHolds(institutionId, authUserId, ownStudentId),
-    // "This is your own record" — a student sees their own discipline/
-    // character/mentoring the same way they already see their own
-    // achievements/skills, no admin-facing view_all/mentoring.view_all
-    // permission needed (mirrors the parent portal's per-child rule, §357).
-    listRecentNegativeDisciplineFlags(institutionId, authUserId, ownStudentId, "1900-01-01", 20),
-    listCharacterAssessments(institutionId, authUserId, ownStudentId),
-    listCharacterRatingLabels(institutionId, authUserId),
-    listMentoringRecordsForPortal(institutionId, authUserId, ownStudentId),
+  const [summary, kudosReceived, approvedReviews, classes] = await Promise.all([
+    getStudent360(institutionId, authUserId, ownStudentId, 5),
     listKudosForStudent(institutionId, authUserId, ownStudentId),
+    listApprovedReviews(institutionId, authUserId, null, ownStudentId),
+    listClasses(institutionId, authUserId),
   ]);
-  const ratingLabelByValue = new Map(ratingLabels.map((r) => [r.rating, r.label]));
-  const holdableBooks = books.filter((b) => b.available_copies === 0);
+  const myReviews = approvedReviews.filter((r) => r.student_id === ownStudentId);
 
-  const activitiesByType: Record<string, Awaited<ReturnType<typeof listSkillActivities>>> = {};
-  for (const st of skillTypes) {
-    activitiesByType[st.id] = await listSkillActivities(institutionId, authUserId, st.id);
+  const classById = new Map(classes.map((c) => [c.id, c.name]));
+  let classDivisionLabel = "Not enrolled";
+  if (summary.enrollment) {
+    const sections = await listSections(institutionId, authUserId, summary.enrollment.class_id);
+    const currentSection = sections.find((s) => s.id === summary.enrollment?.section_id);
+    classDivisionLabel = `${classById.get(summary.enrollment.class_id) ?? "?"}${currentSection ? ` · Div. ${currentSection.name}` : ""}`;
   }
-  const allActivities = Object.values(activitiesByType).flat();
+
+  const stats = [
+    { label: "Attendance (this year)", value: summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—" },
+    {
+      label: summary.latestResult ? `Latest: ${summary.latestResult.examination_name}` : "No results yet",
+      value: summary.latestResult ? `${summary.latestResult.percentage}%` : "—",
+    },
+    { label: "Consolidated score", value: summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—" },
+    { label: "Recent portfolio events", value: String(summary.recentPortfolioEvents.length) },
+  ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-        {summary.student?.full_name ?? "My profile"}
-      </h1>
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm">
+        {summary.student?.photo_file_id ? (
+          // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
+          <img
+            src={`/api/files/${summary.student.photo_file_id}`}
+            alt=""
+            className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--surface-muted)]"
+          />
+        ) : (
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-muted)] text-xl font-medium text-zinc-500 ring-2 ring-[var(--surface-muted)]">
+            {(summary.student?.full_name ?? "?").charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div>
+          <h1 className="text-2xl font-semibold text-[var(--foreground)]">{summary.student?.full_name ?? "My profile"}</h1>
+          <p className="mt-0.5 text-sm text-zinc-500">
+            {summary.student?.admission_number} · {classDivisionLabel}
+          </p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—"}
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-sm">
+            <div className="text-2xl font-semibold text-[var(--foreground)]">{s.value}</div>
+            <div className="mt-1 text-sm text-zinc-500">{s.label}</div>
           </div>
-          <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Attendance (this year)</div>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {summary.latestResult ? `${summary.latestResult.percentage}%` : "—"}
-          </div>
-          <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {summary.latestResult ? `Latest: ${summary.latestResult.examination_name}` : "No results yet"}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—"}
-          </div>
-          <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Consolidated score</div>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{summary.recentPortfolioEvents.length}</div>
-          <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Recent portfolio events</div>
-        </div>
+        ))}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Recent portfolio timeline</h2>
+      <Card title="Recent portfolio timeline" subtitle="Your latest 5 entries — see everything on the Portfolio page.">
         <ul className="space-y-2 text-sm">
           {summary.recentPortfolioEvents.map((e) => (
-            <li key={e.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
-              <span>{e.title}</span>
-              <span className="text-zinc-400 dark:text-zinc-500">{e.event_date}</span>
+            <li key={e.id} className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 last:border-0">
+              <span className="text-[var(--foreground)]">{e.title}</span>
+              <span className="text-zinc-400">{e.event_date}</span>
             </li>
           ))}
-          {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+          {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
         </ul>
+        <Link href="/portal/student/portfolio" className="mt-3 inline-block text-xs font-medium text-[var(--brand)] hover:underline">
+          View full portfolio →
+        </Link>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href="/portal/student/exams"
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand)]"
+        >
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Exam performance</h2>
+          <p className="mt-1 text-xs text-zinc-500">Results, attendance and consolidated score in detail.</p>
+        </Link>
+        <Link
+          href="/portal/student/library"
+          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand)]"
+        >
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Library &amp; reading</h2>
+          <p className="mt-1 text-xs text-zinc-500">Catalogue, pre-booking, and all book reviews.</p>
+        </Link>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Discipline</h2>
+      <Card title="Reviews you've posted" subtitle="See everyone else's reviews on the Library & reading page.">
         <ul className="space-y-2 text-sm">
-          {disciplineFlags.map((d) => (
-            <li key={d.id} className="border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+          {myReviews.map((r) => (
+            <li key={r.id} className="border-b border-[var(--border-subtle)] pb-2 last:border-0">
               <div className="flex items-center justify-between">
-                <span>{d.category_name}{d.severity ? ` — ${d.severity}` : ""}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{d.date}</span>
+                <span className="font-medium text-[var(--foreground)]">{r.book_title}</span>
+                <span className="text-zinc-400">👍 {r.like_count}</span>
               </div>
-              {d.action_taken ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Action taken: {d.action_taken}</p> : null}
-              {d.evidence_photo_file_id ? (
-                <a href={`/api/files/${d.evidence_photo_file_id}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-zinc-500 dark:text-zinc-400 underline">View photo</a>
-              ) : null}
+              <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.review_text}</p>
             </li>
           ))}
-          {disciplineFlags.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing to flag.</li> : null}
+          {myReviews.length === 0 ? <li className="text-zinc-400">You haven&apos;t posted a review yet.</li> : null}
         </ul>
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Character assessments</h2>
-        <ul className="space-y-2 text-sm">
-          {characterAssessments.map((c) => (
-            <li key={c.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
-              <span>{c.attribute_name} — {c.period}</span>
-              <span className="text-zinc-400 dark:text-zinc-500">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
-            </li>
-          ))}
-          {characterAssessments.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
-        </ul>
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Mentoring</h2>
-        <ul className="space-y-2 text-sm">
-          {mentoringNotes.map((m) => (
-            <li key={m.id} className="border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
-              <div className="flex items-center justify-between">
-                <span>{m.mentor_name}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{m.date}</span>
-              </div>
-              {m.goals ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Goals: {m.goals}</p> : null}
-              {m.action_plan ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Action plan: {m.action_plan}</p> : null}
-            </li>
-          ))}
-          {mentoringNotes.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
-        </ul>
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submit a skill activity</h2>
-        <SubmitSkillForm activities={allActivities.map((a) => ({ id: a.id, name: a.name }))} />
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submit an achievement</h2>
-        <SubmitAchievementForm categories={achievementCategories} levels={achievementLevels} />
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Library catalogue</h2>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            <tr><th className="py-1.5">Title</th><th className="py-1.5">Author</th><th className="py-1.5">Available</th></tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {books.map((b) => (
-              <tr key={b.id}>
-                <td className="py-1.5">{b.title}</td>
-                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{b.author_name ?? "—"}</td>
-                <td className="py-1.5">{b.available_copies} / {b.total_copies}</td>
-              </tr>
-            ))}
-            {books.length === 0 ? <tr><td colSpan={3} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No books yet.</td></tr> : null}
-          </tbody>
-        </table>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Post a review</h2>
-        <MyPendingReviews reviews={pendingReviews.map((r) => ({ id: r.id, book_title: r.book_title }))} />
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Review Corner</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">See what others thought before you pick your next book.</p>
-        <ReviewCorner reviews={approvedReviews} />
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pre-book</h2>
-        <PreBookSection
-          holdableBooks={holdableBooks.map((b) => ({ id: b.id, title: b.title, available_copies: b.available_copies }))}
-          myHolds={myHolds.map((h) => ({ id: h.id, book_title: h.book_title, status: h.status }))}
-        />
-      </div>
+      </Card>
 
       {kudosReceived.length > 0 ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Kudos received 🌸</h2>
+        <Card title="Kudos received 🌸">
           <ul className="space-y-2 text-sm">
             {kudosReceived.map((k) => (
-              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
-                <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{k.created_at}</span>
+              <li key={k.id} className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 last:border-0">
+                <span className="text-[var(--foreground)]">
+                  {k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}
+                </span>
+                <span className="text-zinc-400">{k.created_at}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       ) : null}
     </div>
   );
