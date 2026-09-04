@@ -65,7 +65,7 @@ export default async function StudentDetailPage({
   const canViewDiscipline = can(ctx.permissions, "discipline.view");
   const [
     enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
-    approvedAchievements, approvedSkillSubmissions, approvedReadingRecords, institution,
+    approvedAchievements, approvedSkillSubmissions, approvedReadingRecords, allReadingRecords, institution,
     disciplineRecords, characterAssessments,
   ] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
@@ -79,6 +79,11 @@ export default async function StudentDetailPage({
     listAchievements(institutionId, authUserId, "approved", undefined, id),
     listSkillSubmissions(institutionId, authUserId, "approved", undefined, id),
     listReadingRecords(institutionId, authUserId, "approved", undefined, id),
+    // §424 "in each child's portfolio there should be a list [of] book[s]
+    // he read" -- unlike approvedReadingRecords above (only rows with an
+    // approved review, §L.3), this is EVERY book the student has finished
+    // and returned, regardless of whether a review was written/approved.
+    listReadingRecords(institutionId, authUserId, undefined, undefined, id),
     getInstitution(institutionId, authUserId),
     canViewDiscipline ? listDisciplineRecords(institutionId, authUserId, id) : Promise.resolve([]),
     canViewDiscipline ? listCharacterAssessments(institutionId, authUserId, id) : Promise.resolve([]),
@@ -492,15 +497,44 @@ export default async function StudentDetailPage({
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading record</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Books read with an approved review.</p>
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Books read ({allReadingRecords.length})</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Every book this student has finished and returned.</p>
+        {allReadingRecords.length === 0 ? (
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">No books read yet.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {allReadingRecords.map((r) => (
+              <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <span className="text-zinc-900 dark:text-zinc-50">{r.book_title}</span>
+                <span className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+                  {r.review_status === "approved" ? (
+                    <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-300">Reviewed</span>
+                  ) : r.review_status === "pending" ? (
+                    <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-300">Review pending</span>
+                  ) : r.review_status === "rejected" ? (
+                    <span className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 font-medium text-zinc-500 dark:text-zinc-400">Review not approved</span>
+                  ) : null}
+                  {formatDate(r.created_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading reviews ({approvedReadingRecords.length})</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Reviews this student posted, once approved.</p>
         {approvedReadingRecords.length === 0 ? (
           <p className="text-sm text-zinc-400 dark:text-zinc-500">No approved reading reviews yet.</p>
         ) : (
           <ul className="space-y-3">
             {approvedReadingRecords.map((r) => (
               <li key={r.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
-                <div className="mb-1 font-medium text-zinc-900 dark:text-zinc-50">{r.book_title}</div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="font-medium text-zinc-900 dark:text-zinc-50">{r.book_title}</span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{formatDate(r.created_at)}</span>
+                </div>
                 {r.review_text ? <RichTextContent html={r.review_text} /> : null}
               </li>
             ))}

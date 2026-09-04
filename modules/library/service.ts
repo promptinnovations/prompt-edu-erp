@@ -41,7 +41,7 @@ export interface BookIssueRow extends BookIssueRecord {
 }
 export interface ReadingRecordRow {
   id: string; student_id: string; student_name: string; book_id: string; book_title: string;
-  book_issue_id: string; review_text: string | null; review_status: string;
+  book_issue_id: string; review_text: string | null; review_status: string; created_at: string;
 }
 
 export interface LibraryConfig {
@@ -513,6 +513,18 @@ export async function listPendingHolds(institutionId: string, authUserId: string
 
 // ---------------------------------------------------------------------------
 // Reading review -> portfolio integration (§M.3)
+//
+// §423/§424 "books he read" / "reading reviews posted" -- a reading_records
+// row exists for EVERY returned book (created at the book.returned step,
+// review_status starts 'not_required'|'pending' depending on this
+// institution's requiresReadingReview config), not only ones with an
+// approved review. Callers wanting the full "books read" history for a
+// student's portfolio should call this with no `status` filter; callers
+// wanting only reviews that count (§L.3 "only approved rows ever count")
+// should still pass status='approved', same as before. `created_at` (added
+// alongside these two follow-ups) lets a portfolio list show when each
+// book was finished, since these can otherwise render in any order once
+// the review text itself is missing.
 // ---------------------------------------------------------------------------
 export async function listReadingRecords(
   institutionId: string, authUserId: string, status?: string, classId?: string, studentId?: string
@@ -531,7 +543,7 @@ export async function listReadingRecords(
     if (studentId) { params.push(studentId); conditions.push(`rr.student_id = $${params.length}`); }
     const { rows } = await scoped.query<ReadingRecordRow>(
       `select rr.id, rr.student_id, s.full_name as student_name, rr.book_id, b.title as book_title,
-              rr.book_issue_id, rr.review_text, rr.review_status
+              rr.book_issue_id, rr.review_text, rr.review_status, rr.created_at
          from reading_records rr
          join students s on s.id = rr.student_id
          join books b on b.id = rr.book_id
@@ -575,7 +587,7 @@ export async function reviewReadingRecord(
     if (rows.length === 0) return null;
     const { rows: joined } = await scoped.query<ReadingRecordRow>(
       `select rr.id, rr.student_id, s.full_name as student_name, rr.book_id, b.title as book_title,
-              rr.book_issue_id, rr.review_text, rr.review_status
+              rr.book_issue_id, rr.review_text, rr.review_status, rr.created_at
          from reading_records rr join students s on s.id = rr.student_id join books b on b.id = rr.book_id
         where rr.id = $1`,
       [readingRecordId]

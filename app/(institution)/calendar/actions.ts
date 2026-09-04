@@ -15,12 +15,14 @@ export async function createCalendarEventAction(_prevState: { error: string | nu
     const eventTypeRaw = String(formData.get("eventType") ?? "other");
     const eventType = EVENT_TYPE_SET.has(eventTypeRaw) ? (eventTypeRaw as (typeof CALENDAR_EVENT_TYPES)[number]) : "other";
     const endDateRaw = String(formData.get("endDate") ?? "").trim();
+    const clubInChargeRaw = String(formData.get("clubInCharge") ?? "").trim();
     await createCalendarEvent(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       title: String(formData.get("title") ?? ""),
       description: String(formData.get("description") ?? "").trim() || null,
       eventType,
       startDate: String(formData.get("startDate") ?? ""),
       endDate: endDateRaw || null,
+      clubInCharge: clubInChargeRaw || null,
     });
     revalidatePath("/calendar");
     revalidatePath("/dashboard");

@@ -621,8 +621,9 @@ const calendarEventsDefinition: EntityImportDefinition = {
     { key: "startDate", label: "Start date (YYYY-MM-DD)", required: true },
     { key: "endDate", label: "End date (YYYY-MM-DD, leave blank for a single day)", required: false },
     { key: "description", label: "Description", required: false },
+    { key: "clubInCharge", label: "Club in charge (optional)", required: false },
   ],
-  sampleRow: { title: "Summer Vacation", eventType: "holiday", startDate: "2026-04-01", endDate: "2026-05-31", description: "" },
+  sampleRow: { title: "Summer Vacation", eventType: "holiday", startDate: "2026-04-01", endDate: "2026-05-31", description: "", clubInCharge: "" },
   async prepareContext() {
     return {};
   },
@@ -641,7 +642,10 @@ const calendarEventsDefinition: EntityImportDefinition = {
     if (errors.length > 0) return { status: "invalid", errors };
     return {
       status: "valid", dedupeKey: null,
-      data: { title, eventType: eventTypeRaw, startDate, endDate, description: (raw.description ?? "").trim() || null },
+      data: {
+        title, eventType: eventTypeRaw, startDate, endDate, description: (raw.description ?? "").trim() || null,
+        clubInCharge: (raw.clubInCharge ?? "").trim() || null,
+      },
     };
   },
   async insertRow(institutionId, authUserId, userId, data, scoped) {
@@ -651,6 +655,7 @@ const calendarEventsDefinition: EntityImportDefinition = {
       startDate: data.startDate as string,
       endDate: data.endDate as string | null,
       description: data.description as string | null,
+      clubInCharge: data.clubInCharge as string | null,
     }, scoped);
   },
 };

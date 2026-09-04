@@ -25,6 +25,7 @@ export interface CalendarEventRecord {
   event_type: CalendarEventType;
   start_date: string;
   end_date: string | null;
+  club_in_charge: string | null;
 }
 
 export async function listCalendarEvents(
@@ -39,7 +40,7 @@ export async function listCalendarEvents(
     if (opts?.to) { params.push(opts.to); conditions.push(`start_date <= $${params.length}`); }
     const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
     const { rows } = await scoped.query<CalendarEventRecord>(
-      `select id, title, description, event_type, start_date, end_date
+      `select id, title, description, event_type, start_date, end_date, club_in_charge
          from calendar_events ${where}
         order by start_date asc`,
       params
@@ -57,7 +58,7 @@ export async function listUpcomingCalendarEvents(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<CalendarEventRecord>(
-      `select id, title, description, event_type, start_date, end_date
+      `select id, title, description, event_type, start_date, end_date, club_in_charge
          from calendar_events
         where coalesce(end_date, start_date) >= current_date
         order by start_date asc
@@ -77,6 +78,10 @@ const createEventSchema = z.object({
   eventType: eventTypeSchema.default("other"),
   startDate: z.string().regex(DATE_RE, "Must be YYYY-MM-DD."),
   endDate: z.string().regex(DATE_RE, "Must be YYYY-MM-DD.").nullable().optional(),
+  // §425 "add clubs in charge for events (may be optional)" — always
+  // optional, free text (see migration 0044's own comment for why not a
+  // foreign key into a clubs table that doesn't otherwise exist).
+  clubInCharge: z.string().max(200).nullable().optional(),
 });
 
 export async function createCalendarEvent(
@@ -92,10 +97,13 @@ export async function createCalendarEvent(
   }
   const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<CalendarEventRecord>(
-      `insert into calendar_events (institution_id, title, description, event_type, start_date, end_date, created_by)
-       values ($1, $2, $3, $4, $5, $6, $7)
-       returning id, title, description, event_type, start_date, end_date`,
-      [institutionId, data.title, data.description ?? null, data.eventType, data.startDate, data.endDate ?? null, userId]
+      `insert into calendar_events (institution_id, title, description, event_type, start_date, end_date, club_in_charge, created_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       returning id, title, description, event_type, start_date, end_date, club_in_charge`,
+      [
+        institutionId, data.title, data.description ?? null, data.eventType, data.startDate, data.endDate ?? null,
+        data.clubInCharge ?? null, userId,
+      ]
     );
     await recordAudit(scoped, {
       institutionId, userId, action: "create", module: "calendar",
@@ -118,7 +126,7 @@ export async function updateCalendarEvent(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows: before } = await scoped.query<CalendarEventRecord>(
-      "select id, title, description, event_type, start_date, end_date from calendar_events where id = $1",
+      "select id, title, description, event_type, start_date, end_date, club_in_charge from calendar_events where id = $1",
       [data.id]
     );
     if (!before[0]) throw new Error("Calendar event not found.");
@@ -128,15 +136,16 @@ export async function updateCalendarEvent(
       eventType: data.eventType ?? before[0].event_type,
       startDate: data.startDate ?? before[0].start_date,
       endDate: data.endDate !== undefined ? data.endDate : before[0].end_date,
+      clubInCharge: data.clubInCharge !== undefined ? data.clubInCharge : before[0].club_in_charge,
     };
     if (merged.endDate && merged.endDate < merged.startDate) {
       throw new Error("End date cannot be before start date.");
     }
     const { rows } = await scoped.query<CalendarEventRecord>(
-      `update calendar_events set title = $2, description = $3, event_type = $4, start_date = $5, end_date = $6, updated_at = now()
+      `update calendar_events set title = $2, description = $3, event_type = $4, start_date = $5, end_date = $6, club_in_charge = $7, updated_at = now()
         where id = $1
-        returning id, title, description, event_type, start_date, end_date`,
-      [data.id, merged.title, merged.description, merged.eventType, merged.startDate, merged.endDate]
+        returning id, title, description, event_type, start_date, end_date, club_in_charge`,
+      [data.id, merged.title, merged.description, merged.eventType, merged.startDate, merged.endDate, merged.clubInCharge]
     );
     await recordAudit(scoped, {
       institutionId, userId, action: "update", module: "calendar",
@@ -150,7 +159,7 @@ export async function deleteCalendarEvent(institutionId: string, authUserId: str
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows: before } = await scoped.query<CalendarEventRecord>(
-      "select id, title, description, event_type, start_date, end_date from calendar_events where id = $1",
+      "select id, title, description, event_type, start_date, end_date, club_in_charge from calendar_events where id = $1",
       [eventId]
     );
     if (!before[0]) return;
