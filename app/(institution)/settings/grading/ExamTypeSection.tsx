@@ -6,9 +6,16 @@ import {
   type GradingActionState,
 } from "./actions";
 
-interface ExamType { id: string; code: string; name: string; category: string | null }
+interface ExamType { id: string; code: string; name: string; category: string | null; periodicity: string | null }
 
 const INIT: GradingActionState = { error: null };
+
+/** §418 "institution should be able to enter the type of examination, it
+ *  will be like periodic, cyclic, term, monthly etc." — common suggestions
+ *  only, via a <datalist>; the field itself stays free text (§K "never a
+ *  hard-coded institutional value") so an institution can type anything of
+ *  its own, exactly like the existing Category field beside it. */
+const PERIODICITY_SUGGESTIONS = ["Periodic", "Cyclic", "Term", "Monthly", "Weekly", "Half-yearly", "Annual"];
 
 function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: boolean }) {
   const [editing, setEditing] = useState(false);
@@ -26,6 +33,11 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
             <option value="Academic">Academic</option>
             <option value="Islamic">Islamic</option>
           </select>
+          <input
+            name="periodicity" list="periodicity-suggestions" defaultValue={examType.periodicity ?? ""}
+            placeholder="Periodicity (e.g. Term)"
+            className="w-36 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs"
+          />
           <button type="submit" className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">Cancel</button>
         </form>
@@ -41,6 +53,9 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
         <span className="text-zinc-400 dark:text-zinc-500">({examType.code})</span>
         {examType.category ? (
           <span className="ml-2 rounded-full bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-300">{examType.category}</span>
+        ) : null}
+        {examType.periodicity ? (
+          <span className="ml-2 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-zinc-600 dark:text-zinc-400">{examType.periodicity}</span>
         ) : null}
       </span>
       {canManage ? (
@@ -61,10 +76,14 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
 
   return (
     <div className="space-y-3">
+      <datalist id="periodicity-suggestions">
+        {PERIODICITY_SUGGESTIONS.map((p) => <option key={p} value={p} />)}
+      </datalist>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
         Exam types feed the &quot;Create Exam&quot; dropdown in Examinations. Category is optional — Academic
         or Islamic — and drives which track section an exam shows up in wherever this institution splits
-        results by track.
+        results by track. Periodicity is optional too — how often it recurs (Periodic, Cyclic, Term,
+        Monthly, or your own wording).
       </p>
       <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {examTypes.length === 0 ? <li className="py-1 text-xs text-zinc-400 dark:text-zinc-500">No exam types yet.</li> : null}
@@ -88,6 +107,13 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
               <option value="Academic">Academic</option>
               <option value="Islamic">Islamic</option>
             </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Periodicity (optional)</label>
+            <input
+              name="periodicity" list="periodicity-suggestions" placeholder="e.g. Term"
+              className="w-36 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
+            />
           </div>
           <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add exam type

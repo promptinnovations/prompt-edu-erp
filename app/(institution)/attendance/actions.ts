@@ -8,6 +8,7 @@ import {
   sendAttendanceAlerts, canReviewLeaveApplication, type AttendanceAlertCandidate,
 } from "../../../modules/attendance/service";
 import { getOwnStaffId } from "../../../modules/mentoring/service";
+import { markOwnStaffAttendance } from "../../../modules/staff/service";
 
 export async function markAttendanceAction(
   _prevState: { error: string | null; marked?: number; alerts?: AttendanceAlertCandidate[] },
@@ -81,6 +82,31 @@ export async function sendAttendanceAlertsAction(
  *  attendance permission at all, e.g. a librarian — can apply for their own
  *  leave. A caller with no linked staff row (shouldn't normally reach this
  *  page, but guarded anyway) gets a clear error instead of a silent no-op. */
+/** §415 "each staff mark own attendance and principal approve it" — mirrors
+ *  applyForOwnLeaveAction() immediately below exactly: no attendance.*
+ *  permission required, the caller's own staffId is resolved server-side
+ *  via getOwnStaffId() (never a client-supplied id), and the write always
+ *  lands as approval_status='pending' (markOwnStaffAttendance()'s own
+ *  behavior) — the principal approves by simply Saving the staff
+ *  attendance grid on /staff, which re-marks every visible row
+ *  'approved'. Only today's date is accepted. */
+export async function markOwnAttendanceAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    const ownStaffId = await getOwnStaffId(ctx.institutionId, ctx.session.authUserId, ctx.userId);
+    if (!ownStaffId) return { error: "Your account isn't linked to a staff record, so you can't mark attendance here." };
+    const date = String(formData.get("date") ?? "");
+    const statusId = String(formData.get("statusId") ?? "");
+    await markOwnStaffAttendance(ctx.institutionId, ctx.session.authUserId, ctx.userId, { staffId: ownStaffId, date, statusId });
+    revalidatePath("/attendance");
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to mark attendance." };
+  }
+}
+
 export async function applyForOwnLeaveAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };

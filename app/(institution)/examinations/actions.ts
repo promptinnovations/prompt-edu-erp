@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
-  createExamination, addExamSubject, addExamClass,
+  createExamination, addExamSubject, addExamClass, removeExamClass, removeExamSubject,
   enterMarks, submitMarks, verifyMarks, approveMarks, lockMarks, computeResults,
 } from "../../../modules/examination/service";
 
@@ -57,6 +57,91 @@ export async function addExamClassAction(_prevState: { error: string | null }, f
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to link class." };
+  }
+}
+
+/** §418 "confirm scope of exam, section, grade, division — make user
+ *  friendly": one checkbox-grid submit instead of adding class/divisions
+ *  one at a time — every checked `sectionAndClass` value (same
+ *  "classId|sectionId" encoding addExamClassAction already uses) is linked
+ *  in one Save. */
+export async function bulkSetExamScopeAction(_prevState: { error: string | null; added?: number }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const selections = formData.getAll("sectionAndClass").map(String);
+    let added = 0;
+    for (const sel of selections) {
+      const [classId, sectionId] = sel.split("|");
+      if (!classId) continue;
+      await addExamClass(ctx.institutionId, ctx.session.authUserId, examinationId, classId, sectionId || null);
+      added++;
+    }
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null, added };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to confirm exam scope." };
+  }
+}
+
+export async function removeExamClassAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await removeExamClass(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("examClassId") ?? ""));
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove class." };
+  }
+}
+
+/** §418 companion to bulkSetExamScopeAction — same "select several, Save
+ *  once" pattern for subjects: every checked subjectId gets its own
+ *  max/pass marks inputs (name-suffixed `max_<subjectId>`/`pass_<subjectId>`,
+ *  same convention markStaffAttendanceAction already uses for per-row
+ *  fields), added in one submit instead of one row at a time. */
+export async function bulkAddExamSubjectsAction(_prevState: { error: string | null; added?: number }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const subjectIds = formData.getAll("subjectId").map(String);
+    let added = 0;
+    for (const subjectId of subjectIds) {
+      const maxRaw = formData.get(`max_${subjectId}`);
+      const passRaw = formData.get(`pass_${subjectId}`);
+      await addExamSubject(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+        examinationId,
+        subjectId,
+        maxMarks: maxRaw ? Number(maxRaw) : 100,
+        passMarks: passRaw ? Number(passRaw) : 35,
+      });
+      added++;
+    }
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null, added };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to add exam subjects." };
+  }
+}
+
+export async function removeExamSubjectAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await removeExamSubject(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("examSubjectId") ?? ""));
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove subject." };
   }
 }
 

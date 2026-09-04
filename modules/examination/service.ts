@@ -18,7 +18,7 @@ import { z } from "zod";
 import { getDbClient, type DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 
-export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null }
+export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null; periodicity: string | null }
 export interface ExaminationRecord {
   id: string; name: string; status: string; exam_type_id: string;
   academic_year_id: string; term_id: string | null; start_date: string | null; end_date: string | null;
@@ -44,6 +44,7 @@ export interface ResultRow {
 const examTypeSchema = z.object({
   code: z.string().min(1).max(50), name: z.string().min(1).max(150),
   category: z.string().max(100).nullable().optional(),
+  periodicity: z.string().max(100).nullable().optional(),
 });
 
 // §Create-Examination follow-up ("type of exam in create exam is not
@@ -74,7 +75,7 @@ const DEFAULT_EXAM_TYPES: Array<[code: string, name: string]> = [
 export async function listExamTypes(institutionId: string, authUserId: string): Promise<ExamTypeRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<ExamTypeRecord>("select id, code, name, category from exam_types order by category nulls last, name");
+    const { rows } = await scoped.query<ExamTypeRecord>("select id, code, name, category, periodicity from exam_types order by category nulls last, name");
     if (rows.length > 0) return rows;
     for (const [code, name] of DEFAULT_EXAM_TYPES) {
       await scoped.query(
@@ -82,7 +83,7 @@ export async function listExamTypes(institutionId: string, authUserId: string): 
         [institutionId, code, name]
       );
     }
-    const { rows: seeded } = await scoped.query<ExamTypeRecord>("select id, code, name, category from exam_types order by category nulls last, name");
+    const { rows: seeded } = await scoped.query<ExamTypeRecord>("select id, code, name, category, periodicity from exam_types order by category nulls last, name");
     return seeded;
   });
 }
@@ -94,8 +95,8 @@ export async function createExamType(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExamTypeRecord>(
-      `insert into exam_types (institution_id, code, name, category) values ($1, $2, $3, $4) returning id, code, name, category`,
-      [institutionId, data.code, data.name, data.category ?? null]
+      `insert into exam_types (institution_id, code, name, category, periodicity) values ($1, $2, $3, $4, $5) returning id, code, name, category, periodicity`,
+      [institutionId, data.code, data.name, data.category ?? null, data.periodicity ?? null]
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "exam_types", entityId: rows[0].id, after: rows[0] });
     return rows[0];
@@ -105,6 +106,7 @@ export async function createExamType(
 const updateExamTypeSchema = z.object({
   name: z.string().min(1).max(150).optional(),
   category: z.string().max(100).nullable().optional(),
+  periodicity: z.string().max(100).nullable().optional(),
 });
 export async function updateExamType(
   institutionId: string, authUserId: string, userId: string, examTypeId: string, input: z.infer<typeof updateExamTypeSchema>
@@ -113,8 +115,8 @@ export async function updateExamType(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExamTypeRecord>(
-      `update exam_types set name = coalesce($2, name), category = $3 where id = $1 returning id, code, name, category`,
-      [examTypeId, data.name ?? null, data.category ?? null]
+      `update exam_types set name = coalesce($2, name), category = $3, periodicity = $4 where id = $1 returning id, code, name, category, periodicity`,
+      [examTypeId, data.name ?? null, data.category ?? null, data.periodicity ?? null]
     );
     if (!rows[0]) throw new Error("Exam type not found.");
     await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "exam_types", entityId: examTypeId, after: rows[0] });
@@ -476,6 +478,54 @@ export async function addExamClass(
        values ($1, $2, $3, $4) on conflict do nothing`,
       [institutionId, examinationId, classId, sectionId ?? null]
     );
+  });
+}
+
+/** §418 "confirm scope of exam" — full rows (not just class ids, unlike
+ *  getExamCoveredClassIds() below, which is a narrower helper for teacher
+ *  scoping) so the exam detail page can actually list which classes/
+ *  divisions are already linked instead of only offering an add form with
+ *  no visible result (§418's own "make user friendly" ask — the previous
+ *  UI had no way to see or undo what had already been linked). */
+export interface ExamClassRow { id: string; class_id: string; section_id: string | null; class_name: string; section_name: string | null }
+export async function listExamClasses(institutionId: string, authUserId: string, examinationId: string): Promise<ExamClassRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ExamClassRow>(
+      `select ec.id, ec.class_id, ec.section_id, c.name as class_name, s.name as section_name
+         from exam_classes ec
+         join classes c on c.id = ec.class_id
+         left join sections s on s.id = ec.section_id
+        where ec.examination_id = $1
+        order by c.name, s.name nulls first`,
+      [examinationId]
+    );
+    return rows;
+  });
+}
+
+export async function removeExamClass(institutionId: string, authUserId: string, userId: string, examClassId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query("delete from exam_classes where id = $1 returning id", [examClassId]);
+    if (rows.length === 0) throw new Error("This class/division isn't linked to the exam.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "exam_classes", entityId: examClassId });
+  });
+}
+
+/** Guarded like deleteExamType() — a subject with marks already entered
+ *  against it can't be silently unlinked (that would orphan real mark
+ *  data); the admin must be told to remove the marks first instead. */
+export async function removeExamSubject(institutionId: string, authUserId: string, userId: string, examSubjectId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: used } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from marks where exam_subject_id = $1", [examSubjectId]
+    );
+    if (Number(used[0]?.count ?? 0) > 0) throw new Error("Marks have already been entered for this subject — remove those first.");
+    const { rows } = await scoped.query("delete from exam_subjects where id = $1 returning id", [examSubjectId]);
+    if (rows.length === 0) throw new Error("This subject isn't linked to the exam.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "exam_subjects", entityId: examSubjectId });
   });
 }
 

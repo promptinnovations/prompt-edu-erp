@@ -3,6 +3,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { listExamTypes, listExaminations } from "../../../modules/examination/service";
 import { listAcademicYears } from "../../../modules/academic/service";
+import { getInstitution } from "../../../services/institution/institution-service";
 import ExaminationForm from "./ExaminationForm";
 
 export default async function ExaminationsPage() {
@@ -11,10 +12,11 @@ export default async function ExaminationsPage() {
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "examination");
 
-  const [examTypes, academicYears, examinations] = await Promise.all([
+  const [examTypes, academicYears, examinations, institution] = await Promise.all([
     listExamTypes(institutionId, authUserId),
     listAcademicYears(institutionId, authUserId),
     listExaminations(institutionId, authUserId),
+    getInstitution(institutionId, authUserId),
   ]);
 
   return (
@@ -23,7 +25,7 @@ export default async function ExaminationsPage() {
 
       <section id="create" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Create examination</h2>
-        <ExaminationForm examTypes={examTypes} academicYears={academicYears} />
+        <ExaminationForm examTypes={examTypes} academicYears={academicYears} educationMode={institution?.educationMode ?? "academic"} />
       </section>
 
       <section id="list" className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">

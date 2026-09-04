@@ -53,17 +53,37 @@ export default async function ClassesPage() {
     arr.push(s);
     sectionsByClass.set(s.class_id, arr);
   }
-  const studentCountByClass = new Map<string, number>();
+
+  // §Classes-hub follow-up ("class details should be like Class 11 A,
+  // Class 11 B... then number of students, then name of class teacher
+  // without division in bracket") — one card per DIVISION rather than one
+  // card per class lumping every division's count/teacher together, so
+  // each of these needs to be tracked per class+division, not just per
+  // class.
+  const studentCountByClass = new Map<string, number>(); // fallback for a class with no divisions yet
+  const studentCountByClassSection = new Map<string, number>(); // key: `${classId}::${sectionName}`
   for (const s of students) {
     if (!s.class_id) continue;
     studentCountByClass.set(s.class_id, (studentCountByClass.get(s.class_id) ?? 0) + 1);
+    if (s.section_name) {
+      const key = `${s.class_id}::${s.section_name}`;
+      studentCountByClassSection.set(key, (studentCountByClassSection.get(key) ?? 0) + 1);
+    }
   }
-  const classTeachersByClass = new Map<string, string[]>();
+  // Division-specific class teacher (section_id set) takes precedence;
+  // a class-wide assignment (section_id null, one teacher for the whole
+  // class) applies to every division that has no more specific one.
+  const classTeacherByClassSection = new Map<string, string>(); // key: `${classId}::${sectionId}`
+  const classTeacherByClassWide = new Map<string, string>(); // key: classId
+  const classTeacherByClass = new Map<string, string>(); // fallback for a class with no divisions yet
   for (const a of teacherAssignments) {
     if (a.role_type !== "class_teacher") continue;
-    const arr = classTeachersByClass.get(a.class_id) ?? [];
-    arr.push(a.section_name ? `${a.teacher_name} (Div. ${a.section_name})` : a.teacher_name);
-    classTeachersByClass.set(a.class_id, arr);
+    if (a.section_id) {
+      classTeacherByClassSection.set(`${a.class_id}::${a.section_id}`, a.teacher_name);
+    } else {
+      classTeacherByClassWide.set(a.class_id, a.teacher_name);
+    }
+    classTeacherByClass.set(a.class_id, a.teacher_name);
   }
 
   const groups = new Map<string, typeof classes>();
@@ -101,27 +121,50 @@ export default async function ClassesPage() {
           <section key={phase} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
             <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{phase}</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {groups.get(phase)!.map((c) => {
-                const classSections = sectionsByClass.get(c.id) ?? [];
-                const teachers = classTeachersByClass.get(c.id) ?? [];
-                return (
-                  <Link
-                    key={c.id}
-                    href={`/classes/${c.id}`}
-                    className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
-                  >
-                    <div className="font-medium text-zinc-900 dark:text-zinc-50">Class {c.name}</div>
-                    <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      {classSections.length} division{classSections.length === 1 ? "" : "s"} ({classSections.map((s) => s.name).join(", ") || "none yet"})
-                    </div>
-                    <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      {studentCountByClass.get(c.id) ?? 0} student{(studentCountByClass.get(c.id) ?? 0) === 1 ? "" : "s"}
-                    </div>
-                    <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      {teachers.length > 0 ? `Class teacher: ${teachers.join(", ")}` : "No class teacher assigned"}
-                    </div>
-                  </Link>
-                );
+              {groups.get(phase)!.flatMap((c) => {
+                const classSections = [...(sectionsByClass.get(c.id) ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+
+                if (classSections.length === 0) {
+                  // No divisions created yet — a single card for the class
+                  // itself, same as before.
+                  const teacher = classTeacherByClass.get(c.id) ?? null;
+                  return [
+                    <Link
+                      key={c.id}
+                      href={`/classes/${c.id}`}
+                      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+                    >
+                      <div className="font-medium text-zinc-900 dark:text-zinc-50">Class {c.name}</div>
+                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {studentCountByClass.get(c.id) ?? 0} student{(studentCountByClass.get(c.id) ?? 0) === 1 ? "" : "s"}
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {teacher ? `Class teacher: ${teacher}` : "No class teacher assigned"}
+                      </div>
+                    </Link>,
+                  ];
+                }
+
+                // One card per division — "Class 11 A", "Class 11 B", etc.
+                return classSections.map((sec) => {
+                  const studentCount = studentCountByClassSection.get(`${c.id}::${sec.name}`) ?? 0;
+                  const teacher = classTeacherByClassSection.get(`${c.id}::${sec.id}`) ?? classTeacherByClassWide.get(c.id) ?? null;
+                  return (
+                    <Link
+                      key={sec.id}
+                      href={`/classes/${c.id}`}
+                      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+                    >
+                      <div className="font-medium text-zinc-900 dark:text-zinc-50">Class {c.name} {sec.name}</div>
+                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {studentCount} student{studentCount === 1 ? "" : "s"}
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {teacher ? `Class teacher: ${teacher}` : "No class teacher assigned"}
+                      </div>
+                    </Link>
+                  );
+                });
               })}
             </div>
           </section>

@@ -156,17 +156,21 @@ export default async function DashboardPage() {
       </div>
 
       {quickButtons.length > 0 ? (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        // Grid, not a horizontally-scrolling row (§ follow-up: "instead of
+        // making it scrolling right & left, arrange them in 3-4 rows") —
+        // wraps into however many rows the button count needs, all visible
+        // at once with no side-scroll gesture required.
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {quickButtons.map((b) => (
             <Link
               key={b.label}
               href={b.href}
-              className="flex shrink-0 flex-col items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-center shadow-sm transition-colors hover:border-[var(--brand)] dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3 py-3 text-center shadow-sm transition-colors hover:border-[var(--brand)] dark:border-zinc-800 dark:bg-zinc-900"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
                 {b.icon}
               </span>
-              <span className="whitespace-nowrap text-xs font-medium text-zinc-700 dark:text-zinc-300">{b.label}</span>
+              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{b.label}</span>
             </Link>
           ))}
         </div>

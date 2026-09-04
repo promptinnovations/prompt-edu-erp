@@ -204,6 +204,7 @@ export async function createExamTypeAction(_prev: GradingActionState, formData: 
       code: String(formData.get("code") ?? ""),
       name: String(formData.get("name") ?? ""),
       category: String(formData.get("category") ?? "") || null,
+      periodicity: String(formData.get("periodicity") ?? "") || null,
     });
     revalidatePath(PATH);
     return OK;
@@ -220,6 +221,7 @@ export async function updateExamTypeAction(_prev: GradingActionState, formData: 
     await updateExamType(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("examTypeId") ?? ""), {
       name: String(formData.get("name") ?? "") || undefined,
       category: String(formData.get("category") ?? "") || null,
+      periodicity: String(formData.get("periodicity") ?? "") || null,
     });
     revalidatePath(PATH);
     return OK;

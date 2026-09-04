@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { markStaffAttendanceAction } from "./actions";
 
 export interface AttendanceStatusOption { id: string; label: string; is_default: boolean }
-export interface StaffGridRow { staff_id: string; full_name: string; staff_code: string; status_id: string | null }
+export interface StaffGridRow {
+  staff_id: string; full_name: string; staff_code: string; status_id: string | null;
+  /** §415 "each staff mark own attendance and principal approve it" — a
+   *  self-marked-but-not-yet-approved row. Clicking "Save attendance"
+   *  below (unchanged) approves every visible row, pending or not. */
+  approval_status?: "pending" | "approved" | null;
+}
 
 export default function StaffAttendanceGrid({
   rows, statuses, date, canEnter,
@@ -51,7 +57,14 @@ export default function StaffAttendanceGrid({
                   <input type="hidden" name="staffId" value={r.staff_id} />
                   {r.staff_code}
                 </td>
-                <td className="py-1.5">{r.full_name}</td>
+                <td className="py-1.5">
+                  {r.full_name}
+                  {r.approval_status === "pending" ? (
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                      Self-marked — pending
+                    </span>
+                  ) : null}
+                </td>
                 <td className="py-1.5">
                   <select
                     name={`status_${r.staff_id}`}

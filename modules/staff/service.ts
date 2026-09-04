@@ -48,6 +48,13 @@ export interface StaffRow extends StaffRecord {
 export interface StaffAttendanceGridRow {
   staff_id: string; full_name: string; staff_code: string;
   record_id: string | null; status_id: string | null;
+  /** §415 "each staff mark own attendance and principal approve it" —
+   *  'pending' means a staff member self-marked this row and it is
+   *  awaiting the principal's Save (which re-upserts every visible row as
+   *  'approved' — see markStaffAttendance()'s own comment). Rows with no
+   *  record_id yet (record_id === null) have no approval_status of their
+   *  own; treat as not-yet-marked, not as pending. */
+  approval_status: "pending" | "approved" | null;
 }
 export interface StaffAttendanceSummary {
   staff_id: string; total_days: number; present_days: number; absent_days: number; present_percent: number;
@@ -563,7 +570,7 @@ export async function getStaffAttendanceGrid(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StaffAttendanceGridRow>(
       `select st.id as staff_id, u.full_name, st.staff_code,
-              sa.id as record_id, sa.status_id
+              sa.id as record_id, sa.status_id, sa.approval_status
          from staff st
          join users u on u.id = st.user_id
          left join staff_attendance sa on sa.staff_id = st.id and sa.date = $1
@@ -625,11 +632,16 @@ export async function markStaffAttendance(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     let marked = 0;
     for (const e of data.entries) {
+      // Always writes approval_status = 'approved' — this is the
+      // principal/admin bulk-submit path (attendance.enter). The grid
+      // resubmits every visible row on Save, so this upsert doubles as
+      // approving any 'pending' self-marked rows already sitting in it
+      // (§415) — no separate approve endpoint needed.
       await scoped.query(
-        `insert into staff_attendance (institution_id, staff_id, date, period, status_id, marked_by)
-         values ($1, $2, $3, $4, $5, $6)
+        `insert into staff_attendance (institution_id, staff_id, date, period, status_id, marked_by, approval_status)
+         values ($1, $2, $3, $4, $5, $6, 'approved')
          on conflict (institution_id, staff_id, date, (coalesce(period, '')))
-         do update set status_id = excluded.status_id, marked_by = excluded.marked_by`,
+         do update set status_id = excluded.status_id, marked_by = excluded.marked_by, approval_status = 'approved'`,
         [institutionId, e.staffId, data.date, data.period ?? null, e.statusId, userId]
       );
       marked++;
@@ -639,6 +651,77 @@ export async function markStaffAttendance(
       entityId: null, after: { date: data.date, period: data.period ?? null, count: marked },
     });
     return { marked };
+  });
+}
+
+/** §415 "each staff mark own attendance and principal approve it" — a
+ *  staff member's own self-mark for TODAY only, always written as
+ *  approval_status = 'pending'. Mirrors applyForLeave()'s own convention
+ *  (modules/attendance/service.ts): the caller's own staffId is resolved
+ *  by the ACTION layer via getOwnStaffId() and passed in here already
+ *  trusted, exactly like applicantId there — this function itself does
+ *  no permission check (none of the write functions in this file do; the
+ *  server action calling it is what enforces access). Only today's date
+ *  is accepted (no back/future-dating one's own attendance from the
+ *  self-service form — the principal's own grid remains the only path for
+ *  correcting any other date). */
+const markOwnStaffAttendanceSchema = z.object({
+  staffId: z.string().uuid(),
+  date: z.string().min(1),
+  period: z.string().max(50).nullable().optional(),
+  statusId: z.string().uuid(),
+});
+
+export async function markOwnStaffAttendance(
+  institutionId: string, authUserId: string, userId: string,
+  input: z.infer<typeof markOwnStaffAttendanceSchema>
+): Promise<{ ok: true }> {
+  const data = markOwnStaffAttendanceSchema.parse(input);
+  const today = new Date().toISOString().slice(0, 10);
+  if (data.date !== today) {
+    throw new Error("You can only mark today's attendance from this form.");
+  }
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query(
+      `insert into staff_attendance (institution_id, staff_id, date, period, status_id, marked_by, approval_status)
+       values ($1, $2, $3, $4, $5, $6, 'pending')
+       on conflict (institution_id, staff_id, date, (coalesce(period, '')))
+       do update set status_id = excluded.status_id, marked_by = excluded.marked_by, approval_status = 'pending'`,
+      [institutionId, data.staffId, data.date, data.period ?? null, data.statusId, userId]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "mark_own", module: "staff", entityType: "staff_attendance",
+      entityId: data.staffId, after: { date: data.date, period: data.period ?? null, statusId: data.statusId },
+    });
+    return { ok: true };
+  });
+}
+
+/** Own attendance for today, for the "My attendance" self-mark form to
+ *  prefill/show current state (including whether it's still pending the
+ *  principal's approval). Returns null if the caller hasn't marked today
+ *  yet. staffId is caller-resolved (getOwnStaffId()), same trust model as
+ *  markOwnStaffAttendance() above. */
+export interface OwnStaffAttendanceToday {
+  status_id: string; status_label: string; approval_status: "pending" | "approved";
+}
+export async function getOwnStaffAttendanceToday(
+  institutionId: string, authUserId: string, staffId: string
+): Promise<OwnStaffAttendanceToday | null> {
+  const today = new Date().toISOString().slice(0, 10);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<OwnStaffAttendanceToday>(
+      `select sa.status_id, ast.label as status_label, sa.approval_status
+         from staff_attendance sa
+         join attendance_statuses ast on ast.id = sa.status_id
+        where sa.staff_id = $1 and sa.date = $2
+        order by sa.created_at desc
+        limit 1`,
+      [staffId, today]
+    );
+    return rows[0] ?? null;
   });
 }
 

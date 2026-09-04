@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { can } from "../../../services/permissions/permission-service";
@@ -9,7 +10,7 @@ import {
   getInstitutionAttendanceTrend,
 } from "../../../modules/attendance/service";
 import { getInstitutionAttendanceTrendMonthly } from "../../../modules/analytics/service";
-import { listStaff, listStaffLeaveApplications } from "../../../modules/staff/service";
+import { listStaff, listStaffLeaveApplications, getOwnStaffAttendanceToday } from "../../../modules/staff/service";
 import { getOwnStaffId } from "../../../modules/mentoring/service";
 import { getTeacherClassScope, scopeIncludesSection } from "../../../services/scope/teacher-scope-service";
 import { resolveAttendanceVisibility } from "../../../services/scope/attendance-visibility-service";
@@ -19,6 +20,7 @@ import ClassSectionPicker from "./ClassSectionPicker";
 import AttendanceGridForm from "./AttendanceGridForm";
 import LeaveApplications from "./LeaveApplications";
 import MyLeaveSection from "./MyLeaveSection";
+import MyAttendanceSection from "./MyAttendanceSection";
 import StaffLeaveReviewTable from "./StaffLeaveReviewTable";
 
 export default async function AttendancePage({
@@ -72,7 +74,7 @@ export default async function AttendancePage({
   const fromMonth = monthAgo6.toISOString().slice(0, 7);
   const toMonth = today.slice(0, 7);
 
-  const [allClasses, allSections, statuses, students, leaves, dailyOverview, myLeaves, attendanceTrend, monthlyTrend, staffList, staffLeaves] = await Promise.all([
+  const [allClasses, allSections, statuses, students, leaves, dailyOverview, myLeaves, attendanceTrend, monthlyTrend, staffList, staffLeaves, ownAttendanceToday] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
@@ -96,6 +98,7 @@ export default async function AttendancePage({
     // their leave history for a class teacher who could never act on it.
     hasUnrestrictedEdit ? listStaff(institutionId, authUserId) : Promise.resolve([]),
     hasUnrestrictedEdit ? listStaffLeaveApplications(institutionId, authUserId) : Promise.resolve([]),
+    ownStaffId ? getOwnStaffAttendanceToday(institutionId, authUserId, ownStaffId) : Promise.resolve(null),
   ]);
   const classes = teacherScope ? allClasses.filter((c) => teacherScope.classIds.has(c.id)) : allClasses;
   const sections = teacherScope
@@ -264,6 +267,20 @@ export default async function AttendancePage({
         </p>
         <LeaveApplications leaves={leaveRows} />
       </section>
+
+      {ownStaffId ? (
+        <section id="my-attendance" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">My attendance</h2>
+          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+            Mark your own attendance for today — the principal (Institution Admin/Management) approves it on the{" "}
+            <Link href="/staff#staff-attendance" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
+              Staff attendance
+            </Link>{" "}
+            grid. Alternatively, the principal can mark it for you directly there — either way works.
+          </p>
+          <MyAttendanceSection today={today} statuses={statuses} existing={ownAttendanceToday} />
+        </section>
+      ) : null}
 
       {ownStaffId ? (
         <section id="my-leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">

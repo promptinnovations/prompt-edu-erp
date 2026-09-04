@@ -13,6 +13,7 @@ import { getStudentMonthlyAttendance } from "../../../../modules/attendance/serv
 import { listAchievements } from "../../../../modules/achievements/service";
 import { listSkillSubmissions } from "../../../../modules/skills/service";
 import { listReadingRecords } from "../../../../modules/library/service";
+import { listDisciplineRecords, listCharacterAssessments } from "../../../../modules/discipline/service";
 import RichTextContent from "../../../components/RichTextContent";
 import EnrollForm from "../EnrollForm";
 import ClassEnrollmentSection from "../ClassEnrollmentSection";
@@ -53,9 +54,19 @@ export default async function StudentDetailPage({
   const profile = await getStudentProfile(institutionId, authUserId, id);
   if (!profile) notFound(); // RLS already guarantees this is null for another institution's id (§E.3)
 
+  // Discipline & Character follow-up ("Discipline, Character related
+  // entries also need to reflect in concerned children's profile") — this
+  // page previously never fetched either at all (getStudent360() was
+  // always called with no scope, so its own activeDisciplineFlags field
+  // silently stayed null); fetched directly here instead of through that
+  // scope so the profile shows the FULL history, not just recent negative
+  // flags. Both gated behind discipline.view, same permission the
+  // Discipline module page and Classes hub already use.
+  const canViewDiscipline = can(ctx.permissions, "discipline.view");
   const [
     enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
     approvedAchievements, approvedSkillSubmissions, approvedReadingRecords, institution,
+    disciplineRecords, characterAssessments,
   ] = await Promise.all([
     getCurrentEnrollment(institutionId, authUserId, id),
     listClasses(institutionId, authUserId),
@@ -69,6 +80,8 @@ export default async function StudentDetailPage({
     listSkillSubmissions(institutionId, authUserId, "approved", undefined, id),
     listReadingRecords(institutionId, authUserId, "approved", undefined, id),
     getInstitution(institutionId, authUserId),
+    canViewDiscipline ? listDisciplineRecords(institutionId, authUserId, id) : Promise.resolve([]),
+    canViewDiscipline ? listCharacterAssessments(institutionId, authUserId, id) : Promise.resolve([]),
   ]);
   // Education Type follow-up — "there should be 2 dedicated spaces for
   // both everywhere like student portfolio... which should come first
@@ -419,6 +432,64 @@ export default async function StudentDetailPage({
           </ul>
         )}
       </section>
+
+      {canViewDiscipline ? (
+        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Discipline &amp; character</h2>
+            <Link href="/discipline" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+              Open Discipline
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Discipline records ({disciplineRecords.length})
+              </h3>
+              {disciplineRecords.length === 0 ? (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500">No discipline records.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {disciplineRecords.map((d) => (
+                    <li key={d.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className={`font-medium ${d.is_positive ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+                          {d.category_name}
+                        </span>
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500">{d.date}</span>
+                      </div>
+                      {d.severity ? <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Severity: {d.severity}</div> : null}
+                      {d.description ? <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{d.description}</div> : null}
+                      {d.action_taken ? <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Action: {d.action_taken}</div> : null}
+                      {d.follow_up_notes ? <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Follow-up: {d.follow_up_notes}</div> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Character assessments ({characterAssessments.length})
+              </h3>
+              {characterAssessments.length === 0 ? (
+                <p className="text-sm text-zinc-400 dark:text-zinc-500">No character assessments.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {characterAssessments.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between rounded-xl border border-zinc-100 dark:border-zinc-800 p-3 text-sm">
+                      <div>
+                        <div className="text-zinc-900 dark:text-zinc-50">{c.attribute_name}</div>
+                        <div className="text-xs text-zinc-400 dark:text-zinc-500">{c.period}{c.notes ? ` — ${c.notes}` : ""}</div>
+                      </div>
+                      <span className="rounded-full bg-[var(--brand)]/10 px-2 py-0.5 text-xs font-medium text-[var(--brand)]">{c.rating}/5</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading record</h2>

@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { listClasses, listSections, listSubjects } from "../../../../modules/academic/service";
 import {
-  getExamination, listExamSubjects, getResults, listExamTypes,
+  getExamination, listExamSubjects, listExamClasses, getResults, listExamTypes,
 } from "../../../../modules/examination/service";
-import { AddExamSubjectForm, AddExamClassForm, ComputeResultsButton } from "./ExamDetailForms";
+import { ExamScopeSection, ExamSubjectsSection, ComputeResultsButton } from "./ExamDetailForms";
 
 export default async function ExaminationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,8 +16,9 @@ export default async function ExaminationDetailPage({ params }: { params: Promis
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound(); // RLS-guaranteed null across institutions (§E.3)
 
-  const [examSubjects, subjects, classes, sections, examTypes, results] = await Promise.all([
+  const [examSubjects, examClasses, subjects, classes, sections, examTypes, results] = await Promise.all([
     listExamSubjects(institutionId, authUserId, id),
+    listExamClasses(institutionId, authUserId, id),
     listSubjects(institutionId, authUserId),
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
@@ -26,9 +27,39 @@ export default async function ExaminationDetailPage({ params }: { params: Promis
   ]);
 
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
-  const classById = new Map(classes.map((c) => [c.id, c.name]));
-  const sectionOptions = sections.map((s) => ({ id: s.id, classId: s.class_id, label: `${classById.get(s.class_id) ?? "?"} — ${s.name}` }));
   const examTypeName = examTypes.find((t) => t.id === examination.exam_type_id)?.name ?? "—";
+
+  // §418 "confirm scope of exam, section, grade, division — make user
+  // friendly": classes grouped with their own divisions, for the
+  // checkbox-grid scope form (ExamScopeSection) — same grouping shape the
+  // Classes hub redesign (§417) already introduced, reused here.
+  const sectionsByClass = new Map<string, Array<{ sectionId: string; sectionName: string }>>();
+  for (const s of sections) {
+    const list = sectionsByClass.get(s.class_id) ?? [];
+    list.push({ sectionId: s.id, sectionName: s.name });
+    sectionsByClass.set(s.class_id, list);
+  }
+  const classGroups = classes.map((c) => ({
+    classId: c.id,
+    className: c.name,
+    divisions: (sectionsByClass.get(c.id) ?? []).sort((a, b) => a.sectionName.localeCompare(b.sectionName)),
+  }));
+
+  const classById = new Map(classes.map((c) => [c.id, c.name]));
+  const linkedClasses = examClasses.map((ec) => ({
+    examClassId: ec.id,
+    label: ec.section_id
+      ? `Class ${classById.get(ec.class_id) ?? "?"} ${ec.section_name ?? ""}`.trim()
+      : `Class ${classById.get(ec.class_id) ?? "?"} (whole class)`,
+  }));
+
+  const linkedSubjects = examSubjects.map((es) => ({
+    examSubjectId: es.id,
+    subjectId: es.subject_id,
+    name: subjectById.get(es.subject_id) ?? "—",
+    maxMarks: es.max_marks,
+    passMarks: es.pass_marks,
+  }));
 
   return (
     <div className="space-y-6">
@@ -41,24 +72,15 @@ export default async function ExaminationDetailPage({ params }: { params: Promis
       </div>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Exam subjects</h2>
-        <AddExamSubjectForm examinationId={id} subjects={subjects} />
-        <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
-          {examSubjects.map((es) => (
-            <li key={es.id} className="flex items-center justify-between py-2">
-              <span>{subjectById.get(es.subject_id) ?? "—"} (max {es.max_marks}, pass {es.pass_marks})</span>
-              <Link href={`/examinations/${id}/marks/${es.id}`} className="text-sm text-zinc-600 dark:text-zinc-400 underline">
-                Enter marks
-              </Link>
-            </li>
-          ))}
-          {examSubjects.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
-        </ul>
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">1. Confirm scope</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Which grades and divisions does this exam apply to?</p>
+        <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Classes covered</h2>
-        <AddExamClassForm examinationId={id} sections={sectionOptions} />
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">2. Subjects &amp; total marks</h2>
+        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
+        <ExamSubjectsSection examinationId={id} subjects={subjects} linked={linkedSubjects} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
