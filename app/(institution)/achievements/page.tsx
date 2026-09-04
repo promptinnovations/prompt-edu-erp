@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { can } from "../../../services/permissions/permission-service";
@@ -25,7 +26,21 @@ export default async function AchievementsPage() {
 
       {can(ctx.permissions, "achievements.submit") ? (
         <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submit an achievement</h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submit an achievement</h2>
+            {can(ctx.permissions, "settings.manage") ? (
+              <Link href="/settings/grading#achievements" className="text-xs text-indigo-600 dark:text-indigo-400 underline whitespace-nowrap">
+                Manage categories &amp; levels
+              </Link>
+            ) : null}
+          </div>
+          {categories.length === 0 || levels.length === 0 ? (
+            <p className="mb-3 text-xs text-amber-600 dark:text-amber-400">
+              {can(ctx.permissions, "settings.manage")
+                ? "No categories/levels configured yet — add them in Settings → Grading (link above) before submitting."
+                : "No categories/levels configured yet — ask an admin to add them in Settings → Grading."}
+            </p>
+          ) : null}
           <SubmitAchievementForm
             students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
             categories={categories}

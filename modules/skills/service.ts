@@ -14,7 +14,7 @@
  * it instead of assuming every activity works the same way.
  */
 import { z } from "zod";
-import { getDbClient } from "../../services/db/client";
+import { getDbClient, type DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { evaluateScoring, recordScoreEvent } from "../scoring/service";
 import { recordPortfolioEvent } from "../portfolio/service";
@@ -35,9 +35,59 @@ export interface SkillSubmissionRow extends SkillSubmissionRecord {
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
+// §421 "skill type and activity can't be added" (Submit an Activity form)
+// -- same root cause as achievements/service.ts's §420 fix: createInstitution()
+// never seeded skill_types/skill_activities, only the DEMO-only
+// seedInstitutionDefaults() did, so every real institution's dropdowns were
+// empty. Values match seed.ts's own DEMO defaults exactly (kept in sync).
+const DEFAULT_SKILL_TYPES: Array<[code: string, name: string]> = [
+  ["reading", "Reading"], ["writing", "Writing"], ["speaking", "Speaking"], ["language", "Language"],
+];
+const DEFAULT_SKILL_ACTIVITIES: Array<[
+  typeCode: string, name: string, description: string,
+  evidenceRequired: boolean, verificationRequired: boolean, approvalRequired: boolean,
+]> = [
+  ["reading", "Weekly Reading Log", "Log of books/pages read each week", true, true, false],
+  ["writing", "Essay Writing", "A written composition on an assigned or free topic", true, true, true],
+  ["speaking", "Public Speaking / Elocution", "A recorded or in-person speaking assessment", false, true, false],
+  ["language", "Arabic Language Proficiency", "Periodic Arabic language proficiency check", true, true, true],
+];
+
+/** Lazy-seed-on-first-empty-read (same pattern as listObservationCriteria())
+ *  -- seeds skill_types AND their matching skill_activities together, since
+ *  an activity needs a real skill_type_id to insert against. Called from
+ *  every read path below so no matter which one a page hits first (the
+ *  submission form calls listSkillTypes() then listSkillActivities();
+ *  Settings config might call listSkillActivitiesForAdmin() first), the
+ *  institution ends up fully seeded either way. */
+async function ensureSkillDefaultsSeeded(scoped: DbClient, institutionId: string): Promise<void> {
+  const { rows: existing } = await scoped.query<{ count: string }>("select count(*)::text as count from skill_types");
+  if (Number(existing[0]?.count ?? 0) > 0) return;
+  const typeIds: Record<string, string> = {};
+  for (const [code, name] of DEFAULT_SKILL_TYPES) {
+    const { rows } = await scoped.query<{ id: string }>(
+      `insert into skill_types (institution_id, code, name) values ($1, $2, $3)
+       on conflict (institution_id, code) do update set name = excluded.name
+       returning id`,
+      [institutionId, code, name]
+    );
+    typeIds[code] = rows[0].id;
+  }
+  for (const [typeCode, name, description, evidenceRequired, verificationRequired, approvalRequired] of DEFAULT_SKILL_ACTIVITIES) {
+    await scoped.query(
+      `insert into skill_activities
+         (institution_id, skill_type_id, name, description, evidence_required, verification_required, approval_required)
+       values ($1, $2, $3, $4, $5, $6, $7)
+       on conflict do nothing`,
+      [institutionId, typeIds[typeCode], name, description, evidenceRequired, verificationRequired, approvalRequired]
+    );
+  }
+}
+
 export async function listSkillTypes(institutionId: string, authUserId: string): Promise<SkillTypeRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await ensureSkillDefaultsSeeded(scoped, institutionId);
     const { rows } = await scoped.query<SkillTypeRecord>("select id, code, name from skill_types order by name");
     return rows;
   });
@@ -46,6 +96,7 @@ export async function listSkillTypes(institutionId: string, authUserId: string):
 export async function listSkillActivities(institutionId: string, authUserId: string, skillTypeId?: string): Promise<SkillActivityRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await ensureSkillDefaultsSeeded(scoped, institutionId);
     const { rows } = skillTypeId
       ? await scoped.query<SkillActivityRecord>(
           `select id, skill_type_id, name, description, evidence_required, verification_required, approval_required, is_active
@@ -68,6 +119,7 @@ export async function listSkillActivities(institutionId: string, authUserId: str
 export async function listSkillActivitiesForAdmin(institutionId: string, authUserId: string, skillTypeId?: string): Promise<SkillActivityRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await ensureSkillDefaultsSeeded(scoped, institutionId);
     const { rows } = skillTypeId
       ? await scoped.query<SkillActivityRecord>(
           `select id, skill_type_id, name, description, evidence_required, verification_required, approval_required, is_active

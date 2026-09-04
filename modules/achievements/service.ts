@@ -21,6 +21,23 @@ import { recordPortfolioEvent } from "../portfolio/service";
 
 export interface AchievementCategoryRecord { id: string; name: string }
 export interface AchievementLevelRecord { id: string; name: string; sort_order: number }
+
+// §420 "category and Level cant be added here" (Submit an Achievement form)
+// -- root cause: createInstitution() (the real production path) never
+// seeded achievement_categories/achievement_levels; only the DEMO-only
+// seedInstitutionDefaults() in database/scripts/seed.ts did. Every
+// institution created through the real flow had zero rows here, so the
+// dropdowns were empty with no visible way to add one from this page (the
+// actual add-a-category/level CRUD lives in Settings -> Grading, but that's
+// moot if nobody knows to look there). Same lazy-seed-on-first-empty-read
+// pattern as modules/staff/service.ts's listObservationCriteria() -- self-
+// heals both new AND already-broken existing institutions immediately, no
+// migration needed. Values match seed.ts's own DEMO defaults exactly (kept
+// in sync -- if one changes, update the other).
+const DEFAULT_ACHIEVEMENT_CATEGORIES = ["Sahityotsav", "Sports Meet", "Quran Competition", "Academic Excellence"];
+const DEFAULT_ACHIEVEMENT_LEVELS: Array<[name: string, sortOrder: number]> = [
+  ["School", 1], ["Zone", 2], ["District", 3], ["State", 4], ["National", 5], ["International", 6],
+];
 export interface AchievementRecord {
   id: string; student_id: string; category_id: string; level_id: string; title: string;
   position: string | null; points: string | null; status: string; verified_by: string | null; approved_by: string | null;
@@ -37,7 +54,15 @@ export async function listAchievementCategories(institutionId: string, authUserI
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<AchievementCategoryRecord>("select id, name from achievement_categories order by name");
-    return rows;
+    if (rows.length > 0) return rows;
+    for (const name of DEFAULT_ACHIEVEMENT_CATEGORIES) {
+      await scoped.query(
+        "insert into achievement_categories (institution_id, name) values ($1, $2) on conflict (institution_id, name) do nothing",
+        [institutionId, name]
+      );
+    }
+    const { rows: seeded } = await scoped.query<AchievementCategoryRecord>("select id, name from achievement_categories order by name");
+    return seeded;
   });
 }
 
@@ -45,7 +70,15 @@ export async function listAchievementLevels(institutionId: string, authUserId: s
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<AchievementLevelRecord>("select id, name, sort_order from achievement_levels order by sort_order");
-    return rows;
+    if (rows.length > 0) return rows;
+    for (const [name, sortOrder] of DEFAULT_ACHIEVEMENT_LEVELS) {
+      await scoped.query(
+        "insert into achievement_levels (institution_id, name, sort_order) values ($1, $2, $3) on conflict (institution_id, name) do nothing",
+        [institutionId, name, sortOrder]
+      );
+    }
+    const { rows: seeded } = await scoped.query<AchievementLevelRecord>("select id, name, sort_order from achievement_levels order by sort_order");
+    return seeded;
   });
 }
 

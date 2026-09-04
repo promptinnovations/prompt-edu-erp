@@ -101,12 +101,12 @@ export default async function GradingSettingsPage() {
         <ScoringRuleSection rules={scoringRules} canManage={canManage} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="achievements" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 scroll-mt-20">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Achievements</h2>
         <AchievementConfigSection categories={achievementCategories} levels={achievementLevels} canManage={canManage} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="skills" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 scroll-mt-20">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Skills</h2>
         <SkillConfigSection skillTypes={skillTypes} activitiesByType={activitiesByType} canManage={canManage} />
       </section>

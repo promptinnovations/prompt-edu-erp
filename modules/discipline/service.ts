@@ -327,13 +327,37 @@ export async function moveCharacterAttribute(
 // historical averages/getCharacterScoreAverage() are unaffected by a
 // relabel.
 // ---------------------------------------------------------------------------
+// §419 "rating is not functional" (Character assessment form) -- root
+// cause: migration 0037 seeded character_rating_labels only for
+// institutions that existed AT THAT TIME (its own one-time `do $$ ... loop
+// select id from institutions ...` backfill); createInstitution() (the
+// real production path) never seeds it, so every institution created
+// since has zero rows -- the Rating <select> renders nothing but its
+// disabled "Select..." placeholder, which a required field can never
+// submit. Same lazy-seed-on-first-empty-read pattern as
+// modules/staff/service.ts's listObservationCriteria(); defaults match
+// migration 0037's own seed values exactly.
+const DEFAULT_CHARACTER_RATING_LABELS: readonly [rating: number, label: string][] = [
+  [1, "Requires Attention"], [2, "Needs Improvement"], [3, "Good"], [4, "Very Good"], [5, "Outstanding"],
+];
+
 export async function listCharacterRatingLabels(institutionId: string, authUserId: string): Promise<CharacterRatingLabelRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<CharacterRatingLabelRecord>(
       "select rating, label from character_rating_labels order by rating"
     );
-    return rows;
+    if (rows.length > 0) return rows;
+    for (const [rating, label] of DEFAULT_CHARACTER_RATING_LABELS) {
+      await scoped.query(
+        "insert into character_rating_labels (institution_id, rating, label) values ($1, $2, $3) on conflict (institution_id, rating) do nothing",
+        [institutionId, rating, label]
+      );
+    }
+    const { rows: seeded } = await scoped.query<CharacterRatingLabelRecord>(
+      "select rating, label from character_rating_labels order by rating"
+    );
+    return seeded;
   });
 }
 
