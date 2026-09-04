@@ -5,7 +5,7 @@
  * institution, with which permissions" — nothing downstream re-derives or
  * overrides institution_id from client input.
  */
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getAuthService } from "./auth/auth-service";
 import { resolveActiveInstitution, resolveUserByAuthId, getMembershipsForUser } from "./tenant/tenant-service";
 import { getPermissionsForUser, getAllInstitutionPermissionCodes } from "./permissions/permission-service";
@@ -37,6 +37,14 @@ interface SuperAdminViewAsUserCookie {
 /** Pure decision function, factored out for direct unit testing without
  *  needing next/headers' cookies() (which requires a real Next.js request
  *  context) — see tests/integration/institution-status-flow.test.ts. */
+/** Pure decision function (same "factor out for direct unit testing"
+ *  reason as resolveInstitutionBlockedReason below) — true for
+ *  "/super-admin" and every "/super-admin/..." pathname, false for
+ *  everything else (institution app, portal app, auth pages). */
+export function isSuperAdminConsoleRoute(pathname: string): boolean {
+  return pathname === "/super-admin" || pathname.startsWith("/super-admin/");
+}
+
 export function resolveInstitutionBlockedReason(
   institutionStatus: string | undefined,
   isSuperAdmin: boolean
@@ -111,7 +119,21 @@ export async function getRequestContext(): Promise<RequestContext | null> {
   let effectiveUserId = resolvedUser.userId;
   let effectiveSession = session;
   let viewingAsUser: { userId: string; fullName: string; roleLabel: string } | null = null;
-  if (institutionId && viewingInstitutionAsSuperAdmin) {
+  // Never applies while the request itself IS a /super-admin/* page —
+  // otherwise navigating back to the Super Admin console (browser back,
+  // a stale tab, anything that doesn't go through exitSamplePortalAction/
+  // exitSuperAdminViewAction first) would silently swap ctx.session.
+  // authUserId to the "viewed as" person's real id, and every
+  // SuperAdminService function's own independent isSuperAdmin
+  // re-verification (services/super-admin/super-admin-service.ts's
+  // withSuperAdminContext) would then throw "Forbidden" for THAT person —
+  // reproduced live: GET /super-admin and /super-admin/sample-portals
+  // both 500'd this way. Read from middleware.ts's x-pathname header
+  // (institution-code prefix already stripped), not request.url, since
+  // an institution-prefixed URL like /mmp/... would never match here.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isSuperAdminRoute = isSuperAdminConsoleRoute(pathname);
+  if (institutionId && viewingInstitutionAsSuperAdmin && !isSuperAdminRoute) {
     const viewAsRaw = cookieStore.get(SUPER_ADMIN_VIEW_AS_USER_COOKIE)?.value ?? null;
     if (viewAsRaw) {
       try {

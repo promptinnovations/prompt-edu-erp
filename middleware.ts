@@ -274,6 +274,12 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
+  // Sample Portals follow-up: services/request-context.ts needs to know
+  // the LOGICAL pathname (institution-code prefix already stripped) this
+  // request resolves to, so its "view as <real person>" override
+  // (SUPER_ADMIN_VIEW_AS_USER_COOKIE) never applies while actually
+  // rendering a /super-admin/* page — see that file's own comment on why.
+  requestHeaders.set("x-pathname", routing.logicalPathname);
 
   // Follow-up ("Install still offers PROMPT EDU ERP, not the institute's
   // own app") -- forwards the institution code straight from the URL so

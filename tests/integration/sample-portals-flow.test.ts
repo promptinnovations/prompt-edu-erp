@@ -29,6 +29,7 @@ import {
   listSamplePrincipals, listSampleManagement, listSampleClassTeachers, listSampleStudentsWithParent,
   getSamplePortalTarget,
 } from "../../services/super-admin/sample-portal-service";
+import { isSuperAdminConsoleRoute } from "../../services/request-context";
 
 let institutionA: string, institutionB: string;
 let superAdminAuth: string;
@@ -210,5 +211,21 @@ describe("getSamplePortalTarget() — the same re-verification services/request-
     const target = await getSamplePortalTarget(superAdminAuth, institutionA, bareUserId);
     expect(target).toBeNull();
     expect(noAuthParent.id).toBeTruthy(); // keep the unused-var lint happy / documents intent
+  });
+});
+
+describe("isSuperAdminConsoleRoute() — the pathname guard behind the /super-admin production crash fix", () => {
+  it("is true for the Super Admin console itself and every sub-page", () => {
+    expect(isSuperAdminConsoleRoute("/super-admin")).toBe(true);
+    expect(isSuperAdminConsoleRoute("/super-admin/sample-portals")).toBe(true);
+    expect(isSuperAdminConsoleRoute("/super-admin/institutions/abc-123")).toBe(true);
+  });
+
+  it("is false for the institution app, the parent/student portal, and anything else", () => {
+    expect(isSuperAdminConsoleRoute("/dashboard")).toBe(false);
+    expect(isSuperAdminConsoleRoute("/portal/student")).toBe(false);
+    expect(isSuperAdminConsoleRoute("/portal/parent")).toBe(false);
+    expect(isSuperAdminConsoleRoute("/super-admin-lookalike")).toBe(false); // prefix guard, not just startsWith("/super-admin")
+    expect(isSuperAdminConsoleRoute("")).toBe(false);
   });
 });
