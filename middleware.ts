@@ -118,6 +118,7 @@ const INSTITUTION_APP_PAGES = new Set([
   "storage", "users", "settings", "login", "portal", "suspended",
   "module-unavailable",
   "calendar", "substitution", "print", "analysis", "results",
+  "fees", "accounts",
 ]);
 
 interface InstitutionRouting {
