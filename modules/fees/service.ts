@@ -90,7 +90,7 @@ export async function listFeeStructures(institutionId: string, authUserId: strin
          join fee_categories fc on fc.id = fs.fee_category_id
          left join classes c on c.id = fs.class_id
          join academic_years ay on ay.id = fs.academic_year_id
-        where ($2::uuid is null or fs.academic_year_id = $2)
+        where fs.institution_id = $1 and ($2::uuid is null or fs.academic_year_id = $2)
         order by ay.start_date desc, fc.name`,
       [institutionId, academicYearId ?? null]
     );
