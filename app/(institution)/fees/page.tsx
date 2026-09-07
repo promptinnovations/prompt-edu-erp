@@ -3,7 +3,8 @@ import { requireModuleEnabledOrRedirect } from "../../../services/modules/module
 import { can } from "../../../services/permissions/permission-service";
 import { listClasses, listAcademicYears } from "../../../modules/academic/service";
 import {
-  listFeeCategories, listFeeStructures, listStudentFeeInvoices, getFeeSummary, listPendingConfirmationPayments,
+  listFeeCategories, listFeeStructures, listStudentFeeInvoices, getFeeSummary, getFeeSummaryByClass,
+  listPendingConfirmationPayments,
 } from "../../../modules/fees/service";
 import FeeCategoryForm from "./FeeCategoryForm";
 import { FeeStructureForm, AssignFeeStructureButton } from "./FeeStructureForm";
@@ -17,23 +18,28 @@ const STATUS_BADGE: Record<string, string> = {
   waived: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
 };
 
-export default async function FeesPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+export default async function FeesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; classId?: string }>;
+}) {
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "fees");
-  const { status } = await searchParams;
+  const { status, classId } = await searchParams;
 
   const canManage = can(ctx.permissions, "fees.manage");
   const canCollect = can(ctx.permissions, "fees.collect");
 
-  const [classes, academicYears, categories, structures, invoices, summary, pendingConfirmations] = await Promise.all([
+  const [classes, academicYears, categories, structures, invoices, summary, classSummary, pendingConfirmations] = await Promise.all([
     listClasses(institutionId, authUserId),
     listAcademicYears(institutionId, authUserId),
     listFeeCategories(institutionId, authUserId),
     listFeeStructures(institutionId, authUserId),
-    listStudentFeeInvoices(institutionId, authUserId, status ? { status } : {}),
+    listStudentFeeInvoices(institutionId, authUserId, { ...(status ? { status } : {}), ...(classId ? { classId } : {}) }),
     getFeeSummary(institutionId, authUserId),
+    getFeeSummaryByClass(institutionId, authUserId),
     canCollect ? listPendingConfirmationPayments(institutionId, authUserId) : Promise.resolve([]),
   ]);
 
@@ -42,6 +48,8 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
     id: i.id,
     label: `${i.student_name} (${i.admission_number}) — ${i.category_name} — ₹${(Number(i.amount_due) - Number(i.amount_paid)).toFixed(2)} pending`,
   }));
+
+  const selectedClassLabel = classId ? classes.find((c) => c.id === classId)?.name ?? null : null;
 
   return (
     <div className="space-y-6">
@@ -63,6 +71,48 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
           <div className="text-xs text-zinc-500 dark:text-zinc-400">Paid / Partial / Pending</div>
           <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{summary.countPaid} / {summary.countPartial} / {summary.countPending}</div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Class-wise collection status</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="text-xs text-zinc-500 dark:text-zinc-400">
+                <th className="py-1.5 pr-3">Class</th>
+                <th className="py-1.5 pr-3">Due</th>
+                <th className="py-1.5 pr-3">Collected</th>
+                <th className="py-1.5 pr-3">Paid</th>
+                <th className="py-1.5 pr-3">Partial</th>
+                <th className="py-1.5 pr-3">Pending</th>
+                <th className="py-1.5 pr-3">Students</th>
+              </tr>
+            </thead>
+            <tbody>
+              {classSummary.map((row) => (
+                <tr key={`${row.class_id}-${row.section_id}`} className="border-t border-zinc-100 dark:border-zinc-800">
+                  <td className="py-1.5 pr-3">
+                    <a
+                      href={`/fees?classId=${row.class_id}`}
+                      className="font-medium text-[var(--brand)] hover:underline"
+                    >
+                      {row.class_name} {row.section_name}
+                    </a>
+                  </td>
+                  <td className="py-1.5 pr-3">₹{row.total_due}</td>
+                  <td className="py-1.5 pr-3 text-emerald-600 dark:text-emerald-400">₹{row.total_collected}</td>
+                  <td className="py-1.5 pr-3">{row.count_paid}</td>
+                  <td className="py-1.5 pr-3 text-amber-600 dark:text-amber-400">{row.count_partial}</td>
+                  <td className="py-1.5 pr-3 text-zinc-500 dark:text-zinc-400">{row.count_pending}</td>
+                  <td className="py-1.5 pr-3">{row.count_total}</td>
+                </tr>
+              ))}
+              {classSummary.length === 0 ? (
+                <tr><td colSpan={7} className="py-3 text-center text-zinc-400 dark:text-zinc-500">No fee invoices yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -130,21 +180,49 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
 
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Invoices ({invoices.length})</h2>
-          <div className="flex gap-1 text-xs">
-            {[["", "All"], ["pending", "Pending"], ["partial", "Partial"], ["paid", "Paid"]].map(([value, label]) => (
-              <a key={value} href={value ? `/fees?status=${value}` : "/fees"}
-                 className={`rounded-full px-3 py-1 ${(status ?? "") === value ? "bg-[var(--brand)] text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"}`}>
-                {label}
-              </a>
-            ))}
+          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Invoices ({invoices.length}){selectedClassLabel ? ` — ${selectedClassLabel}` : ""}
+          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <form action="/fees" method="get" className="flex items-center gap-2 text-xs">
+              {status ? <input type="hidden" name="status" value={status} /> : null}
+              <select
+                name="classId"
+                defaultValue={classId ?? ""}
+                className="rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 text-xs text-zinc-700 dark:text-zinc-300"
+              >
+                <option value="">All classes</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button type="submit" className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-zinc-600 dark:text-zinc-300">
+                Filter
+              </button>
+              {classId ? (
+                <a href={status ? `/fees?status=${status}` : "/fees"} className="text-zinc-400 dark:text-zinc-500 hover:underline">
+                  Clear
+                </a>
+              ) : null}
+            </form>
+            <div className="flex gap-1 text-xs">
+              {[["", "All"], ["pending", "Pending"], ["partial", "Partial"], ["paid", "Paid"]].map(([value, label]) => (
+                <a
+                  key={value}
+                  href={value ? `/fees?status=${value}${classId ? `&classId=${classId}` : ""}` : classId ? `/fees?classId=${classId}` : "/fees"}
+                  className={`rounded-full px-3 py-1 ${(status ?? "") === value ? "bg-[var(--brand)] text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"}`}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-xs text-zinc-500 dark:text-zinc-400">
-                <th className="py-1.5 pr-3">Student</th><th className="py-1.5 pr-3">Category</th>
+                <th className="py-1.5 pr-3">Student</th><th className="py-1.5 pr-3">Class</th><th className="py-1.5 pr-3">Category</th>
                 <th className="py-1.5 pr-3">Due</th><th className="py-1.5 pr-3">Paid</th><th className="py-1.5 pr-3">Status</th>
               </tr>
             </thead>
@@ -152,6 +230,10 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
               {invoices.map((i) => (
                 <tr key={i.id} className="border-t border-zinc-100 dark:border-zinc-800">
                   <td className="py-1.5 pr-3">{i.student_name} <span className="text-zinc-400 dark:text-zinc-500">({i.admission_number})</span></td>
+                  <td className="py-1.5 pr-3">
+                    {i.class_name ? `${i.class_name} ${i.section_name ?? ""}`.trim() : "—"}
+                    {i.roll_number != null ? <span className="text-zinc-400 dark:text-zinc-500"> #{i.roll_number}</span> : null}
+                  </td>
                   <td className="py-1.5 pr-3">{i.category_name}</td>
                   <td className="py-1.5 pr-3">₹{i.amount_due}</td>
                   <td className="py-1.5 pr-3">₹{i.amount_paid}</td>
@@ -160,7 +242,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
                   </td>
                 </tr>
               ))}
-              {invoices.length === 0 ? <tr><td colSpan={5} className="py-3 text-center text-zinc-400 dark:text-zinc-500">No invoices.</td></tr> : null}
+              {invoices.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400 dark:text-zinc-500">No invoices.</td></tr> : null}
             </tbody>
           </table>
         </div>

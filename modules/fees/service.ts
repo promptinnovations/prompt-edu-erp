@@ -29,6 +29,7 @@ import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+import { sortRoster, sortClasses } from "../../services/academic/roster-order";
 
 export interface FeeCategoryRecord { id: string; name: string; description: string | null }
 export interface FeeStructureRecord {
@@ -42,6 +43,20 @@ export interface StudentFeeInvoiceRow {
   id: string; student_id: string; student_name: string; admission_number: string;
   fee_category_id: string; category_name: string; academic_year_id: string;
   amount_due: string; amount_paid: string; due_date: string | null; status: string; created_at: string;
+  // Class-wise fee list follow-up ("Class wise student data of fee payment
+  // must be available there in fee section- in a list - paid/pending/
+  // partial etc.") — the student's active enrolment for the invoice's
+  // academic year, so the invoices list/table can show & filter by class
+  // and follow the app-wide roster order (§roster-order.ts).
+  class_id: string | null; class_name: string | null; stage: string | null;
+  section_id: string | null; section_name: string | null; roll_number: number | null; gender: string | null;
+}
+
+export interface FeeClassSummaryRow {
+  class_id: string; class_name: string; stage: string | null;
+  section_id: string; section_name: string;
+  total_due: string; total_collected: string;
+  count_paid: number; count_pending: number; count_partial: number; count_total: number;
 }
 export interface FeePaymentRow {
   id: string; invoice_id: string; amount: string; payment_date: string; payment_method: string;
@@ -203,27 +218,44 @@ async function listStudentFeeInvoicesInternal(
   scoped: DbClient, institutionId: string,
   filters: { studentId?: string; status?: string; classId?: string; academicYearId?: string; invoiceId?: string }
 ): Promise<StudentFeeInvoiceRow[]> {
+  // Class-wise fee list follow-up — left-join the student's active
+  // enrolment for the SAME academic year as the invoice (an invoice can
+  // outlive a mid-year class change, so we deliberately match on
+  // se.academic_year_id = sfi.academic_year_id rather than "current
+  // enrolment") so every invoice carries class/division/roll info for
+  // display, filtering, and roster ordering. LEFT JOIN (not INNER) so an
+  // invoice never silently disappears just because enrolment data is
+  // missing/stale.
   const { rows } = await scoped.query<StudentFeeInvoiceRow>(
     `select sfi.id, sfi.student_id, s.full_name as student_name, s.admission_number,
             sfi.fee_category_id, fc.name as category_name, sfi.academic_year_id,
             sfi.amount_due::text as amount_due,
             coalesce((select sum(fp.amount) from fee_payments fp where fp.invoice_id = sfi.id and fp.status = 'confirmed'), 0)::text as amount_paid,
-            sfi.due_date::text as due_date, sfi.status, sfi.created_at::text as created_at
+            sfi.due_date::text as due_date, sfi.status, sfi.created_at::text as created_at,
+            se.class_id, c.name as class_name, c.stage, se.section_id, sec.name as section_name,
+            se.roll_number, s.gender
        from student_fee_invoices sfi
        join students s on s.id = sfi.student_id
        join fee_categories fc on fc.id = sfi.fee_category_id
+       left join student_enrollments se on se.student_id = sfi.student_id and se.academic_year_id = sfi.academic_year_id and se.status = 'active'
+       left join classes c on c.id = se.class_id
+       left join sections sec on sec.id = se.section_id
       where sfi.institution_id = $1
         and ($2::uuid is null or sfi.student_id = $2)
         and ($3::text is null or sfi.status = $3)
-        and ($4::uuid is null or exists (
-              select 1 from student_enrollments se
-               where se.student_id = sfi.student_id and se.academic_year_id = sfi.academic_year_id and se.class_id = $4 and se.status = 'active'))
+        and ($4::uuid is null or se.class_id = $4)
         and ($5::uuid is null or sfi.academic_year_id = $5)
-        and ($6::uuid is null or sfi.id = $6)
-      order by sfi.due_date nulls last, s.full_name`,
+        and ($6::uuid is null or sfi.id = $6)`,
     [institutionId, filters.studentId ?? null, filters.status ?? null, filters.classId ?? null, filters.academicYearId ?? null, filters.invoiceId ?? null]
   );
-  return rows;
+  // Canonical class -> division -> roll number order (§roster-order.ts)
+  // instead of the old due-date order, so the invoices list reads as a
+  // class register the way every other roster in this app does. Rows with
+  // no enrolment match (stale/missing data) sort after every enrolled row.
+  const withRoster = rows.map((r) => ({ ...r, full_name: r.student_name }));
+  const enrolled = withRoster.filter((r) => r.class_id);
+  const unenrolled = withRoster.filter((r) => !r.class_id);
+  return [...sortRoster(enrolled), ...unenrolled];
 }
 
 /** status: omit for everything, or "pending"/"partial"/"paid"/"waived" — the
@@ -271,6 +303,60 @@ export async function getFeeSummary(institutionId: string, authUserId: string, a
       countPending: Number(r?.count_pending ?? 0),
       countPartial: Number(r?.count_partial ?? 0),
     };
+  });
+}
+
+/** Class-wise fee list follow-up ("Class wise student data of fee payment
+ *  must be available there in fee section- in a list - paid/pending/
+ *  partial etc.") — one row per class+division (matching how the
+ *  attendance module's daily overview groups classes), with due/collected
+ *  totals and paid/pending/partial counts, so admins/accounts staff can
+ *  see collection status at a glance without opening every invoice. */
+export async function getFeeSummaryByClass(
+  institutionId: string, authUserId: string, academicYearId?: string
+): Promise<FeeClassSummaryRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      class_id: string; class_name: string; stage: string | null;
+      section_id: string; section_name: string;
+      total_due: string; total_collected: string;
+      count_paid: string; count_pending: string; count_partial: string; count_total: string;
+    }>(
+      `select se.class_id, c.name as class_name, c.stage, se.section_id, sec.name as section_name,
+              coalesce(sum(sfi.amount_due), 0)::text as total_due,
+              coalesce(sum(paid.amount_paid), 0)::text as total_collected,
+              count(*) filter (where sfi.status = 'paid')::text as count_paid,
+              count(*) filter (where sfi.status = 'pending')::text as count_pending,
+              count(*) filter (where sfi.status = 'partial')::text as count_partial,
+              count(*)::text as count_total
+         from student_fee_invoices sfi
+         join student_enrollments se on se.student_id = sfi.student_id and se.academic_year_id = sfi.academic_year_id and se.status = 'active'
+         join classes c on c.id = se.class_id
+         join sections sec on sec.id = se.section_id
+         left join lateral (
+           select sum(fp.amount) as amount_paid from fee_payments fp
+            where fp.invoice_id = sfi.id and fp.status = 'confirmed'
+         ) paid on true
+        where sfi.institution_id = $1 and ($2::uuid is null or sfi.academic_year_id = $2)
+        group by se.class_id, c.name, c.stage, se.section_id, sec.name`,
+      [institutionId, academicYearId ?? null]
+    );
+    // Section (stage) -> GRADE -> division order (§roster-order.ts) —
+    // Array.sort is stable, so pre-sorting by division then applying
+    // sortClasses() composes the two independently, same trick used for
+    // the attendance daily overview's class rows.
+    return sortClasses(
+      [...rows].sort((a, b) => (a.section_name ?? "").localeCompare(b.section_name ?? "")).map((r) => ({
+        ...r,
+        total_due: Number(r.total_due).toFixed(2),
+        total_collected: Number(r.total_collected).toFixed(2),
+        count_paid: Number(r.count_paid),
+        count_pending: Number(r.count_pending),
+        count_partial: Number(r.count_partial),
+        count_total: Number(r.count_total),
+      }))
+    );
   });
 }
 
