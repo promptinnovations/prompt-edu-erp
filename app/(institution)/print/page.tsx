@@ -35,6 +35,13 @@ export default async function PrintCenterPage() {
       visible: enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.approve")),
     },
     {
+      icon: ExamIcon,
+      title: "Exam Seating & Bench Stickers",
+      body: "Room-wise seating chart and printable bench stickers (name, class + division, roll number) for an examination.",
+      href: latestExam ? `/examinations/seating?examinationId=${latestExam.id}` : "/examinations/seating",
+      visible: enabledModules.has("examination") && can(ctx.permissions, "examinations.seating.manage"),
+    },
+    {
       icon: AttendanceIcon,
       title: "Monthly Attendance Register",
       body: "A class/section's whole-month attendance grid.",

@@ -111,6 +111,9 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       "files.manage", "calendar.view", "calendar.manage",
       "substitution.view", "substitution.manage", "substitution.timetable.manage",
       "academic.promote", "fees.view", "accounts.view", "messages.view",
+      // Examinations > Seating Arrangement (migration 0049) — hall/room
+      // planning is an office job, same audience as academic.promote.
+      "examinations.seating.manage",
     ],
     teacher: [
       "student.view", "marks.view", "marks.enter", "marks.verify",

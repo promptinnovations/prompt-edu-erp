@@ -88,7 +88,8 @@ export default async function InstitutionLayout({ children }: { children: React.
     && (can(ctx.permissions, "skills.review") || can(ctx.permissions, "skills.approve") || can(ctx.permissions, "skills.submit"));
   const hasAchievementsAccess = enabledModules.has("achievements")
     && (can(ctx.permissions, "achievements.verify") || can(ctx.permissions, "achievements.approve") || can(ctx.permissions, "achievements.submit"));
-  const hasExaminationAccess = enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"));
+  const hasExaminationAccess = enabledModules.has("examination")
+    && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter") || can(ctx.permissions, "examinations.seating.manage"));
   const hasAttendanceAccess = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"));
   const hasStudentAccess = can(ctx.permissions, "student.view") || can(ctx.permissions, "student.view_all");
   const hasDisciplineAccess = enabledModules.has("discipline") && (can(ctx.permissions, "discipline.view") || can(ctx.permissions, "discipline.record"));
@@ -172,6 +173,12 @@ export default async function InstitutionLayout({ children }: { children: React.
         { href: "/examinations#list", label: "Exams" },
         { href: "/examinations", label: "Mark entry" },
         { href: "/examinations/status", label: "Mark entry status" },
+        // Seating Arrangement (migration 0049) gates on its own permission
+        // rather than the group's marks.view/marks.enter — a teacher who
+        // enters marks has no business generating hall seating plans.
+        ...(can(ctx.permissions, "examinations.seating.manage")
+          ? [{ href: "/examinations/seating", label: "Seating Arrangement" }]
+          : []),
       ],
     }] : []),
 

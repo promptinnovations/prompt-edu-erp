@@ -6,6 +6,7 @@ import { requirePermission } from "../../../services/permissions/permission-serv
 import {
   updateInstitutionTheme, updateInstitutionLogo,
   updateParentPortalSections, PARENT_PORTAL_SECTION_KEYS,
+  updateExamSeatingGenderRule,
   type ParentPortalSections,
 } from "../../../services/institution/institution-service";
 import { uploadFile } from "../../../services/storage/file-service";
@@ -114,5 +115,24 @@ export async function updateParentPortalSectionsAction(_prevState: { error: stri
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update parent portal settings." };
+  }
+}
+
+/** Examinations > Seating Arrangement's institution-level boys/girls rule
+ *  (migration 0049). Only affects plans generated from here on — each plan
+ *  snapshots the rule it ran under. */
+export async function updateSeatingGenderRuleAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const value = String(formData.get("examSeatingGenderRule") ?? "");
+    if (value !== "hard" && value !== "best_effort") return { error: "Choose one of the two boys/girls rules." };
+    await updateExamSeatingGenderRule(ctx.institutionId, ctx.session.authUserId, ctx.userId, { examSeatingGenderRule: value });
+    revalidatePath("/settings");
+    revalidatePath("/examinations/seating");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update the seating rule." };
   }
 }

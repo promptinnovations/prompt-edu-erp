@@ -7,6 +7,7 @@ import LogoForm from "./LogoForm";
 import InstallAppButton from "./InstallAppButton";
 import ParentPortalSectionsForm from "./ParentPortalSectionsForm";
 import ThemePaletteForm from "./ThemePaletteForm";
+import SeatingGenderRuleForm from "./SeatingGenderRuleForm";
 
 export default async function SettingsPage() {
   const ctx = await requireRequestContext();
@@ -66,6 +67,15 @@ export default async function SettingsPage() {
           parents but remain fully visible to staff.
         </p>
         <ParentPortalSectionsForm sections={parentPortalSections} />
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Exam seating — boys/girls separation</h2>
+        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+          How strictly Examinations → Seating Arrangement must keep boys and girls in separate rooms when it
+          generates a seating plan. (No two students from the same grade ever share a bench, under either rule.)
+        </p>
+        <SeatingGenderRuleForm current={institution?.examSeatingGenderRule ?? "best_effort"} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">

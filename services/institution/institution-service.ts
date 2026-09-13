@@ -34,7 +34,14 @@ export interface InstitutionSummary {
   // institute admin" (verbatim ask). Always the two track ids, just
   // possibly swapped.
   trackOrder: ("academic" | "islamic")[];
+  // Examinations > Seating Arrangement (migration 0049) — how strictly the
+  // seating allocator must keep boys and girls in separate rooms.
+  // 'hard' fails generation rather than mixing; 'best_effort' mixes only
+  // when capacity leaves no alternative.
+  examSeatingGenderRule: ExamSeatingGenderRule;
 }
+
+export type ExamSeatingGenderRule = "hard" | "best_effort";
 
 export async function getInstitution(institutionId: string, authUserId: string): Promise<InstitutionSummary | null> {
   const db = await getDbClient();
@@ -42,8 +49,11 @@ export async function getInstitution(institutionId: string, authUserId: string):
     const { rows } = await scoped.query<{
       id: string; code: string; name: string; app_name: string | null; theme_palette: string | null; logo_file_id: string | null; pass_pct: string;
       education_mode: "academic" | "islamic" | "both"; track_order: ("academic" | "islamic")[];
+      exam_seating_gender_rule: ExamSeatingGenderRule;
     }>(
-      "select id, code, name, app_name, theme_palette, logo_file_id, pass_pct, education_mode, track_order from institutions where id = $1",
+      `select id, code, name, app_name, theme_palette, logo_file_id, pass_pct, education_mode, track_order,
+              exam_seating_gender_rule
+         from institutions where id = $1`,
       [institutionId]
     );
     if (!rows[0]) return null;
@@ -57,7 +67,42 @@ export async function getInstitution(institutionId: string, authUserId: string):
       passPct: Number(rows[0].pass_pct),
       educationMode: rows[0].education_mode,
       trackOrder: rows[0].track_order,
+      examSeatingGenderRule: rows[0].exam_seating_gender_rule,
     };
+  });
+}
+
+const updateExamSeatingGenderRuleSchema = z.object({
+  examSeatingGenderRule: z.enum(["hard", "best_effort"]),
+});
+
+/** Institution-level toggle behind Examinations > Seating Arrangement —
+ *  same institutions_update_self RLS policy (migration 0020) and
+ *  settings.manage action gate as every other self-service write in this
+ *  file. Changing it does NOT rewrite plans already generated: each plan
+ *  snapshots the rule it was generated under (exam_seating_plans
+ *  .gender_rule), so an old chart keeps explaining itself correctly. */
+export async function updateExamSeatingGenderRule(
+  institutionId: string,
+  authUserId: string,
+  userId: string,
+  input: z.infer<typeof updateExamSeatingGenderRuleSchema>
+): Promise<void> {
+  const data = updateExamSeatingGenderRuleSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<{ exam_seating_gender_rule: string }>(
+      "select exam_seating_gender_rule from institutions where id = $1", [institutionId]
+    );
+    await scoped.query(
+      "update institutions set exam_seating_gender_rule = $1, updated_at = now() where id = $2",
+      [data.examSeatingGenderRule, institutionId]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "platform", entityType: "institutions", entityId: institutionId,
+      before: { examSeatingGenderRule: before[0]?.exam_seating_gender_rule ?? null },
+      after: { examSeatingGenderRule: data.examSeatingGenderRule },
+    });
   });
 }
 

@@ -131,6 +131,8 @@ const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
     "staff.view", "staff.edit", "staff.portion.manage", "staff.observation.manage", "staff.assignment.manage",
     "mentoring.view_all", "data.import", "data.export", "announcements.publish", "announcements.view",
     "files.manage", "fees.view", "accounts.view", "messages.view",
+    // Examinations > Seating Arrangement (migration 0049).
+    "examinations.seating.manage",
   ],
   teacher: [
     "student.view", "marks.view", "marks.enter", "marks.verify",
