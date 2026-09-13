@@ -41,8 +41,17 @@ let teacher2Auth: string, teacher2UserId: string, teacher2StaffId: string;
 let plainTeacherAuth: string, plainTeacherUserId: string; // teacher role, no staff record
 let student1: string;
 
-const FROM_DATE = "2026-08-01";
-const TO_DATE = "2026-08-31";
+// The character assessments below are written with created_at = now(), so
+// this window has to track the clock. It used to be hard-coded to August
+// 2026 and silently started failing on 1 September 2026, when "now" left
+// the window -- getCharacterScoreAverage() returned 0 for rows that were
+// really there. The one-day padding on each side keeps a run that crosses
+// midnight (or a session timezone that disagrees with UTC by hours) inside
+// the range.
+const dayOffsetFromToday = (days: number) =>
+  new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const FROM_DATE = dayOffsetFromToday(-1);
+const TO_DATE = dayOffsetFromToday(1);
 
 beforeAll(async () => {
   __resetDbClientForTests();
