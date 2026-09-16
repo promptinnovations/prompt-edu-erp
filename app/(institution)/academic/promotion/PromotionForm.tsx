@@ -80,7 +80,7 @@ export default function PromotionForm({
 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-      <h2 className="mb-3 text-sm font-semibold text-zinc-700">2. Review &amp; confirm ({students.length} students)</h2>
+      <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">2. Review &amp; confirm ({students.length} students)</h2>
 
       <div className="mb-4">
         <label className="mb-1 block text-xs text-zinc-500">Promote/repeat into academic year</label>

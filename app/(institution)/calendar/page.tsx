@@ -44,7 +44,7 @@ export default async function CalendarPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900">Academic Calendar</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Academic Calendar</h1>
         {canManage ? (
           <Link href="/import" className="text-sm text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
             Bulk upload events (Excel) →
@@ -54,13 +54,13 @@ export default async function CalendarPage() {
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Add an event</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Add an event</h2>
           <AddEventForm />
         </section>
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Upcoming</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Upcoming</h2>
         {upcoming.length === 0 ? (
           <p className="text-sm text-zinc-500">No upcoming events.</p>
         ) : (
@@ -88,7 +88,7 @@ export default async function CalendarPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Past</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Past</h2>
         {past.length === 0 ? (
           <p className="text-sm text-zinc-500">No past events yet.</p>
         ) : (

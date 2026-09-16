@@ -55,7 +55,7 @@ export default async function StudentDirectoryPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Student profiles</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Student profiles</h1>
         <p className="mt-1 text-sm text-zinc-500">
           {tab === "portfolio"
             ? "Pick a student to open their Portfolio tab."

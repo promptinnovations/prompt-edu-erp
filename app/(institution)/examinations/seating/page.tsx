@@ -58,14 +58,14 @@ export default async function SeatingArrangementPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Seating Arrangement</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Seating Arrangement</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Generate a room-wise exam seating plan and printable bench stickers for one examination.
         </p>
       </div>
 
       <section id="rooms" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Exam rooms</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Exam rooms</h2>
         <p className="mb-4 text-sm text-zinc-500">
           Set these up once and reuse them for every examination. A room borrowed for one exam only doesn&apos;t
           belong here — add it as an ad-hoc room when you generate that exam&apos;s plan.
@@ -74,7 +74,7 @@ export default async function SeatingArrangementPage({
       </section>
 
       <section id="generate" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Generate a plan</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Generate a plan</h2>
         <p className="mb-4 text-sm text-zinc-500">
           Students are taken from the classes and divisions the chosen examination covers.
         </p>

@@ -23,15 +23,15 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Settings</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Settings</h1>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Institution</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Institution</h2>
         <p className="text-sm text-zinc-500">{institution?.appName || institution?.name}</p>
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Logo</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Logo</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Upload your institution&apos;s own logo — once set, it replaces the generated letter badge everywhere the
           app currently shows one.
@@ -40,7 +40,7 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Install app</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Install app</h2>
         <p className="mb-3 text-sm text-zinc-500">
           {institution?.name} has its own installable app, separate from every other institution — branded with your
           own name and logo, and kept independent on shared devices.
@@ -52,7 +52,7 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Appearance</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Appearance</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Choose a colour combination for {institution?.appName || institution?.name} — applies everywhere for
           everyone signed in to this institution (sidebar, buttons, login screen).
@@ -61,7 +61,7 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Parent portal — what parents can see</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Parent portal — what parents can see</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Choose which sections of a child&apos;s page show on the parent portal. Unchecked sections stay hidden from
           parents but remain fully visible to staff.
@@ -70,7 +70,7 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Exam seating — boys/girls separation</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Exam seating — boys/girls separation</h2>
         <p className="mb-3 text-sm text-zinc-500">
           How strictly Examinations → Seating Arrangement must keep boys and girls in separate rooms when it
           generates a seating plan. (No two students from the same grade ever share a bench, under either rule.)
@@ -79,7 +79,7 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Grading &amp; points</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Grading &amp; points</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Define your own grading scale, scoring rule points, achievement categories/levels, and skill
           types/activities — every institution configures these independently.

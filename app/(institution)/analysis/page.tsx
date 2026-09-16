@@ -106,7 +106,7 @@ export default async function AnalysisPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Analysis</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Analysis</h1>
       <p className="text-sm text-zinc-500">
         Exam, discipline, skills, and achievements pattern analysis in one place.
       </p>
@@ -118,7 +118,7 @@ export default async function AnalysisPage() {
             href={c.href}
             className="rounded-2xl border border-zinc-200 bg-white p-5 transition-colors hover:border-[var(--brand)]"
           >
-            <h2 className="mb-1.5 text-sm font-semibold text-zinc-900">{c.title}</h2>
+            <h2 className="mb-1.5 text-sm font-semibold text-[var(--heading)]">{c.title}</h2>
             <p className="text-sm text-zinc-500">{c.body}</p>
           </Link>
         ))}

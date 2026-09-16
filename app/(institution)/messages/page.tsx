@@ -13,7 +13,7 @@ export default async function MessagesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">
         Messages from parents {unreadCount > 0 ? <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-sm text-indigo-700">{unreadCount} new</span> : null}
       </h1>
       <div className="space-y-3">

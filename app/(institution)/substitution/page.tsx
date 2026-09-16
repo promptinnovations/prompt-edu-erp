@@ -43,7 +43,7 @@ export default async function SubstitutionPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-zinc-900">Substitution</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Substitution</h1>
         <div className="flex gap-4 text-sm">
           {can(ctx.permissions, "substitution.view") ? <Link href="/substitution/report" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Report →</Link> : null}
           {canManageTimetable ? <Link href="/substitution/timetable" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Timetable →</Link> : null}
@@ -52,7 +52,7 @@ export default async function SubstitutionPage({
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Find substitutes for an absent teacher</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Find substitutes for an absent teacher</h2>
           <form method="get" className="flex flex-wrap items-end gap-2">
             <div>
               <label className="mb-1 block text-xs text-zinc-500">Absent staff member</label>
@@ -95,14 +95,14 @@ export default async function SubstitutionPage({
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent confirmed substitutions (last 14 days)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recent confirmed substitutions (last 14 days)</h2>
         {recent.length === 0 ? (
           <p className="text-sm text-zinc-500">No substitutions recorded yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <th className="py-1.5 pr-3">Date</th>
                   <th className="py-1.5 pr-3">Class</th>
                   <th className="py-1.5 pr-3">Period</th>

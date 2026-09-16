@@ -19,7 +19,7 @@ export default async function SuperAdminAppearancePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-[var(--foreground)]">Appearance</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Appearance</h1>
       <p className="text-sm text-zinc-500">
         Sets the colour combination for this Super Admin console and the generic sign-in screen (before anyone has
         opened a specific institution&apos;s own link). Individual institutions can still override this with their

@@ -30,10 +30,10 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Reports (§P)</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Reports (§P)</h1>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Generate a report</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Generate a report</h2>
         {canExport ? (
           <ReportGeneratorForm
             definitions={definitions.map((d) => ({ code: d.code, name: d.name, dataSource: d.data_source }))}
@@ -50,7 +50,7 @@ export default async function ReportsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Built-in report catalogue</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Built-in report catalogue</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -72,7 +72,7 @@ export default async function ReportsPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recently generated (this institution)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recently generated (this institution)</h2>
         {recent.length === 0 ? (
           <p className="text-sm text-zinc-500">No reports generated yet.</p>
         ) : (

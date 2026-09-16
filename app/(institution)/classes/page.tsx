@@ -103,7 +103,7 @@ export default async function ClassesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Classes</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Classes</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Every class, its divisions, assigned class teacher, and student count in one place.
         </p>
@@ -116,7 +116,7 @@ export default async function ClassesPage() {
       ) : (
         orderedPhases.map((phase) => (
           <section key={phase} className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700">{phase}</h2>
+            <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{phase}</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {groups.get(phase)!.flatMap((c) => {
                 const classSections = [...(sectionsByClass.get(c.id) ?? [])].sort((a, b) => a.name.localeCompare(b.name));

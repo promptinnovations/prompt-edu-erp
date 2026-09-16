@@ -52,7 +52,7 @@ export default function ExamRoomManager({ rooms }: { rooms: ExamRoomRecord[] }) 
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="bg-zinc-50 text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="px-3 py-2">Room</th>
               <th className="px-3 py-2">Benches</th>
@@ -99,7 +99,7 @@ export default function ExamRoomManager({ rooms }: { rooms: ExamRoomRecord[] }) 
               </tr>
             ) : (
               <tr className="bg-zinc-50">
-                <td className="px-3 py-2 text-xs uppercase tracking-wide text-zinc-500" colSpan={3}>Total capacity</td>
+                <td className="px-3 py-2 text-xs uppercase tracking-[0.08em] text-zinc-500" colSpan={3}>Total capacity</td>
                 <td className="px-3 py-2 font-semibold text-zinc-800">{totalCapacity}</td>
                 <td className="px-3 py-2" colSpan={2} />
               </tr>

@@ -29,7 +29,7 @@ export default async function StaffDirectoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Staff profiles</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Staff profiles</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Open a card for a staff member&apos;s full profile. Teaching staff also get exam results and classroom observations.
         </p>

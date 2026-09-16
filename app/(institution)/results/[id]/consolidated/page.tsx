@@ -54,7 +54,7 @@ export default async function ConsolidatedMarksPage({
     <div className="space-y-6">
       <Link href="/results" className="text-sm text-zinc-500 underline">← Back to Results</Link>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900">Consolidated Marks — {examination.name}</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Consolidated Marks — {examination.name}</h1>
         <PrintButton />
       </div>
 
@@ -71,7 +71,7 @@ export default async function ConsolidatedMarksPage({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="bg-zinc-50 text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="sticky left-0 bg-zinc-50 px-4 py-2">Student</th>
                 {subjectList.map((s) => (

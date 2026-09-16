@@ -144,12 +144,12 @@ export default async function AttendancePage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Attendance</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Attendance</h1>
 
       {canSeeOverview ? (
         <section id="overview" className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-zinc-700">Attendance trend</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">Attendance trend</h2>
             <div className="flex gap-1 text-xs">
               <a
                 href={`?trendView=daily${effectiveClassId ? `&classId=${effectiveClassId}` : ""}${effectiveSectionId ? `&sectionId=${effectiveSectionId}` : ""}`}
@@ -176,7 +176,7 @@ export default async function AttendancePage({
 
       {dailyOverview ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700">
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">
             Daily overview — {effectiveDate}
           </h2>
           <p className="mb-3 text-xs text-zinc-500">
@@ -184,7 +184,7 @@ export default async function AttendancePage({
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr>
                   <th className="py-1.5">Class</th>
                   <th className="py-1.5">Division</th>
@@ -215,7 +215,7 @@ export default async function AttendancePage({
           </div>
           {dailyOverview.absentees.length > 0 ? (
             <div className="mt-4">
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="mb-1.5 section-label">
                 Absentee list ({dailyOverview.absentees.length})
               </h3>
               <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">
@@ -229,7 +229,7 @@ export default async function AttendancePage({
       ) : null}
 
       <section id="take" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Take attendance</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Take attendance</h2>
         <ClassSectionPicker
           classes={classes}
           sections={sections}
@@ -258,7 +258,7 @@ export default async function AttendancePage({
       </section>
 
       <section id="leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
           Student Leave Applications — {effectiveDate}
         </h2>
         <p className="mb-3 text-xs text-zinc-500">
@@ -270,7 +270,7 @@ export default async function AttendancePage({
 
       {ownStaffId ? (
         <section id="my-attendance" className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700">My attendance</h2>
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">My attendance</h2>
           <p className="mb-3 text-xs text-zinc-500">
             Mark your own attendance for today — the principal (Institution Admin/Management) approves it on the{" "}
             <Link href="/staff#staff-attendance" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
@@ -284,7 +284,7 @@ export default async function AttendancePage({
 
       {ownStaffId ? (
         <section id="my-leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700">My leave</h2>
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">My leave</h2>
           <p className="mb-3 text-xs text-zinc-500">
             Apply for your own leave — the principal (Institution Admin/Management) reviews it below.
           </p>
@@ -294,7 +294,7 @@ export default async function AttendancePage({
 
       {hasUnrestrictedEdit ? (
         <section id="staff-leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700">Staff leave — principal review</h2>
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Staff leave — principal review</h2>
           <p className="mb-3 text-xs text-zinc-500">
             Every staff member&apos;s own leave application, applied from their own &quot;My leave&quot; section above.
           </p>

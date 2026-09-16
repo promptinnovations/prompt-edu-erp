@@ -63,7 +63,7 @@ export default async function StudentDashboardPage() {
           </span>
         )}
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--foreground)]">{summary.student?.full_name ?? "My profile"}</h1>
+          <h1 className="text-2xl font-semibold text-[var(--heading)]">{summary.student?.full_name ?? "My profile"}</h1>
           <p className="mt-0.5 text-sm text-zinc-500">
             {summary.student?.admission_number} · {classDivisionLabel}
           </p>
@@ -99,14 +99,14 @@ export default async function StudentDashboardPage() {
           href="/portal/student/exams"
           className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand)]"
         >
-          <h2 className="text-sm font-semibold text-[var(--foreground)]">Exam performance</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Exam performance</h2>
           <p className="mt-1 text-xs text-zinc-500">Results, attendance and consolidated score in detail.</p>
         </Link>
         <Link
           href="/portal/student/library"
           className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand)]"
         >
-          <h2 className="text-sm font-semibold text-[var(--foreground)]">Library &amp; reading</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Library &amp; reading</h2>
           <p className="mt-1 text-xs text-zinc-500">Catalogue, pre-booking, and all book reviews.</p>
         </Link>
       </div>

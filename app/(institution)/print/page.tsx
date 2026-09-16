@@ -66,7 +66,7 @@ export default async function PrintCenterPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Print Center</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Print Center</h1>
       <p className="text-sm text-zinc-500">Print or download any document/report from one place.</p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -81,7 +81,7 @@ export default async function PrintCenterPage() {
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]">
                 <Icon className="h-5 w-5" />
               </span>
-              <h2 className="text-sm font-semibold text-zinc-900">{t.title}</h2>
+              <h2 className="text-sm font-semibold text-[var(--heading)]">{t.title}</h2>
               <p className="text-sm text-zinc-500">{t.body}</p>
             </Link>
           );

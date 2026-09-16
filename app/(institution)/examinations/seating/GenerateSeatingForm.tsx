@@ -54,7 +54,7 @@ export default function GenerateSeatingForm({
       <input type="hidden" name="examinationId" value={examinationId} />
 
       <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Rooms from the master list</h3>
+        <h3 className="mb-2 section-label">Rooms from the master list</h3>
         {rooms.length === 0 ? (
           <p className="text-sm text-zinc-500">No rooms in the master list yet — add some above, or add an ad-hoc room below.</p>
         ) : (
@@ -91,7 +91,7 @@ export default function GenerateSeatingForm({
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Ad-hoc rooms (this exam only)</h3>
+          <h3 className="section-label">Ad-hoc rooms (this exam only)</h3>
           <button
             type="button"
             onClick={() => setAdHoc((prev) => [...prev, { ...BLANK_AD_HOC }])}

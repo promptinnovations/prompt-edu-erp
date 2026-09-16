@@ -78,7 +78,7 @@ export default function MentorAssignmentSection({
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr><th className="py-1.5">Mentor</th><th className="py-1.5">Assigned to</th><th className="py-1.5">Status</th><th className="py-1.5"></th></tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">

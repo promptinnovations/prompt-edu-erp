@@ -44,7 +44,7 @@ export default function MarksGridForm({
         <input type="hidden" name="examSubjectId" value={examSubjectId} />
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Admission #</th>
               <th className="py-1.5">Student</th>

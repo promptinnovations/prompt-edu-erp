@@ -122,7 +122,7 @@ export default async function StudentDetailPage({
   const personalTab = (
     <div className="space-y-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
             <dt className="text-zinc-500">Admission number</dt>
@@ -168,7 +168,7 @@ export default async function StudentDetailPage({
 
       {canManage ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Photo</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Photo</h2>
           <PhotoForm studentId={profile.id} photoUrl={profile.photo_file_id ? `/api/files/${profile.photo_file_id}` : null} />
         </div>
       ) : null}
@@ -176,7 +176,7 @@ export default async function StudentDetailPage({
       {canManage ? <StudentProfileForm profile={profile} /> : null}
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Class enrollment</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Class enrollment</h2>
         {enrollment ? (
           <ClassEnrollmentSection
             studentId={profile.id}
@@ -206,13 +206,13 @@ export default async function StudentDetailPage({
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Family background — parents / guardians</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Family background — parents / guardians</h2>
         <ParentSection studentId={profile.id} parents={parents} canManage={canManage} studentHasAccount={!!profile.user_id} />
       </div>
 
       {can(ctx.permissions, "users.manage") ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Student portal login (§137)</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Student portal login (§137)</h2>
           <StudentLoginSection
             studentId={profile.id}
             loginId={profile.login_id ?? null}
@@ -241,7 +241,7 @@ export default async function StudentDetailPage({
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Latest result</div>
+          <div className="section-label">Latest result</div>
           {student360.latestResult ? (
             <>
               <div className="mt-2 text-2xl font-semibold text-zinc-900">{Number(student360.latestResult.percentage).toFixed(1)}%</div>
@@ -255,7 +255,7 @@ export default async function StudentDetailPage({
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Attendance (this year)</div>
+          <div className="section-label">Attendance (this year)</div>
           {student360.attendanceSummary ? (
             <>
               <div className="mt-2 text-2xl font-semibold text-zinc-900">{student360.attendanceSummary.present_percent}%</div>
@@ -269,7 +269,7 @@ export default async function StudentDetailPage({
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 sm:col-span-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Consolidated score</div>
+          <div className="section-label">Consolidated score</div>
           {student360.latestConsolidatedScore ? (
             <>
               <div className="mt-2 text-2xl font-semibold text-zinc-900">{student360.latestConsolidatedScore.score}</div>
@@ -283,11 +283,11 @@ export default async function StudentDetailPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Monthly attendance</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Monthly attendance</h2>
           <MonthlyAttendanceBarChart points={monthlyAttendance} />
         </section>
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
             Exam report{examReport ? ` — ${examReport.examination_name}` : ""}
           </h2>
           {examReport ? <ExamSubjectPieChart subjects={examReport.subjects} /> : (
@@ -307,7 +307,7 @@ export default async function StudentDetailPage({
     </div>
   ) : (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-      <h2 className="mb-3 text-sm font-semibold text-zinc-700">Fee invoices</h2>
+      <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Fee invoices</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
@@ -352,7 +352,7 @@ export default async function StudentDetailPage({
       </p>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Academic performance</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Academic performance</h2>
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-zinc-100 p-3">
             <div className="text-xs text-zinc-500">Latest result</div>
@@ -381,7 +381,7 @@ export default async function StudentDetailPage({
         {examReport ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr><th className="py-1.5 pr-4">Subject</th><th className="py-1.5 pr-4">Marks</th></tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -402,7 +402,7 @@ export default async function StudentDetailPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Achievements &amp; awards</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Achievements &amp; awards</h2>
         <p className="mb-3 text-xs text-zinc-500">Grouped by this institution&apos;s own achievement categories — including competitions, prizes and recognitions.</p>
         {achievementsByCategory.size === 0 ? (
           <p className="text-sm text-zinc-500">No approved achievements yet.</p>
@@ -410,7 +410,7 @@ export default async function StudentDetailPage({
           <div className="space-y-4">
             {Array.from(achievementsByCategory.entries()).map(([category, items]) => (
               <div key={category}>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{category}</h3>
+                <h3 className="mb-2 section-label">{category}</h3>
                 <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {items!.map((a) => (
                     <li key={a.id} className="flex items-center justify-between rounded-xl border border-zinc-100 p-3 text-sm">
@@ -431,7 +431,7 @@ export default async function StudentDetailPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Certifications</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Certifications</h2>
         <p className="mb-3 text-xs text-zinc-500">Achievements with an uploaded certificate document.</p>
         {certifiedAchievements.length === 0 ? (
           <p className="text-sm text-zinc-500">No certificates uploaded yet.</p>
@@ -453,7 +453,7 @@ export default async function StudentDetailPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Skills &amp; co-curricular activities</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Skills &amp; co-curricular activities</h2>
         <p className="mb-3 text-xs text-zinc-500">Approved skill/activity submissions — sports, arts, clubs and other co-curricular participation, per this institution&apos;s own configured activities.</p>
         {approvedSkillSubmissions.length === 0 ? (
           <p className="text-sm text-zinc-500">No approved skill submissions yet.</p>
@@ -472,14 +472,14 @@ export default async function StudentDetailPage({
       {canViewDiscipline ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-700">Discipline &amp; character</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">Discipline &amp; character</h2>
             <Link href="/discipline" className="text-xs text-indigo-600 underline hover:text-indigo-800">
               Open Discipline
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="mb-2 section-label">
                 Discipline records ({disciplineRecords.length})
               </h3>
               {disciplineRecords.length === 0 ? (
@@ -504,7 +504,7 @@ export default async function StudentDetailPage({
               )}
             </div>
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="mb-2 section-label">
                 Character assessments ({characterAssessments.length})
               </h3>
               {characterAssessments.length === 0 ? (
@@ -528,7 +528,7 @@ export default async function StudentDetailPage({
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Books read ({allReadingRecords.length})</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Books read ({allReadingRecords.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">Every book this student has finished and returned.</p>
         {allReadingRecords.length === 0 ? (
           <p className="text-sm text-zinc-500">No books read yet.</p>
@@ -554,7 +554,7 @@ export default async function StudentDetailPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Reading reviews ({approvedReadingRecords.length})</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Reading reviews ({approvedReadingRecords.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">Reviews this student posted, once approved.</p>
         {approvedReadingRecords.length === 0 ? (
           <p className="text-sm text-zinc-500">No approved reading reviews yet.</p>
@@ -574,7 +574,7 @@ export default async function StudentDetailPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Activity timeline</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Activity timeline</h2>
         <p className="mb-3 text-xs text-zinc-500">A chronological view across every module — projects, accomplishments and other development records all flow through here as they&apos;re approved.</p>
         <ul className="divide-y divide-zinc-100">
           {student360.recentPortfolioEvents.map((e) => (
@@ -597,7 +597,7 @@ export default async function StudentDetailPage({
 
       {kudosReceived.length > 0 ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Kudos received</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudosReceived.map((k) => (
               <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
@@ -614,7 +614,7 @@ export default async function StudentDetailPage({
   const academicsTab = (
     <div className="space-y-6">
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
           {examReport ? examReport.examination_name : "Subject-wise marks"}
         </h2>
         {examReport ? (
@@ -624,13 +624,13 @@ export default async function StudentDetailPage({
                 const trackSubjects = examReport.subjects.filter((s) => s.track === track);
                 return (
                   <div key={track}>
-                    <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    <h3 className="mb-1 section-label">
                       {TRACK_LABEL[track] ?? track}
                     </h3>
                     {trackSubjects.length > 0 ? (
                       <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr>
                   <th className="py-1.5 pr-4">Subject</th>
                   <th className="py-1.5 pr-4">Marks</th>
@@ -660,10 +660,10 @@ export default async function StudentDetailPage({
               })}
               {examReport.subjects.filter((s) => !s.track).length > 0 ? (
                 <div>
-                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Untagged</h3>
+                  <h3 className="mb-1 section-label">Untagged</h3>
                   <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr>
                   <th className="py-1.5 pr-4">Subject</th>
                   <th className="py-1.5 pr-4">Marks</th>
@@ -691,7 +691,7 @@ export default async function StudentDetailPage({
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr>
                   <th className="py-1.5 pr-4">Subject</th>
                   <th className="py-1.5 pr-4">Marks</th>
@@ -720,10 +720,10 @@ export default async function StudentDetailPage({
       </section>
       {dailyAssessmentHistory.length > 0 ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Daily performance</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Daily performance</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr>
                   <th className="py-1.5 pr-4">Date</th>
                   <th className="py-1.5 pr-4">Subject</th>
@@ -767,7 +767,7 @@ export default async function StudentDetailPage({
           </span>
         )}
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">{profile.full_name}</h1>
+          <h1 className="text-2xl font-semibold text-[var(--heading)]">{profile.full_name}</h1>
           <p className="mt-0.5 text-sm text-zinc-500">
             {profile.admission_number} · {classDivisionLabel}
             {profile.status === "withdrawn" ? <span className="ml-2 text-red-600">(removed)</span> : null}

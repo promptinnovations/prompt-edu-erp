@@ -66,7 +66,7 @@ export default async function SeatingStickersPage({
         <PrintButton label="Print stickers" />
       </div>
 
-      <h1 className="no-print text-2xl font-semibold text-zinc-900">
+      <h1 className="no-print text-2xl font-semibold text-[var(--heading)]">
         Bench stickers — {examination?.name ?? "Examination"}
       </h1>
 
@@ -86,12 +86,12 @@ export default async function SeatingStickersPage({
 
           {byRoom.map((room) => (
             <div key={room.roomName} className="mb-6">
-              <h2 className="mb-2 border-b border-zinc-200 pb-1 text-sm font-semibold text-zinc-800">
+              <h2 className="mb-2 border-b border-zinc-200 pb-1 text-sm font-semibold text-[var(--heading)]">
                 {room.roomName}
               </h2>
               {room.benches.map((bench) => (
                 <div key={bench.benchNumber} className="mb-3">
-                  <p className="mb-1 text-[10px] uppercase tracking-wide text-zinc-500">
+                  <p className="mb-1 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
                     Bench {bench.benchNumber}
                   </p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

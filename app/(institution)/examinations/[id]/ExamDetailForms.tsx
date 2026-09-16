@@ -107,7 +107,7 @@ export function ExamSubjectsSection({
       {linked.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr><th className="py-1.5">Subject</th><th className="py-1.5">Max</th><th className="py-1.5">Pass</th><th className="py-1.5" /><th className="py-1.5" /></tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -141,7 +141,7 @@ export function ExamSubjectsSection({
           <input type="hidden" name="examinationId" value={examinationId} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr><th className="py-1.5" /><th className="py-1.5">Subject</th><th className="py-1.5">Max marks</th><th className="py-1.5">Pass marks</th></tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">

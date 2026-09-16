@@ -24,7 +24,7 @@ export default function PrintLetterhead({
         // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL, printed letterhead
         <img src={`/api/institution-logo/${logoCode}`} alt="" className="h-10 w-10 shrink-0 object-contain" />
       ) : null}
-      <h2 className="text-lg font-semibold text-zinc-900">{institutionName}</h2>
+      <h2 className="text-lg font-semibold text-[var(--heading)]">{institutionName}</h2>
     </div>
   );
 }

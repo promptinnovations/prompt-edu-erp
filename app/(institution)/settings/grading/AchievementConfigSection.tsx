@@ -90,7 +90,7 @@ export default function AchievementConfigSection({
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div>
-        <h3 className="mb-2 text-sm font-medium text-zinc-700">Categories</h3>
+        <h3 className="mb-2 text-sm font-semibold text-[var(--heading)]">Categories</h3>
         <ul className="divide-y divide-zinc-100">
           {categories.length === 0 ? <li className="py-1 text-xs text-zinc-500">None yet.</li> : null}
           {categories.map((c) => <CategoryRow key={c.id} category={c} canManage={canManage} />)}
@@ -104,7 +104,7 @@ export default function AchievementConfigSection({
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-medium text-zinc-700">Levels</h3>
+        <h3 className="mb-2 text-sm font-semibold text-[var(--heading)]">Levels</h3>
         <ul className="divide-y divide-zinc-100">
           {levels.length === 0 ? <li className="py-1 text-xs text-zinc-500">None yet.</li> : null}
           {levels.map((l) => <LevelRow key={l.id} level={l} canManage={canManage} />)}

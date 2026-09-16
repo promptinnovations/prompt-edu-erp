@@ -32,7 +32,7 @@ export default function StaffLeaveReviewTable({ leaves }: { leaves: StaffLeaveRe
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+        <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
           <tr>
             <th className="py-1.5">Staff</th>
             <th className="py-1.5">Dates</th>

@@ -27,7 +27,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           <Link href="/super-admin" className="text-xs text-zinc-500 hover:text-zinc-600">
             ← All institutions
           </Link>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900">{institution.name}</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">{institution.name}</h1>
           <p className="text-sm text-zinc-500">
             {institution.code} · {institution.type} · status: {institution.status}
           </p>
@@ -49,7 +49,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
       </p>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Modules</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Modules</h2>
         <p className="mb-4 text-xs text-zinc-500">
           Core modules (Academic Structure, Student Management) are always on — every institution needs them to
           function. Everything else can be turned on or off here; a disabled module disappears from that
@@ -57,7 +57,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
         </p>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Module</th>
               <th className="py-1.5">Category</th>
@@ -97,7 +97,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
 
       {institution.type === "madrasa" || institution.type === "school" ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700">
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">
             {institution.type === "school" ? "Board / curriculum" : "Educational board"}
           </h2>
           <p className="mb-4 text-xs text-zinc-500">
@@ -108,7 +108,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">WhatsApp (GREEN-API)</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">WhatsApp (GREEN-API)</h2>
         <p className="mb-4 text-xs text-zinc-500">
           Each institution sends attendance alerts from its own WhatsApp number — enter the ID Instance and API
           Token Instance from this institution&apos;s own GREEN-API console. Leave both blank to disable WhatsApp

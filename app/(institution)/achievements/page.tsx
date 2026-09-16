@@ -22,12 +22,12 @@ export default async function AchievementsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Achievements</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Achievements</h1>
 
       {can(ctx.permissions, "achievements.submit") ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-zinc-700">Submit an achievement</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">Submit an achievement</h2>
             {can(ctx.permissions, "settings.manage") ? (
               <Link href="/settings/grading#achievements" className="text-xs text-indigo-600 underline whitespace-nowrap">
                 Manage categories &amp; levels
@@ -50,7 +50,7 @@ export default async function AchievementsPage() {
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Achievements</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Achievements</h2>
         <AchievementsTable
           achievements={achievements}
           canVerify={can(ctx.permissions, "achievements.verify")}

@@ -73,7 +73,7 @@ export default async function StaffDetailPage({
         </span>
       )}
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">{profile.full_name}</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">{profile.full_name}</h1>
         <p className="mt-0.5 text-sm text-zinc-500">
           {profile.staff_code} · {profile.designation ?? "—"}
           {isTeacher ? <span className="ml-2 rounded-full bg-[var(--brand)]/10 px-2 py-0.5 text-xs font-medium text-[var(--brand)]">Teacher</span> : null}
@@ -95,7 +95,7 @@ export default async function StaffDetailPage({
         {header}
       {kudos.length > 0 ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Kudos received</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudos.map((k) => (
               <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
@@ -109,7 +109,7 @@ export default async function StaffDetailPage({
 
         <div className="space-y-6">
           <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity &amp; employment</h2>
+            <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
             <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               <div>
                 <dt className="text-zinc-500">Staff ID</dt>
@@ -156,7 +156,7 @@ export default async function StaffDetailPage({
 
           {canEditSelfFields ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-              <h2 className="mb-3 text-sm font-semibold text-zinc-700">Photo</h2>
+              <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Photo</h2>
               <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
             </div>
           ) : null}
@@ -188,7 +188,7 @@ export default async function StaffDetailPage({
   const profileTab = (
     <div className="space-y-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity &amp; employment</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
             <dt className="text-zinc-500">Staff ID</dt>
@@ -231,7 +231,7 @@ export default async function StaffDetailPage({
 
       {canEditSelfFields ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Photo</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Photo</h2>
           <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
         </div>
       ) : null}
@@ -251,7 +251,7 @@ export default async function StaffDetailPage({
 
       {kudos.length > 0 ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Kudos received</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudos.map((k) => (
               <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">

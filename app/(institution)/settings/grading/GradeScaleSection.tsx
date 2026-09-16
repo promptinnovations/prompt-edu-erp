@@ -75,7 +75,7 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
         ) : (
-          <h3 className="font-medium text-zinc-900">
+          <h3 className="font-semibold text-[var(--heading)]">
             {scale.name}{" "}
             {scale.is_default ? (
               <span className="ml-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">Default</span>

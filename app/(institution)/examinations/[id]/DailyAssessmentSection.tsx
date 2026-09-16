@@ -37,7 +37,7 @@ export default function DailyAssessmentSection({
     <div className="space-y-6">
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700">Add today&apos;s assessment</h2>
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Add today&apos;s assessment</h2>
           <p className="mb-3 text-xs text-zinc-500">
             Conducted based on the portion completed that day — the same subject can be assessed again on a later day.
           </p>
@@ -46,10 +46,10 @@ export default function DailyAssessmentSection({
       ) : null}
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-        <h2 className="px-5 pt-5 text-sm font-semibold text-zinc-700">Register</h2>
+        <h2 className="px-5 pt-5 text-sm font-semibold text-[var(--heading)]">Register</h2>
         <div className="overflow-x-auto p-5 pt-3">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5 pr-4">Date</th>
                 <th className="py-1.5 pr-4">Class</th>
@@ -89,7 +89,7 @@ export default function DailyAssessmentSection({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Monthly consolidated result</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Monthly consolidated result</h2>
         <p className="mb-3 text-xs text-zinc-500">Updates automatically as each day&apos;s marks are entered.</p>
         <div className="mb-3">
           <DailyAssessmentFilters classes={classes} subjects={allSubjects} classParam={classParam} subjectParam={subjectParam} />
@@ -97,7 +97,7 @@ export default function DailyAssessmentSection({
         {classParam ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr>
                   <th className="py-1.5 pr-4">Student</th>
                   <th className="py-1.5 pr-4">Daily mark</th>
@@ -130,10 +130,10 @@ export default function DailyAssessmentSection({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Monthly analysis — subject-wise</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Monthly analysis — subject-wise</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5 pr-4">Subject</th>
                 <th className="py-1.5 pr-4">Sessions</th>
@@ -159,10 +159,10 @@ export default function DailyAssessmentSection({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Monthly analysis — class-wise</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Monthly analysis — class-wise</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5 pr-4">Class</th>
                 <th className="py-1.5 pr-4">Sessions</th>
@@ -186,12 +186,12 @@ export default function DailyAssessmentSection({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Monthly analysis — student-wise</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Monthly analysis — student-wise</h2>
         <p className="mb-3 text-xs text-zinc-500">Uses the class selected above.</p>
         {classParam ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr>
                   <th className="py-1.5 pr-4">Student</th>
                   <th className="py-1.5 pr-4">Sessions taken</th>

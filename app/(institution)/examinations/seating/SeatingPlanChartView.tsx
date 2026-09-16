@@ -26,7 +26,7 @@ export default function SeatingPlanChartView({
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-700">Seating chart — {examinationName}</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Seating chart — {examinationName}</h2>
           <p className="mt-1 text-xs text-zinc-500">
             {plan.student_count} student(s) · {rooms.length} room(s) · {plan.seat_count} seat(s) · generated {generatedOn} ·{" "}
             boys/girls rule at generation: {plan.gender_rule === "hard" ? "hard (no mixed rooms)" : "best effort"}
@@ -52,7 +52,7 @@ export default function SeatingPlanChartView({
       <div className="space-y-6">
         {rooms.map((room) => (
           <div key={room.id}>
-            <h3 className="mb-2 text-sm font-semibold text-zinc-800">
+            <h3 className="mb-2 text-sm font-semibold text-[var(--heading)]">
               {room.name}
               <span className="ml-2 text-xs font-normal text-zinc-500">
                 {room.seatedCount} / {room.bench_count * room.seats_per_bench} seats used

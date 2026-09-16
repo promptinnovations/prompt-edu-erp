@@ -111,7 +111,7 @@ export default function ResponsiveSidebar({
 
         {children}
 
-        <div className="mt-4 truncate border-t border-[var(--sidebar-border)] pt-4 text-center text-[10px] uppercase tracking-wide text-[var(--sidebar-text-muted)]">
+        <div className="mt-4 truncate border-t border-[var(--sidebar-border)] pt-4 text-center text-[10px] uppercase tracking-[0.08em] text-[var(--sidebar-text-muted)]">
           PROMPT EDU ERP · Prompt Innovations
         </div>
       </aside>

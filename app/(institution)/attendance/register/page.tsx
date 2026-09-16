@@ -68,7 +68,7 @@ export default async function MonthlyRegisterPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Monthly Attendance Register</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Monthly Attendance Register</h1>
 
       <section className="no-print rounded-2xl border border-zinc-200 bg-white p-5">
         <RegisterPicker classes={classes} sections={sections} classId={effectiveClassId} sectionId={effectiveSectionId} month={effectiveMonth} />
@@ -82,7 +82,7 @@ export default async function MonthlyRegisterPage({
           />
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-zinc-700">
+              <h2 className="text-sm font-semibold text-[var(--heading)]">
                 {className} — {sectionName} · {effectiveMonth}
               </h2>
               <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-500">

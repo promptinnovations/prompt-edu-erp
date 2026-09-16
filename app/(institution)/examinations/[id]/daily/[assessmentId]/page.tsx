@@ -39,7 +39,7 @@ export default async function DailyAssessmentMarksPage({
       <Link href={`/examinations/${id}`} className="text-sm text-zinc-500 underline">
         ← Back to {examination.name}
       </Link>
-      <h1 className="text-2xl font-semibold text-zinc-900">
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">
         {entry.subject_name} — {entry.class_name} — {new Date(entry.assessment_date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
       </h1>
       <p className="text-sm text-zinc-500">Portion: {entry.portion}</p>

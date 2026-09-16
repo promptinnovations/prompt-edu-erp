@@ -68,7 +68,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         <Link href="/classes" className="text-sm text-zinc-500 underline hover:text-zinc-800">
           ← All classes
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Class {cls.name}</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">Class {cls.name}</h1>
         {wholeClassTeachers.length > 0 ? (
           <p className="mt-1 text-sm text-zinc-500">Class teacher: {wholeClassTeachers.join(", ")}</p>
         ) : null}
@@ -79,7 +79,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Divisions</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Divisions</h2>
         {sections.length === 0 ? (
           <p className="text-sm text-zinc-500">
             No divisions yet — add one under <Link href="/academic" className="underline">Academic Setup</Link>.
@@ -137,7 +137,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700">Subjects</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Subjects</h2>
           <Link href="/academic" className="text-xs text-indigo-600 underline hover:text-indigo-800">
             Manage in Academic Setup
           </Link>
@@ -161,7 +161,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700">Students ({students.length})</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Students ({students.length})</h2>
           <Link href={`/students?classId=${classId}`} className="text-xs text-indigo-600 underline hover:text-indigo-800">
             Open in Students (search/edit/delete)
           </Link>
@@ -203,7 +203,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Exams ({exams.length})</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Exams ({exams.length})</h2>
         {exams.length === 0 ? (
           <p className="text-sm text-zinc-500">No examinations cover this class yet.</p>
         ) : (
@@ -225,7 +225,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       {can(ctx.permissions, "discipline.view") ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-700">Discipline records ({disciplineRecords.length})</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">Discipline records ({disciplineRecords.length})</h2>
             <Link href="/discipline" className="text-xs text-indigo-600 underline hover:text-indigo-800">
               Open Discipline (add entry / full reports)
             </Link>
@@ -247,7 +247,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700">
+          <h2 className="text-sm font-semibold text-[var(--heading)]">
             Skills &amp; achievements ({skillSubmissions.length + achievements.length})
           </h2>
           <span className="flex gap-3">
@@ -278,7 +278,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       {can(ctx.permissions, "library.view") ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-700">Library — reading record ({readingRecords.length})</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">Library — reading record ({readingRecords.length})</h2>
             <Link href="/library" className="text-xs text-indigo-600 underline hover:text-indigo-800">
               Open Library
             </Link>

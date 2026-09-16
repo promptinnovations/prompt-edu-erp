@@ -20,7 +20,7 @@ export default async function SuspendedPage({
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-zinc-50 px-4">
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center">
-        <h1 className="text-lg font-semibold text-zinc-900">
+        <h1 className="text-lg font-semibold text-[var(--heading)]">
           {isSuspended ? "Institution suspended" : "Institution inactive"}
         </h1>
         <p className="mt-3 text-sm text-zinc-600">

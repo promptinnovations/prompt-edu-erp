@@ -72,7 +72,7 @@ function SkillTypeCard({
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
         ) : (
-          <h3 className="font-medium text-zinc-900">{type.name}</h3>
+          <h3 className="font-semibold text-[var(--heading)]">{type.name}</h3>
         )}
         {canManage && !editing ? (
           <span className="flex items-center gap-2">

@@ -44,7 +44,7 @@ export default async function StaffMonthlyRegisterPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Staff Monthly Attendance Register</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Staff Monthly Attendance Register</h1>
 
       <section className="no-print rounded-2xl border border-zinc-200 bg-white p-5">
         <form method="get" className="flex flex-wrap items-end gap-2">
@@ -65,7 +65,7 @@ export default async function StaffMonthlyRegisterPage({
         />
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-700">{effectiveMonth}</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">{effectiveMonth}</h2>
             <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-500">
               {statuses.map((s) => (
                 <span key={s.id}>{s.code.charAt(0).toUpperCase()} = {s.label}</span>

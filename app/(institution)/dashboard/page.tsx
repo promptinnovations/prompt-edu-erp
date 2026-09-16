@@ -149,7 +149,7 @@ export default async function DashboardPage() {
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
         <div className="relative">
-          <div className="text-xs font-medium uppercase tracking-wide text-white/70">{t("institution")}</div>
+          <div className="text-xs font-medium uppercase tracking-[0.08em] text-white/70">{t("institution")}</div>
           <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">{institution?.appName || institution?.name}</h1>
           <p className="mt-2 max-w-lg text-sm text-white/80">{t("title")}</p>
         </div>
@@ -188,11 +188,11 @@ export default async function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900">Dashboard</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[var(--heading)]">Dashboard</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {attendanceToday ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-              <h3 className="mb-3 text-sm font-semibold text-zinc-700">Today&apos;s attendance</h3>
+              <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Today&apos;s attendance</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-zinc-500">Students</p>
@@ -217,13 +217,13 @@ export default async function DashboardPage() {
           ) : null}
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h3 className="mb-3 text-sm font-semibold text-zinc-700">To do list</h3>
+            <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">To do list</h3>
             <TodoWidget todos={todos} />
           </section>
 
           {hasExaminationAccess && recentExam ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-              <h3 className="mb-1 text-sm font-semibold text-zinc-700">Mark entry status</h3>
+              <h3 className="mb-1 text-sm font-semibold text-[var(--heading)]">Mark entry status</h3>
               <p className="mb-3 text-xs text-zinc-500">{recentExam.name}</p>
               {markExpected === 0 ? (
                 <p className="text-sm text-zinc-500">No students/subjects configured yet.</p>
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
           {hasExaminationAccess && passRateTrendByStage.length > 0 ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700">Pass rate trend</h3>
+                <h3 className="text-sm font-semibold text-[var(--heading)]">Pass rate trend</h3>
                 <Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
               <PassRateStageTrendChart points={passRateTrendByStage} />
@@ -252,7 +252,7 @@ export default async function DashboardPage() {
           {isSectionOrAbove && attendanceTrendByStage.length > 0 ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700">Attendance trend</h3>
+                <h3 className="text-sm font-semibold text-[var(--heading)]">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
               <p className="mb-1 text-xs text-zinc-500">{attendanceVisibility.label} · last 15 days</p>
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
           ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700">Attendance trend</h3>
+                <h3 className="text-sm font-semibold text-[var(--heading)]">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
               <p className="mb-1 text-xs text-zinc-500">{attendanceVisibility.label}</p>
@@ -272,7 +272,7 @@ export default async function DashboardPage() {
           {isSectionOrAbove && consecutiveAbsentees.length > 0 ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700">Chronic absentees (3+ days)</h3>
+                <h3 className="text-sm font-semibold text-[var(--heading)]">Chronic absentees (3+ days)</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
               <ConsecutiveAbsenteesList rows={consecutiveAbsentees} />
@@ -282,7 +282,7 @@ export default async function DashboardPage() {
           {hasUnrestrictedLeaveReview || hasScopedLeaveReview ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700">Pending leave requests</h3>
+                <h3 className="text-sm font-semibold text-[var(--heading)]">Pending leave requests</h3>
                 <Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>
               </div>
               {pendingLeave.length === 0 ? (
@@ -303,7 +303,7 @@ export default async function DashboardPage() {
           ) : null}
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h3 className="mb-3 text-sm font-semibold text-zinc-700">Upcoming calendar</h3>
+            <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Upcoming calendar</h3>
             {upcoming.length === 0 ? (
               <p className="text-sm text-zinc-500">Nothing scheduled.</p>
             ) : (

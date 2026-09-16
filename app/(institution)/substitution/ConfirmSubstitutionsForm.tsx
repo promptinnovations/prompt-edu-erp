@@ -41,7 +41,7 @@ export default function ConfirmSubstitutionsForm({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <th className="py-1.5 pr-3">Class</th>
               <th className="py-1.5 pr-3">Period</th>
               <th className="py-1.5 pr-3">Subject</th>

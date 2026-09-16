@@ -45,7 +45,7 @@ export default async function SuperAdminOverviewPage() {
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/20 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-white/5 blur-2xl" />
         <div className="relative">
-          <div className="text-xs font-medium uppercase tracking-wide text-white/60">Super Admin Console</div>
+          <div className="text-xs font-medium uppercase tracking-[0.08em] text-white/60">Super Admin Console</div>
           <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Institutions</h1>
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -60,19 +60,19 @@ export default async function SuperAdminOverviewPage() {
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Create a new institution</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Create a new institution</h2>
         <CreateInstitutionForm />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">All institutions ({institutions.length})</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">All institutions ({institutions.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Usage counts below are live, on-demand totals — not the scheduled `usage_metrics` rollup described in
           ARCHITECTURE.md §W.1 (no job scheduler is wired up yet, same as the analytics-refresh follow-up; see docs/SETUP.md).
         </p>
         <div className="-mx-5 overflow-x-auto px-5">
           <table className="w-full min-w-[820px] text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5 pr-4">Name</th>
                 <th className="py-1.5 pr-4">URL</th>

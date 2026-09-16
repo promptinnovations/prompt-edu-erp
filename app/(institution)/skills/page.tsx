@@ -22,12 +22,12 @@ export default async function SkillsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Skills</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Skills</h1>
 
       {can(ctx.permissions, "skills.submit") ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-zinc-700">Submit an activity</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">Submit an activity</h2>
             {can(ctx.permissions, "settings.manage") ? (
               <Link href="/settings/grading#skills" className="text-xs text-indigo-600 underline whitespace-nowrap">
                 Manage skill types &amp; activities
@@ -50,7 +50,7 @@ export default async function SkillsPage() {
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Submissions</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Submissions</h2>
         <SubmissionsTable
           submissions={submissions}
           canReview={can(ctx.permissions, "skills.review")}

@@ -37,7 +37,7 @@ export default async function TimetablePage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <Link href="/substitution" className="text-sm text-zinc-500 underline">← Back to Substitution</Link>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Weekly Timetable</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">Weekly Timetable</h1>
         </div>
         <Link href="/import" className="text-sm text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
           Bulk upload timetable (Excel) →
@@ -45,12 +45,12 @@ export default async function TimetablePage() {
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Configured bulk-upload template</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Configured bulk-upload template</h2>
         <TimetableTemplateForm classes={classes.map((c) => ({ id: c.id, name: c.name }))} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Add / update a period</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Add / update a period</h2>
         <AddTimetablePeriodForm
           classes={classes}
           sections={sections}
@@ -60,18 +60,18 @@ export default async function TimetablePage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Current timetable</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Current timetable</h2>
         {grouped.size === 0 ? (
           <p className="text-sm text-zinc-500">No periods set up yet — add one above, or bulk-upload an Excel file.</p>
         ) : (
           <div className="space-y-5">
             {Array.from(grouped.entries()).map(([key, group]) => (
               <div key={key}>
-                <h3 className="mb-2 text-sm font-medium text-zinc-900">{group.className} – {group.sectionName}</h3>
+                <h3 className="mb-2 text-sm font-semibold text-[var(--heading)]">{group.className} – {group.sectionName}</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                      <tr className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                         <th className="py-1 pr-3">Day</th>
                         <th className="py-1 pr-3">Period</th>
                         <th className="py-1 pr-3">Subject</th>

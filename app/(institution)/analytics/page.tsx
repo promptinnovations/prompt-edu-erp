@@ -73,7 +73,7 @@ export default async function AnalyticsPage({
   if (!canView) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900">Analytics</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Analytics</h1>
         <p className="text-sm text-zinc-500">You don&apos;t have permission to view analytics.</p>
       </div>
     );
@@ -176,7 +176,7 @@ export default async function AnalyticsPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900">Analytics</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Analytics</h1>
         <RefreshButton />
       </div>
       <p className="text-xs text-zinc-500">
@@ -187,7 +187,7 @@ export default async function AnalyticsPage({
       </p>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Examination performance</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Examination performance</h2>
         <ExaminationPicker
           examinations={examinations}
           examinationId={examinationId}
@@ -200,10 +200,10 @@ export default async function AnalyticsPage({
         {examinationId ? (
           <div className="mt-4 space-y-6">
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subject comparison</h3>
+              <h3 className="mb-2 section-label">Subject comparison</h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr><th className="py-1.5">Rank</th><th className="py-1.5">Subject</th><th className="py-1.5">Marked</th><th className="py-1.5">Average</th><th className="py-1.5">Pass %</th></tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -225,10 +225,10 @@ export default async function AnalyticsPage({
             </div>
 
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subject-level performance indicators</h3>
+              <h3 className="mb-2 section-label">Subject-level performance indicators</h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr><th className="py-1.5">Subject</th><th className="py-1.5">Division avg</th><th className="py-1.5">Division pass %</th></tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -246,12 +246,12 @@ export default async function AnalyticsPage({
             </div>
 
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <h3 className="mb-2 section-label">
                 Student classification {rule ? `(≥${rule.high_threshold}% high, <${rule.low_threshold}% low)` : "(no rule configured)"}
               </h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr><th className="py-1.5">Student</th><th className="py-1.5">Percentage</th><th className="py-1.5">Band</th></tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -272,7 +272,7 @@ export default async function AnalyticsPage({
       {examinationId ? (
         <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-zinc-700">Result Analysis</h2>
+            <h2 className="text-sm font-semibold text-[var(--heading)]">Result Analysis</h2>
             <PrintButton label="Print this report" />
           </div>
           {!hasBroadResultAccess ? (
@@ -303,13 +303,13 @@ export default async function AnalyticsPage({
 
               {trackSummaries.length > 0 ? (
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  <h3 className="mb-2 section-label">
                     Academic vs Islamic (analyzed separately)
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {trackSummaries.map((t: TrackResultSummary) => (
                       <div key={t.track} className="rounded-xl border border-zinc-200 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 capitalize">{t.track}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500 capitalize">{t.track}</p>
                         <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                           <div>
                             <div className="text-lg font-semibold text-zinc-900">{t.total_students}</div>
@@ -331,16 +331,16 @@ export default async function AnalyticsPage({
               ) : null}
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Grade distribution</h3>
+                  <h3 className="mb-2 section-label">Grade distribution</h3>
                   <Donut segments={gradeDonutSegments} centerLabel={String(schoolSummary.total_students)} centerSubLabel="students" />
                 </div>
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Pass / fail</h3>
+                  <h3 className="mb-2 section-label">Pass / fail</h3>
                   <Donut segments={passFailSegments} centerLabel={fmtPct(schoolSummary.pass_percent)} centerSubLabel="pass rate" />
                 </div>
               </div>
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subjects ranked by average marks</h3>
+                <h3 className="mb-2 section-label">Subjects ranked by average marks</h3>
                 {subjectRankChart.length > 0 ? <BarChart data={subjectRankChart} orientation="horizontal" /> : <p className="text-sm text-zinc-500">No approved marks yet.</p>}
               </div>
               {topTeacher ? (
@@ -367,7 +367,7 @@ export default async function AnalyticsPage({
             <div className="space-y-6">
               <ResultGroupSection rows={scopedByClass} nameHeader="Grade" showParent={false} emptyText="No computed results for this examination yet." />
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Division comparison within each grade</h3>
+                <h3 className="mb-2 section-label">Division comparison within each grade</h3>
                 <div className="space-y-4">
                   {scopedByClass.map((g) => {
                     const divisions = scopedBySection.filter((s) => s.parent_name === g.name);
@@ -392,7 +392,7 @@ export default async function AnalyticsPage({
             <div className="space-y-6">
               <ResultGroupSection rows={scopedBySection} nameHeader="Division" showParent emptyText="No computed results for this examination yet." />
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Marks-distribution histogram</h3>
+                <h3 className="mb-2 section-label">Marks-distribution histogram</h3>
                 <div className="no-print mb-3 flex flex-wrap gap-1">
                   {classOptions.map((c) => (
                     <Link
@@ -419,13 +419,13 @@ export default async function AnalyticsPage({
         </section>
       ) : (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700">Result Analysis</h2>
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Result Analysis</h2>
           <p className="text-sm text-zinc-500">Select an examination above to see School/Section/Grade/Class/Subject/Teacher-wise reports.</p>
         </section>
       )}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Class attendance trend</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Class attendance trend</h2>
         <AttendanceTrendPicker
           classes={classes}
           sections={sections}
@@ -438,7 +438,7 @@ export default async function AnalyticsPage({
         {trendClassId && trendSectionId ? (
           <div className="overflow-x-auto">
           <table className="mt-4 w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr><th className="py-1.5">Month</th><th className="py-1.5">Present days</th><th className="py-1.5">Late days</th><th className="py-1.5">Total days</th><th className="py-1.5">Present %</th></tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -456,7 +456,7 @@ export default async function AnalyticsPage({
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Classification thresholds (percentage)</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Classification thresholds (percentage)</h2>
           <ClassificationRuleForm highThreshold={rule?.high_threshold ?? 75} lowThreshold={rule?.low_threshold ?? 40} />
         </section>
       ) : null}
@@ -476,7 +476,7 @@ function ResultGroupSection({
     <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Rank</th>
               {showParent ? <th className="py-1.5">Class</th> : null}
@@ -507,13 +507,13 @@ function ResultGroupSection({
       </div>
       {rows.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Average % comparison</p>
+          <p className="mb-2 section-label">Average % comparison</p>
           <BarChart data={chart} orientation="horizontal" valueFormat={(v) => `${v}%`} />
         </div>
       ) : null}
       {rows.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Grade distribution</p>
+          <p className="mb-2 section-label">Grade distribution</p>
           <StackedBarChart groups={stacked} />
         </div>
       ) : null}
@@ -537,10 +537,10 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
           .map((s) => ({ label: s.subject_name, value: s.average_percent ?? 0, color: "#4f46e5" }));
         return (
           <div key={className}>
-            <h3 className="mb-2 text-sm font-semibold text-zinc-800">{className}</h3>
+            <h3 className="mb-2 text-sm font-semibold text-[var(--heading)]">{className}</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr>
                     <th className="py-1.5">Subject</th>
                     {subjects.some((s) => s.track) ? <th className="py-1.5">Track</th> : null}
@@ -582,7 +582,7 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
             ) : null}
             {subjects.some((s) => s.below_threshold.length > 0) ? (
               <div className="mt-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Students below pass threshold (weakest first)</p>
+                <p className="mb-1 section-label">Students below pass threshold (weakest first)</p>
                 <div className="space-y-2 text-xs">
                   {subjects.filter((s) => s.below_threshold.length > 0).map((s) => (
                     <div key={s.subject_id}>
@@ -610,7 +610,7 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
     <div className="space-y-6">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Rank</th><th className="py-1.5">Teacher</th><th className="py-1.5">Subject</th>
               <th className="py-1.5">Marked</th><th className="py-1.5">Max</th><th className="py-1.5">Avg</th>
@@ -641,7 +641,7 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
       </div>
       {chart.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Top-performing teachers (ranked by average marks)</p>
+          <p className="mb-2 section-label">Top-performing teachers (ranked by average marks)</p>
           <BarChart data={chart} orientation="horizontal" />
         </div>
       ) : null}

@@ -46,14 +46,14 @@ export default async function PromotionPage({
         <Link href="/academic" className="text-sm text-zinc-500 underline hover:text-zinc-800">
           ← Academic Setup
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Promote a class</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">Promote a class</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Move a class&apos;s current roster into a new academic year — promote, repeat, graduate, transfer out, or mark a dropout, per student.
         </p>
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">1. Choose a class</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">1. Choose a class</h2>
         <form action={pickClass} className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Class</label>

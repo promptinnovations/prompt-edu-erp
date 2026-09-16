@@ -45,11 +45,11 @@ export default async function LibraryPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Library</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Library</h1>
 
       <section id="catalogue" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-zinc-700">Catalogue</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Catalogue</h2>
           <span className="text-xs text-zinc-500">{books.length} title{books.length === 1 ? "" : "s"}</span>
         </div>
         {canManage ? (
@@ -71,7 +71,7 @@ export default async function LibraryPage() {
 
       {canIssue ? (
         <section id="issue" className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Issue a book</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Issue a book</h2>
           <IssueBookForm
             students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
             books={books.map((b) => ({ id: b.id, title: b.title, available_copies: b.available_copies }))}
@@ -81,10 +81,10 @@ export default async function LibraryPage() {
       ) : null}
 
       <section id="currently-issued" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Currently issued</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Currently issued</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Book</th>
               <th className="py-1.5">Student</th>
@@ -110,12 +110,12 @@ export default async function LibraryPage() {
       </section>
 
       <section id="reading-reviews" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Reading reviews</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Reading reviews</h2>
         <ReadingReviewQueue records={pendingReviews} canReview={canManage} />
       </section>
 
       <section id="pre-bookings" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Pre-bookings (waitlist)</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Pre-bookings (waitlist)</h2>
         <p className="mb-3 text-xs text-zinc-500">
           A student is notified automatically (in-app + WhatsApp) the moment a copy of a held book is returned.
         </p>
@@ -123,7 +123,7 @@ export default async function LibraryPage() {
       </section>
 
       <section id="review-corner" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Review Corner</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Review Corner</h2>
         <div className="space-y-3">
           {approvedReviews.map((r) => (
             <div key={r.id} className="rounded-xl border border-zinc-200 p-4 text-sm shadow-sm">

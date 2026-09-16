@@ -80,14 +80,14 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
                 : "One platform for academics, attendance, examinations, library, staff, and every institution you run — built for madrasas, schools, and colleges alike."}
             </p>
           </div>
-          <div className="text-xs font-medium uppercase tracking-wide text-white/70">{credit}</div>
+          <div className="text-xs font-bold uppercase tracking-[0.22em] text-white/70">{credit}</div>
         </div>
 
         {/* Right: the actual sign-in form */}
         <div className="flex flex-col justify-center p-8 sm:p-10">
           <div className="mb-6">
-            <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 md:hidden">{credit}</div>
-            <h1 className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{institutionName ?? t("title")}</h1>
+            <div className="text-xs font-bold uppercase tracking-[0.22em] text-zinc-500 md:hidden">{credit}</div>
+            <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">{institutionName ?? t("title")}</h1>
             <p className="mt-1 text-sm text-zinc-500">{t("subtitle")}</p>
           </div>
 

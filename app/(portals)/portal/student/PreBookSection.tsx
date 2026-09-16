@@ -47,7 +47,7 @@ export default function PreBookSection({
     <div className="space-y-4">
       {myHolds.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">My pre-bookings</p>
+          <p className="mb-2 section-label">My pre-bookings</p>
           <ul className="space-y-1">
             {myHolds.map((h) => (
               <li key={h.id} className="flex items-center justify-between text-sm">
@@ -62,7 +62,7 @@ export default function PreBookSection({
       ) : null}
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Fully issued — pre-book one</p>
+        <p className="mb-2 section-label">Fully issued — pre-book one</p>
         {holdableBooks.length === 0 ? (
           <p className="text-sm text-zinc-500">Every book currently has a copy available — nothing to pre-book.</p>
         ) : (

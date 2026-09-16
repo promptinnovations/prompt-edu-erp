@@ -26,7 +26,7 @@ export default async function StudentLibraryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-[var(--foreground)]">Library &amp; reading</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Library &amp; reading</h1>
         <p className="mt-0.5 text-sm text-zinc-500">Browse the catalogue, pre-book, and read what others thought.</p>
       </div>
 

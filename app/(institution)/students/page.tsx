@@ -54,7 +54,7 @@ export default async function StudentsPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">{t("title")}</h1>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <StudentForm academicYearId={academicYear?.id ?? null} sections={sectionOptions} />
@@ -105,7 +105,7 @@ export default async function StudentsPage({
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="bg-zinc-50 text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="px-4 py-2" />
               <th className="px-4 py-2">{t("admissionNumber")}</th>

@@ -17,7 +17,7 @@ export default async function ModuleUnavailablePage({
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-zinc-50 px-4">
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center">
-        <h1 className="text-lg font-semibold text-zinc-900">Module not available</h1>
+        <h1 className="text-lg font-semibold text-[var(--heading)]">Module not available</h1>
         <p className="mt-3 text-sm text-zinc-600">
           {module ? `The "${module}" module` : "This module"} has not been enabled for your institution. Contact
           Prompt Innovations if you need it turned on.

@@ -15,14 +15,14 @@ export default async function StoragePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Storage</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Storage</h1>
 
       {!canManage ? (
         <p className="text-sm text-zinc-500">You do not have permission to manage institution file storage (&quot;files.manage&quot;).</p>
       ) : (
         <>
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700">Active provider</h2>
+            <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Active provider</h2>
             <p className="text-sm text-zinc-600">
               New uploads are currently stored via <span className="font-medium capitalize">{activeProvider}</span>{" "}
               (selected automatically by which environment variables are configured — see docs/SETUP.md).
@@ -30,7 +30,7 @@ export default async function StoragePage() {
           </section>
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700">Migrate existing files</h2>
+            <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Migrate existing files</h2>
             <p className="mb-3 text-sm text-zinc-500">
               Moves every file not already on the chosen provider (§U.2) — byte-verified, one file at a time.
             </p>
@@ -38,13 +38,13 @@ export default async function StoragePage() {
           </section>
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent files (this institution)</h2>
+            <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recent files (this institution)</h2>
             {files.length === 0 ? (
               <p className="text-sm text-zinc-500">No files uploaded yet.</p>
             ) : (
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr>
                     <th className="py-1.5">Name</th>
                     <th className="py-1.5">Entity</th>

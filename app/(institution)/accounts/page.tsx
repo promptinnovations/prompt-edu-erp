@@ -20,7 +20,7 @@ export default async function AccountsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Accounts</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Accounts</h1>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-zinc-200 bg-white p-4">
@@ -39,7 +39,7 @@ export default async function AccountsPage() {
 
       {summary.byCategory.length > 0 ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">By category</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">By category</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {summary.byCategory.map((c) => (
               <div key={`${c.category_name}-${c.type}`} className="rounded-xl border border-zinc-200 p-3">
@@ -53,7 +53,7 @@ export default async function AccountsPage() {
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Categories</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Categories</h2>
           <div className="mb-3 flex flex-wrap gap-2">
             {categories.map((c) => (
               <span key={c.id} className={`rounded-full px-3 py-1 text-xs ${c.type === "income" ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-700"}`}>
@@ -67,13 +67,13 @@ export default async function AccountsPage() {
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Record income / expense / purchase</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Record income / expense / purchase</h2>
           <TransactionForm categories={categories} />
         </section>
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Ledger ({transactions.length})</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Ledger ({transactions.length})</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>

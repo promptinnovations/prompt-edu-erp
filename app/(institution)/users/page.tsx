@@ -40,7 +40,7 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Users & Roles</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Users & Roles</h1>
       <p className="text-sm text-zinc-500">
         Create a login for a new person, set their password, and assign them one or more roles — it works immediately,
         no email confirmation step needed. A user can hold several roles at once (e.g. Teacher + Librarian). The
@@ -49,16 +49,16 @@ export default async function UsersPage() {
 
       {canManageUsers ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Create a login</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Create a login</h2>
           <CreateUserForm roleOptions={roles} />
         </section>
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Staff ({staff.length})</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Staff ({staff.length})</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Name</th>
               <th className="py-1.5">Email</th>
@@ -116,13 +116,13 @@ export default async function UsersPage() {
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Students ({students.length})</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Students ({students.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Section → Grade → Division → Roll number order. Each student&apos;s own parent login is shown alongside them.
         </p>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Class</th>

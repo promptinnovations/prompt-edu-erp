@@ -128,7 +128,7 @@ export default async function PortalLayout({ children }: { children: React.React
   );
 
   const footer = (
-    <footer className="py-4 text-center text-[10px] uppercase tracking-wide text-zinc-500">
+    <footer className="py-4 text-center text-[10px] uppercase tracking-[0.08em] text-zinc-500">
       PROMPT EDU ERP · Prompt Innovations
     </footer>
   );

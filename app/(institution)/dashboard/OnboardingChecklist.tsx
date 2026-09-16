@@ -21,7 +21,7 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-zinc-700">Finish setting up</h2>
+        <h2 className="text-sm font-semibold text-[var(--heading)]">Finish setting up</h2>
         <span className="text-xs text-zinc-500">{totalDone}/{items.length} done</span>
       </div>
 

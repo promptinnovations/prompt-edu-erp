@@ -22,7 +22,7 @@ export default async function ReportCardsListPage({ params }: { params: Promise<
   return (
     <div className="space-y-6">
       <Link href="/results" className="text-sm text-zinc-500 underline">← Back to Results</Link>
-      <h1 className="text-2xl font-semibold text-zinc-900">Report Cards — {examination.name}</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Report Cards — {examination.name}</h1>
       {results.length === 0 ? (
         <p className="text-sm text-zinc-500">
           No results computed yet for this examination — compute results from its{" "}
@@ -33,7 +33,7 @@ export default async function ReportCardsListPage({ params }: { params: Promise<
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="bg-zinc-50 text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="px-4 py-2">Student</th>
                 <th className="px-4 py-2">Total</th>

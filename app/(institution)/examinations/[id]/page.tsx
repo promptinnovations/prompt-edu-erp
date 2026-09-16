@@ -65,7 +65,7 @@ export default async function ExaminationDetailPage({
           ← Back to examinations
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">{examination.name}</h1>
+          <h1 className="text-2xl font-semibold text-[var(--heading)]">{examination.name}</h1>
           <p className="mt-1 text-sm text-zinc-500">Daily Assessment · {examination.status}</p>
         </div>
         <DailyAssessmentSection
@@ -136,30 +136,30 @@ export default async function ExaminationDetailPage({
         ← Back to examinations
       </Link>
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">{examination.name}</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">{examination.name}</h1>
         <p className="mt-1 text-sm text-zinc-500">{examTypeName} · {examination.status}</p>
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">1. Confirm scope</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">1. Confirm scope</h2>
         <p className="mb-3 text-xs text-zinc-500">Which grades and divisions does this exam apply to?</p>
         <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">2. Subjects &amp; total marks</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">2. Subjects &amp; total marks</h2>
         <p className="mb-3 text-xs text-zinc-500">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
         <ExamSubjectsSection examinationId={id} subjects={subjects} linked={linkedSubjects} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700">Results</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Results</h2>
           <ComputeResultsButton examinationId={id} />
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Total</th>

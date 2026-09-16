@@ -45,7 +45,7 @@ export default async function MentoringPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Mentoring</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Mentoring</h1>
       <p className="text-sm text-zinc-500">
         {canViewAll
           ? "You can see every mentoring record in the institution (mentoring.view_all)."
@@ -63,7 +63,7 @@ export default async function MentoringPage() {
 
       {canAssign && mentorAssignmentData ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Assign mentors</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Assign mentors</h2>
           <MentorAssignmentSection
             mentors={mentorAssignmentData[0].map((s) => ({ id: s.id, full_name: s.full_name }))}
             students={allStudents.map((s) => ({ id: s.id, full_name: s.full_name }))}

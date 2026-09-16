@@ -18,10 +18,10 @@ export default async function ImportExportPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Import / Export (§Q)</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Import / Export (§Q)</h1>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Bulk import</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Bulk import</h2>
         {canImport ? (
           <ImportWizard entities={entities.map((e) => ({ entityType: e.entityType, label: e.label }))} />
         ) : (
@@ -31,7 +31,7 @@ export default async function ImportExportPage() {
 
       {canImport ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent imports (this institution)</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recent imports (this institution)</h2>
           {recentBatches.length === 0 ? (
             <p className="text-sm text-zinc-500">No imports yet.</p>
           ) : (
@@ -66,7 +66,7 @@ export default async function ImportExportPage() {
       ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Raw data export</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Raw data export</h2>
         {canExport ? (
           <div className="flex flex-wrap gap-3">
             {Object.entries(exportDefinitions).map(([key, def]) => (

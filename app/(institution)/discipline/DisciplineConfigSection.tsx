@@ -137,7 +137,7 @@ export default function DisciplineConfigSection({
   return (
     <div className="grid gap-6 md:grid-cols-3">
       <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Discipline categories</h3>
+        <h3 className="mb-2 section-label">Discipline categories</h3>
         <ul className="divide-y divide-zinc-100">
           {categories.map((c) => <CategoryRow key={c.id} category={c} />)}
         </ul>
@@ -152,7 +152,7 @@ export default function DisciplineConfigSection({
       </div>
 
       <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Character attributes</h3>
+        <h3 className="mb-2 section-label">Character attributes</h3>
         <ul className="divide-y divide-zinc-100">
           {attributes.map((a) => <AttributeRow key={a.id} attribute={a} />)}
         </ul>
@@ -164,7 +164,7 @@ export default function DisciplineConfigSection({
       </div>
 
       <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">5-point rating scale</h3>
+        <h3 className="mb-2 section-label">5-point rating scale</h3>
         <ul>
           {ratingLabels.slice().sort((a, b) => b.rating - a.rating).map((r) => <RatingLabelRow key={r.rating} ratingLabel={r} />)}
         </ul>

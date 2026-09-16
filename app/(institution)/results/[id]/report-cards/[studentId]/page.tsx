@@ -88,7 +88,7 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
           </div>
         ) : null}
 
-        <p className="mt-10 text-center text-[10px] uppercase tracking-wide text-zinc-500">
+        <p className="mt-10 text-center text-[10px] uppercase tracking-[0.08em] text-zinc-500">
           PROMPT EDU ERP · Prompt Innovations
         </p>
       </section>

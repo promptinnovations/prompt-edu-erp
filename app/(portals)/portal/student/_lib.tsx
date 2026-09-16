@@ -27,7 +27,7 @@ export function NotLinkedNotice() {
 export function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm">
-      <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
+      <h2 className="text-sm font-semibold text-[var(--heading)]">{title}</h2>
       {subtitle ? <p className="mb-3 mt-0.5 text-xs text-zinc-500">{subtitle}</p> : <div className="mb-3" />}
       {children}
     </div>

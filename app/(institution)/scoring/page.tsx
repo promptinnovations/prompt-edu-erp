@@ -26,7 +26,7 @@ export default async function ScoringPage() {
   if (!canView && !canManage) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900">Scoring &amp; performance</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Scoring &amp; performance</h1>
         <p className="text-sm text-zinc-500">You don&apos;t have permission to view this.</p>
       </div>
     );
@@ -34,14 +34,14 @@ export default async function ScoringPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Scoring &amp; performance</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Scoring &amp; performance</h1>
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Scoring rules (config)</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Scoring rules (config)</h2>
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5">Module</th>
                 <th className="py-1.5">Activity code</th>
@@ -71,12 +71,12 @@ export default async function ScoringPage() {
 
       {canManage && profile ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
             Default performance profile: {profile.name}
           </h2>
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5">Component</th>
                 <th className="py-1.5">Weight</th>
@@ -97,11 +97,11 @@ export default async function ScoringPage() {
 
       {canView ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Consolidated score</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Consolidated score</h2>
           <ComputeScoreForm students={students.map((s) => ({ id: s.id, full_name: s.full_name }))} />
           <div className="overflow-x-auto">
           <table className="mt-4 w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5">Student</th>
                 <th className="py-1.5">Period</th>
@@ -131,10 +131,10 @@ export default async function ScoringPage() {
 
       {canView ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Score events ledger</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Score events ledger</h2>
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr>
                 <th className="py-1.5">Student</th>
                 <th className="py-1.5">Source module</th>

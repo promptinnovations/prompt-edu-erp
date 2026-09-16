@@ -41,7 +41,7 @@ export default async function SamplePortalsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Sample Portals</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Sample Portals</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Pick an institution, then view the app exactly as one of its real people sees it — Principal, Management,
           a Class Teacher, a Student, or that student&apos;s Parent. Every name and record below is real, live data
@@ -50,7 +50,7 @@ export default async function SamplePortalsPage({
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Institution</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Institution</h2>
         <div className="flex flex-wrap gap-2">
           {institutions.map((i) => (
             <Link
@@ -109,7 +109,7 @@ function RoleSection({
 }) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-      <h2 className="text-sm font-semibold text-zinc-700">{title}</h2>
+      <h2 className="text-sm font-semibold text-[var(--heading)]">{title}</h2>
       <p className="mb-3 text-xs text-zinc-500">{hint}</p>
       {candidates.length === 0 ? (
         <p className="text-sm text-zinc-500">
@@ -146,7 +146,7 @@ function RoleSection({
 function StudentParentSection({ institutionId, students }: { institutionId: string; students: SamplePortalStudentCandidate[] }) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-      <h2 className="text-sm font-semibold text-zinc-700">Parent &amp; Student</h2>
+      <h2 className="text-sm font-semibold text-[var(--heading)]">Parent &amp; Student</h2>
       <p className="mb-3 text-xs text-zinc-500">
         In section (stage) → GRADE → division → roll number order. &quot;View as Parent&quot; is only offered when
         that student&apos;s primary contact parent also has a working login.

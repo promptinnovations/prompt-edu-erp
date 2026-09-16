@@ -49,11 +49,11 @@ export default async function AcademicPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">{t("title")}</h1>
 
       <section id="academic-years" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700">Academic years</h2>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Academic years</h2>
           {can(ctx.permissions, "academic.promote") ? (
             <Link href="/academic/promotion" className="text-xs text-indigo-600 underline hover:text-indigo-800">
               Promote a class →
@@ -86,7 +86,7 @@ export default async function AcademicPage() {
       </section>
 
       <section id="classes" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">{t("classesHeading")}</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{t("classesHeading")}</h2>
         {canManage ? <ClassForm /> : null}
         <ul className="mt-4 divide-y divide-zinc-100 text-sm">
           {classes.map((c) => (
@@ -104,7 +104,7 @@ export default async function AcademicPage() {
       </section>
 
       <section id="divisions" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">{t("sectionsHeading")}</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{t("sectionsHeading")}</h2>
         {canManage ? <SectionForm classes={classes} /> : null}
         <ul className="mt-4 divide-y divide-zinc-100 text-sm">
           {sections.map((s) => (
@@ -121,13 +121,13 @@ export default async function AcademicPage() {
       </section>
 
       <section id="subjects" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">{t("subjectsHeading")}</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{t("subjectsHeading")}</h2>
         <SubjectForm educationMode={educationMode} />
         {educationMode === "both" ? (
           <div className="mt-4 space-y-4">
             {trackOrder.map((track) => (
               <div key={track}>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <h3 className="mb-1 section-label">
                   {TRACK_LABEL[track] ?? track}
                 </h3>
                 <ul className="divide-y divide-zinc-100 text-sm">
@@ -145,7 +145,7 @@ export default async function AcademicPage() {
             ))}
             {subjects.filter((s) => !s.track).length > 0 ? (
               <div>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Untagged</h3>
+                <h3 className="mb-1 section-label">Untagged</h3>
                 <ul className="divide-y divide-zinc-100 text-sm">
                   {subjects.filter((s) => !s.track).map((s) => (
                     <li key={s.id} className="flex items-center justify-between py-2">
@@ -170,7 +170,7 @@ export default async function AcademicPage() {
       </section>
 
       <section id="subjects-per-class" className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Subjects per class</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Subjects per class</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Which subjects each class studies — shown to teachers/students on that class&apos;s own page.
         </p>

@@ -53,7 +53,7 @@ export default async function FeesPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">Fees</h1>
+      <h1 className="text-2xl font-semibold text-[var(--heading)]">Fees</h1>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-2xl border border-zinc-200 bg-white p-4">
@@ -75,7 +75,7 @@ export default async function FeesPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Class-wise collection status</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Class-wise collection status</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -118,7 +118,7 @@ export default async function FeesPage({
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Fee categories</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Fee categories</h2>
           <div className="mb-3 flex flex-wrap gap-2">
             {categories.map((c) => (
               <span key={c.id} className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-700">{c.name}</span>
@@ -130,7 +130,7 @@ export default async function FeesPage({
 
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Fee structures (&quot;fee details&quot;)</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Fee structures (&quot;fee details&quot;)</h2>
           <FeeStructureForm
             categories={categories}
             classes={classes.map((c) => ({ id: c.id, name: c.name }))}
@@ -164,14 +164,14 @@ export default async function FeesPage({
 
       {canCollect ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Record a payment</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Record a payment</h2>
           <RecordPaymentForm invoices={invoiceOptions} />
         </section>
       ) : null}
 
       {canCollect ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700">
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
             Parent-submitted payments awaiting confirmation
           </h2>
           <PendingConfirmations payments={pendingConfirmations} />
@@ -180,7 +180,7 @@ export default async function FeesPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-zinc-700">
+          <h2 className="text-sm font-semibold text-[var(--heading)]">
             Invoices ({invoices.length}){selectedClassLabel ? ` — ${selectedClassLabel}` : ""}
           </h2>
           <div className="flex flex-wrap items-center gap-3">
