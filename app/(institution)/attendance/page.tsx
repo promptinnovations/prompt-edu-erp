@@ -144,28 +144,28 @@ export default async function AttendancePage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Attendance</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Attendance</h1>
 
       {canSeeOverview ? (
-        <section id="overview" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <section id="overview" className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h2>
+            <h2 className="text-sm font-semibold text-zinc-700">Attendance trend</h2>
             <div className="flex gap-1 text-xs">
               <a
                 href={`?trendView=daily${effectiveClassId ? `&classId=${effectiveClassId}` : ""}${effectiveSectionId ? `&sectionId=${effectiveSectionId}` : ""}`}
-                className={`rounded-lg px-2 py-1 ${trendView !== "monthly" ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"}`}
+                className={`rounded-lg px-2 py-1 ${trendView !== "monthly" ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100"}`}
               >
                 Daily (30 days)
               </a>
               <a
                 href={`?trendView=monthly${effectiveClassId ? `&classId=${effectiveClassId}` : ""}${effectiveSectionId ? `&sectionId=${effectiveSectionId}` : ""}`}
-                className={`rounded-lg px-2 py-1 ${trendView === "monthly" ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"}`}
+                className={`rounded-lg px-2 py-1 ${trendView === "monthly" ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100"}`}
               >
                 Monthly
               </a>
             </div>
           </div>
-          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">{overviewLabel}</p>
+          <p className="mb-3 text-xs text-zinc-400">{overviewLabel}</p>
           {trendView === "monthly" ? (
             <MonthlyAttendanceTrendChart points={monthlyTrend} />
           ) : (
@@ -175,16 +175,16 @@ export default async function AttendancePage({
       ) : null}
 
       {dailyOverview ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700">
             Daily overview — {effectiveDate}
           </h2>
-          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+          <p className="mb-3 text-xs text-zinc-400">
             {overviewLabel} — every class/division&apos;s attendance status for the day.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="py-1.5">Class</th>
                   <th className="py-1.5">Division</th>
@@ -195,32 +195,32 @@ export default async function AttendancePage({
                   <th className="py-1.5">Late</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody className="divide-y divide-zinc-100">
                 {dailyOverview.classes.map((c) => (
                   <tr key={c.sectionId}>
                     <td className="py-1.5">{c.className}</td>
                     <td className="py-1.5">{c.sectionName}</td>
                     <td className="py-1.5">{c.enrolled}</td>
-                    <td className="py-1.5">{c.marked}{c.marked < c.enrolled ? <span className="ml-1 text-amber-600 dark:text-amber-400">(not fully taken)</span> : null}</td>
+                    <td className="py-1.5">{c.marked}{c.marked < c.enrolled ? <span className="ml-1 text-amber-600">(not fully taken)</span> : null}</td>
                     <td className="py-1.5">{c.present}</td>
                     <td className="py-1.5">{c.absent}</td>
                     <td className="py-1.5">{c.late}</td>
                   </tr>
                 ))}
                 {dailyOverview.classes.length === 0 ? (
-                  <tr><td colSpan={7} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No classes/divisions yet.</td></tr>
+                  <tr><td colSpan={7} className="py-4 text-center text-zinc-400">No classes/divisions yet.</td></tr>
                 ) : null}
               </tbody>
             </table>
           </div>
           {dailyOverview.absentees.length > 0 ? (
             <div className="mt-4">
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Absentee list ({dailyOverview.absentees.length})
               </h3>
-              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700 dark:text-zinc-300">
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">
                 {dailyOverview.absentees.map((a) => (
-                  <li key={a.studentId}>{a.studentName} <span className="text-zinc-400 dark:text-zinc-500">({a.className}-{a.sectionName})</span></li>
+                  <li key={a.studentId}>{a.studentName} <span className="text-zinc-400">({a.className}-{a.sectionName})</span></li>
                 ))}
               </ul>
             </div>
@@ -228,8 +228,8 @@ export default async function AttendancePage({
         </section>
       ) : null}
 
-      <section id="take" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Take attendance</h2>
+      <section id="take" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Take attendance</h2>
         <ClassSectionPicker
           classes={classes}
           sections={sections}
@@ -249,7 +249,7 @@ export default async function AttendancePage({
             />
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">
+          <p className="mt-4 text-sm text-zinc-400">
             {teacherScope && classId && !classInScope
               ? "You're not assigned to that class."
               : "Select a class and division to load the attendance grid."}
@@ -257,11 +257,11 @@ export default async function AttendancePage({
         )}
       </section>
 
-      <section id="leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+      <section id="leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">
           Student Leave Applications — {effectiveDate}
         </h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="mb-3 text-xs text-zinc-400">
           {effectiveClassId ? "This class's" : "Institution-wide"} leaves applied by students/parents from their
           own portal — class teacher review below is the class teacher&apos;s sign-off. Nothing can be entered here.
         </p>
@@ -269,9 +269,9 @@ export default async function AttendancePage({
       </section>
 
       {ownStaffId ? (
-        <section id="my-attendance" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">My attendance</h2>
-          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+        <section id="my-attendance" className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700">My attendance</h2>
+          <p className="mb-3 text-xs text-zinc-400">
             Mark your own attendance for today — the principal (Institution Admin/Management) approves it on the{" "}
             <Link href="/staff#staff-attendance" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
               Staff attendance
@@ -283,9 +283,9 @@ export default async function AttendancePage({
       ) : null}
 
       {ownStaffId ? (
-        <section id="my-leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">My leave</h2>
-          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+        <section id="my-leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700">My leave</h2>
+          <p className="mb-3 text-xs text-zinc-400">
             Apply for your own leave — the principal (Institution Admin/Management) reviews it below.
           </p>
           <MyLeaveSection leaves={myLeaves} />
@@ -293,9 +293,9 @@ export default async function AttendancePage({
       ) : null}
 
       {hasUnrestrictedEdit ? (
-        <section id="staff-leave" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff leave — principal review</h2>
-          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+        <section id="staff-leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700">Staff leave — principal review</h2>
+          <p className="mb-3 text-xs text-zinc-400">
             Every staff member&apos;s own leave application, applied from their own &quot;My leave&quot; section above.
           </p>
           <StaffLeaveReviewTable leaves={staffLeaveRows} />

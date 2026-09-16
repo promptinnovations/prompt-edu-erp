@@ -23,25 +23,25 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Settings</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Settings</h1>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Institution</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">{institution?.appName || institution?.name}</p>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Institution</h2>
+        <p className="text-sm text-zinc-500">{institution?.appName || institution?.name}</p>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Logo</h2>
-        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Logo</h2>
+        <p className="mb-3 text-sm text-zinc-500">
           Upload your institution&apos;s own logo — once set, it replaces the generated letter badge everywhere the
           app currently shows one.
         </p>
         <LogoForm logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Install app</h2>
-        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Install app</h2>
+        <p className="mb-3 text-sm text-zinc-500">
           {institution?.name} has its own installable app, separate from every other institution — branded with your
           own name and logo, and kept independent on shared devices.
         </p>
@@ -51,36 +51,36 @@ export default async function SettingsPage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Appearance</h2>
-        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Appearance</h2>
+        <p className="mb-3 text-sm text-zinc-500">
           Choose a colour combination for {institution?.appName || institution?.name} — applies everywhere for
           everyone signed in to this institution (sidebar, buttons, login screen).
         </p>
         <ThemePaletteForm currentId={institution?.themePalette ?? null} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Parent portal — what parents can see</h2>
-        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Parent portal — what parents can see</h2>
+        <p className="mb-3 text-sm text-zinc-500">
           Choose which sections of a child&apos;s page show on the parent portal. Unchecked sections stay hidden from
           parents but remain fully visible to staff.
         </p>
         <ParentPortalSectionsForm sections={parentPortalSections} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Exam seating — boys/girls separation</h2>
-        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Exam seating — boys/girls separation</h2>
+        <p className="mb-3 text-sm text-zinc-500">
           How strictly Examinations → Seating Arrangement must keep boys and girls in separate rooms when it
           generates a seating plan. (No two students from the same grade ever share a bench, under either rule.)
         </p>
         <SeatingGenderRuleForm current={institution?.examSeatingGenderRule ?? "best_effort"} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Grading &amp; points</h2>
-        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Grading &amp; points</h2>
+        <p className="mb-3 text-sm text-zinc-500">
           Define your own grading scale, scoring rule points, achievement categories/levels, and skill
           types/activities — every institution configures these independently.
         </p>

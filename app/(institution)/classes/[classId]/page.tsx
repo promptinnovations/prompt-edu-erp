@@ -65,30 +65,30 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/classes" className="text-sm text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-800 dark:hover:text-zinc-100">
+        <Link href="/classes" className="text-sm text-zinc-500 underline hover:text-zinc-800">
           ← All classes
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Class {cls.name}</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Class {cls.name}</h1>
         {wholeClassTeachers.length > 0 ? (
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Class teacher: {wholeClassTeachers.join(", ")}</p>
+          <p className="mt-1 text-sm text-zinc-500">Class teacher: {wholeClassTeachers.join(", ")}</p>
         ) : null}
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-zinc-500">
           Strength: {strength.total} total — {strength.boys} boys, {strength.girls} girls
           {strength.other > 0 ? `, ${strength.other} other` : ""}
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Divisions</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Divisions</h2>
         {sections.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          <p className="text-sm text-zinc-400">
             No divisions yet — add one under <Link href="/academic" className="underline">Academic Setup</Link>.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-left text-zinc-400 dark:text-zinc-500">
+                <tr className="border-b border-zinc-200 text-left text-zinc-400">
                   <th className="pb-2 font-medium">Division</th>
                   <th className="pb-2 font-medium">Class teacher</th>
                   <th className="pb-2 font-medium">Students</th>
@@ -101,27 +101,27 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                   const teachers = classTeacherBySection.get(s.id) ?? [];
                   const count = students.filter((st) => st.section_name === s.name).length;
                   return (
-                    <tr key={s.id} className="border-b border-zinc-100 dark:border-zinc-800">
-                      <td className="py-2 text-zinc-900 dark:text-zinc-50">{s.name}</td>
-                      <td className="py-2 text-zinc-500 dark:text-zinc-400">
+                    <tr key={s.id} className="border-b border-zinc-100">
+                      <td className="py-2 text-zinc-900">{s.name}</td>
+                      <td className="py-2 text-zinc-500">
                         {teachers.length > 0 ? teachers.join(", ") : (
                           <span>
                             Not assigned — <Link href="/staff" className="underline">assign one</Link>
                           </span>
                         )}
                       </td>
-                      <td className="py-2 text-zinc-500 dark:text-zinc-400">{count}</td>
+                      <td className="py-2 text-zinc-500">{count}</td>
                       <td className="py-2 text-right">
                         {academicYear ? (
                           <RecomputeRollNumbersButton classId={classId} sectionId={s.id} academicYearId={academicYear.id} />
                         ) : (
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">No current academic year</span>
+                          <span className="text-xs text-zinc-400">No current academic year</span>
                         )}
                       </td>
                       <td className="py-2 text-right">
                         <Link
                           href={`/attendance?classId=${classId}&sectionId=${s.id}&date=${today}`}
-                          className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300"
+                          className="text-xs text-indigo-600 underline hover:text-indigo-800"
                         >
                           View / take today&apos;s attendance
                         </Link>
@@ -135,44 +135,44 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subjects</h2>
-          <Link href="/academic" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+          <h2 className="text-sm font-semibold text-zinc-700">Subjects</h2>
+          <Link href="/academic" className="text-xs text-indigo-600 underline hover:text-indigo-800">
             Manage in Academic Setup
           </Link>
         </div>
         {classSubjects.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">No subjects assigned to this class yet.</p>
+          <p className="text-sm text-zinc-400">No subjects assigned to this class yet.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {classSubjects.map((cs) => (
               <span
                 key={cs.id}
-                className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-xs text-zinc-700 dark:text-zinc-300"
+                className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700"
               >
                 {cs.subject_name}
-                {!cs.is_core ? <span className="ml-1 text-zinc-400 dark:text-zinc-500">(practical)</span> : null}
+                {!cs.is_core ? <span className="ml-1 text-zinc-400">(practical)</span> : null}
               </span>
             ))}
           </div>
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Students ({students.length})</h2>
-          <Link href={`/students?classId=${classId}`} className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+          <h2 className="text-sm font-semibold text-zinc-700">Students ({students.length})</h2>
+          <Link href={`/students?classId=${classId}`} className="text-xs text-indigo-600 underline hover:text-indigo-800">
             Open in Students (search/edit/delete)
           </Link>
         </div>
         {students.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">No students enrolled in this class yet.</p>
+          <p className="text-sm text-zinc-400">No students enrolled in this class yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-left text-zinc-400 dark:text-zinc-500">
+                <tr className="border-b border-zinc-200 text-left text-zinc-400">
                   <th className="pb-2 font-medium">Roll no.</th>
                   <th className="pb-2 font-medium">Admission no.</th>
                   <th className="pb-2 font-medium">Name</th>
@@ -185,15 +185,15 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                 {[...students]
                   .sort((a, b) => (a.section_name ?? "").localeCompare(b.section_name ?? "") || (a.roll_number ?? 999) - (b.roll_number ?? 999) || a.full_name.localeCompare(b.full_name))
                   .map((s) => (
-                  <tr key={s.id} className="border-b border-zinc-100 dark:border-zinc-800">
-                    <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.roll_number ?? "—"}</td>
-                    <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.admission_number}</td>
-                    <td className="py-2 text-zinc-900 dark:text-zinc-50">
-                      <Link href={`/students/${s.id}`} className="underline hover:text-indigo-600 dark:hover:text-indigo-400">{s.full_name}</Link>
+                  <tr key={s.id} className="border-b border-zinc-100">
+                    <td className="py-2 text-zinc-500">{s.roll_number ?? "—"}</td>
+                    <td className="py-2 text-zinc-500">{s.admission_number}</td>
+                    <td className="py-2 text-zinc-900">
+                      <Link href={`/students/${s.id}`} className="underline hover:text-indigo-600">{s.full_name}</Link>
                     </td>
-                    <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.parent_name ?? "—"}</td>
-                    <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.section_name ?? "—"}</td>
-                    <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.login_id ?? "—"}</td>
+                    <td className="py-2 text-zinc-500">{s.parent_name ?? "—"}</td>
+                    <td className="py-2 text-zinc-500">{s.section_name ?? "—"}</td>
+                    <td className="py-2 text-zinc-500">{s.login_id ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -202,19 +202,19 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Exams ({exams.length})</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Exams ({exams.length})</h2>
         {exams.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">No examinations cover this class yet.</p>
+          <p className="text-sm text-zinc-400">No examinations cover this class yet.</p>
         ) : (
           <ol className="space-y-1.5">
             {exams.map((e, i) => (
               <li key={e.id} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-700 dark:text-zinc-300">{i + 1}. {e.name}</span>
+                <span className="text-zinc-700">{i + 1}. {e.name}</span>
                 <span className="flex gap-3">
-                  <Link href={`/results/${e.id}`} className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Result</Link>
-                  <Link href={`/results/${e.id}/consolidated`} className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Consolidated</Link>
-                  <Link href={`/results/${e.id}/report-cards`} className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Report cards</Link>
+                  <Link href={`/results/${e.id}`} className="text-xs text-indigo-600 underline hover:text-indigo-800">Result</Link>
+                  <Link href={`/results/${e.id}/consolidated`} className="text-xs text-indigo-600 underline hover:text-indigo-800">Consolidated</Link>
+                  <Link href={`/results/${e.id}/report-cards`} className="text-xs text-indigo-600 underline hover:text-indigo-800">Report cards</Link>
                 </span>
               </li>
             ))}
@@ -223,21 +223,21 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       </section>
 
       {can(ctx.permissions, "discipline.view") ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Discipline records ({disciplineRecords.length})</h2>
-            <Link href="/discipline" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+            <h2 className="text-sm font-semibold text-zinc-700">Discipline records ({disciplineRecords.length})</h2>
+            <Link href="/discipline" className="text-xs text-indigo-600 underline hover:text-indigo-800">
               Open Discipline (add entry / full reports)
             </Link>
           </div>
           {disciplineRecords.length === 0 ? (
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">No discipline records for this class.</p>
+            <p className="text-sm text-zinc-400">No discipline records for this class.</p>
           ) : (
             <ul className="space-y-1.5">
               {disciplineRecords.slice(0, 10).map((d) => (
                 <li key={d.id} className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-700 dark:text-zinc-300">{d.student_name} — {d.category_name}</span>
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{d.date}</span>
+                  <span className="text-zinc-700">{d.student_name} — {d.category_name}</span>
+                  <span className="text-xs text-zinc-400">{d.date}</span>
                 </li>
               ))}
             </ul>
@@ -245,30 +245,30 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="text-sm font-semibold text-zinc-700">
             Skills &amp; achievements ({skillSubmissions.length + achievements.length})
           </h2>
           <span className="flex gap-3">
-            <Link href="/skills" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Skills</Link>
-            <Link href="/achievements" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">Achievements</Link>
+            <Link href="/skills" className="text-xs text-indigo-600 underline hover:text-indigo-800">Skills</Link>
+            <Link href="/achievements" className="text-xs text-indigo-600 underline hover:text-indigo-800">Achievements</Link>
           </span>
         </div>
         {skillSubmissions.length === 0 && achievements.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing recorded for this class yet.</p>
+          <p className="text-sm text-zinc-400">Nothing recorded for this class yet.</p>
         ) : (
           <ul className="space-y-1.5">
             {achievements.slice(0, 5).map((a) => (
               <li key={a.id} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-700 dark:text-zinc-300">{a.student_name} — {a.title} ({a.category_name})</span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-500">{a.status}</span>
+                <span className="text-zinc-700">{a.student_name} — {a.title} ({a.category_name})</span>
+                <span className="text-xs text-zinc-400">{a.status}</span>
               </li>
             ))}
             {skillSubmissions.slice(0, 5).map((s) => (
               <li key={s.id} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-700 dark:text-zinc-300">{s.student_name} — {s.activity_name}</span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-500">{s.status}</span>
+                <span className="text-zinc-700">{s.student_name} — {s.activity_name}</span>
+                <span className="text-xs text-zinc-400">{s.status}</span>
               </li>
             ))}
           </ul>
@@ -276,21 +276,21 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       </section>
 
       {can(ctx.permissions, "library.view") ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Library — reading record ({readingRecords.length})</h2>
-            <Link href="/library" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+            <h2 className="text-sm font-semibold text-zinc-700">Library — reading record ({readingRecords.length})</h2>
+            <Link href="/library" className="text-xs text-indigo-600 underline hover:text-indigo-800">
               Open Library
             </Link>
           </div>
           {readingRecords.length === 0 ? (
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">No reading records for this class yet.</p>
+            <p className="text-sm text-zinc-400">No reading records for this class yet.</p>
           ) : (
             <ul className="space-y-1.5">
               {readingRecords.slice(0, 10).map((r) => (
                 <li key={r.id} className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-700 dark:text-zinc-300">{r.student_name} — {r.book_title}</span>
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{r.review_status}</span>
+                  <span className="text-zinc-700">{r.student_name} — {r.book_title}</span>
+                  <span className="text-xs text-zinc-400">{r.review_status}</span>
                 </li>
               ))}
             </ul>

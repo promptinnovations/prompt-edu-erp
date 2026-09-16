@@ -73,8 +73,8 @@ export default async function AnalyticsPage({
   if (!canView) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Analytics</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">You don&apos;t have permission to view analytics.</p>
+        <h1 className="text-2xl font-semibold text-zinc-900">Analytics</h1>
+        <p className="text-sm text-zinc-500">You don&apos;t have permission to view analytics.</p>
       </div>
     );
   }
@@ -176,18 +176,18 @@ export default async function AnalyticsPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Analytics</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900">Analytics</h1>
         <RefreshButton />
       </div>
-      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+      <p className="text-xs text-zinc-400">
         Subject comparison/indicators below read a periodically-refreshed rollup — use &ldquo;Refresh
         analytics&rdquo; after bulk mark approval to see the latest data there. The Result Analysis tabs further
         down read the live `results` table, recomputed automatically the moment marks are approved/locked — no
         refresh needed for those.
       </p>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Examination performance</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Examination performance</h2>
         <ExaminationPicker
           examinations={examinations}
           examinationId={examinationId}
@@ -200,16 +200,16 @@ export default async function AnalyticsPage({
         {examinationId ? (
           <div className="mt-4 space-y-6">
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Subject comparison</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subject comparison</h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
                   <tr><th className="py-1.5">Rank</th><th className="py-1.5">Subject</th><th className="py-1.5">Marked</th><th className="py-1.5">Average</th><th className="py-1.5">Pass %</th></tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <tbody className="divide-y divide-zinc-100">
                   {[...subjectComparison].sort((a, b) => (b.avg_marks ?? -1) - (a.avg_marks ?? -1)).map((s, idx) => (
                     <tr key={s.subject_id}>
-                      <td className="py-1.5 text-zinc-400 dark:text-zinc-500">#{idx + 1}</td>
+                      <td className="py-1.5 text-zinc-400">#{idx + 1}</td>
                       <td className="py-1.5">{s.subject_name}</td>
                       <td className="py-1.5">{s.marked_count}</td>
                       <td className="py-1.5">{s.avg_marks !== null ? Number(s.avg_marks).toFixed(2) : "—"}</td>
@@ -217,7 +217,7 @@ export default async function AnalyticsPage({
                     </tr>
                   ))}
                   {subjectComparison.length === 0 ? (
-                    <tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No approved marks yet for this examination.</td></tr>
+                    <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No approved marks yet for this examination.</td></tr>
                   ) : null}
                 </tbody>
               </table>
@@ -225,13 +225,13 @@ export default async function AnalyticsPage({
             </div>
 
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Subject-level performance indicators</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subject-level performance indicators</h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
                   <tr><th className="py-1.5">Subject</th><th className="py-1.5">Division avg</th><th className="py-1.5">Division pass %</th></tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <tbody className="divide-y divide-zinc-100">
                   {indicators.map((i, idx) => (
                     <tr key={`${i.subject_id}-${i.class_id}-${i.section_id}-${idx}`}>
                       <td className="py-1.5">{i.subject_name}</td>
@@ -239,54 +239,54 @@ export default async function AnalyticsPage({
                       <td className="py-1.5">{fmtPct(i.pass_percentage)}</td>
                     </tr>
                   ))}
-                  {indicators.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-400 dark:text-zinc-500">—</td></tr>) : null}
+                  {indicators.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-400">—</td></tr>) : null}
                 </tbody>
               </table>
               </div>
             </div>
 
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Student classification {rule ? `(≥${rule.high_threshold}% high, <${rule.low_threshold}% low)` : "(no rule configured)"}
               </h3>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
                   <tr><th className="py-1.5">Student</th><th className="py-1.5">Percentage</th><th className="py-1.5">Band</th></tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <tbody className="divide-y divide-zinc-100">
                   {classification.map((c) => (
                     <tr key={c.student_id}><td className="py-1.5">{c.student_name}</td><td className="py-1.5">{c.percentage}%</td><td className="py-1.5 capitalize">{c.band.replace("_", " ")}</td></tr>
                   ))}
-                  {classification.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No computed results for this examination yet.</td></tr>) : null}
+                  {classification.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-400">No computed results for this examination yet.</td></tr>) : null}
                 </tbody>
               </table>
               </div>
             </div>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">Select an examination to see subject and student analytics.</p>
+          <p className="mt-4 text-sm text-zinc-400">Select an examination to see subject and student analytics.</p>
         )}
       </section>
 
       {examinationId ? (
-        <section className="print-area rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Result Analysis</h2>
+            <h2 className="text-sm font-semibold text-zinc-700">Result Analysis</h2>
             <PrintButton label="Print this report" />
           </div>
           {!hasBroadResultAccess ? (
-            <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+            <p className="mb-3 text-xs text-zinc-400">
               Showing your own assigned classes/subjects only{staffStageScope && staffStageScope.stages.size > 0 ? ` (section: ${[...staffStageScope.stages].join(", ")})` : ""}.
             </p>
           ) : null}
 
-          <nav className="no-print mb-4 flex flex-wrap gap-1 border-b border-zinc-200 dark:border-zinc-800 pb-2">
+          <nav className="no-print mb-4 flex flex-wrap gap-1 border-b border-zinc-200 pb-2">
             {RESULT_TABS.map((t) => (
               <Link
                 key={t.key}
                 href={tabHref(t.key)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === t.key ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"}`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === t.key ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100"}`}
               >
                 {t.label}
               </Link>
@@ -303,25 +303,25 @@ export default async function AnalyticsPage({
 
               {trackSummaries.length > 0 ? (
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     Academic vs Islamic (analyzed separately)
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {trackSummaries.map((t: TrackResultSummary) => (
-                      <div key={t.track} className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 capitalize">{t.track}</p>
+                      <div key={t.track} className="rounded-xl border border-zinc-200 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 capitalize">{t.track}</p>
                         <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                           <div>
-                            <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t.total_students}</div>
-                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">Students</div>
+                            <div className="text-lg font-semibold text-zinc-900">{t.total_students}</div>
+                            <div className="text-[11px] text-zinc-400">Students</div>
                           </div>
                           <div>
-                            <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{fmtPct(t.average_percent)}</div>
-                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">Average</div>
+                            <div className="text-lg font-semibold text-zinc-900">{fmtPct(t.average_percent)}</div>
+                            <div className="text-[11px] text-zinc-400">Average</div>
                           </div>
                           <div>
                             <div className="text-lg font-semibold" style={{ color: PASS_COLOR }}>{fmtPct(t.pass_percent)}</div>
-                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500">Pass rate</div>
+                            <div className="text-[11px] text-zinc-400">Pass rate</div>
                           </div>
                         </div>
                       </div>
@@ -331,28 +331,28 @@ export default async function AnalyticsPage({
               ) : null}
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Grade distribution</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Grade distribution</h3>
                   <Donut segments={gradeDonutSegments} centerLabel={String(schoolSummary.total_students)} centerSubLabel="students" />
                 </div>
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Pass / fail</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Pass / fail</h3>
                   <Donut segments={passFailSegments} centerLabel={fmtPct(schoolSummary.pass_percent)} centerSubLabel="pass rate" />
                 </div>
               </div>
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Subjects ranked by average marks</h3>
-                {subjectRankChart.length > 0 ? <BarChart data={subjectRankChart} orientation="horizontal" /> : <p className="text-sm text-zinc-400 dark:text-zinc-500">No approved marks yet.</p>}
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subjects ranked by average marks</h3>
+                {subjectRankChart.length > 0 ? <BarChart data={subjectRankChart} orientation="horizontal" /> : <p className="text-sm text-zinc-400">No approved marks yet.</p>}
               </div>
               {topTeacher ? (
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">Top-performing teacher (this exam)</p>
-                  <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">{topTeacher.teacher_name} <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">— {topTeacher.subject_name}</span></p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Average {topTeacher.average_marks}/{topTeacher.max_marks} · Pass {fmtPct(topTeacher.pass_percentage)}</p>
+                <div className="rounded-xl border border-zinc-200 p-4">
+                  <p className="text-xs text-zinc-400">Top-performing teacher (this exam)</p>
+                  <p className="mt-1 text-lg font-semibold text-zinc-900">{topTeacher.teacher_name} <span className="text-sm font-normal text-zinc-500">— {topTeacher.subject_name}</span></p>
+                  <p className="text-xs text-zinc-500">Average {topTeacher.average_marks}/{topTeacher.max_marks} · Pass {fmtPct(topTeacher.pass_percentage)}</p>
                 </div>
               ) : null}
             </div>
           ) : null}
-          {tab === "school" && !schoolSummary ? <p className="text-sm text-zinc-400 dark:text-zinc-500">No computed results for this examination yet.</p> : null}
+          {tab === "school" && !schoolSummary ? <p className="text-sm text-zinc-400">No computed results for this examination yet.</p> : null}
 
           {tab === "section" ? (
             <ResultGroupSection
@@ -367,7 +367,7 @@ export default async function AnalyticsPage({
             <div className="space-y-6">
               <ResultGroupSection rows={scopedByClass} nameHeader="Grade" showParent={false} emptyText="No computed results for this examination yet." />
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Division comparison within each grade</h3>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Division comparison within each grade</h3>
                 <div className="space-y-4">
                   {scopedByClass.map((g) => {
                     const divisions = scopedBySection.filter((s) => s.parent_name === g.name);
@@ -378,7 +378,7 @@ export default async function AnalyticsPage({
                     }));
                     return (
                       <div key={g.id}>
-                        <p className="mb-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">{g.name}</p>
+                        <p className="mb-1 text-xs font-medium text-zinc-600">{g.name}</p>
                         <BarChart data={chart} orientation="horizontal" valueFormat={(v) => `${v}%`} />
                       </div>
                     );
@@ -392,19 +392,19 @@ export default async function AnalyticsPage({
             <div className="space-y-6">
               <ResultGroupSection rows={scopedBySection} nameHeader="Division" showParent emptyText="No computed results for this examination yet." />
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Marks-distribution histogram</h3>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Marks-distribution histogram</h3>
                 <div className="no-print mb-3 flex flex-wrap gap-1">
                   {classOptions.map((c) => (
                     <Link
                       key={c.id}
                       href={tabHref("class", { classId: c.id })}
-                      className={`rounded-lg px-2.5 py-1 text-xs ${histogramClassId === c.id ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"}`}
+                      className={`rounded-lg px-2.5 py-1 text-xs ${histogramClassId === c.id ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600"}`}
                     >
                       {c.name}
                     </Link>
                   ))}
                 </div>
-                {histogram.length > 0 ? <Histogram buckets={histogram.map((h) => ({ label: h.label, value: h.count, color: h.color }))} /> : <p className="text-sm text-zinc-400 dark:text-zinc-500">Select a division above.</p>}
+                {histogram.length > 0 ? <Histogram buckets={histogram.map((h) => ({ label: h.label, value: h.count, color: h.color }))} /> : <p className="text-sm text-zinc-400">Select a division above.</p>}
               </div>
             </div>
           ) : null}
@@ -418,14 +418,14 @@ export default async function AnalyticsPage({
           ) : null}
         </section>
       ) : (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Result Analysis</h2>
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">Select an examination above to see School/Section/Grade/Class/Subject/Teacher-wise reports.</p>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700">Result Analysis</h2>
+          <p className="text-sm text-zinc-400">Select an examination above to see School/Section/Grade/Class/Subject/Teacher-wise reports.</p>
         </section>
       )}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Class attendance trend</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Class attendance trend</h2>
         <AttendanceTrendPicker
           classes={classes}
           sections={sections}
@@ -438,25 +438,25 @@ export default async function AnalyticsPage({
         {trendClassId && trendSectionId ? (
           <div className="overflow-x-auto">
           <table className="mt-4 w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
               <tr><th className="py-1.5">Month</th><th className="py-1.5">Present days</th><th className="py-1.5">Late days</th><th className="py-1.5">Total days</th><th className="py-1.5">Present %</th></tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            <tbody className="divide-y divide-zinc-100">
               {attendanceTrend.map((t) => (
                 <tr key={t.month}><td className="py-1.5">{t.month}</td><td className="py-1.5">{t.present_days}</td><td className="py-1.5">{t.late_days}</td><td className="py-1.5">{t.total_days}</td><td className="py-1.5">{t.present_percent}%</td></tr>
               ))}
-              {attendanceTrend.length === 0 ? (<tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No attendance data in this range.</td></tr>) : null}
+              {attendanceTrend.length === 0 ? (<tr><td colSpan={5} className="py-4 text-center text-zinc-400">No attendance data in this range.</td></tr>) : null}
             </tbody>
           </table>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">Select a class and section to see the attendance trend.</p>
+          <p className="mt-4 text-sm text-zinc-400">Select a class and section to see the attendance trend.</p>
         )}
       </section>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Classification thresholds (percentage)</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Classification thresholds (percentage)</h2>
           <ClassificationRuleForm highThreshold={rule?.high_threshold ?? 75} lowThreshold={rule?.low_threshold ?? 40} />
         </section>
       ) : null}
@@ -476,7 +476,7 @@ function ResultGroupSection({
     <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="py-1.5">Rank</th>
               {showParent ? <th className="py-1.5">Class</th> : null}
@@ -488,10 +488,10 @@ function ResultGroupSection({
               <th className="py-1.5">Pass %</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {rows.map((r, idx) => (
               <tr key={r.id}>
-                <td className="py-1.5 text-zinc-400 dark:text-zinc-500">#{idx + 1}</td>
+                <td className="py-1.5 text-zinc-400">#{idx + 1}</td>
                 {showParent ? <td className="py-1.5">{r.parent_name}</td> : null}
                 <td className="py-1.5">{r.name}</td>
                 <td className="py-1.5">{r.student_count}</td>
@@ -501,19 +501,19 @@ function ResultGroupSection({
                 <td className="py-1.5">{fmtPct(r.pass_percent)}</td>
               </tr>
             ))}
-            {rows.length === 0 ? (<tr><td colSpan={showParent ? 8 : 7} className="py-4 text-center text-zinc-400 dark:text-zinc-500">{emptyText}</td></tr>) : null}
+            {rows.length === 0 ? (<tr><td colSpan={showParent ? 8 : 7} className="py-4 text-center text-zinc-400">{emptyText}</td></tr>) : null}
           </tbody>
         </table>
       </div>
       {rows.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Average % comparison</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Average % comparison</p>
           <BarChart data={chart} orientation="horizontal" valueFormat={(v) => `${v}%`} />
         </div>
       ) : null}
       {rows.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Grade distribution</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Grade distribution</p>
           <StackedBarChart groups={stacked} />
         </div>
       ) : null}
@@ -522,7 +522,7 @@ function ResultGroupSection({
 }
 
 function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
-  if (rows.length === 0) return <p className="text-sm text-zinc-400 dark:text-zinc-500">No computed marks for this examination yet.</p>;
+  if (rows.length === 0) return <p className="text-sm text-zinc-400">No computed marks for this examination yet.</p>;
   const byClass = new Map<string, SubjectGradeGroupRow[]>();
   for (const r of rows) {
     if (!byClass.has(r.class_name)) byClass.set(r.class_name, []);
@@ -537,10 +537,10 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
           .map((s) => ({ label: s.subject_name, value: s.average_percent ?? 0, color: "#4f46e5" }));
         return (
           <div key={className}>
-            <h3 className="mb-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">{className}</h3>
+            <h3 className="mb-2 text-sm font-semibold text-zinc-800">{className}</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
                   <tr>
                     <th className="py-1.5">Subject</th>
                     {subjects.some((s) => s.track) ? <th className="py-1.5">Track</th> : null}
@@ -549,12 +549,12 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
                     <th className="py-1.5">Pass %</th><th className="py-1.5">Fail %</th><th className="py-1.5">Top bands</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <tbody className="divide-y divide-zinc-100">
                   {subjects.map((s) => (
                     <tr key={s.subject_id}>
                       <td className="py-1.5">{s.subject_name}</td>
                       {subjects.some((s2) => s2.track) ? (
-                        <td className="py-1.5 text-xs capitalize text-zinc-500 dark:text-zinc-400">{s.track ?? "—"}</td>
+                        <td className="py-1.5 text-xs capitalize text-zinc-500">{s.track ?? "—"}</td>
                       ) : null}
                       <td className="py-1.5">{s.count}</td>
                       <td className="py-1.5">{fmtPct(s.average_percent)}</td>
@@ -582,12 +582,12 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
             ) : null}
             {subjects.some((s) => s.below_threshold.length > 0) ? (
               <div className="mt-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Students below pass threshold (weakest first)</p>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Students below pass threshold (weakest first)</p>
                 <div className="space-y-2 text-xs">
                   {subjects.filter((s) => s.below_threshold.length > 0).map((s) => (
                     <div key={s.subject_id}>
-                      <span className="font-medium text-zinc-600 dark:text-zinc-300">{s.subject_name}: </span>
-                      <span className="text-zinc-500 dark:text-zinc-400">
+                      <span className="font-medium text-zinc-600">{s.subject_name}: </span>
+                      <span className="text-zinc-500">
                         {s.below_threshold.map((b) => `${b.student_name} (${b.percentage}%)`).join(", ")}
                       </span>
                     </div>
@@ -610,7 +610,7 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
     <div className="space-y-6">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="py-1.5">Rank</th><th className="py-1.5">Teacher</th><th className="py-1.5">Subject</th>
               <th className="py-1.5">Marked</th><th className="py-1.5">Max</th><th className="py-1.5">Avg</th>
@@ -618,10 +618,10 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
               <th className="py-1.5">Pass %</th><th className="py-1.5">Full marks</th><th className="py-1.5">Fail</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {rows.map((t, idx) => (
               <tr key={`${t.teacher_user_id}-${t.subject_id}`}>
-                <td className="py-1.5 text-zinc-400 dark:text-zinc-500">#{idx + 1}</td>
+                <td className="py-1.5 text-zinc-400">#{idx + 1}</td>
                 <td className="py-1.5">{t.teacher_name}</td>
                 <td className="py-1.5">{t.subject_name}</td>
                 <td className="py-1.5">{t.marked_count}</td>
@@ -635,13 +635,13 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
                 <td className="py-1.5" style={{ color: FAIL_COLOR }}>{t.fail_count}</td>
               </tr>
             ))}
-            {rows.length === 0 ? (<tr><td colSpan={12} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No teacher assignments cover this examination&apos;s subjects/classes yet.</td></tr>) : null}
+            {rows.length === 0 ? (<tr><td colSpan={12} className="py-4 text-center text-zinc-400">No teacher assignments cover this examination&apos;s subjects/classes yet.</td></tr>) : null}
           </tbody>
         </table>
       </div>
       {chart.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Top-performing teachers (ranked by average marks)</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Top-performing teachers (ranked by average marks)</p>
           <BarChart data={chart} orientation="horizontal" />
         </div>
       ) : null}

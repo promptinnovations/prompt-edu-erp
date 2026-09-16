@@ -106,8 +106,8 @@ export default async function AnalysisPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Analysis</h1>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <h1 className="text-2xl font-semibold text-zinc-900">Analysis</h1>
+      <p className="text-sm text-zinc-500">
         Exam, discipline, skills, and achievements pattern analysis in one place.
       </p>
 
@@ -116,14 +116,14 @@ export default async function AnalysisPage() {
           <Link
             key={c.href}
             href={c.href}
-            className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 transition-colors hover:border-[var(--brand)]"
+            className="rounded-2xl border border-zinc-200 bg-white p-5 transition-colors hover:border-[var(--brand)]"
           >
-            <h2 className="mb-1.5 text-sm font-semibold text-zinc-900 dark:text-zinc-50">{c.title}</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">{c.body}</p>
+            <h2 className="mb-1.5 text-sm font-semibold text-zinc-900">{c.title}</h2>
+            <p className="text-sm text-zinc-500">{c.body}</p>
           </Link>
         ))}
         {cards.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing to analyze yet for your role/modules.</p>
+          <p className="text-sm text-zinc-400">Nothing to analyze yet for your role/modules.</p>
         ) : null}
       </div>
     </div>

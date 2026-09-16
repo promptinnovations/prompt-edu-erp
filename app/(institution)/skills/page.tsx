@@ -22,20 +22,20 @@ export default async function SkillsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Skills</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Skills</h1>
 
       {can(ctx.permissions, "skills.submit") ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submit an activity</h2>
+            <h2 className="text-sm font-semibold text-zinc-700">Submit an activity</h2>
             {can(ctx.permissions, "settings.manage") ? (
-              <Link href="/settings/grading#skills" className="text-xs text-indigo-600 dark:text-indigo-400 underline whitespace-nowrap">
+              <Link href="/settings/grading#skills" className="text-xs text-indigo-600 underline whitespace-nowrap">
                 Manage skill types &amp; activities
               </Link>
             ) : null}
           </div>
           {skillTypes.length === 0 || activities.length === 0 ? (
-            <p className="mb-3 text-xs text-amber-600 dark:text-amber-400">
+            <p className="mb-3 text-xs text-amber-600">
               {can(ctx.permissions, "settings.manage")
                 ? "No skill types/activities configured yet — add them in Settings → Grading (link above) before submitting."
                 : "No skill types/activities configured yet — ask an admin to add them in Settings → Grading."}
@@ -49,8 +49,8 @@ export default async function SkillsPage() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Submissions</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Submissions</h2>
         <SubmissionsTable
           submissions={submissions}
           canReview={can(ctx.permissions, "skills.review")}

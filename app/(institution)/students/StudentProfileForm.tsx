@@ -6,31 +6,31 @@ import type { StudentProfileRecord } from "../../../modules/students/service";
 
 const Field = ({ label, name, defaultValue }: { label: string; name: string; defaultValue: string }) => (
   <div>
-    <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{label}</label>
+    <label className="mb-1 block text-xs text-zinc-500">{label}</label>
     <input
       name={name}
       defaultValue={defaultValue}
-      className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+      className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
     />
   </div>
 );
 
 const TextArea = ({ label, name, defaultValue }: { label: string; name: string; defaultValue: string }) => (
   <div>
-    <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{label}</label>
+    <label className="mb-1 block text-xs text-zinc-500">{label}</label>
     <textarea
       name={name}
       defaultValue={defaultValue}
       rows={2}
-      className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+      className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
     />
   </div>
 );
 
 const Section = ({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) => (
-  <fieldset className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
-    <legend className="px-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{title}</legend>
-    {note ? <p className="mb-3 -mt-1 text-xs text-zinc-400 dark:text-zinc-500">{note}</p> : null}
+  <fieldset className="rounded-xl border border-zinc-200 p-4">
+    <legend className="px-1 text-sm font-semibold text-zinc-700">{title}</legend>
+    {note ? <p className="mb-3 -mt-1 text-xs text-zinc-400">{note}</p> : null}
     <div className="grid gap-3 sm:grid-cols-2">{children}</div>
   </fieldset>
 );
@@ -107,7 +107,7 @@ export default function StudentProfileForm({ profile }: { profile: StudentProfil
         >
           {pending ? "Saving…" : "Save profile"}
         </button>
-        {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+        {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
       </div>
     </form>
   );

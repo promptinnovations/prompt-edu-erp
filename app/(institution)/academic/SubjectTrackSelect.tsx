@@ -16,7 +16,7 @@ export default function SubjectTrackSelect({ subjectId, track }: { subjectId: st
         name="track"
         defaultValue={track ?? ""}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+        className="rounded-md border border-zinc-300 bg-transparent px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
       >
         <option value="">Untagged</option>
         <option value="academic">Academic</option>

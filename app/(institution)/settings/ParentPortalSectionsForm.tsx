@@ -28,7 +28,7 @@ export default function ParentPortalSectionsForm({ sections }: { sections: Recor
     <form action={formAction} className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {Object.entries(LABELS).map(([key, label]) => (
-          <label key={key} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <label key={key} className="flex items-center gap-2 text-sm text-zinc-700">
             <input type="checkbox" name={key} defaultChecked={sections[key] !== false} />
             {label}
           </label>
@@ -41,7 +41,7 @@ export default function ParentPortalSectionsForm({ sections }: { sections: Recor
       >
         Save
       </button>
-      {state.error ? <p className="text-xs text-red-600 dark:text-red-400">{state.error}</p> : null}
+      {state.error ? <p className="text-xs text-red-600">{state.error}</p> : null}
     </form>
   );
 }

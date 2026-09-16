@@ -32,10 +32,10 @@ export default async function DisciplinePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Discipline &amp; Character</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Discipline &amp; Character</h1>
 
-      <section id="records" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Discipline records</h2>
+      <section id="records" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Discipline records</h2>
         <DisciplineRecordForm
           students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
           categories={categories}
@@ -44,8 +44,8 @@ export default async function DisciplinePage() {
         />
       </section>
 
-      <section id="character" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Character assessments</h2>
+      <section id="character" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Character assessments</h2>
         <CharacterAssessmentForm
           students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
           attributes={attributes}
@@ -56,9 +56,9 @@ export default async function DisciplinePage() {
       </section>
 
       {canManage ? (
-        <section id="config" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Configure categories, attributes &amp; rating scale</h2>
-          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <section id="config" className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700">Configure categories, attributes &amp; rating scale</h2>
+          <p className="mb-3 text-xs text-zinc-500">
             Add, rename, reorder, or deactivate discipline categories and character attributes anytime — no code
             change needed. Deactivated items stay on historical records but drop out of new-record dropdowns.
           </p>

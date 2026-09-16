@@ -13,11 +13,11 @@ function SubmitReviewForm({ readingRecordId }: { readingRecordId: string }) {
   return (
     <form action={formAction} className="flex items-center gap-1">
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
-      <input name="reviewText" placeholder="Review text…" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <input name="reviewText" placeholder="Review text…" className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Save
       </button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }
@@ -27,10 +27,10 @@ function ReviewDecisionButton({ action, label, readingRecordId }: { action: type
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }
@@ -45,7 +45,7 @@ export default function ReadingReviewQueue({
   return (
     <div className="overflow-x-auto">
     <table className="w-full text-sm">
-      <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+      <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
         <tr>
           <th className="py-1.5">Student</th>
           <th className="py-1.5">Book</th>
@@ -53,7 +53,7 @@ export default function ReadingReviewQueue({
           <th className="py-1.5" />
         </tr>
       </thead>
-      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+      <tbody className="divide-y divide-zinc-100">
         {records.map((r) => (
           <tr key={r.id}>
             <td className="py-1.5">{r.student_name}</td>
@@ -72,7 +72,7 @@ export default function ReadingReviewQueue({
           </tr>
         ))}
         {records.length === 0 ? (
-          <tr><td colSpan={4} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No pending reading reviews.</td></tr>
+          <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No pending reading reviews.</td></tr>
         ) : null}
       </tbody>
     </table>

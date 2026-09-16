@@ -20,11 +20,11 @@ export default function SetCurrentYearButton({ academicYearId }: { academicYearI
       <button
         type="submit"
         disabled={pending}
-        className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300 disabled:opacity-50"
+        className="text-xs text-indigo-600 underline hover:text-indigo-800 disabled:opacity-50"
       >
         Set current
       </button>
-      {state.error ? <span className="ml-2 text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="ml-2 text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }

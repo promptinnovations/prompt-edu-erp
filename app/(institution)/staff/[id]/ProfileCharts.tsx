@@ -9,13 +9,13 @@ import type { TeacherPerformanceTrendPoint } from "../../../../modules/analytics
  */
 export function TeacherPerformanceTrendChart({ points }: { points: TeacherPerformanceTrendPoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-zinc-400 dark:text-zinc-500">No exam results recorded yet for this teacher.</p>;
+    return <p className="text-sm text-zinc-400">No exam results recorded yet for this teacher.</p>;
   }
   if (points.length === 1) {
     return (
-      <div className="text-sm text-zinc-600 dark:text-zinc-300">
+      <div className="text-sm text-zinc-600">
         {points[0].examinationName}: <span className="font-semibold">{points[0].percentage}%</span>
-        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Need at least two examinations to draw a trend.</p>
+        <p className="mt-1 text-xs text-zinc-400">Need at least two examinations to draw a trend.</p>
       </div>
     );
   }
@@ -44,10 +44,10 @@ export function TeacherPerformanceTrendChart({ points }: { points: TeacherPerfor
           <circle key={points[i].examinationId} cx={x} cy={y} r={3.5} fill="var(--brand)" />
         ))}
       </svg>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
         {points.map((p) => (
           <span key={p.examinationId}>
-            {p.examinationName}: <span className="font-medium text-zinc-700 dark:text-zinc-300">{p.percentage}%</span>
+            {p.examinationName}: <span className="font-medium text-zinc-700">{p.percentage}%</span>
           </span>
         ))}
       </div>

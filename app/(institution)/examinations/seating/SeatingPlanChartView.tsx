@@ -21,18 +21,18 @@ export default function SeatingPlanChartView({
   const generatedOn = plan.created_at.slice(0, 10);
 
   return (
-    <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
       <PrintLetterhead institutionName={institutionName} logoCode={logoCode} />
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Seating chart — {examinationName}</h2>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <h2 className="text-sm font-semibold text-zinc-700">Seating chart — {examinationName}</h2>
+          <p className="mt-1 text-xs text-zinc-500">
             {plan.student_count} student(s) · {rooms.length} room(s) · {plan.seat_count} seat(s) · generated {generatedOn} ·{" "}
             boys/girls rule at generation: {plan.gender_rule === "hard" ? "hard (no mixed rooms)" : "best effort"}
           </p>
           {plan.mixed_room_count > 0 ? (
-            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+            <p className="mt-1 text-xs text-amber-600">
               {plan.mixed_room_count} room(s) ended up mixed because capacity was tight.
             </p>
           ) : null}
@@ -52,9 +52,9 @@ export default function SeatingPlanChartView({
       <div className="space-y-6">
         {rooms.map((room) => (
           <div key={room.id}>
-            <h3 className="mb-2 text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+            <h3 className="mb-2 text-sm font-semibold text-zinc-800">
               {room.name}
-              <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-400">
+              <span className="ml-2 text-xs font-normal text-zinc-500">
                 {room.seatedCount} / {room.bench_count * room.seats_per_bench} seats used
                 {room.gender_restriction ? ` · ${room.gender_restriction === "male" ? "Boys only" : "Girls only"}` : ""}
                 {room.is_ad_hoc ? " · ad-hoc room" : ""}
@@ -64,29 +64,29 @@ export default function SeatingPlanChartView({
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="text-left text-zinc-500 dark:text-zinc-400">
-                    <th className="border border-zinc-200 px-2 py-1 font-normal dark:border-zinc-800">Bench</th>
+                  <tr className="text-left text-zinc-500">
+                    <th className="border border-zinc-200 px-2 py-1 font-normal">Bench</th>
                     {Array.from({ length: room.seats_per_bench }, (_, i) => (
-                      <th key={i} className="border border-zinc-200 px-2 py-1 font-normal dark:border-zinc-800">Seat {i + 1}</th>
+                      <th key={i} className="border border-zinc-200 px-2 py-1 font-normal">Seat {i + 1}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {room.benches.map((bench) => (
                     <tr key={bench.benchNumber}>
-                      <td className="border border-zinc-200 px-2 py-1 text-center font-medium dark:border-zinc-800">{bench.benchNumber}</td>
+                      <td className="border border-zinc-200 px-2 py-1 text-center font-medium">{bench.benchNumber}</td>
                       {bench.seats.map((seat, i) => (
-                        <td key={i} className="border border-zinc-200 px-2 py-1 align-top dark:border-zinc-800">
+                        <td key={i} className="border border-zinc-200 px-2 py-1 align-top">
                           {seat ? (
                             <>
-                              <span className="block font-medium text-zinc-800 dark:text-zinc-100">{seat.student_name}</span>
-                              <span className="block text-zinc-500 dark:text-zinc-400">
+                              <span className="block font-medium text-zinc-800">{seat.student_name}</span>
+                              <span className="block text-zinc-500">
                                 {seat.class_name}{seat.division_name ? `-${seat.division_name}` : ""}
                                 {seat.roll_number !== null ? ` · Roll ${seat.roll_number}` : ""}
                               </span>
                             </>
                           ) : (
-                            <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                            <span className="text-zinc-300">—</span>
                           )}
                         </td>
                       ))}

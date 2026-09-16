@@ -66,8 +66,8 @@ export default async function PrintCenterPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Print Center</h1>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">Print or download any document/report from one place.</p>
+      <h1 className="text-2xl font-semibold text-zinc-900">Print Center</h1>
+      <p className="text-sm text-zinc-500">Print or download any document/report from one place.</p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map((t) => {
@@ -76,18 +76,18 @@ export default async function PrintCenterPage() {
             <Link
               key={t.title}
               href={t.href}
-              className="flex flex-col gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 transition-colors hover:border-[var(--brand)]"
+              className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-5 transition-colors hover:border-[var(--brand)]"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]">
                 <Icon className="h-5 w-5" />
               </span>
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{t.title}</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.body}</p>
+              <h2 className="text-sm font-semibold text-zinc-900">{t.title}</h2>
+              <p className="text-sm text-zinc-500">{t.body}</p>
             </Link>
           );
         })}
         {tiles.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing printable is available for your role yet.</p>
+          <p className="text-sm text-zinc-400">Nothing printable is available for your role yet.</p>
         ) : null}
       </div>
     </div>

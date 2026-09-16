@@ -29,15 +29,15 @@ export default async function StaffDirectoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Staff profiles</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold text-zinc-900">Staff profiles</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           Open a card for a staff member&apos;s full profile. Teaching staff also get exam results and classroom observations.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         {staff.length === 0 ? (
-          <p className="py-6 text-center text-sm text-zinc-400 dark:text-zinc-500">No staff members yet.</p>
+          <p className="py-6 text-center text-sm text-zinc-400">No staff members yet.</p>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {staff.map((s) => {
@@ -46,23 +46,23 @@ export default async function StaffDirectoryPage() {
                 <Link
                   key={s.id}
                   href={`/staff/${s.id}`}
-                  className="flex flex-col items-center rounded-xl border border-transparent p-4 text-center hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                  className="flex flex-col items-center rounded-xl border border-transparent p-4 text-center hover:border-indigo-400 hover:bg-zinc-50 transition-colors"
                 >
                   {s.photo_file_id ? (
                     // eslint-disable-next-line @next/next/no-img-element -- avatar thumbnail from an authenticated /api/files route, not a static/optimizable asset
                     <img
                       src={`/api/files/${s.photo_file_id}`}
                       alt=""
-                      className="h-20 w-20 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
+                      className="h-20 w-20 rounded-full object-cover ring-2 ring-zinc-100"
                     />
                   ) : (
-                    <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-800">
+                    <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100">
                       {s.full_name.charAt(0).toUpperCase()}
                     </span>
                   )}
-                  <div className="mt-3 text-sm font-medium text-zinc-900 dark:text-zinc-50">{s.full_name}</div>
-                  <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{s.designation ?? "—"}</div>
-                  <div className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{s.staff_code}</div>
+                  <div className="mt-3 text-sm font-medium text-zinc-900">{s.full_name}</div>
+                  <div className="mt-0.5 text-xs text-zinc-500">{s.designation ?? "—"}</div>
+                  <div className="mt-0.5 text-xs text-zinc-400">{s.staff_code}</div>
                   {isTeacher ? (
                     <span className="mt-1.5 rounded-full bg-[var(--brand)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--brand)]">Teacher</span>
                   ) : null}

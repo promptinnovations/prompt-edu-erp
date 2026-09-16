@@ -21,11 +21,11 @@ export default function EnrollForm({
       <input type="hidden" name="studentId" value={studentId} />
       <input type="hidden" name="academicYearId" value={academicYearId} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Division</label>
+        <label className="mb-1 block text-xs text-zinc-500">Class / Division</label>
         <select
           name="sectionAndClass"
           required
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           onChange={(e) => {
             const [classId, sectionId] = e.currentTarget.value.split("|");
             const form = e.currentTarget.form!;
@@ -50,7 +50,7 @@ export default function EnrollForm({
       >
         Enroll
       </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
     </form>
   );
 }

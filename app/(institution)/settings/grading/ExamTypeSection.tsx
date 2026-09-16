@@ -27,8 +27,8 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
       <li className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="examTypeId" value={examType.id} />
-          <input name="name" defaultValue={examType.name} className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm" />
-          <select name="category" defaultValue={examType.category ?? ""} className="w-40 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs">
+          <input name="name" defaultValue={examType.name} className="rounded border border-zinc-300 px-2 py-1 text-sm" />
+          <select name="category" defaultValue={examType.category ?? ""} className="w-40 rounded border border-zinc-300 px-2 py-1 text-xs">
             <option value="">No category</option>
             <option value="Academic">Academic</option>
             <option value="Islamic">Islamic</option>
@@ -36,12 +36,12 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
           <input
             name="periodicity" list="periodicity-suggestions" defaultValue={examType.periodicity ?? ""}
             placeholder="Periodicity (e.g. Term)"
-            className="w-36 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs"
+            className="w-36 rounded border border-zinc-300 px-2 py-1 text-xs"
           />
-          <button type="submit" className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800">Save</button>
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">Cancel</button>
+          <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">Cancel</button>
         </form>
-        {updateState.error ? <span className="text-xs text-red-600 dark:text-red-400">{updateState.error}</span> : null}
+        {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
       </li>
     );
   }
@@ -49,21 +49,21 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
   return (
     <li className="flex items-center justify-between gap-2 py-1.5 text-sm">
       <span>
-        <strong className="text-zinc-900 dark:text-zinc-50">{examType.name}</strong>{" "}
-        <span className="text-zinc-400 dark:text-zinc-500">({examType.code})</span>
+        <strong className="text-zinc-900">{examType.name}</strong>{" "}
+        <span className="text-zinc-400">({examType.code})</span>
         {examType.category ? (
-          <span className="ml-2 rounded-full bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-300">{examType.category}</span>
+          <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">{examType.category}</span>
         ) : null}
         {examType.periodicity ? (
-          <span className="ml-2 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-zinc-600 dark:text-zinc-400">{examType.periodicity}</span>
+          <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">{examType.periodicity}</span>
         ) : null}
       </span>
       {canManage ? (
         <span className="flex items-center gap-2">
-          <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-800 dark:hover:text-zinc-100">Edit</button>
+          <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Edit</button>
           <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete exam type "${examType.name}"?`)) e.preventDefault(); }}>
             <input type="hidden" name="examTypeId" value={examType.id} />
-            <button type="submit" className="text-xs text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-300">Delete</button>
+            <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
           </form>
         </span>
       ) : null}
@@ -79,40 +79,40 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
       <datalist id="periodicity-suggestions">
         {PERIODICITY_SUGGESTIONS.map((p) => <option key={p} value={p} />)}
       </datalist>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Exam types feed the &quot;Create Exam&quot; dropdown in Examinations. Category is optional — Academic
         or Islamic — and drives which track section an exam shows up in wherever this institution splits
         results by track. Periodicity is optional too — how often it recurs (Periodic, Cyclic, Term,
         Monthly, or your own wording).
       </p>
-      <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-        {examTypes.length === 0 ? <li className="py-1 text-xs text-zinc-400 dark:text-zinc-500">No exam types yet.</li> : null}
+      <ul className="divide-y divide-zinc-100">
+        {examTypes.length === 0 ? <li className="py-1 text-xs text-zinc-400">No exam types yet.</li> : null}
         {examTypes.map((et) => <ExamTypeRow key={et.id} examType={et} canManage={canManage} />)}
       </ul>
 
       {canManage ? (
-        <form action={createAction} className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-3">
+        <form action={createAction} className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-3">
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Code</label>
-            <input name="code" required placeholder="e.g. MS-MID" className="w-28 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" />
+            <label className="mb-1 block text-xs text-zinc-500">Code</label>
+            <input name="code" required placeholder="e.g. MS-MID" className="w-28 rounded border border-zinc-300 px-2 py-1.5 text-sm" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Name</label>
-            <input name="name" required placeholder="e.g. Moral Science Mid Term" className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm" />
+            <label className="mb-1 block text-xs text-zinc-500">Name</label>
+            <input name="name" required placeholder="e.g. Moral Science Mid Term" className="rounded border border-zinc-300 px-2 py-1.5 text-sm" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Category (optional)</label>
-            <select name="category" defaultValue="" className="w-40 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm">
+            <label className="mb-1 block text-xs text-zinc-500">Category (optional)</label>
+            <select name="category" defaultValue="" className="w-40 rounded border border-zinc-300 px-2 py-1.5 text-sm">
               <option value="">No category</option>
               <option value="Academic">Academic</option>
               <option value="Islamic">Islamic</option>
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Periodicity (optional)</label>
+            <label className="mb-1 block text-xs text-zinc-500">Periodicity (optional)</label>
             <input
               name="periodicity" list="periodicity-suggestions" placeholder="e.g. Term"
-              className="w-36 rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm"
+              className="w-36 rounded border border-zinc-300 px-2 py-1.5 text-sm"
             />
           </div>
           <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
@@ -120,7 +120,7 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
           </button>
         </form>
       ) : null}
-      {createState.error ? <p className="text-xs text-red-600 dark:text-red-400">{createState.error}</p> : null}
+      {createState.error ? <p className="text-xs text-red-600">{createState.error}</p> : null}
     </div>
   );
 }

@@ -61,12 +61,12 @@ export default async function ExaminationDetailPage({
 
     return (
       <div className="space-y-6">
-        <Link href="/examinations" className="text-sm text-zinc-500 dark:text-zinc-400 underline">
+        <Link href="/examinations" className="text-sm text-zinc-500 underline">
           ← Back to examinations
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{examination.name}</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Daily Assessment · {examination.status}</p>
+          <h1 className="text-2xl font-semibold text-zinc-900">{examination.name}</h1>
+          <p className="mt-1 text-sm text-zinc-500">Daily Assessment · {examination.status}</p>
         </div>
         <DailyAssessmentSection
           examinationId={id}
@@ -132,34 +132,34 @@ export default async function ExaminationDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link href="/examinations" className="text-sm text-zinc-500 dark:text-zinc-400 underline">
+      <Link href="/examinations" className="text-sm text-zinc-500 underline">
         ← Back to examinations
       </Link>
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{examination.name}</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{examTypeName} · {examination.status}</p>
+        <h1 className="text-2xl font-semibold text-zinc-900">{examination.name}</h1>
+        <p className="mt-1 text-sm text-zinc-500">{examTypeName} · {examination.status}</p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">1. Confirm scope</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Which grades and divisions does this exam apply to?</p>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">1. Confirm scope</h2>
+        <p className="mb-3 text-xs text-zinc-400">Which grades and divisions does this exam apply to?</p>
         <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">2. Subjects &amp; total marks</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">2. Subjects &amp; total marks</h2>
+        <p className="mb-3 text-xs text-zinc-400">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
         <ExamSubjectsSection examinationId={id} subjects={subjects} linked={linkedSubjects} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Results</h2>
+          <h2 className="text-sm font-semibold text-zinc-700">Results</h2>
           <ComputeResultsButton examinationId={id} />
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Total</th>
@@ -167,7 +167,7 @@ export default async function ExaminationDetailPage({
               <th className="py-1.5">Grade</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {results.map((r) => (
               <tr key={r.student_id}>
                 <td className="py-1.5">{r.student_name}</td>
@@ -177,7 +177,7 @@ export default async function ExaminationDetailPage({
               </tr>
             ))}
             {results.length === 0 ? (
-              <tr><td colSpan={4} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No results computed yet.</td></tr>
+              <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No results computed yet.</td></tr>
             ) : null}
           </tbody>
         </table>

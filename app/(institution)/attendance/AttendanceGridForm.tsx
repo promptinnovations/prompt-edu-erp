@@ -34,18 +34,18 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
 
   if (state.sent !== undefined) {
     return (
-      <div className="mt-4 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950 p-4 text-sm text-emerald-800 dark:text-emerald-300">
+      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
         {state.sent} WhatsApp alert{state.sent === 1 ? "" : "s"} sent{state.skipped ? `, ${state.skipped} skipped (no phone on file)` : ""}.
       </div>
     );
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 p-4">
-      <h3 className="mb-1 text-sm font-semibold text-amber-900 dark:text-amber-200">
+    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <h3 className="mb-1 text-sm font-semibold text-amber-900">
         Absentee &amp; late-coming alerts ({alerts.length})
       </h3>
-      <p className="mb-3 text-xs text-amber-700 dark:text-amber-400">
+      <p className="mb-3 text-xs text-amber-700">
         Attendance is already saved. Review the messages below, edit or exclude any, then confirm to send via WhatsApp.
       </p>
       <form action={formAction} className="space-y-3">
@@ -53,16 +53,16 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
           const isExcluded = excluded.has(a.studentId);
           const noPhone = !a.phone;
           return (
-            <div key={a.studentId} className="rounded-lg border border-amber-200 dark:border-amber-900 bg-white dark:bg-zinc-900 p-3">
+            <div key={a.studentId} className="rounded-lg border border-amber-200 bg-white p-3">
               <div className="mb-1.5 flex items-center justify-between gap-2">
-                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  {a.studentName} <span className="text-zinc-400 dark:text-zinc-500">({a.admissionNumber})</span>{" "}
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">— {a.statusLabel}{a.isLate ? ` · Late${a.lateMinutes ? ` ${a.lateMinutes}m` : ""}` : ""}</span>
+                <div className="text-sm font-medium text-zinc-900">
+                  {a.studentName} <span className="text-zinc-400">({a.admissionNumber})</span>{" "}
+                  <span className="text-xs text-zinc-500">— {a.statusLabel}{a.isLate ? ` · Late${a.lateMinutes ? ` ${a.lateMinutes}m` : ""}` : ""}</span>
                 </div>
                 {noPhone ? (
-                  <span className="text-xs text-red-600 dark:text-red-400">No phone on file</span>
+                  <span className="text-xs text-red-600">No phone on file</span>
                 ) : (
-                  <label className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-500">
                     <input
                       type="checkbox"
                       checked={!isExcluded}
@@ -87,7 +87,7 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
                     onChange={(e) => setMessages((prev) => ({ ...prev, [a.studentId]: e.target.value }))}
                     disabled={isExcluded}
                     rows={2}
-                    className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm disabled:bg-zinc-100 disabled:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </>
               )}
@@ -105,11 +105,11 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
           <button
             type="button"
             onClick={onDismiss}
-            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
           >
             Cancel
           </button>
-          {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+          {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
         </div>
       </form>
     </div>
@@ -148,7 +148,7 @@ export default function AttendanceGridForm({
         <input type="hidden" name="date" value={date} />
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="py-1.5">Admission #</th>
               <th className="py-1.5">Student</th>
@@ -157,7 +157,7 @@ export default function AttendanceGridForm({
               <th className="py-1.5">Late (min)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {students.map((s) => (
               <tr key={s.student_id}>
                 <td className="py-1.5">
@@ -174,7 +174,7 @@ export default function AttendanceGridForm({
                     name={`status_${s.student_id}`}
                     defaultValue={s.status_id ?? defaultStatusId}
                     disabled={!canEnter}
-                    className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="rounded-lg border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   >
                     {statuses.map((st) => (
                       <option key={st.id} value={st.id}>{st.label}</option>
@@ -191,14 +191,14 @@ export default function AttendanceGridForm({
                     name={`lateMinutes_${s.student_id}`}
                     defaultValue={s.late_minutes ?? ""}
                     disabled={!canEnter}
-                    className="w-20 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="w-20 rounded-lg border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
               </tr>
             ))}
             {students.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-zinc-400 dark:text-zinc-500">No students enrolled in this section.</td>
+                <td colSpan={5} className="py-6 text-center text-zinc-400">No students enrolled in this section.</td>
               </tr>
             ) : null}
           </tbody>
@@ -209,8 +209,8 @@ export default function AttendanceGridForm({
             Save attendance
           </button>
         ) : null}
-        {state.error ? <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
-        {typeof state.marked === "number" ? <p className="text-sm text-zinc-500 dark:text-zinc-400">{state.marked} record(s) saved.</p> : null}
+        {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
+        {typeof state.marked === "number" ? <p className="text-sm text-zinc-500">{state.marked} record(s) saved.</p> : null}
       </form>
       {showPreview ? (
         <AlertPreview key={JSON.stringify(state.alerts?.map((a) => a.studentId))} alerts={state.alerts!} onDismiss={() => setPreviewDismissed(true)} />

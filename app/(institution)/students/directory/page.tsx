@@ -55,31 +55,31 @@ export default async function StudentDirectoryPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Student profiles</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold text-zinc-900">Student profiles</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           {tab === "portfolio"
             ? "Pick a student to open their Portfolio tab."
             : "Every student in one place — open a card for their full profile."}
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <form className="flex flex-wrap items-end gap-2" method="get">
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Search</label>
+            <label className="mb-1 block text-xs text-zinc-500">Search</label>
             <input
               name="q"
               defaultValue={q}
               placeholder="Name or admission number"
-              className="w-56 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="w-56 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class</label>
+            <label className="mb-1 block text-xs text-zinc-500">Class</label>
             <select
               name="classId"
               defaultValue={classId}
-              className="rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             >
               <option value="">All classes</option>
               {classes.map((c) => (
@@ -97,7 +97,7 @@ export default async function StudentDirectoryPage({
           {(q || classId) ? (
             <Link
               href={tab ? `/students/directory?tab=${encodeURIComponent(tab)}` : "/students/directory"}
-              className="text-xs text-zinc-500 dark:text-zinc-400 underline"
+              className="text-xs text-zinc-500 underline"
             >
               Clear filters
             </Link>
@@ -105,9 +105,9 @@ export default async function StudentDirectoryPage({
         </form>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         {students.length === 0 ? (
-          <p className="py-6 text-center text-sm text-zinc-400 dark:text-zinc-500">
+          <p className="py-6 text-center text-sm text-zinc-400">
             {q || classId ? "No students match those filters." : "No students yet."}
           </p>
         ) : (
@@ -116,28 +116,28 @@ export default async function StudentDirectoryPage({
               <Link
                 key={s.id}
                 href={`/students/${s.id}${tabSuffix}`}
-                className={`flex flex-col items-center rounded-xl border border-transparent p-4 text-center hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors ${s.status === "withdrawn" ? "opacity-50" : ""}`}
+                className={`flex flex-col items-center rounded-xl border border-transparent p-4 text-center hover:border-indigo-400 hover:bg-zinc-50 transition-colors ${s.status === "withdrawn" ? "opacity-50" : ""}`}
               >
                 {s.photo_file_id ? (
                   // eslint-disable-next-line @next/next/no-img-element -- avatar thumbnail from an authenticated /api/files route, not a static/optimizable asset
                   <img
                     src={`/api/files/${s.photo_file_id}`}
                     alt=""
-                    className="h-20 w-20 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
+                    className="h-20 w-20 rounded-full object-cover ring-2 ring-zinc-100"
                   />
                 ) : (
-                  <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-800">
+                  <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100">
                     {s.full_name.charAt(0).toUpperCase()}
                   </span>
                 )}
-                <div className="mt-3 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                <div className="mt-3 text-sm font-medium text-zinc-900">
                   {s.full_name}
-                  {s.status === "withdrawn" ? <span className="block text-xs text-red-600 dark:text-red-400">(removed)</span> : null}
+                  {s.status === "withdrawn" ? <span className="block text-xs text-red-600">(removed)</span> : null}
                 </div>
-                <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="mt-0.5 text-xs text-zinc-500">
                   {s.class_name ? `${s.class_name}${s.section_name ? ` · Div. ${s.section_name}` : ""}` : "Not enrolled"}
                 </div>
-                <div className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{s.admission_number}</div>
+                <div className="mt-0.5 text-xs text-zinc-400">{s.admission_number}</div>
               </Link>
             ))}
           </div>

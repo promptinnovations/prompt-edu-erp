@@ -40,25 +40,25 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Users & Roles</h1>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <h1 className="text-2xl font-semibold text-zinc-900">Users & Roles</h1>
+      <p className="text-sm text-zinc-500">
         Create a login for a new person, set their password, and assign them one or more roles — it works immediately,
         no email confirmation step needed. A user can hold several roles at once (e.g. Teacher + Librarian). The
         current password for each user is shown below; reset it any time if someone loses it.
       </p>
 
       {canManageUsers ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Create a login</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Create a login</h2>
           <CreateUserForm roleOptions={roles} />
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Staff ({staff.length})</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Staff ({staff.length})</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="py-1.5">Name</th>
               <th className="py-1.5">Email</th>
@@ -70,22 +70,22 @@ export default async function UsersPage() {
               {canManageUsers ? <th className="py-1.5"></th> : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {staff.map((u) => (
               <tr key={u.userId}>
-                <td className="py-2 font-medium text-zinc-900 dark:text-zinc-50">{u.fullName}</td>
-                <td className="py-2 text-zinc-500 dark:text-zinc-400">{u.email ?? "—"}</td>
-                <td className="py-2 text-zinc-600 dark:text-zinc-400">{u.roleNames.length > 0 ? u.roleNames.join(", ") : "—"}</td>
+                <td className="py-2 font-medium text-zinc-900">{u.fullName}</td>
+                <td className="py-2 text-zinc-500">{u.email ?? "—"}</td>
+                <td className="py-2 text-zinc-600">{u.roleNames.length > 0 ? u.roleNames.join(", ") : "—"}</td>
                 <td className="py-2">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
-                      u.isClaimed ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400" : "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400"
+                      u.isClaimed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                     }`}
                   >
                     {u.isClaimed ? "Signed in" : "Not signed up yet"}
                   </span>
                 </td>
-                <td className="py-2 capitalize text-zinc-600 dark:text-zinc-400">{u.membershipStatus}</td>
+                <td className="py-2 capitalize text-zinc-600">{u.membershipStatus}</td>
                 {canManageUsers ? (
                   <td className="py-2">
                     <UserPasswordForm userId={u.userId} currentPassword={u.currentPassword} />
@@ -105,7 +105,7 @@ export default async function UsersPage() {
             ))}
             {staff.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-4 text-center text-zinc-400 dark:text-zinc-500">
+                <td colSpan={8} className="py-4 text-center text-zinc-400">
                   No staff logins yet.
                 </td>
               </tr>
@@ -115,14 +115,14 @@ export default async function UsersPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Students ({students.length})</h2>
-        <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Students ({students.length})</h2>
+        <p className="mb-3 text-xs text-zinc-500">
           Section → Grade → Division → Roll number order. Each student&apos;s own parent login is shown alongside them.
         </p>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Class</th>
@@ -137,18 +137,18 @@ export default async function UsersPage() {
               {canManageUsers ? <th className="py-1.5"></th> : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {students.map((s) => (
               <tr key={s.userId}>
-                <td className="py-2 font-medium text-zinc-900 dark:text-zinc-50">{s.fullName}</td>
-                <td className="py-2 text-zinc-600 dark:text-zinc-400">
+                <td className="py-2 font-medium text-zinc-900">{s.fullName}</td>
+                <td className="py-2 text-zinc-600">
                   {s.className ? `${s.className}${s.sectionName ? ` ${s.sectionName}` : ""}` : "—"}
                 </td>
-                <td className="py-2 text-zinc-600 dark:text-zinc-400">{s.rollNumber ?? "—"}</td>
+                <td className="py-2 text-zinc-600">{s.rollNumber ?? "—"}</td>
                 <td className="py-2">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
-                      s.isClaimed ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400" : "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400"
+                      s.isClaimed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                     }`}
                   >
                     {s.isClaimed ? "Signed in" : "Not signed up yet"}
@@ -169,18 +169,18 @@ export default async function UsersPage() {
                     <UserStatusForm userId={s.userId} currentStatus={s.membershipStatus} />
                   </td>
                 ) : null}
-                <td className="py-2 text-zinc-600 dark:text-zinc-400">{s.parent?.fullName || "—"}</td>
+                <td className="py-2 text-zinc-600">{s.parent?.fullName || "—"}</td>
                 <td className="py-2">
                   {s.parent ? (
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
-                        s.parent.isClaimed ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400" : "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-400"
+                        s.parent.isClaimed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                       }`}
                     >
                       {s.parent.isClaimed ? "Signed in" : "Not signed up yet"}
                     </span>
                   ) : (
-                    <span className="text-zinc-400 dark:text-zinc-500">—</span>
+                    <span className="text-zinc-400">—</span>
                   )}
                 </td>
                 {canManageUsers ? (
@@ -197,7 +197,7 @@ export default async function UsersPage() {
             ))}
             {students.length === 0 ? (
               <tr>
-                <td colSpan={11} className="py-4 text-center text-zinc-400 dark:text-zinc-500">
+                <td colSpan={11} className="py-4 text-center text-zinc-400">
                   No student logins yet.
                 </td>
               </tr>

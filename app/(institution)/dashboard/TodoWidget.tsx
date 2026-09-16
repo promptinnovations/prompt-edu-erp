@@ -14,7 +14,7 @@ function ToggleForm({ todo }: { todo: Todo }) {
         type="submit"
         aria-label={todo.is_done ? "Mark as not done" : "Mark as done"}
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-          todo.is_done ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-zinc-300 dark:border-zinc-600"
+          todo.is_done ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-zinc-300"
         }`}
       >
         {todo.is_done ? "✓" : ""}
@@ -28,7 +28,7 @@ function DeleteForm({ todoId }: { todoId: string }) {
   return (
     <form action={formAction}>
       <input type="hidden" name="todoId" value={todoId} />
-      <button type="submit" className="text-xs text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400">✕</button>
+      <button type="submit" className="text-xs text-zinc-400 hover:text-red-600">✕</button>
     </form>
   );
 }
@@ -43,22 +43,22 @@ export default function TodoWidget({ todos }: { todos: Todo[] }) {
       <form action={formAction} className="flex gap-2">
         <input
           name="text" required maxLength={500} placeholder="Add a task…"
-          className="min-w-0 flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]"
+          className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]"
         />
         <button type="submit" disabled={pending} className="shrink-0 rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Add
         </button>
       </form>
-      {state.error ? <p className="text-xs text-red-600 dark:text-red-400">{state.error}</p> : null}
+      {state.error ? <p className="text-xs text-red-600">{state.error}</p> : null}
 
       {todos.length === 0 ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing on your list yet.</p>
+        <p className="text-sm text-zinc-400">Nothing on your list yet.</p>
       ) : (
         <ul className="space-y-1.5">
           {[...pending_, ...done].map((t) => (
             <li key={t.id} className="flex items-center gap-2">
               <ToggleForm todo={t} />
-              <span className={`min-w-0 flex-1 truncate text-sm ${t.is_done ? "text-zinc-400 line-through dark:text-zinc-600" : "text-zinc-700 dark:text-zinc-300"}`}>
+              <span className={`min-w-0 flex-1 truncate text-sm ${t.is_done ? "text-zinc-400 line-through" : "text-zinc-700"}`}>
                 {t.text}
               </span>
               <DeleteForm todoId={t.id} />

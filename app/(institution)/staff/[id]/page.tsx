@@ -63,18 +63,18 @@ export default async function StaffDetailPage({
   const photoUrl = profile.photo_file_id ? `/api/files/${profile.photo_file_id}` : null;
 
   const header = (
-    <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+    <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-6">
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- avatar from an authenticated /api/files route, not a static/optimizable asset
-        <img src={photoUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800" />
+        <img src={photoUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-100" />
       ) : (
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-800">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-xl font-medium text-zinc-500 ring-2 ring-zinc-100">
           {profile.full_name.charAt(0).toUpperCase()}
         </span>
       )}
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{profile.full_name}</h1>
-        <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold text-zinc-900">{profile.full_name}</h1>
+        <p className="mt-0.5 text-sm text-zinc-500">
           {profile.staff_code} · {profile.designation ?? "—"}
           {isTeacher ? <span className="ml-2 rounded-full bg-[var(--brand)]/10 px-2 py-0.5 text-xs font-medium text-[var(--brand)]">Teacher</span> : null}
         </p>
@@ -91,16 +91,16 @@ export default async function StaffDetailPage({
     // branch below, just without the exam-analysis/observations tabs.
     return (
       <div className="space-y-4">
-        <Link href="/staff/directory" className="text-sm text-zinc-500 dark:text-zinc-400 underline">← Back to Staff profiles</Link>
+        <Link href="/staff/directory" className="text-sm text-zinc-500 underline">← Back to Staff profiles</Link>
         {header}
       {kudos.length > 0 ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Kudos received</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudos.map((k) => (
-              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{k.created_at}</span>
+                <span className="text-zinc-400">{k.created_at}</span>
               </li>
             ))}
           </ul>
@@ -108,32 +108,32 @@ export default async function StaffDetailPage({
       ) : null}
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Core identity &amp; employment</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity &amp; employment</h2>
             <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               <div>
-                <dt className="text-zinc-400 dark:text-zinc-500">Staff ID</dt>
-                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.staff_code}</dd>
+                <dt className="text-zinc-400">Staff ID</dt>
+                <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400 dark:text-zinc-500">Designation</dt>
-                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.designation ?? "—"}</dd>
+                <dt className="text-zinc-400">Designation</dt>
+                <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400 dark:text-zinc-500">Department</dt>
-                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.department ?? "—"}</dd>
+                <dt className="text-zinc-400">Department</dt>
+                <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400 dark:text-zinc-500">Joining date</dt>
-                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{formatDate(profile.joining_date)}</dd>
+                <dt className="text-zinc-400">Joining date</dt>
+                <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400 dark:text-zinc-500">Employment status</dt>
-                <dd className="mt-0.5 capitalize text-zinc-900 dark:text-zinc-50">{profile.employment_status.replace("_", " ")}</dd>
+                <dt className="text-zinc-400">Employment status</dt>
+                <dd className="mt-0.5 capitalize text-zinc-900">{profile.employment_status.replace("_", " ")}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400 dark:text-zinc-500">Email</dt>
-                <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.email ?? "—"}</dd>
+                <dt className="text-zinc-400">Email</dt>
+                <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
               </div>
             </dl>
             {canManage ? (
@@ -148,15 +148,15 @@ export default async function StaffDetailPage({
                 />
               </div>
             ) : null}
-            <p className="mt-4 text-xs text-zinc-400 dark:text-zinc-500">
+            <p className="mt-4 text-xs text-zinc-400">
               Exam analysis and observation tracking apply only to teaching staff — assign this person a subject via Staff &gt; Teacher
               assignments to enable those.
             </p>
           </div>
 
           {canEditSelfFields ? (
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-              <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Photo</h2>
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+              <h2 className="mb-3 text-sm font-semibold text-zinc-700">Photo</h2>
               <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
             </div>
           ) : null}
@@ -187,32 +187,32 @@ export default async function StaffDetailPage({
 
   const profileTab = (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Core identity &amp; employment</h2>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity &amp; employment</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
-            <dt className="text-zinc-400 dark:text-zinc-500">Staff ID</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.staff_code}</dd>
+            <dt className="text-zinc-400">Staff ID</dt>
+            <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400 dark:text-zinc-500">Joining date</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{formatDate(profile.joining_date)}</dd>
+            <dt className="text-zinc-400">Joining date</dt>
+            <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400 dark:text-zinc-500">Designation</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.designation ?? "—"}</dd>
+            <dt className="text-zinc-400">Designation</dt>
+            <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400 dark:text-zinc-500">Department / section</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.department ?? "—"}</dd>
+            <dt className="text-zinc-400">Department / section</dt>
+            <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
           </div>
           <div className="col-span-2 sm:col-span-4">
-            <dt className="text-zinc-400 dark:text-zinc-500">Classes &amp; subjects handled</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{classesSubjectsHandled || "—"}</dd>
+            <dt className="text-zinc-400">Classes &amp; subjects handled</dt>
+            <dd className="mt-0.5 text-zinc-900">{classesSubjectsHandled || "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400 dark:text-zinc-500">Email</dt>
-            <dd className="mt-0.5 text-zinc-900 dark:text-zinc-50">{profile.email ?? "—"}</dd>
+            <dt className="text-zinc-400">Email</dt>
+            <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
           </div>
         </dl>
         {canManage ? (
@@ -230,8 +230,8 @@ export default async function StaffDetailPage({
       </div>
 
       {canEditSelfFields ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Photo</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Photo</h2>
           <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
         </div>
       ) : null}
@@ -239,24 +239,24 @@ export default async function StaffDetailPage({
       {canEditSelfFields ? (
         <TeacherProfileForm profile={profile} />
       ) : (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">You don&apos;t have permission to edit this profile.</p>
+        <p className="text-sm text-zinc-400">You don&apos;t have permission to edit this profile.</p>
       )}
     </div>
   );
 
   return (
     <div className="space-y-4">
-      <Link href="/staff/directory" className="text-sm text-zinc-500 dark:text-zinc-400 underline">← Back to Staff profiles</Link>
+      <Link href="/staff/directory" className="text-sm text-zinc-500 underline">← Back to Staff profiles</Link>
       {header}
 
       {kudos.length > 0 ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Kudos received</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudos.map((k) => (
-              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{k.created_at}</span>
+                <span className="text-zinc-400">{k.created_at}</span>
               </li>
             ))}
           </ul>

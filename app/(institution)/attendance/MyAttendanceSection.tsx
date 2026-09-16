@@ -27,30 +27,30 @@ export default function MyAttendanceSection({
   return (
     <div className="space-y-3">
       {existing ? (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Today ({today}): marked as <span className="font-medium text-zinc-800 dark:text-zinc-200">{existing.status_label}</span>
+        <p className="text-sm text-zinc-600">
+          Today ({today}): marked as <span className="font-medium text-zinc-800">{existing.status_label}</span>
           {existing.approval_status === "pending" ? (
-            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
               Pending approval
             </span>
           ) : (
-            <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+            <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
               Approved
             </span>
           )}
         </p>
       ) : (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">You haven&apos;t marked today&apos;s attendance yet.</p>
+        <p className="text-sm text-zinc-500">You haven&apos;t marked today&apos;s attendance yet.</p>
       )}
 
       <form action={formAction} className="flex flex-wrap items-end gap-2">
         <input type="hidden" name="date" value={today} />
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Status</label>
+          <label className="mb-1 block text-xs text-zinc-500">Status</label>
           <select
             name="statusId"
             defaultValue={defaultStatusId}
-            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             {statuses.map((s) => (
               <option key={s.id} value={s.id}>{s.label}</option>
@@ -60,9 +60,9 @@ export default function MyAttendanceSection({
         <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {existing ? "Update my attendance" : "Mark my attendance"}
         </button>
-        {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+        {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
       </form>
-      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+      <p className="text-xs text-zinc-400">
         Awaiting the principal&apos;s approval on the Staff attendance grid. You can update this until then.
       </p>
     </div>

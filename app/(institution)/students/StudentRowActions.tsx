@@ -22,10 +22,10 @@ export default function StudentRowActions({
     return (
       <form action={restoreAction}>
         <input type="hidden" name="studentId" value={studentId} />
-        <button type="submit" disabled={restorePending} className="text-sm text-emerald-700 dark:text-emerald-400 underline hover:text-emerald-900 dark:hover:text-emerald-300 disabled:opacity-50">
+        <button type="submit" disabled={restorePending} className="text-sm text-emerald-700 underline hover:text-emerald-900 disabled:opacity-50">
           Restore
         </button>
-        {restoreState.error ? <span className="ml-2 text-xs text-red-600 dark:text-red-400">{restoreState.error}</span> : null}
+        {restoreState.error ? <span className="ml-2 text-xs text-red-600">{restoreState.error}</span> : null}
       </form>
     );
   }
@@ -39,10 +39,10 @@ export default function StudentRowActions({
       }}
     >
       <input type="hidden" name="studentId" value={studentId} />
-      <button type="submit" disabled={deletePending} className="text-sm text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-300 disabled:opacity-50">
+      <button type="submit" disabled={deletePending} className="text-sm text-red-600 underline hover:text-red-800 disabled:opacity-50">
         Delete
       </button>
-      {deleteState.error ? <span className="ml-2 text-xs text-red-600 dark:text-red-400">{deleteState.error}</span> : null}
+      {deleteState.error ? <span className="ml-2 text-xs text-red-600">{deleteState.error}</span> : null}
     </form>
   );
 }

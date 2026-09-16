@@ -66,25 +66,25 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search title or author…"
-          className="min-w-[200px] flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="min-w-[200px] flex-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="">All categories</option>
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <label className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+        <label className="flex items-center gap-1.5 text-sm text-zinc-600">
           <input type="checkbox" checked={onlyAvailable} onChange={(e) => setOnlyAvailable(e.target.checked)} />
           Available only
         </label>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500">{filtered.length} of {books.length} books</span>
+        <span className="text-xs text-zinc-400">{filtered.length} of {books.length} books</span>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-zinc-400 dark:text-zinc-500">
+        <p className="py-6 text-center text-sm text-zinc-400">
           {books.length === 0 ? "No books yet." : "No books match your search."}
         </p>
       ) : (
@@ -95,14 +95,14 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
             return (
               <div
                 key={b.id}
-                className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm transition-shadow hover:shadow-md"
+                className="group overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="h-2" style={{ backgroundColor: spine }} />
                 <div className="p-3">
-                  <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                  <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-zinc-900">
                     {b.title}
                   </div>
-                  <div className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="mt-0.5 truncate text-xs text-zinc-500">
                     {b.author_name ?? "Unknown author"}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -117,15 +117,15 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         isAvailable
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                          : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-zinc-100 text-zinc-500"
                       }`}
                     >
                       {b.available_copies}/{b.total_copies} available
                     </span>
                   </div>
                   {b.shelf_name ? (
-                    <div className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">Shelf: {b.shelf_name}</div>
+                    <div className="mt-1.5 text-[11px] text-zinc-400">Shelf: {b.shelf_name}</div>
                   ) : null}
                 </div>
               </div>

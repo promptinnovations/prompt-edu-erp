@@ -5,7 +5,7 @@ import { admitStudentAction } from "./actions";
 
 interface SectionOption { id: string; classId: string; label: string }
 
-const inputCls = "rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
+const inputCls = "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
 
 /**
  * §Student Profile feature — "Enrollment" (the user's own naming: "add-
@@ -26,7 +26,7 @@ export default function StudentForm({
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(admitStudentAction, { error: null });
 
   if (!academicYearId) {
-    return <p className="text-sm text-zinc-400 dark:text-zinc-500">No current academic year configured — set one up in Academic Setup before admitting students.</p>;
+    return <p className="text-sm text-zinc-400">No current academic year configured — set one up in Academic Setup before admitting students.</p>;
   }
 
   return (
@@ -34,19 +34,19 @@ export default function StudentForm({
       <input type="hidden" name="academicYearId" value={academicYearId} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Admission number</label>
+          <label className="mb-1 block text-xs text-zinc-500">Admission number</label>
           <input name="admissionNumber" required className={`w-full ${inputCls}`} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Full name</label>
+          <label className="mb-1 block text-xs text-zinc-500">Full name</label>
           <input name="fullName" required placeholder="e.g. മുഹമ്മദ് അലി / Fatima Noor" className={`w-full ${inputCls}`} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Date of birth</label>
+          <label className="mb-1 block text-xs text-zinc-500">Date of birth</label>
           <input type="date" name="dateOfBirth" required className={`w-full ${inputCls}`} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Gender</label>
+          <label className="mb-1 block text-xs text-zinc-500">Gender</label>
           <select name="gender" required className={`w-full ${inputCls}`}>
             <option value="">Select…</option>
             <option value="male">Male</option>
@@ -54,7 +54,7 @@ export default function StudentForm({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Class / Division</label>
+          <label className="mb-1 block text-xs text-zinc-500">Class / Division</label>
           <select
             required
             className={`w-full ${inputCls}`}
@@ -74,30 +74,30 @@ export default function StudentForm({
           <input type="hidden" name="sectionId" />
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Current residential address</label>
+          <label className="mb-1 block text-xs text-zinc-500">Current residential address</label>
           <input name="address" required className={`w-full ${inputCls}`} />
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Father&apos;s name</label>
+          <label className="mb-1 block text-xs text-zinc-500">Father&apos;s name</label>
           <input name="fatherName" className={`w-full ${inputCls}`} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Father&apos;s phone</label>
+          <label className="mb-1 block text-xs text-zinc-500">Father&apos;s phone</label>
           <input name="fatherPhone" className={`w-full ${inputCls}`} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Mother&apos;s name</label>
+          <label className="mb-1 block text-xs text-zinc-500">Mother&apos;s name</label>
           <input name="motherName" className={`w-full ${inputCls}`} />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Mother&apos;s phone</label>
+          <label className="mb-1 block text-xs text-zinc-500">Mother&apos;s phone</label>
           <input name="motherPhone" className={`w-full ${inputCls}`} />
         </div>
       </div>
-      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+      <p className="text-xs text-zinc-400">
         At least one parent&apos;s name and phone number is required. Blood group, medical history, hobbies and
         the rest of the Student Profile Record can be filled in later from the student&apos;s own Personal tab.
       </p>
@@ -106,7 +106,7 @@ export default function StudentForm({
         <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {pending ? "Admitting…" : "Admit student"}
         </button>
-        {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+        {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
       </div>
     </form>
   );

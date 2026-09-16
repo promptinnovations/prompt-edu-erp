@@ -12,11 +12,11 @@ export default function ExamPicker({
   return (
     <form method="get" className="flex flex-wrap items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Examination</label>
+        <label className="mb-1 block text-xs text-zinc-500">Examination</label>
         <select
           name="examinationId"
           defaultValue={examinationId}
-          className="w-72 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-zinc-700 dark:bg-zinc-950"
+          className="w-72 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
         >
           <option value="">Select…</option>
           {examinations.map((e) => (
@@ -28,7 +28,7 @@ export default function ExamPicker({
         Load
       </button>
       {examinations.length === 0 ? (
-        <span className="pb-2 text-sm text-zinc-400 dark:text-zinc-500">No examinations created yet.</span>
+        <span className="pb-2 text-sm text-zinc-400">No examinations created yet.</span>
       ) : null}
     </form>
   );

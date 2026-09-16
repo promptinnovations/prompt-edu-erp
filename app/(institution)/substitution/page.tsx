@@ -43,7 +43,7 @@ export default async function SubstitutionPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Substitution</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900">Substitution</h1>
         <div className="flex gap-4 text-sm">
           {can(ctx.permissions, "substitution.view") ? <Link href="/substitution/report" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Report →</Link> : null}
           {canManageTimetable ? <Link href="/substitution/timetable" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Timetable →</Link> : null}
@@ -51,12 +51,12 @@ export default async function SubstitutionPage({
       </div>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Find substitutes for an absent teacher</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Find substitutes for an absent teacher</h2>
           <form method="get" className="flex flex-wrap items-end gap-2">
             <div>
-              <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Absent staff member</label>
-              <select name="absentStaffId" defaultValue={absentStaffId} required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+              <label className="mb-1 block text-xs text-zinc-500">Absent staff member</label>
+              <select name="absentStaffId" defaultValue={absentStaffId} required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
                 <option value="">Select…</option>
                 {staff.map((s) => (
                   <option key={s.id} value={s.id}>{s.full_name}{s.staff_code ? ` (${s.staff_code})` : ""}</option>
@@ -64,8 +64,8 @@ export default async function SubstitutionPage({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Date</label>
-              <input type="date" name="date" defaultValue={date || today} required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+              <label className="mb-1 block text-xs text-zinc-500">Date</label>
+              <input type="date" name="date" defaultValue={date || today} required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
             </div>
             <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
               Generate substitutes
@@ -75,7 +75,7 @@ export default async function SubstitutionPage({
           {absentStaffId && date ? (
             <div className="mt-5">
               {suggestions === null ? null : suggestions.length === 0 ? (
-                <p className="text-sm text-zinc-400 dark:text-zinc-500">
+                <p className="text-sm text-zinc-400">
                   {absentStaffName || "This staff member"} has no timetabled periods on {formatDate(date)} — nothing to substitute
                   {canManageTimetable ? (
                     <> (set up the <Link href="/substitution/timetable" className="underline">timetable</Link> first if this is unexpected).</>
@@ -83,7 +83,7 @@ export default async function SubstitutionPage({
                 </p>
               ) : (
                 <>
-                  <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mb-2 text-xs text-zinc-500">
                     {absentStaffName} — {formatDate(date)} — {suggestions.length} period{suggestions.length === 1 ? "" : "s"} to cover.
                   </p>
                   <ConfirmSubstitutionsForm date={date} absentStaffId={absentStaffId} suggestions={suggestions} />
@@ -94,15 +94,15 @@ export default async function SubstitutionPage({
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Recent confirmed substitutions (last 14 days)</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent confirmed substitutions (last 14 days)</h2>
         {recent.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">No substitutions recorded yet.</p>
+          <p className="text-sm text-zinc-400">No substitutions recorded yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
                   <th className="py-1.5 pr-3">Date</th>
                   <th className="py-1.5 pr-3">Class</th>
                   <th className="py-1.5 pr-3">Period</th>
@@ -111,7 +111,7 @@ export default async function SubstitutionPage({
                   {canManage ? <th className="py-1.5 pr-3" /> : null}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody className="divide-y divide-zinc-100">
                 {recent.map((r) => (
                   <tr key={r.id}>
                     <td className="py-2 pr-3 whitespace-nowrap">{formatDate(r.date)}</td>

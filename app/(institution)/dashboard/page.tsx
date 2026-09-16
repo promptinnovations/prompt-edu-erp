@@ -165,12 +165,12 @@ export default async function DashboardPage() {
             <Link
               key={b.label}
               href={b.href}
-              className="flex flex-col items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3 py-3 text-center shadow-sm transition-colors hover:border-[var(--brand)] dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3 py-3 text-center shadow-sm transition-colors hover:border-[var(--brand)]"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
                 {b.icon}
               </span>
-              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{b.label}</span>
+              <span className="text-xs font-medium text-zinc-700">{b.label}</span>
             </Link>
           ))}
         </div>
@@ -180,35 +180,35 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {statCards.map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{value}</div>
-            <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{label}</div>
+          <div key={label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-2xl font-semibold text-zinc-900">{value}</div>
+            <div className="mt-1 text-sm text-zinc-500">{label}</div>
           </div>
         ))}
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">Dashboard</h2>
+        <h2 className="mb-3 text-lg font-semibold text-zinc-900">Dashboard</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {attendanceToday ? (
-            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-              <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Today&apos;s attendance</h3>
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+              <h3 className="mb-3 text-sm font-semibold text-zinc-700">Today&apos;s attendance</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Students</p>
-                  <p className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+                  <p className="text-xs text-zinc-500">Students</p>
+                  <p className="text-xl font-semibold text-zinc-900">
                     {attendanceToday.studentsPresent}<span className="text-sm font-normal text-zinc-400">/{attendanceToday.studentsEnrolled}</span>
                   </p>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className="text-xs text-zinc-400">
                     {attendanceToday.studentsMarked > 0 ? `${attendanceToday.studentsAbsent} absent` : "Not marked yet"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Staff</p>
-                  <p className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+                  <p className="text-xs text-zinc-500">Staff</p>
+                  <p className="text-xl font-semibold text-zinc-900">
                     {attendanceToday.staffPresent}<span className="text-sm font-normal text-zinc-400">/{attendanceToday.staffTotal}</span>
                   </p>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className="text-xs text-zinc-400">
                     {attendanceToday.staffMarked > 0 ? `${attendanceToday.staffAbsent} absent` : "Not marked yet"}
                   </p>
                 </div>
@@ -216,23 +216,23 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">To do list</h3>
+          <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <h3 className="mb-3 text-sm font-semibold text-zinc-700">To do list</h3>
             <TodoWidget todos={todos} />
           </section>
 
           {hasExaminationAccess && recentExam ? (
-            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-              <h3 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Mark entry status</h3>
-              <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">{recentExam.name}</p>
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+              <h3 className="mb-1 text-sm font-semibold text-zinc-700">Mark entry status</h3>
+              <p className="mb-3 text-xs text-zinc-400">{recentExam.name}</p>
               {markExpected === 0 ? (
-                <p className="text-sm text-zinc-400 dark:text-zinc-500">No students/subjects configured yet.</p>
+                <p className="text-sm text-zinc-400">No students/subjects configured yet.</p>
               ) : (
                 <>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
                     <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.min(100, (markEntered / markExpected) * 100)}%` }} />
                   </div>
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{markEntered} / {markExpected} marks entered</p>
+                  <p className="mt-2 text-sm text-zinc-600">{markEntered} / {markExpected} marks entered</p>
                 </>
               )}
               <Link href="/examinations/status" className="mt-2 inline-block text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">View full status →</Link>
@@ -240,9 +240,9 @@ export default async function DashboardPage() {
           ) : null}
 
           {hasExaminationAccess && passRateTrendByStage.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pass rate trend</h3>
+                <h3 className="text-sm font-semibold text-zinc-700">Pass rate trend</h3>
                 <Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
               <PassRateStageTrendChart points={passRateTrendByStage} />
@@ -250,29 +250,29 @@ export default async function DashboardPage() {
           ) : null}
 
           {isSectionOrAbove && attendanceTrendByStage.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h3>
+                <h3 className="text-sm font-semibold text-zinc-700">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
-              <p className="mb-1 text-xs text-zinc-400 dark:text-zinc-500">{attendanceVisibility.label} · last 15 days</p>
+              <p className="mb-1 text-xs text-zinc-400">{attendanceVisibility.label} · last 15 days</p>
               <AttendanceStageTrendChart points={attendanceTrendByStage} />
             </section>
           ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Attendance trend</h3>
+                <h3 className="text-sm font-semibold text-zinc-700">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
-              <p className="mb-1 text-xs text-zinc-400 dark:text-zinc-500">{attendanceVisibility.label}</p>
+              <p className="mb-1 text-xs text-zinc-400">{attendanceVisibility.label}</p>
               <AttendanceTrendChart points={attendanceTrend} compact />
             </section>
           ) : null}
 
           {isSectionOrAbove && consecutiveAbsentees.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Chronic absentees (3+ days)</h3>
+                <h3 className="text-sm font-semibold text-zinc-700">Chronic absentees (3+ days)</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
               <ConsecutiveAbsenteesList rows={consecutiveAbsentees} />
@@ -280,21 +280,21 @@ export default async function DashboardPage() {
           ) : null}
 
           {hasUnrestrictedLeaveReview || hasScopedLeaveReview ? (
-            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pending leave requests</h3>
+                <h3 className="text-sm font-semibold text-zinc-700">Pending leave requests</h3>
                 <Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>
               </div>
               {pendingLeave.length === 0 ? (
-                <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing pending.</p>
+                <p className="text-sm text-zinc-400">Nothing pending.</p>
               ) : (
                 <ul className="space-y-2">
                   {pendingLeave.map((l) => (
                     <li key={l.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate text-zinc-700 dark:text-zinc-300">
-                        {l.applicant_name} <span className="text-xs text-zinc-400 dark:text-zinc-500 capitalize">({l.applicant_type})</span>
+                      <span className="truncate text-zinc-700">
+                        {l.applicant_name} <span className="text-xs text-zinc-400 capitalize">({l.applicant_type})</span>
                       </span>
-                      <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">{l.start_date} → {l.end_date}</span>
+                      <span className="shrink-0 text-xs text-zinc-400">{l.start_date} → {l.end_date}</span>
                     </li>
                   ))}
                 </ul>
@@ -302,16 +302,16 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Upcoming calendar</h3>
+          <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <h3 className="mb-3 text-sm font-semibold text-zinc-700">Upcoming calendar</h3>
             {upcoming.length === 0 ? (
-              <p className="text-sm text-zinc-400 dark:text-zinc-500">Nothing scheduled.</p>
+              <p className="text-sm text-zinc-400">Nothing scheduled.</p>
             ) : (
               <ul className="space-y-2">
                 {upcoming.map((u) => (
                   <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate text-zinc-700 dark:text-zinc-300">{u.title}</span>
-                    <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">
+                    <span className="truncate text-zinc-700">{u.title}</span>
+                    <span className="shrink-0 text-xs text-zinc-400">
                       {formatDate(u.date)}{u.endDate ? ` – ${formatDate(u.endDate)}` : ""}
                     </span>
                   </li>

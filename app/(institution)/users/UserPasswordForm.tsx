@@ -24,16 +24,16 @@ export default function UserPasswordForm({ userId, currentPassword }: { userId: 
         onChange={(e) => setValue(e.target.value)}
         placeholder={currentPassword ? undefined : "Not set"}
         minLength={6}
-        className="w-28 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+        className="w-28 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
       />
       <button
         type="submit"
         disabled={pending || value.length < 6}
-        className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
       >
         {pending ? "Saving…" : "Save"}
       </button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }

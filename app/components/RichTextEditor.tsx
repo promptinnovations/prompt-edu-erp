@@ -62,26 +62,26 @@ export default function RichTextEditor({
       title={label}
       onMouseDown={(e) => e.preventDefault()} // keep focus/selection in the editor, not the button
       onClick={() => exec(command, value)}
-      className="rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      className="rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100"
     >
       {children}
     </button>
   );
 
   return (
-    <div className="rounded-lg border border-zinc-300 dark:border-zinc-700 focus-within:ring-1 focus-within:ring-indigo-400 focus-within:border-indigo-400">
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 dark:border-zinc-800 px-1.5 py-1">
+    <div className="rounded-lg border border-zinc-300 focus-within:ring-1 focus-within:ring-indigo-400 focus-within:border-indigo-400">
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 px-1.5 py-1">
         <ToolbarButton command="bold" label="Bold"><span className="font-bold">B</span></ToolbarButton>
         <ToolbarButton command="italic" label="Italic"><span className="italic">I</span></ToolbarButton>
         <ToolbarButton command="underline" label="Underline"><span className="underline">U</span></ToolbarButton>
-        <span className="mx-1 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+        <span className="mx-1 h-4 w-px bg-zinc-200" />
         <ToolbarButton command="justifyLeft" label="Align left">⯇</ToolbarButton>
         <ToolbarButton command="justifyCenter" label="Align centre">▤</ToolbarButton>
         <ToolbarButton command="justifyRight" label="Align right">⯈</ToolbarButton>
       </div>
       <div className="relative">
         {isEmpty && placeholder ? (
-          <p className="pointer-events-none absolute left-3 top-2.5 text-sm text-zinc-400 dark:text-zinc-500">{placeholder}</p>
+          <p className="pointer-events-none absolute left-3 top-2.5 text-sm text-zinc-400">{placeholder}</p>
         ) : null}
         <div
           ref={editorRef}
@@ -89,7 +89,7 @@ export default function RichTextEditor({
           suppressContentEditableWarning
           onInput={syncHidden}
           onBlur={syncHidden}
-          className={`${minHeightClassName} w-full overflow-y-auto rounded-b-lg px-3 py-2.5 text-sm leading-relaxed text-zinc-900 focus:outline-none dark:text-zinc-50 [&_p]:my-1.5`}
+          className={`${minHeightClassName} w-full overflow-y-auto rounded-b-lg px-3 py-2.5 text-sm leading-relaxed text-zinc-900 focus:outline-none [&_p]:my-1.5`}
         />
       </div>
       {/* No `required` here on purpose -- browsers silently refuse to

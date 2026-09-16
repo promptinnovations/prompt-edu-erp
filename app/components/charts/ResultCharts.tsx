@@ -98,8 +98,8 @@ export function Donut({
       </svg>
       {centerLabel ? (
         <div className="text-center" style={{ marginTop: -size / 2 - 8, height: size / 2 }}>
-          <div className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">{centerLabel}</div>
-          {centerSubLabel ? <div className="text-[11px] text-zinc-400 dark:text-zinc-500">{centerSubLabel}</div> : null}
+          <div className="text-lg font-semibold text-zinc-800">{centerLabel}</div>
+          {centerSubLabel ? <div className="text-[11px] text-zinc-400">{centerSubLabel}</div> : null}
         </div>
       ) : null}
       <ChartLegend segments={segments} total={total} />
@@ -111,7 +111,7 @@ function ChartLegend({ segments, total }: { segments: ChartDatum[]; total: numbe
   return (
     <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
       {segments.map((s) => (
-        <span key={s.label} className="inline-flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+        <span key={s.label} className="inline-flex items-center gap-1 text-[11px] text-zinc-500">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
           {s.label} ({s.value}{total > 0 ? `, ${fmtPct((s.value / total) * 100)}` : ""})
         </span>
@@ -146,11 +146,11 @@ export function BarChart({
           const pct = Math.max(0, Math.min(100, (d.value / max) * 100));
           return (
             <div key={d.label} className="flex items-center gap-2">
-              <span className="w-28 shrink-0 truncate text-xs text-zinc-500 dark:text-zinc-400" title={d.label}>{d.label}</span>
-              <div className="h-4 flex-1 rounded bg-zinc-100 dark:bg-zinc-800">
+              <span className="w-28 shrink-0 truncate text-xs text-zinc-500" title={d.label}>{d.label}</span>
+              <div className="h-4 flex-1 rounded bg-zinc-100">
                 <div className="h-4 rounded" style={{ width: `${pct}%`, backgroundColor: d.color, minWidth: d.value > 0 ? 3 : 0 }} />
               </div>
-              <span className="w-12 shrink-0 text-right text-xs font-medium text-zinc-700 dark:text-zinc-300">{fmt(d.value)}</span>
+              <span className="w-12 shrink-0 text-right text-xs font-medium text-zinc-700">{fmt(d.value)}</span>
             </div>
           );
         })}
@@ -172,10 +172,10 @@ export function BarChart({
         return (
           <g key={d.label}>
             <rect x={x} y={y} width={barW} height={barH} rx={3} fill={d.color} />
-            <text x={x + barW / 2} y={y - 4} textAnchor="middle" className="fill-zinc-700 dark:fill-zinc-300" fontSize={11} fontWeight={600}>
+            <text x={x + barW / 2} y={y - 4} textAnchor="middle" className="fill-zinc-700" fontSize={11} fontWeight={600}>
               {fmt(d.value)}
             </text>
-            <text x={x + barW / 2} y={height - padBottom + 14} textAnchor="middle" className="fill-zinc-400 dark:fill-zinc-500" fontSize={10}>
+            <text x={x + barW / 2} y={height - padBottom + 14} textAnchor="middle" className="fill-zinc-400" fontSize={10}>
               {d.label.length > 10 ? `${d.label.slice(0, 9)}…` : d.label}
             </text>
           </g>
@@ -211,8 +211,8 @@ export function StackedBarChart({ groups }: { groups: StackedBarGroup[] }) {
         const total = g.segments.reduce((s, d) => s + d.value, 0);
         return (
           <div key={g.label} className="flex items-center gap-2">
-            <span className="w-28 shrink-0 truncate text-xs text-zinc-500 dark:text-zinc-400" title={g.label}>{g.label}</span>
-            <div className="flex h-4 flex-1 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-800">
+            <span className="w-28 shrink-0 truncate text-xs text-zinc-500" title={g.label}>{g.label}</span>
+            <div className="flex h-4 flex-1 overflow-hidden rounded bg-zinc-100">
               {total > 0
                 ? g.segments
                     .filter((s) => s.value > 0)
@@ -225,7 +225,7 @@ export function StackedBarChart({ groups }: { groups: StackedBarGroup[] }) {
                     ))
                 : null}
             </div>
-            <span className="w-10 shrink-0 text-right text-xs font-medium text-zinc-700 dark:text-zinc-300">{total}</span>
+            <span className="w-10 shrink-0 text-right text-xs font-medium text-zinc-700">{total}</span>
           </div>
         );
       })}
@@ -267,7 +267,7 @@ export function LineTrendChart({
 }) {
   const nonEmpty = series.filter((s) => s.points.length > 0);
   if (nonEmpty.length === 0) {
-    return <p className="text-sm text-zinc-400 dark:text-zinc-500">Not enough data yet to draw a trend.</p>;
+    return <p className="text-sm text-zinc-400">Not enough data yet to draw a trend.</p>;
   }
   const width = 560;
   const padX = showAxes ? 34 : 32;
@@ -354,7 +354,7 @@ export function LineTrendChart({
             })
           : null}
       </svg>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
         {nonEmpty.map((s, si) => (
           <span key={s.label} className="inline-flex items-center gap-1">
             <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color ?? DEFAULT_SERIES_COLORS[si % DEFAULT_SERIES_COLORS.length] }} />
@@ -371,10 +371,10 @@ export function LineTrendChart({
 // ---------------------------------------------------------------------------
 export function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-      <p className="text-xs text-zinc-400 dark:text-zinc-500">{label}</p>
+    <div className="rounded-xl border border-zinc-200 bg-white p-4">
+      <p className="text-xs text-zinc-400">{label}</p>
       <p className="mt-1 text-2xl font-semibold" style={accent ? { color: accent } : undefined}>{value}</p>
-      {sub ? <p className="mt-0.5 text-[11px] text-zinc-400 dark:text-zinc-500">{sub}</p> : null}
+      {sub ? <p className="mt-0.5 text-[11px] text-zinc-400">{sub}</p> : null}
     </div>
   );
 }

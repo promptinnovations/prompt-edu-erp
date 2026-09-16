@@ -103,20 +103,20 @@ export default async function ClassesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Classes</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold text-zinc-900">Classes</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           Every class, its divisions, assigned class teacher, and student count in one place.
         </p>
       </div>
 
       {classes.length === 0 ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
+        <p className="text-sm text-zinc-400">
           No classes yet — add some under <Link href="/academic" className="underline">Academic Setup</Link>.
         </p>
       ) : (
         orderedPhases.map((phase) => (
-          <section key={phase} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{phase}</h2>
+          <section key={phase} className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-700">{phase}</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {groups.get(phase)!.flatMap((c) => {
                 const classSections = [...(sectionsByClass.get(c.id) ?? [])].sort((a, b) => a.name.localeCompare(b.name));
@@ -129,13 +129,13 @@ export default async function ClassesPage() {
                     <Link
                       key={c.id}
                       href={`/classes/${c.id}`}
-                      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+                      className="rounded-xl border border-zinc-200 p-4 hover:border-indigo-400 transition-colors"
                     >
-                      <div className="font-medium text-zinc-900 dark:text-zinc-50">Class {c.name}</div>
-                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="font-medium text-zinc-900">Class {c.name}</div>
+                      <div className="mt-1 text-xs text-zinc-500">
                         {studentCountByClass.get(c.id) ?? 0} student{(studentCountByClass.get(c.id) ?? 0) === 1 ? "" : "s"}
                       </div>
-                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="mt-1 text-xs text-zinc-500">
                         {teacher ? `Class teacher: ${teacher}` : "No class teacher assigned"}
                       </div>
                     </Link>,
@@ -150,13 +150,13 @@ export default async function ClassesPage() {
                     <Link
                       key={sec.id}
                       href={`/classes/${c.id}`}
-                      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+                      className="rounded-xl border border-zinc-200 p-4 hover:border-indigo-400 transition-colors"
                     >
-                      <div className="font-medium text-zinc-900 dark:text-zinc-50">Class {c.name} {sec.name}</div>
-                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="font-medium text-zinc-900">Class {c.name} {sec.name}</div>
+                      <div className="mt-1 text-xs text-zinc-500">
                         {studentCount} student{studentCount === 1 ? "" : "s"}
                       </div>
-                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="mt-1 text-xs text-zinc-500">
                         {teacher ? `Class teacher: ${teacher}` : "No class teacher assigned"}
                       </div>
                     </Link>

@@ -19,10 +19,10 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
   const totalDone = items.length - pending.length - skipped.length;
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <section className="rounded-2xl border border-zinc-200 bg-white p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">Finish setting up</h2>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500">{totalDone}/{items.length} done</span>
+        <h2 className="text-sm font-semibold text-zinc-700">Finish setting up</h2>
+        <span className="text-xs text-zinc-400">{totalDone}/{items.length} done</span>
       </div>
 
       {pending.length > 0 ? (
@@ -30,13 +30,13 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
           {pending.map((item) => (
             <li
               key={item.code}
-              className="flex flex-col gap-2 rounded-xl border border-zinc-100 p-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-xl border border-zinc-100 p-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                <Link href={item.href} className="text-sm font-medium text-zinc-900 hover:underline dark:text-zinc-100">
+                <Link href={item.href} className="text-sm font-medium text-zinc-900 hover:underline">
                   {item.label}
                 </Link>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">{item.description}</p>
+                <p className="text-xs text-zinc-500">{item.description}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Link
@@ -47,7 +47,7 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
                 </Link>
                 <form action={skipOnboardingItemAction}>
                   <input type="hidden" name="itemCode" value={item.code} />
-                  <button type="submit" className="rounded-lg px-2 py-1.5 text-xs text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                  <button type="submit" className="rounded-lg px-2 py-1.5 text-xs text-zinc-400 hover:bg-zinc-100">
                     Not applicable / later
                   </button>
                 </form>
@@ -58,19 +58,19 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
       ) : null}
 
       {skipped.length > 0 ? (
-        <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-          <div className="mb-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">Set aside for later</div>
+        <div className="mt-3 border-t border-zinc-100 pt-3">
+          <div className="mb-1.5 text-xs font-medium text-zinc-400">Set aside for later</div>
           <ul className="space-y-1.5">
             {skipped.map((item) => (
               <li key={item.code} className="flex items-center justify-between gap-2 text-xs">
-                <span className="truncate text-zinc-500 dark:text-zinc-400">{item.label}</span>
+                <span className="truncate text-zinc-500">{item.label}</span>
                 <div className="flex shrink-0 items-center gap-1">
-                  <Link href={item.href} className="text-indigo-500 hover:underline dark:text-indigo-400">
+                  <Link href={item.href} className="text-indigo-500 hover:underline">
                     Do it now
                   </Link>
                   <form action={unskipOnboardingItemAction}>
                     <input type="hidden" name="itemCode" value={item.code} />
-                    <button type="submit" className="text-zinc-400 underline hover:text-zinc-700 dark:hover:text-zinc-200">
+                    <button type="submit" className="text-zinc-400 underline hover:text-zinc-700">
                       Move back to checklist
                     </button>
                   </form>

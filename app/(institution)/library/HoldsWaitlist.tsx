@@ -10,8 +10,8 @@ function CancelButton({ holdId }: { holdId: string }) {
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="holdId" value={holdId} />
-      <button type="submit" disabled={pending} className="text-xs text-red-600 dark:text-red-400 underline disabled:opacity-50">Cancel</button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      <button type="submit" disabled={pending} className="text-xs text-red-600 underline disabled:opacity-50">Cancel</button>
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }
@@ -23,7 +23,7 @@ export default function HoldsWaitlist({ holds }: { holds: HoldRow[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
           <tr>
             <th className="py-1.5">Book</th>
             <th className="py-1.5">Student</th>
@@ -31,7 +31,7 @@ export default function HoldsWaitlist({ holds }: { holds: HoldRow[] }) {
             <th className="py-1.5" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+        <tbody className="divide-y divide-zinc-100">
           {holds.map((h) => (
             <tr key={h.id}>
               <td className="py-1.5">{h.book_title}</td>
@@ -41,7 +41,7 @@ export default function HoldsWaitlist({ holds }: { holds: HoldRow[] }) {
             </tr>
           ))}
           {holds.length === 0 ? (
-            <tr><td colSpan={4} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No pre-bookings right now.</td></tr>
+            <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No pre-bookings right now.</td></tr>
           ) : null}
         </tbody>
       </table>

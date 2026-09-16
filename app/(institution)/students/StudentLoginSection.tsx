@@ -22,30 +22,30 @@ export default function StudentLoginSection({
   if (loginId) {
     return (
       <div className="space-y-2 text-sm">
-        <p className="text-zinc-700 dark:text-zinc-300">
-          Login ID: <span className="font-mono font-medium text-zinc-900 dark:text-zinc-50">{loginId}</span>
-          <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">Password: the parent&apos;s phone number</span>
+        <p className="text-zinc-700">
+          Login ID: <span className="font-mono font-medium text-zinc-900">{loginId}</span>
+          <span className="ml-2 text-xs text-zinc-400">Password: the parent&apos;s phone number</span>
         </p>
         {resetting ? (
           <form action={resetAction} className="flex flex-wrap items-end gap-2">
             <input type="hidden" name="studentId" value={studentId} />
             <div>
-              <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">New password (parent&apos;s phone number)</label>
-              <input name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+              <label className="mb-1 block text-xs text-zinc-500">New password (parent&apos;s phone number)</label>
+              <input name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
             </div>
             <button type="submit" disabled={resetPending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
               Reset password
             </button>
-            <button type="button" onClick={() => setResetting(false)} className="text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200">
+            <button type="button" onClick={() => setResetting(false)} className="text-sm text-zinc-400 hover:text-zinc-700">
               Cancel
             </button>
           </form>
         ) : (
-          <button type="button" onClick={() => setResetting(true)} className="text-xs text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-800 dark:hover:text-zinc-100">
+          <button type="button" onClick={() => setResetting(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">
             Reset password
           </button>
         )}
-        {resetState.error ? <p className="text-xs text-red-600 dark:text-red-400">{resetState.error}</p> : null}
+        {resetState.error ? <p className="text-xs text-red-600">{resetState.error}</p> : null}
       </div>
     );
   }
@@ -54,13 +54,13 @@ export default function StudentLoginSection({
     <form action={createAction} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="studentId" value={studentId} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Parent&apos;s phone number (becomes the password)</label>
-        <input name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <label className="mb-1 block text-xs text-zinc-500">Parent&apos;s phone number (becomes the password)</label>
+        <input name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <button type="submit" disabled={createPending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Create student login
       </button>
-      {createState.error ? <span className="text-sm text-red-600 dark:text-red-400">{createState.error}</span> : null}
+      {createState.error ? <span className="text-sm text-red-600">{createState.error}</span> : null}
     </form>
   );
 }

@@ -92,7 +92,7 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
 
   if (installed) {
     return (
-      <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+      <div className="flex items-center gap-2 text-sm text-emerald-600">
         <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
         {appName} is installed on this device.
       </div>
@@ -104,15 +104,15 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
       <div className="flex items-center gap-3">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700" />
+          <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg border border-zinc-200 object-cover" />
         ) : (
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--brand)] text-sm font-semibold text-white">
             {appName.charAt(0).toUpperCase()}
           </div>
         )}
         <div>
-          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">{appName}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Add this institution&apos;s own app to your device.</p>
+          <p className="text-sm font-medium text-zinc-800">{appName}</p>
+          <p className="text-xs text-zinc-500">Add this institution&apos;s own app to your device.</p>
         </div>
       </div>
 
@@ -125,7 +125,7 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
           >
             Refresh to prepare install
           </button>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-zinc-500">
             Your browser cached a different app&apos;s install info earlier in this tab — refreshing this page fixes that
             before you install.
           </p>
@@ -140,18 +140,18 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
           {busy ? "Installing…" : "Download / Install app"}
         </button>
       ) : isIos ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:ml-auto sm:max-w-xs">
+        <p className="text-xs text-zinc-500 sm:ml-auto sm:max-w-xs">
           On iPhone/iPad: tap the Share icon in Safari, then <strong>&quot;Add to Home Screen&quot;</strong>.
         </p>
       ) : (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:ml-auto sm:max-w-xs">
+        <p className="text-xs text-zinc-500 sm:ml-auto sm:max-w-xs">
           Not seeing an install button? Open your browser&apos;s menu and look for <strong>&quot;Install app&quot;</strong> or
           <strong> &quot;Add to Home screen&quot;</strong>.
         </p>
       )}
 
       {outcome === "dismissed" ? (
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">Install dismissed — you can try again anytime.</p>
+        <p className="text-xs text-zinc-400">Install dismissed — you can try again anytime.</p>
       ) : null}
     </div>
   );

@@ -12,7 +12,7 @@ export default function RichTextContent({ html, className = "" }: { html: string
   const safe = sanitizeRichText(html);
   return (
     <div
-      className={`text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 [&_p]:my-1.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 ${className}`}
+      className={`text-sm leading-relaxed text-zinc-700 [&_p]:my-1.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 ${className}`}
       dangerouslySetInnerHTML={{ __html: safe }}
     />
   );

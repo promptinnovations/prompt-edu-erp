@@ -22,11 +22,11 @@ export default function BoardConfigForm({
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="institutionId" value={institutionId} />
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{isSchool ? "Board" : "Educational board"}</label>
+        <label className="mb-1 block text-xs text-zinc-500">{isSchool ? "Board" : "Educational board"}</label>
         <select
           name="board"
           defaultValue={board ?? (isSchool ? "kerala_state" : "sksvb")}
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           {isSchool ? (
             <>
@@ -49,9 +49,9 @@ export default function BoardConfigForm({
       >
         Save
       </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
-      {state.saved ? <span className="text-sm text-emerald-600 dark:text-emerald-400">Saved.</span> : null}
-      <p className="w-full text-[11px] text-zinc-400 dark:text-zinc-500">
+      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
+      {state.saved ? <span className="text-sm text-emerald-600">Saved.</span> : null}
+      <p className="w-full text-[11px] text-zinc-400">
         {isSchool
           ? "(Re-)creates a matching default grading scale (grade bands + pass %) for this institution — safe to run again; a fresh scale is added and marked default each time."
           : "Setting SKSVB (re-)creates classes 1–12 and their subjects for this institution — safe to run again, existing classes/subjects are matched by name, never duplicated."}

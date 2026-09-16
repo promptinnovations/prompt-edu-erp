@@ -45,16 +45,16 @@ export default async function LibraryPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Library</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Library</h1>
 
-      <section id="catalogue" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="catalogue" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Catalogue</h2>
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">{books.length} title{books.length === 1 ? "" : "s"}</span>
+          <h2 className="text-sm font-semibold text-zinc-700">Catalogue</h2>
+          <span className="text-xs text-zinc-400">{books.length} title{books.length === 1 ? "" : "s"}</span>
         </div>
         {canManage ? (
-          <details className="mb-4 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 p-3">
-            <summary className="cursor-pointer text-sm font-medium text-zinc-600 dark:text-zinc-300">+ Add a book</summary>
+          <details className="mb-4 rounded-xl border border-dashed border-zinc-300 p-3">
+            <summary className="cursor-pointer text-sm font-medium text-zinc-600">+ Add a book</summary>
             <div className="mt-3">
               <AddBookForm authors={authors} publishers={publishers} categories={categories} shelves={shelves} />
             </div>
@@ -70,8 +70,8 @@ export default async function LibraryPage() {
       </section>
 
       {canIssue ? (
-        <section id="issue" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Issue a book</h2>
+        <section id="issue" className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Issue a book</h2>
           <IssueBookForm
             students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
             books={books.map((b) => ({ id: b.id, title: b.title, available_copies: b.available_copies }))}
@@ -80,11 +80,11 @@ export default async function LibraryPage() {
         </section>
       ) : null}
 
-      <section id="currently-issued" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Currently issued</h2>
+      <section id="currently-issued" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Currently issued</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="py-1.5">Book</th>
               <th className="py-1.5">Student</th>
@@ -92,44 +92,44 @@ export default async function LibraryPage() {
               <th className="py-1.5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {issued.map((i) => (
               <tr key={i.id}>
                 <td className="py-1.5">{i.book_title}</td>
                 <td className="py-1.5">{i.student_name}</td>
-                <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{i.due_date}</td>
+                <td className="py-1.5 text-zinc-500">{i.due_date}</td>
                 <td className="py-1.5">{canReturn ? <ReturnBookForm bookIssueId={i.id} isOverdue={i.is_overdue} /> : null}</td>
               </tr>
             ))}
             {issued.length === 0 ? (
-              <tr><td colSpan={4} className="py-4 text-center text-zinc-400 dark:text-zinc-500">Nothing currently issued.</td></tr>
+              <tr><td colSpan={4} className="py-4 text-center text-zinc-400">Nothing currently issued.</td></tr>
             ) : null}
           </tbody>
         </table>
         </div>
       </section>
 
-      <section id="reading-reviews" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Reading reviews</h2>
+      <section id="reading-reviews" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Reading reviews</h2>
         <ReadingReviewQueue records={pendingReviews} canReview={canManage} />
       </section>
 
-      <section id="pre-bookings" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pre-bookings (waitlist)</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+      <section id="pre-bookings" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Pre-bookings (waitlist)</h2>
+        <p className="mb-3 text-xs text-zinc-400">
           A student is notified automatically (in-app + WhatsApp) the moment a copy of a held book is returned.
         </p>
         <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at }))} />
       </section>
 
-      <section id="review-corner" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Review Corner</h2>
+      <section id="review-corner" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Review Corner</h2>
         <div className="space-y-3">
           {approvedReviews.map((r) => (
-            <div key={r.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-sm shadow-sm">
+            <div key={r.id} className="rounded-xl border border-zinc-200 p-4 text-sm shadow-sm">
               <div className="mb-2 flex items-center justify-between">
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{r.book_title}</span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                <span className="font-semibold text-zinc-800">{r.book_title}</span>
+                <span className="text-xs text-zinc-400">
                   by {r.student_name} · 👍 {r.like_count} · 👎 {r.dislike_count}
                 </span>
               </div>
@@ -137,7 +137,7 @@ export default async function LibraryPage() {
             </div>
           ))}
           {approvedReviews.length === 0 ? (
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">No approved reviews yet.</p>
+            <p className="text-sm text-zinc-400">No approved reviews yet.</p>
           ) : null}
         </div>
       </section>

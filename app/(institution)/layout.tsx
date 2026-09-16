@@ -377,14 +377,14 @@ export default async function InstitutionLayout({ children }: { children: React.
             </div>
           </div>
         ) : null}
-        <header data-app-shell className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
+        <header data-app-shell className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 sm:px-6">
           <Breadcrumb />
           <div className="flex items-center gap-3">
             {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
             <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
           </div>
         </header>
-        <main className="min-w-0 flex-1 bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 md:px-8 md:py-8">{children}</main>
+        <main className="min-w-0 flex-1 bg-zinc-50 px-4 py-6 sm:px-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

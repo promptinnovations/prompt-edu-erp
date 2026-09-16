@@ -31,21 +31,21 @@ export default function ClassSubjectsForm({
   return (
     <li className="py-2">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium text-zinc-900 dark:text-zinc-50">{className}</span>
+        <span className="font-medium text-zinc-900">{className}</span>
         {assigned.length === 0 ? (
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">No subjects assigned yet.</span>
+          <span className="text-xs text-zinc-400">No subjects assigned yet.</span>
         ) : (
           assigned.map((a) => (
             <span
               key={a.subjectId}
-              className="inline-flex items-center gap-1 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-zinc-700 dark:text-zinc-300"
+              className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700"
             >
               {a.subjectName}
               {canManage ? (
                 <form action={removeAction} className="inline">
                   <input type="hidden" name="classId" value={classId} />
                   <input type="hidden" name="subjectId" value={a.subjectId} />
-                  <button type="submit" className="text-zinc-400 hover:text-red-600 dark:hover:text-red-400" aria-label={`Remove ${a.subjectName}`}>
+                  <button type="submit" className="text-zinc-400 hover:text-red-600" aria-label={`Remove ${a.subjectName}`}>
                     ×
                   </button>
                 </form>
@@ -60,19 +60,19 @@ export default function ClassSubjectsForm({
           <select
             name="subjectId"
             required
-            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             {remaining.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
-          <button type="submit" disabled={assignPending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+          <button type="submit" disabled={assignPending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
             Add subject
           </button>
         </form>
       ) : null}
-      {assignState.error ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{assignState.error}</p> : null}
-      {removeState.error ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{removeState.error}</p> : null}
+      {assignState.error ? <p className="mt-1 text-xs text-red-600">{assignState.error}</p> : null}
+      {removeState.error ? <p className="mt-1 text-xs text-red-600">{removeState.error}</p> : null}
     </li>
   );
 }

@@ -36,21 +36,21 @@ export default async function TimetablePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <Link href="/substitution" className="text-sm text-zinc-500 dark:text-zinc-400 underline">← Back to Substitution</Link>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Weekly Timetable</h1>
+          <Link href="/substitution" className="text-sm text-zinc-500 underline">← Back to Substitution</Link>
+          <h1 className="mt-1 text-2xl font-semibold text-zinc-900">Weekly Timetable</h1>
         </div>
         <Link href="/import" className="text-sm text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
           Bulk upload timetable (Excel) →
         </Link>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Configured bulk-upload template</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Configured bulk-upload template</h2>
         <TimetableTemplateForm classes={classes.map((c) => ({ id: c.id, name: c.name }))} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Add / update a period</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Add / update a period</h2>
         <AddTimetablePeriodForm
           classes={classes}
           sections={sections}
@@ -59,19 +59,19 @@ export default async function TimetablePage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Current timetable</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Current timetable</h2>
         {grouped.size === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">No periods set up yet — add one above, or bulk-upload an Excel file.</p>
+          <p className="text-sm text-zinc-400">No periods set up yet — add one above, or bulk-upload an Excel file.</p>
         ) : (
           <div className="space-y-5">
             {Array.from(grouped.entries()).map(([key, group]) => (
               <div key={key}>
-                <h3 className="mb-2 text-sm font-medium text-zinc-900 dark:text-zinc-50">{group.className} – {group.sectionName}</h3>
+                <h3 className="mb-2 text-sm font-medium text-zinc-900">{group.className} – {group.sectionName}</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                      <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
                         <th className="py-1 pr-3">Day</th>
                         <th className="py-1 pr-3">Period</th>
                         <th className="py-1 pr-3">Subject</th>
@@ -79,7 +79,7 @@ export default async function TimetablePage() {
                         <th className="py-1 pr-3" />
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    <tbody className="divide-y divide-zinc-100">
                       {group.rows.map((p) => (
                         <tr key={p.id}>
                           <td className="py-1.5 pr-3">{DAY_NAMES[p.dayOfWeek]}</td>

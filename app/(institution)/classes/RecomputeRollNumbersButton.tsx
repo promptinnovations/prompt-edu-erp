@@ -22,12 +22,12 @@ export default function RecomputeRollNumbersButton({
       <button
         type="submit"
         disabled={pending}
-        className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300 disabled:opacity-50"
+        className="text-xs text-indigo-600 underline hover:text-indigo-800 disabled:opacity-50"
       >
         {pending ? "Computing…" : "Recompute roll numbers"}
       </button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
-      {state.count !== undefined && !state.error ? <span className="text-xs text-emerald-600 dark:text-emerald-400">Done ({state.count})</span> : null}
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
+      {state.count !== undefined && !state.error ? <span className="text-xs text-emerald-600">Done ({state.count})</span> : null}
     </form>
   );
 }

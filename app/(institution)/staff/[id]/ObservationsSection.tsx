@@ -39,28 +39,28 @@ export default function ObservationsSection({
   return (
     <div className="space-y-6">
       {canRecord ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">New classroom observation</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">New classroom observation</h2>
           {criteria.length === 0 ? (
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">No observation rubric configured yet.</p>
+            <p className="text-sm text-zinc-400">No observation rubric configured yet.</p>
           ) : (
             <ObservationForm teacherId={teacherId} criteria={criteria} />
           )}
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Observation history</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Observation history</h2>
         {observations.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">No observations recorded yet.</p>
+          <p className="text-sm text-zinc-400">No observations recorded yet.</p>
         ) : (
-          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <ul className="divide-y divide-zinc-100">
             {observations.map((o) => {
               const payload = parsePayload(o.criteria_jsonb);
               return (
                 <li key={o.id} className="py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                    <div className="text-sm font-medium text-zinc-900">
                       {formatDate(o.date)}{payload.term ? ` · ${payload.term}` : ""}{payload.classDiv ? ` · ${payload.classDiv}` : ""}
                     </div>
                     {payload.totalScore !== undefined && payload.totalScore !== null ? (
@@ -69,18 +69,18 @@ export default function ObservationsSection({
                       </span>
                     ) : null}
                   </div>
-                  {payload.content ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{payload.content}</p> : null}
+                  {payload.content ? <p className="mt-1 text-xs text-zinc-500">{payload.content}</p> : null}
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {o.overall_notes ? (
                       <div>
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Strengths observed</div>
-                        <div className="text-sm text-zinc-700 dark:text-zinc-300">{o.overall_notes}</div>
+                        <div className="text-xs font-medium text-zinc-500">Strengths observed</div>
+                        <div className="text-sm text-zinc-700">{o.overall_notes}</div>
                       </div>
                     ) : null}
                     {o.follow_up_notes ? (
                       <div>
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Areas to improve</div>
-                        <div className="text-sm text-zinc-700 dark:text-zinc-300">{o.follow_up_notes}</div>
+                        <div className="text-xs font-medium text-zinc-500">Areas to improve</div>
+                        <div className="text-sm text-zinc-700">{o.follow_up_notes}</div>
                       </div>
                     ) : null}
                   </div>
@@ -92,8 +92,8 @@ export default function ObservationsSection({
       </section>
 
       {canManageRubric ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Observation rubric (admin)</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Observation rubric (admin)</h2>
           <RubricAdminSection criteria={criteria} />
         </section>
       ) : null}

@@ -10,19 +10,19 @@ export default function ClassForm() {
   return (
     <form action={formAction} className="flex items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{t("className")}</label>
+        <label className="mb-1 block text-xs text-zinc-500">{t("className")}</label>
         <input
           name="name"
           required
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           placeholder="e.g. Grade 5"
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Stage</label>
+        <label className="mb-1 block text-xs text-zinc-500">Stage</label>
         <input
           name="stage"
-          className="w-28 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="w-28 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           placeholder="e.g. LP, UP, HS"
         />
       </div>
@@ -33,7 +33,7 @@ export default function ClassForm() {
       >
         {t("add")}
       </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
     </form>
   );
 }

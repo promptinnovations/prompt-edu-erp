@@ -49,31 +49,31 @@ export default async function AcademicPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("title")}</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
 
-      <section id="academic-years" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section id="academic-years" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Academic years</h2>
+          <h2 className="text-sm font-semibold text-zinc-700">Academic years</h2>
           {can(ctx.permissions, "academic.promote") ? (
-            <Link href="/academic/promotion" className="text-xs text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300">
+            <Link href="/academic/promotion" className="text-xs text-indigo-600 underline hover:text-indigo-800">
               Promote a class →
             </Link>
           ) : null}
         </div>
         {canManage ? <AcademicYearForm /> : null}
-        <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+        <ul className="mt-4 divide-y divide-zinc-100 text-sm">
           {academicYears.map((y) => (
             <li key={y.id} className="flex items-center justify-between py-2">
               <span>
-                {y.name} <span className="text-zinc-400 dark:text-zinc-500">({y.start_date} — {y.end_date})</span>
+                {y.name} <span className="text-zinc-400">({y.start_date} — {y.end_date})</span>
               </span>
               {y.is_current ? (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                   Current
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
                     Archived
                   </span>
                   {canManage ? <SetCurrentYearButton academicYearId={y.id} /> : null}
@@ -81,14 +81,14 @@ export default async function AcademicPage() {
               )}
             </li>
           ))}
-          {academicYears.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
+          {academicYears.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
         </ul>
       </section>
 
-      <section id="classes" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("classesHeading")}</h2>
+      <section id="classes" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">{t("classesHeading")}</h2>
         {canManage ? <ClassForm /> : null}
-        <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+        <ul className="mt-4 divide-y divide-zinc-100 text-sm">
           {classes.map((c) => (
             <ClassRow
               key={c.id}
@@ -99,14 +99,14 @@ export default async function AcademicPage() {
               canManage={canManage}
             />
           ))}
-          {classes.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
+          {classes.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
         </ul>
       </section>
 
-      <section id="divisions" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("sectionsHeading")}</h2>
+      <section id="divisions" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">{t("sectionsHeading")}</h2>
         {canManage ? <SectionForm classes={classes} /> : null}
-        <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+        <ul className="mt-4 divide-y divide-zinc-100 text-sm">
           {sections.map((s) => (
             <SectionRow
               key={s.id}
@@ -116,21 +116,21 @@ export default async function AcademicPage() {
               canManage={canManage}
             />
           ))}
-          {sections.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
+          {sections.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
         </ul>
       </section>
 
-      <section id="subjects" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("subjectsHeading")}</h2>
+      <section id="subjects" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">{t("subjectsHeading")}</h2>
         <SubjectForm educationMode={educationMode} />
         {educationMode === "both" ? (
           <div className="mt-4 space-y-4">
             {trackOrder.map((track) => (
               <div key={track}>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
                   {TRACK_LABEL[track] ?? track}
                 </h3>
-                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+                <ul className="divide-y divide-zinc-100 text-sm">
                   {subjects.filter((s) => s.track === track).map((s) => (
                     <li key={s.id} className="flex items-center justify-between py-2">
                       <span>{s.name}</span>
@@ -138,15 +138,15 @@ export default async function AcademicPage() {
                     </li>
                   ))}
                   {subjects.filter((s) => s.track === track).length === 0 ? (
-                    <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li>
+                    <li className="py-2 text-zinc-400">—</li>
                   ) : null}
                 </ul>
               </div>
             ))}
             {subjects.filter((s) => !s.track).length > 0 ? (
               <div>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Untagged</h3>
-                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">Untagged</h3>
+                <ul className="divide-y divide-zinc-100 text-sm">
                   {subjects.filter((s) => !s.track).map((s) => (
                     <li key={s.id} className="flex items-center justify-between py-2">
                       <span>{s.name}</span>
@@ -158,23 +158,23 @@ export default async function AcademicPage() {
             ) : null}
           </div>
         ) : (
-          <ul className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+          <ul className="mt-4 divide-y divide-zinc-100 text-sm">
             {subjects.map((s) => (
               <li key={s.id} className="py-2">
                 {s.name}
               </li>
             ))}
-            {subjects.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">—</li> : null}
+            {subjects.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
           </ul>
         )}
       </section>
 
-      <section id="subjects-per-class" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Subjects per class</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+      <section id="subjects-per-class" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Subjects per class</h2>
+        <p className="mb-3 text-xs text-zinc-400">
           Which subjects each class studies — shown to teachers/students on that class&apos;s own page.
         </p>
-        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+        <ul className="divide-y divide-zinc-100 text-sm">
           {classes.map((c) => (
             <ClassSubjectsForm
               key={c.id}
@@ -185,7 +185,7 @@ export default async function AcademicPage() {
               canManage={canManage}
             />
           ))}
-          {classes.length === 0 ? <li className="py-2 text-zinc-400 dark:text-zinc-500">Add a class above first.</li> : null}
+          {classes.length === 0 ? <li className="py-2 text-zinc-400">Add a class above first.</li> : null}
         </ul>
       </section>
     </div>

@@ -31,45 +31,45 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-4">
-      <Link href={`/results/${id}/report-cards`} className="no-print text-sm text-zinc-500 dark:text-zinc-400 underline">
+      <Link href={`/results/${id}/report-cards`} className="no-print text-sm text-zinc-500 underline">
         ← Back to report cards
       </Link>
       <div className="no-print flex justify-end">
         <PrintButton />
       </div>
 
-      <section className="print-area mx-auto max-w-2xl rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8">
+      <section className="print-area mx-auto max-w-2xl rounded-2xl border border-zinc-200 bg-white p-8">
         <div className="mb-6 text-center">
           <PrintLetterhead
             institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
             logoCode={institution?.logoFileId ? institution.code : null}
           />
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Report Card — {examination.name}</p>
+          <p className="mt-1 text-sm text-zinc-500">Report Card — {examination.name}</p>
         </div>
 
         <div className="mb-6 flex justify-between text-sm">
           <div>
-            <div className="font-medium text-zinc-900 dark:text-zinc-50">{student.student_name}</div>
-            <div className="text-zinc-500 dark:text-zinc-400">Admission No: {student.admission_number}</div>
+            <div className="font-medium text-zinc-900">{student.student_name}</div>
+            <div className="text-zinc-500">Admission No: {student.admission_number}</div>
           </div>
           {overall ? (
             <div className="text-right">
-              <div className="text-zinc-500 dark:text-zinc-400">Rank: {overall.rank ?? "—"}</div>
-              <div className="text-zinc-500 dark:text-zinc-400">Grade: {overall.grade_label ?? "—"}</div>
+              <div className="text-zinc-500">Rank: {overall.rank ?? "—"}</div>
+              <div className="text-zinc-500">Grade: {overall.grade_label ?? "—"}</div>
             </div>
           ) : null}
         </div>
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 dark:border-zinc-800 text-left text-zinc-500 dark:text-zinc-400">
+            <tr className="border-b border-zinc-200 text-left text-zinc-500">
               <th className="py-1.5">Subject</th>
               <th className="py-1.5 text-right">Max Marks</th>
               <th className="py-1.5 text-right">Pass Marks</th>
               <th className="py-1.5 text-right">Marks Obtained</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {studentRows.map((r) => (
               <tr key={r.exam_subject_id}>
                 <td className="py-1.5">{r.subject_name}</td>
@@ -82,13 +82,13 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
         </table>
 
         {overall ? (
-          <div className="mt-6 flex justify-between border-t border-zinc-200 dark:border-zinc-800 pt-3 text-sm font-medium">
+          <div className="mt-6 flex justify-between border-t border-zinc-200 pt-3 text-sm font-medium">
             <span>Total</span>
             <span>{overall.total_marks} / {overall.max_total_marks} ({Number(overall.percentage).toFixed(2)}%)</span>
           </div>
         ) : null}
 
-        <p className="mt-10 text-center text-[10px] uppercase tracking-wide text-zinc-400 dark:text-zinc-600">
+        <p className="mt-10 text-center text-[10px] uppercase tracking-wide text-zinc-400">
           PROMPT EDU ERP · Prompt Innovations
         </p>
       </section>

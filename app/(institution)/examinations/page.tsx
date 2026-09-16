@@ -21,30 +21,30 @@ export default async function ExaminationsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Examinations</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Examinations</h1>
 
-      <section id="create" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Create examination</h2>
+      <section id="create" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Create examination</h2>
         <ExaminationForm examTypes={examTypes} academicYears={academicYears} educationMode={institution?.educationMode ?? "academic"} />
       </section>
 
-      <section id="list" className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <section id="list" className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 dark:bg-zinc-950 text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {examinations.map((e) => (
               <tr key={e.id}>
                 <td className="px-4 py-2">{e.name}</td>
                 <td className="px-4 py-2 capitalize">{e.status}</td>
                 <td className="px-4 py-2 text-right">
-                  <Link href={`/examinations/${e.id}`} className="text-sm text-zinc-600 dark:text-zinc-400 underline">
+                  <Link href={`/examinations/${e.id}`} className="text-sm text-zinc-600 underline">
                     Open
                   </Link>
                 </td>
@@ -52,7 +52,7 @@ export default async function ExaminationsPage() {
             ))}
             {examinations.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-zinc-400 dark:text-zinc-500">—</td>
+                <td colSpan={3} className="px-4 py-6 text-center text-zinc-400">—</td>
               </tr>
             ) : null}
           </tbody>

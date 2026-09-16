@@ -1,14 +1,5 @@
 @import "tailwindcss";
 
-/* Class-based dark mode (Tailwind v4): by default `dark:` responds to the
- * OS-level prefers-color-scheme media query, which this app doesn't want —
- * the design refresh added an explicit, user-controlled light/dark toggle
- * (app/components/ThemeToggle.tsx) that writes a `dark` class onto <html>
- * and persists the choice in localStorage + a cookie (for no-flash SSR).
- * This line repoints every `dark:` utility at that class instead of the
- * media query. */
-@custom-variant dark (&:where(.dark, .dark *));
-
 /* Old-Android/older-browser compatibility. Tailwind v4's default palette is
  * defined in OKLCH — an unsupported CSS colour function on any browser
  * older than Chrome 111 / Safari 16.4 (both March 2023), which an
@@ -127,29 +118,6 @@
   --sidebar-icon: #b9c1ec;
 }
 
-.dark {
-  --background: #0f1424;
-  --foreground: #e7eaf7;
-  --surface: #171f38;
-  --surface-muted: #1f2a4a;
-  --border-subtle: #263258;
-  --brand: #3b82f6;
-  --brand-hover: #60a5fa;
-  --brand-from: #3b82f6;
-  --brand-via: #2563eb;
-  --brand-to: #14b8a6;
-  --accent-teal: #14b8a6;
-  --accent-teal-hover: #2dd4bf;
-
-  --sidebar-bg: #0d1440;
-  --sidebar-bg-2: #131c54;
-  --sidebar-active: #24337f;
-  --sidebar-border: #1c2760;
-  --sidebar-text: #e4e8fb;
-  --sidebar-text-muted: #8f9ad4;
-  --sidebar-icon: #a9b3e8;
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -190,7 +158,4 @@ table tbody tr:nth-child(even) {
 }
 table tbody tr:hover {
   background-color: rgba(79, 70, 229, 0.06);
-}
-.dark table tbody tr:hover {
-  background-color: rgba(129, 140, 248, 0.08);
 }

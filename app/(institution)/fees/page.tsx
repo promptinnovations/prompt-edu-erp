@@ -12,10 +12,10 @@ import RecordPaymentForm from "./RecordPaymentForm";
 import PendingConfirmations from "./PendingConfirmations";
 
 const STATUS_BADGE: Record<string, string> = {
-  paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  partial: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  pending: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
-  waived: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+  paid: "bg-emerald-100 text-emerald-700",
+  partial: "bg-amber-100 text-amber-700",
+  pending: "bg-zinc-100 text-zinc-600",
+  waived: "bg-sky-100 text-sky-700",
 };
 
 export default async function FeesPage({
@@ -53,33 +53,33 @@ export default async function FeesPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Fees</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Fees</h1>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">Total due</div>
-          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">₹{summary.totalDue}</div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+          <div className="text-xs text-zinc-500">Total due</div>
+          <div className="text-lg font-semibold text-zinc-900">₹{summary.totalDue}</div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">Collected</div>
-          <div className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">₹{summary.totalCollected}</div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+          <div className="text-xs text-zinc-500">Collected</div>
+          <div className="text-lg font-semibold text-emerald-600">₹{summary.totalCollected}</div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">Pending</div>
-          <div className="text-lg font-semibold text-amber-600 dark:text-amber-400">₹{summary.totalPending}</div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+          <div className="text-xs text-zinc-500">Pending</div>
+          <div className="text-lg font-semibold text-amber-600">₹{summary.totalPending}</div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">Paid / Partial / Pending</div>
-          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{summary.countPaid} / {summary.countPartial} / {summary.countPending}</div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+          <div className="text-xs text-zinc-500">Paid / Partial / Pending</div>
+          <div className="text-lg font-semibold text-zinc-900">{summary.countPaid} / {summary.countPartial} / {summary.countPending}</div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Class-wise collection status</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Class-wise collection status</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-xs text-zinc-500 dark:text-zinc-400">
+              <tr className="text-xs text-zinc-500">
                 <th className="py-1.5 pr-3">Class</th>
                 <th className="py-1.5 pr-3">Due</th>
                 <th className="py-1.5 pr-3">Collected</th>
@@ -91,7 +91,7 @@ export default async function FeesPage({
             </thead>
             <tbody>
               {classSummary.map((row) => (
-                <tr key={`${row.class_id}-${row.section_id}`} className="border-t border-zinc-100 dark:border-zinc-800">
+                <tr key={`${row.class_id}-${row.section_id}`} className="border-t border-zinc-100">
                   <td className="py-1.5 pr-3">
                     <a
                       href={`/fees?classId=${row.class_id}`}
@@ -101,15 +101,15 @@ export default async function FeesPage({
                     </a>
                   </td>
                   <td className="py-1.5 pr-3">₹{row.total_due}</td>
-                  <td className="py-1.5 pr-3 text-emerald-600 dark:text-emerald-400">₹{row.total_collected}</td>
+                  <td className="py-1.5 pr-3 text-emerald-600">₹{row.total_collected}</td>
                   <td className="py-1.5 pr-3">{row.count_paid}</td>
-                  <td className="py-1.5 pr-3 text-amber-600 dark:text-amber-400">{row.count_partial}</td>
-                  <td className="py-1.5 pr-3 text-zinc-500 dark:text-zinc-400">{row.count_pending}</td>
+                  <td className="py-1.5 pr-3 text-amber-600">{row.count_partial}</td>
+                  <td className="py-1.5 pr-3 text-zinc-500">{row.count_pending}</td>
                   <td className="py-1.5 pr-3">{row.count_total}</td>
                 </tr>
               ))}
               {classSummary.length === 0 ? (
-                <tr><td colSpan={7} className="py-3 text-center text-zinc-400 dark:text-zinc-500">No fee invoices yet.</td></tr>
+                <tr><td colSpan={7} className="py-3 text-center text-zinc-400">No fee invoices yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -117,11 +117,11 @@ export default async function FeesPage({
       </section>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Fee categories</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Fee categories</h2>
           <div className="mb-3 flex flex-wrap gap-2">
             {categories.map((c) => (
-              <span key={c.id} className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs text-zinc-700 dark:text-zinc-300">{c.name}</span>
+              <span key={c.id} className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-700">{c.name}</span>
             ))}
           </div>
           <FeeCategoryForm />
@@ -129,8 +129,8 @@ export default async function FeesPage({
       ) : null}
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Fee structures (&quot;fee details&quot;)</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Fee structures (&quot;fee details&quot;)</h2>
           <FeeStructureForm
             categories={categories}
             classes={classes.map((c) => ({ id: c.id, name: c.name }))}
@@ -139,14 +139,14 @@ export default async function FeesPage({
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="text-xs text-zinc-500 dark:text-zinc-400">
+                <tr className="text-xs text-zinc-500">
                   <th className="py-1.5 pr-3">Category</th><th className="py-1.5 pr-3">Class</th><th className="py-1.5 pr-3">Year</th>
                   <th className="py-1.5 pr-3">Amount</th><th className="py-1.5 pr-3">Due date</th><th className="py-1.5 pr-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {structures.map((s) => (
-                  <tr key={s.id} className="border-t border-zinc-100 dark:border-zinc-800">
+                  <tr key={s.id} className="border-t border-zinc-100">
                     <td className="py-1.5 pr-3">{s.category_name}</td>
                     <td className="py-1.5 pr-3">{s.class_name ?? "Every class"}</td>
                     <td className="py-1.5 pr-3">{s.academic_year_name}</td>
@@ -155,7 +155,7 @@ export default async function FeesPage({
                     <td className="py-1.5 pr-3"><AssignFeeStructureButton feeStructureId={s.id} /></td>
                   </tr>
                 ))}
-                {structures.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400 dark:text-zinc-500">No fee structures yet.</td></tr> : null}
+                {structures.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400">No fee structures yet.</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -163,24 +163,24 @@ export default async function FeesPage({
       ) : null}
 
       {canCollect ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Record a payment</h2>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Record a payment</h2>
           <RecordPaymentForm invoices={invoiceOptions} />
         </section>
       ) : null}
 
       {canCollect ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">
             Parent-submitted payments awaiting confirmation
           </h2>
           <PendingConfirmations payments={pendingConfirmations} />
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h2 className="text-sm font-semibold text-zinc-700">
             Invoices ({invoices.length}){selectedClassLabel ? ` — ${selectedClassLabel}` : ""}
           </h2>
           <div className="flex flex-wrap items-center gap-3">
@@ -189,18 +189,18 @@ export default async function FeesPage({
               <select
                 name="classId"
                 defaultValue={classId ?? ""}
-                className="rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 text-xs text-zinc-700 dark:text-zinc-300"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700"
               >
                 <option value="">All classes</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              <button type="submit" className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-zinc-600 dark:text-zinc-300">
+              <button type="submit" className="rounded-full bg-zinc-100 px-3 py-1 text-zinc-600">
                 Filter
               </button>
               {classId ? (
-                <a href={status ? `/fees?status=${status}` : "/fees"} className="text-zinc-400 dark:text-zinc-500 hover:underline">
+                <a href={status ? `/fees?status=${status}` : "/fees"} className="text-zinc-400 hover:underline">
                   Clear
                 </a>
               ) : null}
@@ -210,7 +210,7 @@ export default async function FeesPage({
                 <a
                   key={value}
                   href={value ? `/fees?status=${value}${classId ? `&classId=${classId}` : ""}` : classId ? `/fees?classId=${classId}` : "/fees"}
-                  className={`rounded-full px-3 py-1 ${(status ?? "") === value ? "bg-[var(--brand)] text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"}`}
+                  className={`rounded-full px-3 py-1 ${(status ?? "") === value ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600"}`}
                 >
                   {label}
                 </a>
@@ -221,18 +221,18 @@ export default async function FeesPage({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-xs text-zinc-500 dark:text-zinc-400">
+              <tr className="text-xs text-zinc-500">
                 <th className="py-1.5 pr-3">Student</th><th className="py-1.5 pr-3">Class</th><th className="py-1.5 pr-3">Category</th>
                 <th className="py-1.5 pr-3">Due</th><th className="py-1.5 pr-3">Paid</th><th className="py-1.5 pr-3">Status</th>
               </tr>
             </thead>
             <tbody>
               {invoices.map((i) => (
-                <tr key={i.id} className="border-t border-zinc-100 dark:border-zinc-800">
-                  <td className="py-1.5 pr-3">{i.student_name} <span className="text-zinc-400 dark:text-zinc-500">({i.admission_number})</span></td>
+                <tr key={i.id} className="border-t border-zinc-100">
+                  <td className="py-1.5 pr-3">{i.student_name} <span className="text-zinc-400">({i.admission_number})</span></td>
                   <td className="py-1.5 pr-3">
                     {i.class_name ? `${i.class_name} ${i.section_name ?? ""}`.trim() : "—"}
-                    {i.roll_number != null ? <span className="text-zinc-400 dark:text-zinc-500"> #{i.roll_number}</span> : null}
+                    {i.roll_number != null ? <span className="text-zinc-400"> #{i.roll_number}</span> : null}
                   </td>
                   <td className="py-1.5 pr-3">{i.category_name}</td>
                   <td className="py-1.5 pr-3">₹{i.amount_due}</td>
@@ -242,7 +242,7 @@ export default async function FeesPage({
                   </td>
                 </tr>
               ))}
-              {invoices.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400 dark:text-zinc-500">No invoices.</td></tr> : null}
+              {invoices.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400">No invoices.</td></tr> : null}
             </tbody>
           </table>
         </div>

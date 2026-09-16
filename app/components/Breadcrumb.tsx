@@ -58,7 +58,7 @@ export default function Breadcrumb() {
   return (
     <div className="min-w-0">
       {crumbs.length > 1 ? (
-        <nav aria-label="Breadcrumb" className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+        <nav aria-label="Breadcrumb" className="truncate text-xs text-zinc-400">
           {crumbs.slice(0, -1).map((c) => (
             <span key={c}>
               {c}
@@ -67,7 +67,7 @@ export default function Breadcrumb() {
           ))}
         </nav>
       ) : null}
-      <div className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+      <div className="truncate text-sm font-semibold text-zinc-900">
         {crumbs[crumbs.length - 1]}
       </div>
     </div>

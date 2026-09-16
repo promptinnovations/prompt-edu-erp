@@ -43,11 +43,11 @@ export default function ExaminationForm({
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       {educationMode === "both" ? (
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Track</label>
+          <label className="mb-1 block text-xs text-zinc-500">Track</label>
           <select
             value={track}
             onChange={(e) => setTrack(e.target.value as "" | "academic" | "islamic")}
-            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             <option value="">All</option>
             <option value="academic">Academic</option>
@@ -56,13 +56,13 @@ export default function ExaminationForm({
         </div>
       ) : null}
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Exam type</label>
+        <label className="mb-1 block text-xs text-zinc-500">Exam type</label>
         <select
           name="examTypeId"
           required
           defaultValue=""
           onChange={(e) => setExamTypeId(e.target.value)}
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="" disabled>Choose…</option>
           {visibleExamTypes.map((t) => (
@@ -72,12 +72,12 @@ export default function ExaminationForm({
           ))}
         </select>
         {visibleExamTypes.length === 0 ? (
-          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">No exam types for this track yet — add one in Settings → Grading.</p>
+          <p className="mt-1 text-xs text-amber-600">No exam types for this track yet — add one in Settings → Grading.</p>
         ) : null}
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Academic year</label>
-        <select name="academicYearId" required defaultValue={academicYears.find((y) => y.is_current)?.id} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <label className="mb-1 block text-xs text-zinc-500">Academic year</label>
+        <select name="academicYearId" required defaultValue={academicYears.find((y) => y.is_current)?.id} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {academicYears.map((y) => (
             <option key={y.id} value={y.id}>{y.name}</option>
           ))}
@@ -85,21 +85,21 @@ export default function ExaminationForm({
       </div>
       {isDailyAssessment ? (
         <div className="max-w-xs">
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+          <p className="text-xs text-zinc-400">
             A monthly register (named &amp; dated automatically) will be created — or reused if this month&apos;s already exists.
           </p>
           <input type="hidden" name="name" value="Daily Assessment" />
         </div>
       ) : (
         <div>
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Name</label>
-          <input name="name" required placeholder="e.g. Term 1 Academic Main Exam" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <label className="mb-1 block text-xs text-zinc-500">Name</label>
+          <input name="name" required placeholder="e.g. Term 1 Academic Main Exam" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
       )}
       <button type="submit" disabled={pending || visibleExamTypes.length === 0} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Create
       </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
     </form>
   );
 }

@@ -59,20 +59,20 @@ export default async function SuperAdminOverviewPage() {
         </div>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-200">Create a new institution</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Create a new institution</h2>
         <CreateInstitutionForm />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-200">All institutions ({institutions.length})</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">All institutions ({institutions.length})</h2>
+        <p className="mb-3 text-xs text-zinc-400">
           Usage counts below are live, on-demand totals — not the scheduled `usage_metrics` rollup described in
           ARCHITECTURE.md §W.1 (no job scheduler is wired up yet, same as the analytics-refresh follow-up; see docs/SETUP.md).
         </p>
         <div className="-mx-5 overflow-x-auto px-5">
           <table className="w-full min-w-[820px] text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
               <tr>
                 <th className="py-1.5 pr-4">Name</th>
                 <th className="py-1.5 pr-4">URL</th>
@@ -85,30 +85,30 @@ export default async function SuperAdminOverviewPage() {
                 <th className="py-1.5"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            <tbody className="divide-y divide-zinc-100">
               {institutions.map((inst) => {
                 const u = usageByInstitution.get(inst.id);
                 return (
                   <tr key={inst.id}>
-                    <td className="py-1.5 pr-4 font-medium text-zinc-900 dark:text-zinc-100">{inst.name}</td>
+                    <td className="py-1.5 pr-4 font-medium text-zinc-900">{inst.name}</td>
                     <td className="py-1.5 pr-4">
                       <InstitutionUrlCell institutionId={inst.id} code={inst.code} baseUrl={baseUrl} />
                     </td>
-                    <td className="py-1.5 pr-4 text-zinc-500 dark:text-zinc-400">
+                    <td className="py-1.5 pr-4 text-zinc-500">
                       {inst.type}
-                      {inst.board ? <span className="ml-1 uppercase text-[10px] text-indigo-500 dark:text-indigo-400">({inst.board})</span> : null}
+                      {inst.board ? <span className="ml-1 uppercase text-[10px] text-indigo-500">({inst.board})</span> : null}
                     </td>
-                    <td className="py-1.5 pr-4 dark:text-zinc-300">{u?.student_count ?? 0}</td>
-                    <td className="py-1.5 pr-4 dark:text-zinc-300">{u?.staff_count ?? 0}</td>
-                    <td className="py-1.5 pr-4 dark:text-zinc-300">{u?.user_count ?? 0}</td>
-                    <td className="py-1.5 pr-4 dark:text-zinc-300">{u?.file_count ?? 0}</td>
+                    <td className="py-1.5 pr-4">{u?.student_count ?? 0}</td>
+                    <td className="py-1.5 pr-4">{u?.staff_count ?? 0}</td>
+                    <td className="py-1.5 pr-4">{u?.user_count ?? 0}</td>
+                    <td className="py-1.5 pr-4">{u?.file_count ?? 0}</td>
                     <td className="py-1.5 pr-4">
                       <InstitutionStatusForm institutionId={inst.id} currentStatus={inst.status} />
                     </td>
                     <td className="py-1.5 text-right">
                       <Link
                         href={`/super-admin/institutions/${inst.id}`}
-                        className="whitespace-nowrap rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                        className="whitespace-nowrap rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                       >
                         Manage modules
                       </Link>

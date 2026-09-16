@@ -79,15 +79,15 @@ export default function PromotionForm({
   });
 
   return (
-    <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-      <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">2. Review &amp; confirm ({students.length} students)</h2>
+    <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <h2 className="mb-3 text-sm font-semibold text-zinc-700">2. Review &amp; confirm ({students.length} students)</h2>
 
       <div className="mb-4">
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Promote/repeat into academic year</label>
+        <label className="mb-1 block text-xs text-zinc-500">Promote/repeat into academic year</label>
         <select
           value={toAcademicYearId}
           onChange={(e) => setToAcademicYearId(e.target.value)}
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="" disabled>Select a target academic year…</option>
           {nonCurrentYears.map((y) => (
@@ -95,7 +95,7 @@ export default function PromotionForm({
           ))}
         </select>
         {nonCurrentYears.length === 0 ? (
-          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+          <p className="mt-1 text-xs text-amber-600">
             No other academic year exists yet — add next year first, above.
           </p>
         ) : null}
@@ -104,7 +104,7 @@ export default function PromotionForm({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 dark:border-zinc-800 text-left text-zinc-400 dark:text-zinc-500">
+            <tr className="border-b border-zinc-200 text-left text-zinc-400">
               <th className="pb-2 font-medium">Roll</th>
               <th className="pb-2 font-medium">Name</th>
               <th className="pb-2 font-medium">Action</th>
@@ -117,14 +117,14 @@ export default function PromotionForm({
               const o = overrides[s.student_id];
               const advancing = o.action === "promote" || o.action === "repeat";
               return (
-                <tr key={s.student_id} className="border-b border-zinc-100 dark:border-zinc-800">
-                  <td className="py-2 text-zinc-500 dark:text-zinc-400">{s.roll_number ?? "—"}</td>
-                  <td className="py-2 text-zinc-900 dark:text-zinc-50">{s.full_name}</td>
+                <tr key={s.student_id} className="border-b border-zinc-100">
+                  <td className="py-2 text-zinc-500">{s.roll_number ?? "—"}</td>
+                  <td className="py-2 text-zinc-900">{s.full_name}</td>
                   <td className="py-2">
                     <select
                       value={o.action}
                       onChange={(e) => update(s.student_id, { action: e.target.value as PreviewRow["suggested_action"] })}
-                      className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                      className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                     >
                       {ACTIONS.map((a) => (
                         <option key={a.value} value={a.value}>{a.label}</option>
@@ -136,7 +136,7 @@ export default function PromotionForm({
                       <select
                         value={o.toClassId}
                         onChange={(e) => update(s.student_id, { toClassId: e.target.value, toSectionId: "" })}
-                        className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                        className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                       >
                         <option value="" disabled>Select…</option>
                         {classes.map((c) => (
@@ -144,7 +144,7 @@ export default function PromotionForm({
                         ))}
                       </select>
                     ) : (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">—</span>
+                      <span className="text-xs text-zinc-400">—</span>
                     )}
                   </td>
                   <td className="py-2">
@@ -153,7 +153,7 @@ export default function PromotionForm({
                         value={o.toSectionId}
                         onChange={(e) => update(s.student_id, { toSectionId: e.target.value })}
                         disabled={!o.toClassId}
-                        className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 disabled:opacity-50"
+                        className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 disabled:opacity-50"
                       >
                         <option value="" disabled>Select…</option>
                         {(sectionsByClass.get(o.toClassId) ?? []).map((sec) => (
@@ -161,7 +161,7 @@ export default function PromotionForm({
                         ))}
                       </select>
                     ) : (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">—</span>
+                      <span className="text-xs text-zinc-400">—</span>
                     )}
                   </td>
                 </tr>
@@ -192,9 +192,9 @@ export default function PromotionForm({
         >
           Confirm promotion
         </button>
-        {state.error ? <p className="mt-2 text-sm text-red-600 dark:text-red-400">{state.error}</p> : null}
+        {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
         {state.result ? (
-          <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-400">
+          <p className="mt-2 text-sm text-emerald-700">
             Done — {state.result.promoted} promoted, {state.result.repeated} repeating, {state.result.graduated} graduated,{" "}
             {state.result.transferredOut} transferred out, {state.result.droppedOut} dropped out
             {state.result.skippedAlreadyEnrolled.length > 0

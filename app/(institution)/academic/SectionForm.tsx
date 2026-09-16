@@ -10,8 +10,8 @@ export default function SectionForm({ classes }: { classes: Array<{ id: string; 
   return (
     <form action={formAction} className="flex items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{t("selectClass")}</label>
-        <select name="classId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <label className="mb-1 block text-xs text-zinc-500">{t("selectClass")}</label>
+        <select name="classId" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {classes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -20,8 +20,8 @@ export default function SectionForm({ classes }: { classes: Array<{ id: string; 
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{t("sectionName")}</label>
-        <input name="name" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" placeholder="e.g. A" />
+        <label className="mb-1 block text-xs text-zinc-500">{t("sectionName")}</label>
+        <input name="name" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" placeholder="e.g. A" />
       </div>
       <button
         type="submit"
@@ -30,7 +30,7 @@ export default function SectionForm({ classes }: { classes: Array<{ id: string; 
       >
         {t("add")}
       </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
     </form>
   );
 }

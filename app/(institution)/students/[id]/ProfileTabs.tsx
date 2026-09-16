@@ -23,7 +23,7 @@ export default function ProfileTabs({
 
   return (
     <div className="flex flex-col gap-6 md:flex-row">
-      <nav className="flex gap-1 overflow-x-auto border-b border-zinc-200 pb-2 dark:border-zinc-800 md:w-48 md:shrink-0 md:flex-col md:gap-0.5 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+      <nav className="flex gap-1 overflow-x-auto border-b border-zinc-200 pb-2 md:w-48 md:shrink-0 md:flex-col md:gap-0.5 md:border-b-0 md:border-r md:pb-0 md:pr-4">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -32,7 +32,7 @@ export default function ProfileTabs({
             className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
               active === t.id
                 ? "bg-[var(--brand)] text-white"
-                : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                : "text-zinc-600 hover:bg-zinc-100"
             }`}
           >
             {t.label}

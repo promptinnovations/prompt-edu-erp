@@ -36,15 +36,15 @@ export default async function DailyAssessmentMarksPage({
 
   return (
     <div className="space-y-4">
-      <Link href={`/examinations/${id}`} className="text-sm text-zinc-500 dark:text-zinc-400 underline">
+      <Link href={`/examinations/${id}`} className="text-sm text-zinc-500 underline">
         ← Back to {examination.name}
       </Link>
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+      <h1 className="text-2xl font-semibold text-zinc-900">
         {entry.subject_name} — {entry.class_name} — {new Date(entry.assessment_date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
       </h1>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">Portion: {entry.portion}</p>
+      <p className="text-sm text-zinc-500">Portion: {entry.portion}</p>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <DailyMarksGridForm
           students={grid}
           examinationId={id}

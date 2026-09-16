@@ -31,34 +31,34 @@ export default function ClassRow({
             name="name"
             defaultValue={name}
             required
-            className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-lg border border-zinc-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
           <input
             name="stage"
             defaultValue={stage ?? ""}
             placeholder="Stage (LP/UP/HS/HSS)"
-            className="w-32 rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="w-32 rounded-lg border border-zinc-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
-          <button type="submit" disabled={updatePending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50">
+          <button type="submit" disabled={updatePending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
             Save
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200">
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">
             Cancel
           </button>
         </form>
-        {updateState.error ? <span className="text-xs text-red-600 dark:text-red-400">{updateState.error}</span> : null}
+        {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
       </li>
     );
   }
 
   return (
     <li className="flex items-center justify-between gap-2 py-2">
-      <span>{name}{stage ? <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">({stage})</span> : null}</span>
+      <span>{name}{stage ? <span className="ml-2 text-xs text-zinc-400">({stage})</span> : null}</span>
       <span className="flex items-center gap-2">
-        <span className="text-xs text-zinc-400 dark:text-zinc-500">{sectionsLabel}</span>
+        <span className="text-xs text-zinc-400">{sectionsLabel}</span>
         {canManage ? (
           <>
-            <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-800 dark:hover:text-zinc-100">
+            <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">
               Edit
             </button>
             <form
@@ -68,14 +68,14 @@ export default function ClassRow({
               }}
             >
               <input type="hidden" name="classId" value={classId} />
-              <button type="submit" disabled={deletePending} className="text-xs text-red-600 dark:text-red-400 underline hover:text-red-800 dark:hover:text-red-300 disabled:opacity-50">
+              <button type="submit" disabled={deletePending} className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50">
                 Delete
               </button>
             </form>
           </>
         ) : null}
       </span>
-      {deleteState.error ? <span className="text-xs text-red-600 dark:text-red-400">{deleteState.error}</span> : null}
+      {deleteState.error ? <span className="text-xs text-red-600">{deleteState.error}</span> : null}
     </li>
   );
 }

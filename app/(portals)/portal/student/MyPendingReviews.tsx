@@ -20,7 +20,7 @@ function ReviewForm({ readingRecordId }: { readingRecordId: string }) {
         <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-4 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Post review
         </button>
-        {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+        {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
       </div>
     </form>
   );
@@ -35,13 +35,13 @@ function ReviewForm({ readingRecordId }: { readingRecordId: string }) {
  *  won't be in this list again once approved/rejected). */
 export default function MyPendingReviews({ reviews }: { reviews: PendingReviewRow[] }) {
   if (reviews.length === 0) {
-    return <p className="text-sm text-zinc-400 dark:text-zinc-500">No books waiting for a review right now.</p>;
+    return <p className="text-sm text-zinc-400">No books waiting for a review right now.</p>;
   }
   return (
     <div className="space-y-4">
       {reviews.map((r) => (
-        <div key={r.id} className="rounded-xl border border-zinc-100 dark:border-zinc-800 p-3">
-          <p className="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{r.book_title}</p>
+        <div key={r.id} className="rounded-xl border border-zinc-100 p-3">
+          <p className="mb-2 text-sm font-medium text-zinc-800">{r.book_title}</p>
           <ReviewForm readingRecordId={r.id} />
         </div>
       ))}

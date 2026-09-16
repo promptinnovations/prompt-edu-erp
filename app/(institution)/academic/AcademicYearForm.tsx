@@ -12,33 +12,33 @@ export default function AcademicYearForm() {
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Name</label>
+        <label className="mb-1 block text-xs text-zinc-500">Name</label>
         <input
           name="name"
           required
           placeholder="e.g. 2026-2027"
-          className="w-32 rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="w-32 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Start date</label>
+        <label className="mb-1 block text-xs text-zinc-500">Start date</label>
         <input
           name="startDate"
           type="date"
           required
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">End date</label>
+        <label className="mb-1 block text-xs text-zinc-500">End date</label>
         <input
           name="endDate"
           type="date"
           required
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
-      <label className="flex items-center gap-1.5 pb-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <label className="flex items-center gap-1.5 pb-2 text-xs text-zinc-500">
         <input type="checkbox" name="isCurrent" />
         Set as current year
       </label>
@@ -49,7 +49,7 @@ export default function AcademicYearForm() {
       >
         Add
       </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
     </form>
   );
 }

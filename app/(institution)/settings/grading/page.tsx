@@ -59,26 +59,26 @@ export default async function GradingSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Grading &amp; points</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold text-zinc-900">Grading &amp; points</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           Define this institution&apos;s own grading scale, scoring rule points, achievement categories/levels, and
           skill types/activities — every institution on PROMPT EDU ERP configures these independently.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Exam types</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Exam types</h2>
         <ExamTypeSection examTypes={examTypes} canManage={canManage} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Grading scales</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Grading scales</h2>
         <GradeScaleSection gradeScales={gradeScales} bandsByScale={bandsByScale} canManage={canManage} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pass percentage</h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Pass percentage</h2>
+        <p className="mb-3 text-xs text-zinc-400">
           The tenant-wide default used to decide pass/fail — separate from grade bands above (a grade label is
           descriptive only). A subject can still override this via its own pass marks when added to an exam.
         </p>
@@ -86,9 +86,9 @@ export default async function GradingSettingsPage() {
       </section>
 
       {institution?.educationMode === "both" ? (
-        <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Academic / Islamic order</h2>
-          <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-zinc-700">Academic / Islamic order</h2>
+          <p className="mb-3 text-xs text-zinc-400">
             This institution teaches both Academic and Islamic curricula side by side — choose which one shows
             first wherever they&apos;re split into two sections.
           </p>
@@ -96,18 +96,18 @@ export default async function GradingSettingsPage() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Scoring rules</h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Scoring rules</h2>
         <ScoringRuleSection rules={scoringRules} canManage={canManage} />
       </section>
 
-      <section id="achievements" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 scroll-mt-20">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Achievements</h2>
+      <section id="achievements" className="rounded-2xl border border-zinc-200 bg-white p-5 scroll-mt-20">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Achievements</h2>
         <AchievementConfigSection categories={achievementCategories} levels={achievementLevels} canManage={canManage} />
       </section>
 
-      <section id="skills" className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 scroll-mt-20">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Skills</h2>
+      <section id="skills" className="rounded-2xl border border-zinc-200 bg-white p-5 scroll-mt-20">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Skills</h2>
         <SkillConfigSection skillTypes={skillTypes} activitiesByType={activitiesByType} canManage={canManage} />
       </section>
     </div>

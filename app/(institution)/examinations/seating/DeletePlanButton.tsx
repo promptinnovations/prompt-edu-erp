@@ -11,11 +11,11 @@ export default function DeletePlanButton({ examinationId }: { examinationId: str
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-zinc-700 dark:text-red-400 dark:hover:bg-red-950/40"
+        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
       >
         Delete plan
       </button>
-      {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
     </form>
   );
 }

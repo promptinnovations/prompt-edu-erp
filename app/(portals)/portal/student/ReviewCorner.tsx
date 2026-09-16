@@ -21,12 +21,12 @@ function ReactButton({ readingRecordId, reaction, label, active }: { readingReco
         className={`rounded-lg border px-2 py-1 text-xs disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 ${
           active
             ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
-            : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
         }`}
       >
         {label}
       </button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }
@@ -40,15 +40,15 @@ function ReactButton({ readingRecordId, reaction, label, active }: { readingReco
  *  via the action's own "No student record linked" error surfaced inline. */
 export default function ReviewCorner({ reviews }: { reviews: ApprovedReviewProps[] }) {
   if (reviews.length === 0) {
-    return <p className="text-sm text-zinc-400 dark:text-zinc-500">No reviews yet — be the first to post one after finishing a book!</p>;
+    return <p className="text-sm text-zinc-400">No reviews yet — be the first to post one after finishing a book!</p>;
   }
   return (
     <div className="space-y-4">
       {reviews.map((r) => (
-        <div key={r.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
+        <div key={r.id} className="rounded-xl border border-zinc-200 p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{r.book_title}</p>
-            <span className="text-xs text-zinc-400 dark:text-zinc-500">by {r.student_name}</span>
+            <p className="text-sm font-semibold text-zinc-800">{r.book_title}</p>
+            <span className="text-xs text-zinc-400">by {r.student_name}</span>
           </div>
           <RichTextContent html={r.review_text} className="mb-3" />
           <div className="flex items-center gap-2">

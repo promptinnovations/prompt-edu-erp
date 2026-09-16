@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { generateSeatingPlanAction, type GenerateSeatingState } from "./actions";
 import type { ExamRoomRecord } from "../../../../modules/examination/seating-service";
 
-const INPUT = "rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
+const INPUT = "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
 
 interface AdHocRoom { name: string; benchCount: number; seatsPerBench: number; genderRestriction: "" | "male" | "female" }
 
@@ -54,9 +54,9 @@ export default function GenerateSeatingForm({
       <input type="hidden" name="examinationId" value={examinationId} />
 
       <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Rooms from the master list</h3>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Rooms from the master list</h3>
         {rooms.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">No rooms in the master list yet — add some above, or add an ad-hoc room below.</p>
+          <p className="text-sm text-zinc-400">No rooms in the master list yet — add some above, or add an ad-hoc room below.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {rooms.map((room) => (
@@ -65,7 +65,7 @@ export default function GenerateSeatingForm({
                 className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 text-sm ${
                   selected.includes(room.id)
                     ? "border-[var(--accent-teal)] bg-[var(--accent-teal)]/5"
-                    : "border-zinc-200 dark:border-zinc-800"
+                    : "border-zinc-200"
                 }`}
               >
                 <input
@@ -77,8 +77,8 @@ export default function GenerateSeatingForm({
                   className="mt-0.5 h-4 w-4"
                 />
                 <span>
-                  <span className="block font-medium text-zinc-800 dark:text-zinc-100">{room.name}</span>
-                  <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="block font-medium text-zinc-800">{room.name}</span>
+                  <span className="block text-xs text-zinc-500">
                     {room.bench_count} benches x {room.seats_per_bench} = {room.capacity} seats
                     {room.gender_restriction ? ` · ${room.gender_restriction === "male" ? "Boys only" : "Girls only"}` : ""}
                   </span>
@@ -91,25 +91,25 @@ export default function GenerateSeatingForm({
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Ad-hoc rooms (this exam only)</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Ad-hoc rooms (this exam only)</h3>
           <button
             type="button"
             onClick={() => setAdHoc((prev) => [...prev, { ...BLANK_AD_HOC }])}
-            className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-50"
           >
             + Add ad-hoc room
           </button>
         </div>
         {adHoc.length === 0 ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
+          <p className="text-sm text-zinc-400">
             Nothing extra. Add a hall or spare room borrowed just for this exam — it is used for this plan only and never saved to the master list.
           </p>
         ) : (
           <div className="space-y-2">
             {adHoc.map((room, index) => (
-              <div key={index} className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-3 dark:border-zinc-700">
+              <div key={index} className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-3">
                 <div>
-                  <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Room name</label>
+                  <label className="mb-1 block text-xs text-zinc-500">Room name</label>
                   <input
                     name="adHocName" value={room.name} required
                     onChange={(e) => updateAdHoc(index, { name: e.target.value })}
@@ -117,7 +117,7 @@ export default function GenerateSeatingForm({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Benches</label>
+                  <label className="mb-1 block text-xs text-zinc-500">Benches</label>
                   <input
                     name="adHocBenchCount" type="number" min={1} max={500} value={room.benchCount} required
                     onChange={(e) => updateAdHoc(index, { benchCount: Number(e.target.value) })}
@@ -125,7 +125,7 @@ export default function GenerateSeatingForm({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Seats per bench</label>
+                  <label className="mb-1 block text-xs text-zinc-500">Seats per bench</label>
                   <input
                     name="adHocSeatsPerBench" type="number" min={1} max={10} value={room.seatsPerBench} required
                     onChange={(e) => updateAdHoc(index, { seatsPerBench: Number(e.target.value) })}
@@ -133,7 +133,7 @@ export default function GenerateSeatingForm({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Restriction</label>
+                  <label className="mb-1 block text-xs text-zinc-500">Restriction</label>
                   <select
                     name="adHocGenderRestriction" value={room.genderRestriction}
                     onChange={(e) => updateAdHoc(index, { genderRestriction: e.target.value as AdHocRoom["genderRestriction"] })}
@@ -147,7 +147,7 @@ export default function GenerateSeatingForm({
                 <button
                   type="button"
                   onClick={() => setAdHoc((prev) => prev.filter((_, i) => i !== index))}
-                  className="pb-2 text-sm text-red-600 underline dark:text-red-400"
+                  className="pb-2 text-sm text-red-600 underline"
                 >
                   Remove
                 </button>
@@ -157,17 +157,17 @@ export default function GenerateSeatingForm({
         )}
       </div>
 
-      <div className="rounded-xl bg-zinc-50 p-3 text-sm dark:bg-zinc-950">
-        <p className="text-zinc-700 dark:text-zinc-200">
+      <div className="rounded-xl bg-zinc-50 p-3 text-sm">
+        <p className="text-zinc-700">
           <strong>{studentCount}</strong> student(s) to seat ({boyCount} boys, {girlCount} girls) ·{" "}
           <strong>{totalCapacity}</strong> seat(s) selected
         </p>
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-xs text-zinc-500">
           Boys/girls rule: <strong>{genderRule === "hard" ? "Hard — never mix in a room" : "Best effort — mix only if capacity is tight"}</strong>{" "}
           (change it in Settings). No two students from the same grade are ever placed on the same bench.
         </p>
         {shortfall > 0 ? (
-          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+          <p className="mt-1 text-xs text-amber-600">
             {shortfall} more seat(s) needed before this can possibly succeed.
           </p>
         ) : null}
@@ -182,20 +182,20 @@ export default function GenerateSeatingForm({
           {hasExistingPlan ? "Regenerate seating plan" : "Generate seating plan"}
         </button>
         {hasExistingPlan ? (
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">Regenerating replaces the existing plan for this examination.</span>
+          <span className="text-xs text-zinc-500">Regenerating replaces the existing plan for this examination.</span>
         ) : null}
       </div>
 
       {state.error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {state.error}
         </p>
       ) : null}
       {state.summary ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
           <p>{state.summary}</p>
           {state.warnings.map((w) => (
-            <p key={w} className="mt-1 text-amber-700 dark:text-amber-400">{w}</p>
+            <p key={w} className="mt-1 text-amber-700">{w}</p>
           ))}
         </div>
       ) : null}

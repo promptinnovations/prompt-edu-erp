@@ -68,24 +68,24 @@ export default async function MonthlyRegisterPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Monthly Attendance Register</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">Monthly Attendance Register</h1>
 
-      <section className="no-print rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+      <section className="no-print rounded-2xl border border-zinc-200 bg-white p-5">
         <RegisterPicker classes={classes} sections={sections} classId={effectiveClassId} sectionId={effectiveSectionId} month={effectiveMonth} />
       </section>
 
       {register ? (
-        <section className="print-area rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
+        <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
           <PrintLetterhead
             institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
             logoCode={institution?.logoFileId ? institution.code : null}
           />
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              <h2 className="text-sm font-semibold text-zinc-700">
                 {className} — {sectionName} · {effectiveMonth}
               </h2>
-              <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-400 dark:text-zinc-500">
+              <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-400">
                 {statuses.map((s) => (
                   <span key={s.id}>{s.code.charAt(0).toUpperCase()} = {s.label}</span>
                 ))}
@@ -96,18 +96,18 @@ export default async function MonthlyRegisterPage({
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-left text-zinc-500 dark:text-zinc-400">
-                  <th className="sticky left-0 bg-white dark:bg-zinc-900 py-1 pr-2">Student</th>
+                <tr className="text-left text-zinc-500">
+                  <th className="sticky left-0 bg-white py-1 pr-2">Student</th>
                   {days.map((d) => (
                     <th key={d} className="px-1 py-1 text-center font-normal">{d}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody className="divide-y divide-zinc-100">
                 {register.students.map((s) => (
                   <tr key={s.student_id}>
-                    <td className="sticky left-0 bg-white dark:bg-zinc-900 whitespace-nowrap py-1 pr-2">
-                      {s.student_name} <span className="text-zinc-400 dark:text-zinc-500">({s.admission_number})</span>
+                    <td className="sticky left-0 bg-white whitespace-nowrap py-1 pr-2">
+                      {s.student_name} <span className="text-zinc-400">({s.admission_number})</span>
                     </td>
                     {days.map((d) => {
                       const date = `${effectiveMonth}-${String(d).padStart(2, "0")}`;
@@ -116,7 +116,7 @@ export default async function MonthlyRegisterPage({
                       return (
                         <td
                           key={d}
-                          className={`px-1 py-1 text-center ${status && !status.counts_as_present ? "text-red-600 dark:text-red-400" : ""}`}
+                          className={`px-1 py-1 text-center ${status && !status.counts_as_present ? "text-red-600" : ""}`}
                         >
                           {code ? code.charAt(0).toUpperCase() : "—"}
                         </td>
@@ -125,14 +125,14 @@ export default async function MonthlyRegisterPage({
                   </tr>
                 ))}
                 {register.students.length === 0 ? (
-                  <tr><td colSpan={daysInMonth + 1} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No students enrolled in this class/section.</td></tr>
+                  <tr><td colSpan={daysInMonth + 1} className="py-4 text-center text-zinc-400">No students enrolled in this class/section.</td></tr>
                 ) : null}
               </tbody>
             </table>
           </div>
         </section>
       ) : (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
+        <p className="text-sm text-zinc-400">
           {teacherScope && classId && !classInScope ? "You're not assigned to that class." : "Select a class, division, and month to load the register."}
         </p>
       )}

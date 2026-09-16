@@ -12,10 +12,10 @@ function ReviewButton({ action, label, leaveId }: { action: typeof approveLeaveA
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="leaveId" value={leaveId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }
@@ -32,7 +32,7 @@ export default function StaffLeaveReviewTable({ leaves }: { leaves: StaffLeaveRe
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
           <tr>
             <th className="py-1.5">Staff</th>
             <th className="py-1.5">Dates</th>
@@ -41,12 +41,12 @@ export default function StaffLeaveReviewTable({ leaves }: { leaves: StaffLeaveRe
             <th className="py-1.5" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+        <tbody className="divide-y divide-zinc-100">
           {leaves.map((l) => (
             <tr key={l.id}>
               <td className="py-1.5">{l.applicant_name}</td>
               <td className="py-1.5">{l.start_date} → {l.end_date}</td>
-              <td className="py-1.5 text-zinc-500 dark:text-zinc-400">{l.reason || "—"}</td>
+              <td className="py-1.5 text-zinc-500">{l.reason || "—"}</td>
               <td className="py-1.5 capitalize">{l.status}</td>
               <td className="py-1.5">
                 {l.status === "pending" ? (
@@ -59,7 +59,7 @@ export default function StaffLeaveReviewTable({ leaves }: { leaves: StaffLeaveRe
             </tr>
           ))}
           {leaves.length === 0 ? (
-            <tr><td colSpan={5} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No pending staff leave applications.</td></tr>
+            <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No pending staff leave applications.</td></tr>
           ) : null}
         </tbody>
       </table>

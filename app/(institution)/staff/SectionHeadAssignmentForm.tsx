@@ -10,8 +10,8 @@ function RemoveButton({ assignmentId }: { assignmentId: string }) {
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="assignmentId" value={assignmentId} />
-      <button type="submit" disabled={pending} className="text-xs text-red-600 dark:text-red-400 underline disabled:opacity-50">Remove</button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
+      <button type="submit" disabled={pending} className="text-xs text-red-600 underline disabled:opacity-50">Remove</button>
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );
 }
@@ -40,34 +40,34 @@ export default function SectionHeadAssignmentForm({
       {canManage ? (
         <form action={formAction} className="flex flex-wrap items-end gap-2">
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Staff member</label>
-            <select name="userId" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <label className="mb-1 block text-xs text-zinc-500">Staff member</label>
+            <select name="userId" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {staff.map((s) => <option key={s.userId} value={s.userId}>{s.full_name}</option>)}
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Section (e.g. KG, LP, UP, HS, HSS)</label>
+            <label className="mb-1 block text-xs text-zinc-500">Section (e.g. KG, LP, UP, HS, HSS)</label>
             {stages.length > 0 ? (
-              <select name="stage" required className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+              <select name="stage" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
                 {stages.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             ) : (
-              <input name="stage" required placeholder="e.g. HSS" className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+              <input name="stage" required placeholder="e.g. HSS" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
             )}
           </div>
           <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Assign
           </button>
-          {state.error ? <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span> : null}
+          {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
         </form>
       ) : null}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr><th className="py-1.5">Staff member</th><th className="py-1.5">Section</th><th className="py-1.5" /></tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-zinc-100">
             {assignments.map((a) => (
               <tr key={a.id}>
                 <td className="py-1.5">{a.user_full_name}</td>
@@ -76,7 +76,7 @@ export default function SectionHeadAssignmentForm({
               </tr>
             ))}
             {assignments.length === 0 ? (
-              <tr><td colSpan={3} className="py-4 text-center text-zinc-400 dark:text-zinc-500">No Section Heads assigned yet.</td></tr>
+              <tr><td colSpan={3} className="py-4 text-center text-zinc-400">No Section Heads assigned yet.</td></tr>
             ) : null}
           </tbody>
         </table>

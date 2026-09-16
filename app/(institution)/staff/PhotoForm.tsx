@@ -16,12 +16,12 @@ export default function PhotoForm({ staffId, photoUrl }: { staffId: string; phot
 
   return (
     <div className="flex items-center gap-4">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white">
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- authenticated /api/files route, not a static asset
           <img src={photoUrl} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">No photo</span>
+          <span className="text-xs text-zinc-400">No photo</span>
         )}
       </div>
       <div className="flex flex-col gap-1">
@@ -32,7 +32,7 @@ export default function PhotoForm({ staffId, photoUrl }: { staffId: string; phot
             type="file"
             accept="image/png,image/jpeg,image/webp"
             required
-            className="max-w-full text-xs text-zinc-600 dark:text-zinc-300 file:mr-2 file:rounded-lg file:border-0 file:bg-[var(--accent-teal)] file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
+            className="max-w-full text-xs text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-[var(--accent-teal)] file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
           />
           <button type="submit" disabled={uploadPending} className="rounded-lg bg-[var(--brand)] px-2.5 py-1 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             {photoUrl ? "Replace" : "Upload"}
@@ -41,13 +41,13 @@ export default function PhotoForm({ staffId, photoUrl }: { staffId: string; phot
         {photoUrl ? (
           <form action={removeAction}>
             <input type="hidden" name="staffId" value={staffId} />
-            <button type="submit" disabled={removePending} className="text-xs text-zinc-500 dark:text-zinc-400 underline hover:text-zinc-900 dark:hover:text-white disabled:opacity-50">
+            <button type="submit" disabled={removePending} className="text-xs text-zinc-500 underline hover:text-zinc-900 disabled:opacity-50">
               Remove
             </button>
           </form>
         ) : null}
-        {uploadState.error ? <p className="text-xs text-red-600 dark:text-red-400">{uploadState.error}</p> : null}
-        {removeState.error ? <p className="text-xs text-red-600 dark:text-red-400">{removeState.error}</p> : null}
+        {uploadState.error ? <p className="text-xs text-red-600">{uploadState.error}</p> : null}
+        {removeState.error ? <p className="text-xs text-red-600">{removeState.error}</p> : null}
       </div>
     </div>
   );

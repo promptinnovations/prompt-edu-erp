@@ -58,32 +58,32 @@ export default async function SeatingArrangementPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Seating Arrangement</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold text-zinc-900">Seating Arrangement</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           Generate a room-wise exam seating plan and printable bench stickers for one examination.
         </p>
       </div>
 
-      <section id="rooms" className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Exam rooms</h2>
-        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+      <section id="rooms" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Exam rooms</h2>
+        <p className="mb-4 text-sm text-zinc-500">
           Set these up once and reuse them for every examination. A room borrowed for one exam only doesn&apos;t
           belong here — add it as an ad-hoc room when you generate that exam&apos;s plan.
         </p>
         <ExamRoomManager rooms={rooms} />
       </section>
 
-      <section id="generate" className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Generate a plan</h2>
-        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+      <section id="generate" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-zinc-700">Generate a plan</h2>
+        <p className="mb-4 text-sm text-zinc-500">
           Students are taken from the classes and divisions the chosen examination covers.
         </p>
         <ExamPicker examinations={examinations} examinationId={selectedExam?.id ?? ""} />
 
         {selectedExam ? (
-          <div className="mt-5 border-t border-zinc-100 pt-5 dark:border-zinc-800">
+          <div className="mt-5 border-t border-zinc-100 pt-5">
             {roster.length === 0 ? (
-              <p className="text-sm text-amber-600 dark:text-amber-400">
+              <p className="text-sm text-amber-600">
                 No students are enrolled in the classes this examination covers — link its classes/divisions on the{" "}
                 <Link href={`/examinations/${selectedExam.id}`} className="underline">examination detail page</Link> first.
               </p>

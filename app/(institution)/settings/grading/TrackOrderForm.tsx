@@ -14,13 +14,13 @@ export default function TrackOrderForm({ trackOrder, canManage }: { trackOrder: 
   const [state, action] = useActionState(updateTrackOrderAction, INIT);
   const first = trackOrder[0] ?? "academic";
   if (!canManage) {
-    return <p className="text-sm text-zinc-600 dark:text-zinc-300">Shown first: <strong className="capitalize">{first}</strong></p>;
+    return <p className="text-sm text-zinc-600">Shown first: <strong className="capitalize">{first}</strong></p>;
   }
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
       <div>
-        <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">Shown first</label>
-        <select name="firstTrack" defaultValue={first} className="rounded border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-sm">
+        <label className="mb-1 block text-xs text-zinc-500">Shown first</label>
+        <select name="firstTrack" defaultValue={first} className="rounded border border-zinc-300 px-2 py-1.5 text-sm">
           <option value="academic">Academic</option>
           <option value="islamic">Islamic</option>
         </select>
@@ -28,8 +28,8 @@ export default function TrackOrderForm({ trackOrder, canManage }: { trackOrder: 
       <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
         Save
       </button>
-      {state.error ? <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span> : null}
-      <p className="w-full text-[11px] text-zinc-400 dark:text-zinc-500">
+      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
+      <p className="w-full text-[11px] text-zinc-400">
         Controls the order Academic/Islamic sections appear in throughout this institution — Subjects, Student
         Portfolio, and Result Analysis.
       </p>

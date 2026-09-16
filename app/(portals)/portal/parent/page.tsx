@@ -30,8 +30,8 @@ export default async function ParentPortalPage({
   const ownParentId = await getOwnParentId(institutionId, authUserId, ctx.userId);
   if (!ownParentId) {
     return (
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <p className="text-sm text-zinc-500">
           Your account isn&apos;t linked to a parent/guardian record yet. Ask your institution admin to set this up.
         </p>
       </div>
@@ -41,8 +41,8 @@ export default async function ParentPortalPage({
   const children = await listChildrenForParent(institutionId, authUserId, ownParentId);
   if (children.length === 0) {
     return (
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">No children are linked to your account yet.</p>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <p className="text-sm text-zinc-500">No children are linked to your account yet.</p>
       </div>
     );
   }
@@ -86,155 +86,155 @@ export default async function ParentPortalPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">My children</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900">My children</h1>
       <ChildPicker options={children} selectedChildId={selectedChildId} />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {sections.attendance ? (
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <div className="text-2xl font-semibold text-zinc-900">
               {summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—"}
             </div>
-            <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Attendance (this year)</div>
+            <div className="mt-1 text-sm text-zinc-500">Attendance (this year)</div>
           </div>
         ) : null}
         {sections.results ? (
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-            <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <div className="text-2xl font-semibold text-zinc-900">
               {summary.latestResult ? `${summary.latestResult.percentage}%` : "—"}
             </div>
-            <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="mt-1 text-sm text-zinc-500">
               {summary.latestResult ? `Latest: ${summary.latestResult.examination_name}` : "No results yet"}
             </div>
           </div>
         ) : null}
         {sections.portfolio ? (
           <>
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-              <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+              <div className="text-2xl font-semibold text-zinc-900">
                 {summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—"}
               </div>
-              <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Consolidated score</div>
+              <div className="mt-1 text-sm text-zinc-500">Consolidated score</div>
             </div>
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-              <div className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{summary.recentPortfolioEvents.length}</div>
-              <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Recent portfolio events</div>
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+              <div className="text-2xl font-semibold text-zinc-900">{summary.recentPortfolioEvents.length}</div>
+              <div className="mt-1 text-sm text-zinc-500">Recent portfolio events</div>
             </div>
           </>
         ) : null}
       </div>
 
       {sections.portfolio ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Recent portfolio timeline</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent portfolio timeline</h2>
           <ul className="space-y-2 text-sm">
             {summary.recentPortfolioEvents.map((e) => (
-              <li key={e.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={e.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{e.title}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{e.event_date}</span>
+                <span className="text-zinc-400">{e.event_date}</span>
               </li>
             ))}
-            {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+            {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
 
       {sections.discipline && summary.activeDisciplineFlags ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Discipline</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Discipline</h2>
           <ul className="space-y-2 text-sm">
             {summary.activeDisciplineFlags.map((d) => (
-              <li key={d.id} className="border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={d.id} className="border-b border-zinc-100 pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span>{d.category_name}{d.severity ? ` — ${d.severity}` : ""}</span>
-                  <span className="text-zinc-400 dark:text-zinc-500">{d.date}</span>
+                  <span className="text-zinc-400">{d.date}</span>
                 </div>
-                {d.action_taken ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Action taken: {d.action_taken}</p> : null}
+                {d.action_taken ? <p className="mt-1 text-xs text-zinc-500">Action taken: {d.action_taken}</p> : null}
                 {d.evidence_photo_file_id ? (
-                  <a href={`/api/files/${d.evidence_photo_file_id}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-zinc-500 dark:text-zinc-400 underline">View photo</a>
+                  <a href={`/api/files/${d.evidence_photo_file_id}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-zinc-500 underline">View photo</a>
                 ) : null}
               </li>
             ))}
-            {summary.activeDisciplineFlags.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing to flag.</li> : null}
+            {summary.activeDisciplineFlags.length === 0 ? <li className="text-zinc-400">Nothing to flag.</li> : null}
           </ul>
         </div>
       ) : null}
 
       {sections.character ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Character assessments</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Character assessments</h2>
           <ul className="space-y-2 text-sm">
             {characterAssessments.map((c) => (
-              <li key={c.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={c.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{c.attribute_name} — {c.period}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
+                <span className="text-zinc-400">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
               </li>
             ))}
-            {characterAssessments.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+            {characterAssessments.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
 
       {sections.mentoring ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Mentoring</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Mentoring</h2>
           <ul className="space-y-2 text-sm">
             {mentoringNotes.map((m) => (
-              <li key={m.id} className="border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={m.id} className="border-b border-zinc-100 pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span>{m.mentor_name}</span>
-                  <span className="text-zinc-400 dark:text-zinc-500">{m.date}</span>
+                  <span className="text-zinc-400">{m.date}</span>
                 </div>
-                {m.goals ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Goals: {m.goals}</p> : null}
-                {m.action_plan ? <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Action plan: {m.action_plan}</p> : null}
+                {m.goals ? <p className="mt-1 text-xs text-zinc-500">Goals: {m.goals}</p> : null}
+                {m.action_plan ? <p className="mt-1 text-xs text-zinc-500">Action plan: {m.action_plan}</p> : null}
               </li>
             ))}
-            {mentoringNotes.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+            {mentoringNotes.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
 
       {sections.achievements ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Achievements</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Achievements</h2>
           <ul className="space-y-2 text-sm">
             {achievements.map((a) => (
-              <li key={a.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={a.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{a.title} ({a.category_name})</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{a.status}</span>
+                <span className="text-zinc-400">{a.status}</span>
               </li>
             ))}
-            {achievements.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+            {achievements.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
 
       {sections.skills ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Skills</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Skills</h2>
           <ul className="space-y-2 text-sm">
             {skillSubmissions.map((s) => (
-              <li key={s.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={s.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{s.activity_name}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{s.status}</span>
+                <span className="text-zinc-400">{s.status}</span>
               </li>
             ))}
-            {skillSubmissions.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+            {skillSubmissions.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
 
       {sections.library ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Library — reading record</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Library — reading record</h2>
           <ul className="space-y-2 text-sm">
             {readingRecords.map((r) => (
-              <li key={r.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+              <li key={r.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{r.book_title}</span>
-                <span className="text-zinc-400 dark:text-zinc-500">{r.review_status}</span>
+                <span className="text-zinc-400">{r.review_status}</span>
               </li>
             ))}
-            {readingRecords.length === 0 ? <li className="text-zinc-400 dark:text-zinc-500">Nothing yet.</li> : null}
+            {readingRecords.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -248,8 +248,8 @@ export default async function ParentPortalPage({
       ) : null}
 
       {can(ctx.permissions, "fees.pay_own") ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Pay fees</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Pay fees</h2>
           <PayFeeForm
             invoices={pendingInvoices.map((i) => ({
               id: i.id,
@@ -261,8 +261,8 @@ export default async function ParentPortalPage({
       ) : null}
 
       {can(ctx.permissions, "messages.send_to_staff") ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Message a teacher or the principal</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Message a teacher or the principal</h2>
           <SendMessageForm
             studentId={selectedChildId}
             staffOptions={staffDirectory.map((s) => ({ userId: s.user_id, label: `${s.full_name}${s.designation ? ` — ${s.designation}` : ""}` }))}
@@ -271,8 +271,8 @@ export default async function ParentPortalPage({
       ) : null}
 
       {can(ctx.permissions, "kudos.send") ? (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Send a flower or congratulations 🌸</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <h2 className="mb-3 text-sm font-semibold text-zinc-700">Send a flower or congratulations 🌸</h2>
           <SendKudosForm
             studentId={selectedChildId}
             studentName={children.find((c) => c.id === selectedChildId)?.full_name ?? "your child"}
