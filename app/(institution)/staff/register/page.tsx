@@ -46,19 +46,19 @@ export default async function StaffMonthlyRegisterPage({
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Staff Monthly Attendance Register</h1>
 
-      <section className="no-print rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="no-print rounded-card border bg-white p-5">
         <form method="get" className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Month</label>
-            <input type="month" name="month" defaultValue={effectiveMonth} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input type="month" name="month" defaultValue={effectiveMonth} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
-          <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+          <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
             Load
           </button>
         </form>
       </section>
 
-      <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="print-area rounded-card border bg-white p-5">
         <PrintLetterhead
           institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
           logoCode={institution?.logoFileId ? institution.code : null}
@@ -84,7 +84,7 @@ export default async function StaffMonthlyRegisterPage({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {register.staff.map((s) => (
                 <tr key={s.staff_id}>
                   <td className="sticky left-0 bg-white whitespace-nowrap py-1 pr-2">

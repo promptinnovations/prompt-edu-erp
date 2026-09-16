@@ -56,25 +56,25 @@ export default function ObservationForm({
       <div className="grid gap-3 sm:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Date</label>
-          <input name="date" type="date" required className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+          <input name="date" type="date" required className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Term</label>
-          <input name="term" placeholder="e.g. Term 1" className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+          <input name="term" placeholder="e.g. Term 1" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Class &amp; division</label>
-          <input name="classDiv" placeholder="e.g. UP 6 B" className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+          <input name="classDiv" placeholder="e.g. UP 6 B" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Content</label>
-          <input name="content" placeholder="Lesson / topic observed" className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+          <input name="content" placeholder="Lesson / topic observed" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
       </div>
 
       <div className="space-y-4">
         {domains.map(([domain, items]) => (
-          <fieldset key={domain} className="rounded-xl border border-zinc-200 p-4">
+          <fieldset key={domain} className="rounded-card border p-4">
             <legend className="px-1 text-sm font-semibold text-zinc-700">{domain}</legend>
             <div className="space-y-3">
               {items.map((c) => {
@@ -91,7 +91,7 @@ export default function ObservationForm({
                           const v = Number(e.target.value);
                           setScores((prev) => v ? { ...prev, [c.id]: v } : (() => { const n = { ...prev }; delete n[c.id]; return n; })());
                         }}
-                        className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm"
+                        className="w-full rounded-lg border bg-white px-2.5 py-1.5 text-sm"
                       >
                         <option value="">Not scored</option>
                         {[...c.levels_jsonb].sort((a, b) => b.score - a.score).map((l) => (
@@ -110,7 +110,7 @@ export default function ObservationForm({
         ))}
       </div>
 
-      <div className="rounded-xl border border-zinc-200 p-4">
+      <div className="rounded-card border p-4">
         <p className="mb-2 text-sm text-zinc-600">
           Provisional total: <span className="font-semibold text-zinc-900">{provisionalTotal ?? "—"}{provisionalTotal !== null ? "%" : ""}</span>
           {answeredCount > 0 ? <span className="ml-1 text-xs text-zinc-500">({answeredCount} of {criteria.length} criteria scored)</span> : null}
@@ -118,17 +118,17 @@ export default function ObservationForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Strengths observed</label>
-            <textarea name="overallNotes" rows={3} className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+            <textarea name="overallNotes" rows={3} className="w-full rounded-lg border bg-white px-2.5 py-1.5 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Areas to improve</label>
-            <textarea name="followUpNotes" rows={3} className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+            <textarea name="followUpNotes" rows={3} className="w-full rounded-lg border bg-white px-2.5 py-1.5 text-sm" />
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {pending ? "Saving…" : "Record observation"}
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

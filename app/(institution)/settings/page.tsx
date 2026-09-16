@@ -25,12 +25,12 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Settings</h1>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Institution</h2>
         <p className="text-sm text-zinc-500">{institution?.appName || institution?.name}</p>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Logo</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Upload your institution&apos;s own logo — once set, it replaces the generated letter badge everywhere the
@@ -39,7 +39,7 @@ export default async function SettingsPage() {
         <LogoForm logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Install app</h2>
         <p className="mb-3 text-sm text-zinc-500">
           {institution?.name} has its own installable app, separate from every other institution — branded with your
@@ -51,7 +51,7 @@ export default async function SettingsPage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Appearance</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Choose a colour combination for {institution?.appName || institution?.name} — applies everywhere for
@@ -60,7 +60,7 @@ export default async function SettingsPage() {
         <ThemePaletteForm currentId={institution?.themePalette ?? null} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Parent portal — what parents can see</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Choose which sections of a child&apos;s page show on the parent portal. Unchecked sections stay hidden from
@@ -69,7 +69,7 @@ export default async function SettingsPage() {
         <ParentPortalSectionsForm sections={parentPortalSections} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Exam seating — boys/girls separation</h2>
         <p className="mb-3 text-sm text-zinc-500">
           How strictly Examinations → Seating Arrangement must keep boys and girls in separate rooms when it
@@ -78,7 +78,7 @@ export default async function SettingsPage() {
         <SeatingGenderRuleForm current={institution?.examSeatingGenderRule ?? "best_effort"} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Grading &amp; points</h2>
         <p className="mb-3 text-sm text-zinc-500">
           Define your own grading scale, scoring rule points, achievement categories/levels, and skill
@@ -86,7 +86,7 @@ export default async function SettingsPage() {
         </p>
         <Link
           href="/settings/grading"
-          className="inline-block rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
+          className="inline-block rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
         >
           Manage grading &amp; points
         </Link>

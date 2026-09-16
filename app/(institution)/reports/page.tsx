@@ -12,7 +12,7 @@ export default async function ReportsPage() {
 
   if (!can(ctx.permissions, "reports.view")) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500">
+      <div className="rounded-card border bg-white p-6 text-sm text-zinc-500">
         You do not have permission to view reports.
       </div>
     );
@@ -32,7 +32,7 @@ export default async function ReportsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Reports (§P)</h1>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Generate a report</h2>
         {canExport ? (
           <ReportGeneratorForm
@@ -49,19 +49,19 @@ export default async function ReportsPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Built-in report catalogue</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-zinc-500">
+            <tr className="border-b text-left text-zinc-500">
               <th className="pb-2 font-medium">Report</th>
               <th className="pb-2 font-medium">Data source</th>
             </tr>
           </thead>
           <tbody>
             {definitions.map((d) => (
-              <tr key={d.code} className="border-b border-zinc-100">
+              <tr key={d.code} className="border-b">
                 <td className="py-2 text-zinc-900">{d.name}</td>
                 <td className="py-2 text-zinc-500">{d.data_source}</td>
               </tr>
@@ -71,7 +71,7 @@ export default async function ReportsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recently generated (this institution)</h2>
         {recent.length === 0 ? (
           <p className="text-sm text-zinc-500">No reports generated yet.</p>
@@ -79,7 +79,7 @@ export default async function ReportsPage() {
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-zinc-500">
+              <tr className="border-b text-left text-zinc-500">
                 <th className="pb-2 font-medium">Report type</th>
                 <th className="pb-2 font-medium">Format</th>
                 <th className="pb-2 font-medium">Generated at</th>
@@ -87,7 +87,7 @@ export default async function ReportsPage() {
             </thead>
             <tbody>
               {recent.map((r) => (
-                <tr key={r.id} className="border-b border-zinc-100">
+                <tr key={r.id} className="border-b">
                   <td className="py-2 text-zinc-900">{r.report_type}</td>
                   <td className="py-2 text-zinc-500 uppercase">{r.format}</td>
                   <td className="py-2 text-zinc-500">{new Date(r.generated_at).toLocaleString()}</td>

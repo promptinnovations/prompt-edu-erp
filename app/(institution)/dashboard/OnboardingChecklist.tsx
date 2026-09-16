@@ -19,7 +19,7 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
   const totalDone = items.length - pending.length - skipped.length;
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <section className="rounded-card border bg-white p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-[var(--heading)]">Finish setting up</h2>
         <span className="text-xs text-zinc-500">{totalDone}/{items.length} done</span>
@@ -30,7 +30,7 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
           {pending.map((item) => (
             <li
               key={item.code}
-              className="flex flex-col gap-2 rounded-xl border border-zinc-100 p-3 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-card border p-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
                 <Link href={item.href} className="text-sm font-medium text-zinc-900 hover:underline">
@@ -41,13 +41,13 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
               <div className="flex shrink-0 items-center gap-2">
                 <Link
                   href={item.href}
-                  className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-via)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                  className="rounded-full bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-via)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
                 >
                   Do it now
                 </Link>
                 <form action={skipOnboardingItemAction}>
                   <input type="hidden" name="itemCode" value={item.code} />
-                  <button type="submit" className="rounded-lg px-2 py-1.5 text-xs text-zinc-500 hover:bg-zinc-100">
+                  <button type="submit" className="rounded-full px-2 py-1.5 text-xs text-zinc-500 hover:bg-zinc-100">
                     Not applicable / later
                   </button>
                 </form>
@@ -58,7 +58,7 @@ export default function OnboardingChecklist({ items }: { items: ChecklistItem[] 
       ) : null}
 
       {skipped.length > 0 ? (
-        <div className="mt-3 border-t border-zinc-100 pt-3">
+        <div className="mt-3 border-t pt-3">
           <div className="mb-1.5 text-xs font-medium text-zinc-500">Set aside for later</div>
           <ul className="space-y-1.5">
             {skipped.map((item) => (

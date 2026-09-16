@@ -41,7 +41,7 @@ export default async function SuperAdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--sidebar-bg-2)] via-[var(--sidebar-bg)] to-[var(--sidebar-bg)] p-6 text-white shadow-lg sm:p-8">
+      <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-[var(--sidebar-bg-2)] via-[var(--sidebar-bg)] to-[var(--sidebar-bg)] p-6 text-white shadow-float sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/20 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-white/5 blur-2xl" />
         <div className="relative">
@@ -50,7 +50,7 @@ export default async function SuperAdminOverviewPage() {
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {summary.map(([label, value, accent]) => (
-            <div key={label} className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+            <div key={label} className="rounded-card bg-white/10 p-4 backdrop-blur">
               <div className={`mb-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${accent}`} />
               <div className="text-xl font-semibold">{value}</div>
               <div className="mt-0.5 text-xs text-white/70">{label}</div>
@@ -59,12 +59,12 @@ export default async function SuperAdminOverviewPage() {
         </div>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Create a new institution</h2>
         <CreateInstitutionForm />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">All institutions ({institutions.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Usage counts below are live, on-demand totals — not the scheduled `usage_metrics` rollup described in
@@ -85,7 +85,7 @@ export default async function SuperAdminOverviewPage() {
                 <th className="py-1.5"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {institutions.map((inst) => {
                 const u = usageByInstitution.get(inst.id);
                 return (
@@ -108,7 +108,7 @@ export default async function SuperAdminOverviewPage() {
                     <td className="py-1.5 text-right">
                       <Link
                         href={`/super-admin/institutions/${inst.id}`}
-                        className="whitespace-nowrap rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                        className="whitespace-nowrap rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                       >
                         Manage modules
                       </Link>

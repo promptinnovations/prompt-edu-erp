@@ -11,7 +11,7 @@ function PlaceHoldButton({ bookId }: { bookId: string }) {
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="bookId" value={bookId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Pre-book
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}

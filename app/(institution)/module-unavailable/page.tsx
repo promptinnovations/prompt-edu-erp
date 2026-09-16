@@ -16,7 +16,7 @@ export default async function ModuleUnavailablePage({
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center">
+      <div className="w-full max-w-md rounded-card border bg-white p-8 text-center">
         <h1 className="text-lg font-semibold text-[var(--heading)]">Module not available</h1>
         <p className="mt-3 text-sm text-zinc-600">
           {module ? `The "${module}" module` : "This module"} has not been enabled for your institution. Contact
@@ -24,7 +24,7 @@ export default async function ModuleUnavailablePage({
         </p>
         <Link
           href="/dashboard"
-          className="mt-6 inline-block rounded-lg bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)]"
+          className="mt-6 inline-block rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)]"
         >
           Back to dashboard
         </Link>

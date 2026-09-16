@@ -11,7 +11,7 @@ export default function DeletePlanButton({ examinationId }: { examinationId: str
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+        className="rounded-full border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
       >
         Delete plan
       </button>

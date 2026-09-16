@@ -22,9 +22,9 @@ export default function SectionRow({
             name="name"
             defaultValue={name}
             required
-            className="w-20 rounded-lg border border-zinc-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="w-20 rounded-full border px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
-          <button type="submit" disabled={updatePending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
+          <button type="submit" disabled={updatePending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
             Save
           </button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">

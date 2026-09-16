@@ -63,7 +63,7 @@ export default async function StudentDirectoryPage({
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <form className="flex flex-wrap items-end gap-2" method="get">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Search</label>
@@ -71,7 +71,7 @@ export default async function StudentDirectoryPage({
               name="q"
               defaultValue={q}
               placeholder="Name or admission number"
-              className="w-56 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="w-56 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             />
           </div>
           <div>
@@ -79,7 +79,7 @@ export default async function StudentDirectoryPage({
             <select
               name="classId"
               defaultValue={classId}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             >
               <option value="">All classes</option>
               {classes.map((c) => (
@@ -90,7 +90,7 @@ export default async function StudentDirectoryPage({
           {tab ? <input type="hidden" name="tab" value={tab} /> : null}
           <button
             type="submit"
-            className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]"
+            className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]"
           >
             Apply
           </button>
@@ -105,7 +105,7 @@ export default async function StudentDirectoryPage({
         </form>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         {students.length === 0 ? (
           <p className="py-6 text-center text-sm text-zinc-500">
             {q || classId ? "No students match those filters." : "No students yet."}
@@ -116,7 +116,7 @@ export default async function StudentDirectoryPage({
               <Link
                 key={s.id}
                 href={`/students/${s.id}${tabSuffix}`}
-                className={`flex flex-col items-center rounded-xl border border-transparent p-4 text-center hover:border-indigo-400 hover:bg-zinc-50 transition-colors ${s.status === "withdrawn" ? "opacity-50" : ""}`}
+                className={`flex flex-col items-center rounded-card border border-transparent p-4 text-center hover:border-indigo-400 hover:bg-zinc-50 transition-colors ${s.status === "withdrawn" ? "opacity-50" : ""}`}
               >
                 {s.photo_file_id ? (
                   // eslint-disable-next-line @next/next/no-img-element -- avatar thumbnail from an authenticated /api/files route, not a static/optimizable asset

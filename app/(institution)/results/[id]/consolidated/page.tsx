@@ -62,7 +62,7 @@ export default async function ConsolidatedMarksPage({
         <ClassFilterForm classes={classOptions} classId={classId} />
       </div>
 
-      <section className="print-area overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+      <section className="print-area overflow-hidden rounded-2xl border bg-white">
         <div className="p-4 pb-0">
           <PrintLetterhead
             institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
@@ -80,7 +80,7 @@ export default async function ConsolidatedMarksPage({
                 <th className="px-3 py-2 text-center">Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {studentOrder.map((studentId) => {
                 const student = students.get(studentId)!;
                 let total = 0;

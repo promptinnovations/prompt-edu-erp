@@ -34,14 +34,14 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
 
   if (state.sent !== undefined) {
     return (
-      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <div className="mt-4 rounded-card border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
         {state.sent} WhatsApp alert{state.sent === 1 ? "" : "s"} sent{state.skipped ? `, ${state.skipped} skipped (no phone on file)` : ""}.
       </div>
     );
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <div className="mt-4 rounded-card border border-amber-200 bg-amber-50 p-4">
       <h3 className="mb-1 text-sm font-semibold text-amber-900">
         Absentee &amp; late-coming alerts ({alerts.length})
       </h3>
@@ -53,7 +53,7 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
           const isExcluded = excluded.has(a.studentId);
           const noPhone = !a.phone;
           return (
-            <div key={a.studentId} className="rounded-lg border border-amber-200 bg-white p-3">
+            <div key={a.studentId} className="rounded-card border border-amber-200 bg-white p-3">
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <div className="text-sm font-medium text-zinc-900">
                   {a.studentName} <span className="text-zinc-500">({a.admissionNumber})</span>{" "}
@@ -87,7 +87,7 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
                     onChange={(e) => setMessages((prev) => ({ ...prev, [a.studentId]: e.target.value }))}
                     disabled={isExcluded}
                     rows={2}
-                    className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm disabled:bg-zinc-100 disabled:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="w-full rounded-lg border px-2 py-1.5 text-sm disabled:bg-zinc-100 disabled:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </>
               )}
@@ -98,14 +98,14 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
           <button
             type="submit"
             disabled={pending || sendable.length === 0}
-            className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+            className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
           >
             Confirm &amp; send ({sendable.length})
           </button>
           <button
             type="button"
             onClick={onDismiss}
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+            className="rounded-full border px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
           >
             Cancel
           </button>
@@ -157,7 +157,7 @@ export default function AttendanceGridForm({
               <th className="py-1.5">Late (min)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {students.map((s) => (
               <tr key={s.student_id}>
                 <td className="py-1.5">
@@ -174,7 +174,7 @@ export default function AttendanceGridForm({
                     name={`status_${s.student_id}`}
                     defaultValue={s.status_id ?? defaultStatusId}
                     disabled={!canEnter}
-                    className="rounded-lg border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   >
                     {statuses.map((st) => (
                       <option key={st.id} value={st.id}>{st.label}</option>
@@ -191,7 +191,7 @@ export default function AttendanceGridForm({
                     name={`lateMinutes_${s.student_id}`}
                     defaultValue={s.late_minutes ?? ""}
                     disabled={!canEnter}
-                    className="w-20 rounded-lg border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="w-20 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
               </tr>
@@ -205,7 +205,7 @@ export default function AttendanceGridForm({
         </table>
         </div>
         {canEnter && students.length > 0 ? (
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Save attendance
           </button>
         ) : null}

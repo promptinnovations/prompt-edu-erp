@@ -50,14 +50,14 @@ export default function MyAttendanceSection({
           <select
             name="statusId"
             defaultValue={defaultStatusId}
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             {statuses.map((s) => (
               <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
         </div>
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {existing ? "Update my attendance" : "Mark my attendance"}
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

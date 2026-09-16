@@ -37,7 +37,7 @@ export default async function ScoringPage() {
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Scoring &amp; performance</h1>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Scoring rules (config)</h2>
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -50,7 +50,7 @@ export default async function ScoringPage() {
                 <th className="py-1.5">Active</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {rules.map((r) => (
                 <tr key={r.id}>
                   <td className="py-1.5">{r.module}</td>
@@ -70,7 +70,7 @@ export default async function ScoringPage() {
       ) : null}
 
       {canManage && profile ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
             Default performance profile: {profile.name}
           </h2>
@@ -82,7 +82,7 @@ export default async function ScoringPage() {
                 <th className="py-1.5">Weight</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {components.map((c) => (
                 <tr key={c.id}>
                   <td className="py-1.5 capitalize">{c.component_module}</td>
@@ -96,7 +96,7 @@ export default async function ScoringPage() {
       ) : null}
 
       {canView ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Consolidated score</h2>
           <ComputeScoreForm students={students.map((s) => ({ id: s.id, full_name: s.full_name }))} />
           <div className="overflow-x-auto">
@@ -109,7 +109,7 @@ export default async function ScoringPage() {
                 <th className="py-1.5">Breakdown</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {scores.map((s) => (
                 <tr key={s.id}>
                   <td className="py-1.5">{studentNameById.get(s.student_id) ?? "—"}</td>
@@ -130,7 +130,7 @@ export default async function ScoringPage() {
       ) : null}
 
       {canView ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Score events ledger</h2>
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -142,7 +142,7 @@ export default async function ScoringPage() {
                 <th className="py-1.5">Computed</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {events.slice(0, 50).map((e) => (
                 <tr key={e.id}>
                   <td className="py-1.5">{studentNameById.get(e.student_id) ?? "—"}</td>

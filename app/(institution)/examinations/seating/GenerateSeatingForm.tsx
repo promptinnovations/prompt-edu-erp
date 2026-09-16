@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { generateSeatingPlanAction, type GenerateSeatingState } from "./actions";
 import type { ExamRoomRecord } from "../../../../modules/examination/seating-service";
 
-const INPUT = "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
+const INPUT = "rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
 
 interface AdHocRoom { name: string; benchCount: number; seatsPerBench: number; genderRestriction: "" | "male" | "female" }
 
@@ -62,10 +62,10 @@ export default function GenerateSeatingForm({
             {rooms.map((room) => (
               <label
                 key={room.id}
-                className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 text-sm ${
+                className={`flex cursor-pointer items-start gap-2 rounded-card border p-3 text-sm ${
                   selected.includes(room.id)
                     ? "border-[var(--accent-teal)] bg-[var(--accent-teal)]/5"
-                    : "border-zinc-200"
+                    : ""
                 }`}
               >
                 <input
@@ -95,7 +95,7 @@ export default function GenerateSeatingForm({
           <button
             type="button"
             onClick={() => setAdHoc((prev) => [...prev, { ...BLANK_AD_HOC }])}
-            className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-50"
+            className="rounded-lg border px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-50"
           >
             + Add ad-hoc room
           </button>
@@ -107,7 +107,7 @@ export default function GenerateSeatingForm({
         ) : (
           <div className="space-y-2">
             {adHoc.map((room, index) => (
-              <div key={index} className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-3">
+              <div key={index} className="flex flex-wrap items-end gap-2 rounded-card border border-dashed p-3">
                 <div>
                   <label className="mb-1 block text-xs text-zinc-500">Room name</label>
                   <input
@@ -157,7 +157,7 @@ export default function GenerateSeatingForm({
         )}
       </div>
 
-      <div className="rounded-xl bg-zinc-50 p-3 text-sm">
+      <div className="rounded-card bg-zinc-50 p-3 text-sm">
         <p className="text-zinc-700">
           <strong>{studentCount}</strong> student(s) to seat ({boyCount} boys, {girlCount} girls) ·{" "}
           <strong>{totalCapacity}</strong> seat(s) selected
@@ -177,7 +177,7 @@ export default function GenerateSeatingForm({
         <button
           type="submit"
           disabled={pending || studentCount === 0}
-          className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+          className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
         >
           {hasExistingPlan ? "Regenerate seating plan" : "Generate seating plan"}
         </button>
@@ -187,12 +187,12 @@ export default function GenerateSeatingForm({
       </div>
 
       {state.error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p className="rounded-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {state.error}
         </p>
       ) : null}
       {state.summary ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        <div className="rounded-card border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
           <p>{state.summary}</p>
           {state.warnings.map((w) => (
             <p key={w} className="mt-1 text-amber-700">{w}</p>

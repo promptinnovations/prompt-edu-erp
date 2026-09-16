@@ -17,7 +17,7 @@ export default function AcademicYearForm() {
           name="name"
           required
           placeholder="e.g. 2026-2027"
-          className="w-32 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="w-32 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <div>
@@ -26,7 +26,7 @@ export default function AcademicYearForm() {
           name="startDate"
           type="date"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <div>
@@ -35,7 +35,7 @@ export default function AcademicYearForm() {
           name="endDate"
           type="date"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <label className="flex items-center gap-1.5 pb-2 text-xs text-zinc-500">
@@ -45,7 +45,7 @@ export default function AcademicYearForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         Add
       </button>

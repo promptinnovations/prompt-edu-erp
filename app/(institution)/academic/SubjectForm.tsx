@@ -14,7 +14,7 @@ export default function SubjectForm({ educationMode = "academic" }: { educationM
         <input
           name="name"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           placeholder="e.g. Arabic Language"
         />
       </div>
@@ -24,7 +24,7 @@ export default function SubjectForm({ educationMode = "academic" }: { educationM
           <select
             name="track"
             required
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             <option value="academic">Academic</option>
             <option value="islamic">Islamic</option>
@@ -34,7 +34,7 @@ export default function SubjectForm({ educationMode = "academic" }: { educationM
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         {t("add")}
       </button>

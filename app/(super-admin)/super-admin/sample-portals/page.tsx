@@ -49,17 +49,17 @@ export default async function SamplePortalsPage({
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Institution</h2>
         <div className="flex flex-wrap gap-2">
           {institutions.map((i) => (
             <Link
               key={i.id}
               href={`/super-admin/sample-portals?institutionId=${i.id}`}
-              className={`rounded-lg px-3 py-1.5 text-sm ${
+              className={`rounded-full px-3 py-1.5 text-sm ${
                 institution?.id === i.id
                   ? "bg-zinc-900 text-white"
-                  : "border border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                  : "border text-zinc-700 hover:bg-zinc-50"
               }`}
             >
               {i.name}
@@ -108,7 +108,7 @@ function RoleSection({
   title: string; hint: string; institutionId: string; roleLabel: string; dest: string; candidates: SamplePortalCandidate[];
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <section className="rounded-card border bg-white p-5">
       <h2 className="text-sm font-semibold text-[var(--heading)]">{title}</h2>
       <p className="mb-3 text-xs text-zinc-500">{hint}</p>
       {candidates.length === 0 ? (
@@ -116,7 +116,7 @@ function RoleSection({
           No {title.toLowerCase()} with a working login found in this institution yet.
         </p>
       ) : (
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y">
           {candidates.map((c) => (
             <li key={c.userId} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
@@ -130,7 +130,7 @@ function RoleSection({
                 <input type="hidden" name="dest" value={dest} />
                 <button
                   type="submit"
-                  className="shrink-0 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs text-white hover:bg-zinc-800"
+                  className="shrink-0 rounded-full bg-zinc-900 px-3 py-1.5 text-xs text-white hover:bg-zinc-800"
                 >
                   View as {roleLabel}
                 </button>
@@ -145,7 +145,7 @@ function RoleSection({
 
 function StudentParentSection({ institutionId, students }: { institutionId: string; students: SamplePortalStudentCandidate[] }) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <section className="rounded-card border bg-white p-5">
       <h2 className="text-sm font-semibold text-[var(--heading)]">Parent &amp; Student</h2>
       <p className="mb-3 text-xs text-zinc-500">
         In section (stage) → GRADE → division → roll number order. &quot;View as Parent&quot; is only offered when
@@ -154,7 +154,7 @@ function StudentParentSection({ institutionId, students }: { institutionId: stri
       {students.length === 0 ? (
         <p className="text-sm text-zinc-500">No student with a working login found in this institution yet.</p>
       ) : (
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y">
           {students.map((s) => (
             <li key={s.userId} className="flex flex-wrap items-center justify-between gap-3 py-2">
               <div className="min-w-0">
@@ -173,7 +173,7 @@ function StudentParentSection({ institutionId, students }: { institutionId: stri
                   <input type="hidden" name="dest" value="/portal/student" />
                   <button
                     type="submit"
-                    className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs text-white hover:bg-zinc-800"
+                    className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs text-white hover:bg-zinc-800"
                   >
                     View as Student
                   </button>
@@ -186,7 +186,7 @@ function StudentParentSection({ institutionId, students }: { institutionId: stri
                     <input type="hidden" name="dest" value="/portal/parent" />
                     <button
                       type="submit"
-                      className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50"
+                      className="rounded-full border px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50"
                     >
                       View as Parent
                     </button>

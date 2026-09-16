@@ -90,13 +90,13 @@ export default async function PortalLayout({ children }: { children: React.React
       <div className="flex shrink-0 gap-2">
         {ctx.viewingAsUser ? (
           <form action={exitSamplePortalAction}>
-            <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+            <button type="submit" className="rounded-full bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
               Exit sample portal
             </button>
           </form>
         ) : null}
         <form action={exitSuperAdminViewAction}>
-          <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+          <button type="submit" className="rounded-full bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
             Exit to Super Admin console
           </button>
         </form>
@@ -119,7 +119,7 @@ export default async function PortalLayout({ children }: { children: React.React
         {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
         <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
         <form action={signOutAction}>
-          <button type="submit" className="rounded-lg px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-[var(--surface-muted)] sm:px-3">
+          <button type="submit" className="rounded-full px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-[var(--surface-muted)] sm:px-3">
             Sign out
           </button>
         </form>
@@ -156,7 +156,7 @@ export default async function PortalLayout({ children }: { children: React.React
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <ResponsiveSidebar brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}>
           {ownStudentProfile ? (
-            <div className="mb-4 flex items-center gap-3 rounded-xl bg-[var(--sidebar-active)]/30 p-3">
+            <div className="mb-4 flex items-center gap-3 rounded-card bg-[var(--sidebar-active)]/30 p-3">
               {ownStudentProfile.photo_file_id ? (
                 // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
                 <img

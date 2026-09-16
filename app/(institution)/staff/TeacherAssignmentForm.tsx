@@ -28,38 +28,38 @@ export default function TeacherAssignmentForm({
           <input type="hidden" name="academicYearId" value={academicYearId} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Teacher</label>
-            <select name="userId" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <select name="userId" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {teachers.map((t) => <option key={t.userId} value={t.userId}>{t.full_name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Class</label>
-            <select name="classId" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <select name="classId" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Division (optional)</label>
-            <select name="sectionId" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <select name="sectionId" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               <option value="">—</option>
               {sections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Subject (optional)</label>
-            <select name="subjectId" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <select name="subjectId" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               <option value="">—</option>
               {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Role</label>
-            <select name="roleType" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <select name="roleType" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               <option value="subject_teacher">Subject teacher</option>
               <option value="class_teacher">Class teacher</option>
             </select>
           </div>
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Assign
           </button>
           {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
@@ -76,7 +76,7 @@ export default function TeacherAssignmentForm({
             <th className="py-1.5">Role</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y">
           {assignments.map((a) => (
             <tr key={a.id}>
               <td className="py-1.5">{a.teacher_name}</td>

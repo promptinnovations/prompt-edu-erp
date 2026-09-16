@@ -14,7 +14,7 @@ function ActionButton({ action, label, submissionId }: { action: typeof verifySk
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="submissionId" value={submissionId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -43,7 +43,7 @@ export default function SubmissionsTable({
           <th className="py-1.5" />
         </tr>
       </thead>
-      <tbody className="divide-y divide-zinc-100">
+      <tbody className="divide-y">
         {submissions.map((s) => (
           <tr key={s.id}>
             <td className="py-1.5">{s.student_name}</td>

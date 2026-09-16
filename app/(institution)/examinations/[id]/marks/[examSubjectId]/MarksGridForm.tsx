@@ -18,7 +18,7 @@ function WorkflowButton({
     <form action={formAction} className="inline-flex items-center gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
       <input type="hidden" name="examSubjectId" value={examSubjectId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-full border px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -53,7 +53,7 @@ export default function MarksGridForm({
               <th className="py-1.5">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {students.map((s) => (
               <tr key={s.student_id}>
                 <td className="py-1.5">
@@ -68,7 +68,7 @@ export default function MarksGridForm({
                     step="0.01"
                     defaultValue={s.marks_obtained ?? ""}
                     disabled={!canEnter || (s.entry_status !== null && s.entry_status !== "draft")}
-                    className="w-24 rounded-lg border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="w-24 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
                 <td className="py-1.5">
@@ -86,14 +86,14 @@ export default function MarksGridForm({
         </table>
         </div>
         {canEnter ? (
-          <button type="submit" disabled={pending} className="mt-3 rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="mt-3 rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Save marks
           </button>
         ) : null}
         {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
       </form>
 
-      <div className="flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
+      <div className="flex flex-wrap gap-2 border-t pt-4">
         {canEnter ? <WorkflowButton action={submitMarksAction} label="Submit" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
         {canVerify ? <WorkflowButton action={verifyMarksAction} label="Verify" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
         {canApprove ? <WorkflowButton action={approveMarksAction} label="Approve" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}

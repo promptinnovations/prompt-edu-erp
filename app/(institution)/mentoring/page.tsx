@@ -52,7 +52,7 @@ export default async function MentoringPage() {
           : "You can only see mentoring records you authored yourself, per §75's confidentiality rule."}
       </p>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <MentoringSection
           students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
           records={records}
@@ -62,7 +62,7 @@ export default async function MentoringPage() {
       </section>
 
       {canAssign && mentorAssignmentData ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Assign mentors</h2>
           <MentorAssignmentSection
             mentors={mentorAssignmentData[0].map((s) => ({ id: s.id, full_name: s.full_name }))}

@@ -20,7 +20,7 @@ export default function SendKudosForm({ staffOptions, studentId, studentName }: 
       {target === "teacher" ? (
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Teacher / staff</label>
-          <select name="toStaffId" required defaultValue="" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
+          <select name="toStaffId" required defaultValue="" className="w-full rounded-full border px-3 py-1.5 text-sm">
             <option value="" disabled>Select…</option>
             {staffOptions.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
           </select>
@@ -30,17 +30,17 @@ export default function SendKudosForm({ staffOptions, studentId, studentName }: 
       )}
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Kind</label>
-        <select name="kind" defaultValue="flower" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
+        <select name="kind" defaultValue="flower" className="w-full rounded-full border px-3 py-1.5 text-sm">
           <option value="flower">🌸 Flower</option>
           <option value="congratulations">🎉 Congratulations</option>
         </select>
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Message (optional)</label>
-        <textarea name="message" rows={2} className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm" />
+        <textarea name="message" rows={2} className="w-full rounded-lg border px-3 py-1.5 text-sm" />
       </div>
       <div className="flex items-center gap-2">
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Send
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

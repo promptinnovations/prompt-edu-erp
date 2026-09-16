@@ -16,7 +16,7 @@ export default function ExamPicker({
         <select
           name="examinationId"
           defaultValue={examinationId}
-          className="w-72 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          className="w-72 rounded-full border bg-white px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
         >
           <option value="">Select…</option>
           {examinations.map((e) => (
@@ -24,7 +24,7 @@ export default function ExamPicker({
           ))}
         </select>
       </div>
-      <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+      <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
         Load
       </button>
       {examinations.length === 0 ? (

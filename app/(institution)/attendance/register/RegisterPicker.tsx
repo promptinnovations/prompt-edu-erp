@@ -13,23 +13,23 @@ export default function RegisterPicker({
     <form method="get" className="flex flex-wrap items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Class</label>
-        <select name="classId" defaultValue={classId} className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="classId" defaultValue={classId} className="rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="">Select…</option>
           {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Division</label>
-        <select name="sectionId" defaultValue={sectionId} className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="sectionId" defaultValue={sectionId} className="rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="">Select…</option>
           {sections.filter((s) => !classId || s.class_id === classId).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Month</label>
-        <input type="month" name="month" defaultValue={month} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input type="month" name="month" defaultValue={month} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
-      <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+      <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
         Load
       </button>
     </form>

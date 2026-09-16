@@ -56,25 +56,25 @@ export default async function FeesPage({
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Fees</h1>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+        <div className="rounded-card border bg-white p-4">
           <div className="text-xs text-zinc-500">Total due</div>
           <div className="text-lg font-semibold text-zinc-900">₹{summary.totalDue}</div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+        <div className="rounded-card border bg-white p-4">
           <div className="text-xs text-zinc-500">Collected</div>
           <div className="text-lg font-semibold text-emerald-600">₹{summary.totalCollected}</div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+        <div className="rounded-card border bg-white p-4">
           <div className="text-xs text-zinc-500">Pending</div>
           <div className="text-lg font-semibold text-amber-600">₹{summary.totalPending}</div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+        <div className="rounded-card border bg-white p-4">
           <div className="text-xs text-zinc-500">Paid / Partial / Pending</div>
           <div className="text-lg font-semibold text-zinc-900">{summary.countPaid} / {summary.countPartial} / {summary.countPending}</div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Class-wise collection status</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -91,7 +91,7 @@ export default async function FeesPage({
             </thead>
             <tbody>
               {classSummary.map((row) => (
-                <tr key={`${row.class_id}-${row.section_id}`} className="border-t border-zinc-100">
+                <tr key={`${row.class_id}-${row.section_id}`} className="border-t">
                   <td className="py-1.5 pr-3">
                     <a
                       href={`/fees?classId=${row.class_id}`}
@@ -117,7 +117,7 @@ export default async function FeesPage({
       </section>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Fee categories</h2>
           <div className="mb-3 flex flex-wrap gap-2">
             {categories.map((c) => (
@@ -129,7 +129,7 @@ export default async function FeesPage({
       ) : null}
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Fee structures (&quot;fee details&quot;)</h2>
           <FeeStructureForm
             categories={categories}
@@ -146,7 +146,7 @@ export default async function FeesPage({
               </thead>
               <tbody>
                 {structures.map((s) => (
-                  <tr key={s.id} className="border-t border-zinc-100">
+                  <tr key={s.id} className="border-t">
                     <td className="py-1.5 pr-3">{s.category_name}</td>
                     <td className="py-1.5 pr-3">{s.class_name ?? "Every class"}</td>
                     <td className="py-1.5 pr-3">{s.academic_year_name}</td>
@@ -163,14 +163,14 @@ export default async function FeesPage({
       ) : null}
 
       {canCollect ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Record a payment</h2>
           <RecordPaymentForm invoices={invoiceOptions} />
         </section>
       ) : null}
 
       {canCollect ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
             Parent-submitted payments awaiting confirmation
           </h2>
@@ -178,7 +178,7 @@ export default async function FeesPage({
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-[var(--heading)]">
             Invoices ({invoices.length}){selectedClassLabel ? ` — ${selectedClassLabel}` : ""}
@@ -189,7 +189,7 @@ export default async function FeesPage({
               <select
                 name="classId"
                 defaultValue={classId ?? ""}
-                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700"
+                className="rounded-full border bg-white px-3 py-1 text-xs text-zinc-700"
               >
                 <option value="">All classes</option>
                 {classes.map((c) => (
@@ -228,7 +228,7 @@ export default async function FeesPage({
             </thead>
             <tbody>
               {invoices.map((i) => (
-                <tr key={i.id} className="border-t border-zinc-100">
+                <tr key={i.id} className="border-t">
                   <td className="py-1.5 pr-3">{i.student_name} <span className="text-zinc-500">({i.admission_number})</span></td>
                   <td className="py-1.5 pr-3">
                     {i.class_name ? `${i.class_name} ${i.section_name ?? ""}`.trim() : "—"}

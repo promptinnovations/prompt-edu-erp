@@ -47,7 +47,7 @@ export default function ExaminationForm({
           <select
             value={track}
             onChange={(e) => setTrack(e.target.value as "" | "academic" | "islamic")}
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             <option value="">All</option>
             <option value="academic">Academic</option>
@@ -62,7 +62,7 @@ export default function ExaminationForm({
           required
           defaultValue=""
           onChange={(e) => setExamTypeId(e.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="" disabled>Choose…</option>
           {visibleExamTypes.map((t) => (
@@ -77,7 +77,7 @@ export default function ExaminationForm({
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Academic year</label>
-        <select name="academicYearId" required defaultValue={academicYears.find((y) => y.is_current)?.id} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="academicYearId" required defaultValue={academicYears.find((y) => y.is_current)?.id} className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {academicYears.map((y) => (
             <option key={y.id} value={y.id}>{y.name}</option>
           ))}
@@ -93,10 +93,10 @@ export default function ExaminationForm({
       ) : (
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Name</label>
-          <input name="name" required placeholder="e.g. Term 1 Academic Main Exam" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input name="name" required placeholder="e.g. Term 1 Academic Main Exam" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
       )}
-      <button type="submit" disabled={pending || visibleExamTypes.length === 0} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending || visibleExamTypes.length === 0} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Create
       </button>
       {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

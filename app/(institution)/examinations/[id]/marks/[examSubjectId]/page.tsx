@@ -54,7 +54,7 @@ export default async function MarksEntryPage({
       </h1>
       <p className="text-sm text-zinc-500">Max {examSubject.max_marks}, pass {examSubject.pass_marks}</p>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <MarksGridForm
           students={grid}
           examinationId={id}

@@ -14,7 +14,7 @@ export default async function PlatformAuditPage() {
         that institution&apos;s own audit log, not here.
       </p>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -26,7 +26,7 @@ export default async function PlatformAuditPage() {
               <th className="py-1.5">Entity</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {logs.map((log) => (
               <tr key={log.id}>
                 <td className="py-1.5 text-zinc-500">{new Date(log.created_at).toLocaleString()}</td>

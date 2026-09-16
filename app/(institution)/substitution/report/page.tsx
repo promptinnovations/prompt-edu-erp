@@ -44,22 +44,22 @@ export default async function SubstitutionReportPage({
         <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">Substitution Report</h1>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <form method="get" className="flex flex-wrap items-end gap-2">
             <div>
               <label className="mb-1 block text-xs text-zinc-500">From</label>
-              <input type="date" name="from" defaultValue={effectiveFrom} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+              <input type="date" name="from" defaultValue={effectiveFrom} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-zinc-500">To</label>
-              <input type="date" name="to" defaultValue={effectiveTo} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+              <input type="date" name="to" defaultValue={effectiveTo} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
             </div>
-            <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">Load</button>
+            <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">Load</button>
           </form>
           <div className="flex gap-2 text-sm">
-            <Link href={`/substitution/report?from=${isoDate(startOfWeek(now))}&to=${isoDate(now)}`} className="rounded-lg border border-zinc-300 px-2.5 py-1 hover:bg-zinc-50">This week</Link>
-            <Link href={`/substitution/report?from=${isoDate(startOfMonth(now))}&to=${isoDate(now)}`} className="rounded-lg border border-zinc-300 px-2.5 py-1 hover:bg-zinc-50">This month</Link>
+            <Link href={`/substitution/report?from=${isoDate(startOfWeek(now))}&to=${isoDate(now)}`} className="rounded-full border px-2.5 py-1 hover:bg-zinc-50">This week</Link>
+            <Link href={`/substitution/report?from=${isoDate(startOfMonth(now))}&to=${isoDate(now)}`} className="rounded-full border px-2.5 py-1 hover:bg-zinc-50">This month</Link>
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export default async function SubstitutionReportPage({
                   <th className="py-1.5 pr-3">Times needed a sub</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {report.map((r) => (
                   <tr key={r.staffId}>
                     <td className="py-2 pr-3">{r.staffName}</td>

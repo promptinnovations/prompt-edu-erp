@@ -18,10 +18,10 @@ function ReactButton({ readingRecordId, reaction, label, active }: { readingReco
       <button
         type="submit"
         disabled={pending}
-        className={`rounded-lg border px-2 py-1 text-xs disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 ${
+        className={`rounded-full border px-2 py-1 text-xs disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 ${
           active
             ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
-            : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
+            : "text-zinc-700 hover:bg-zinc-100"
         }`}
       >
         {label}
@@ -45,7 +45,7 @@ export default function ReviewCorner({ reviews }: { reviews: ApprovedReviewProps
   return (
     <div className="space-y-4">
       {reviews.map((r) => (
-        <div key={r.id} className="rounded-xl border border-zinc-200 p-4 shadow-sm">
+        <div key={r.id} className="rounded-card border p-4 shadow-card">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-zinc-800">{r.book_title}</p>
             <span className="text-xs text-zinc-500">by {r.student_name}</span>

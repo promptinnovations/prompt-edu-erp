@@ -11,11 +11,11 @@ export default function CreateInstitutionForm() {
     <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2">
       <div className="w-full sm:w-40">
         <label className="mb-1 block text-xs text-zinc-500">Code (slug)</label>
-        <input name="code" required placeholder="e.g. green-valley" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="code" required placeholder="e.g. green-valley" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div className="w-full sm:w-56">
         <label className="mb-1 block text-xs text-zinc-500">Name</label>
-        <input name="name" required className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="name" required className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div className="w-full sm:w-auto">
         <label className="mb-1 block text-xs text-zinc-500">Type</label>
@@ -23,7 +23,7 @@ export default function CreateInstitutionForm() {
           name="type"
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="w-full rounded-lg border px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="madrasa">Madrasa</option>
           <option value="islamic_school">Islamic School</option>
@@ -38,7 +38,7 @@ export default function CreateInstitutionForm() {
         <select
           name="educationMode"
           defaultValue="academic"
-          className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="w-full rounded-full border px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="academic">Academic only</option>
           <option value="islamic">Islamic only</option>
@@ -57,7 +57,7 @@ export default function CreateInstitutionForm() {
             name="board"
             defaultValue="sksvb"
             required
-            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="w-full rounded-full border px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             <option value="sksvb">SKSVB</option>
             <option value="skimvb">SKIMVB</option>
@@ -74,7 +74,7 @@ export default function CreateInstitutionForm() {
             name="board"
             defaultValue="kerala_state"
             required
-            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="w-full rounded-full border px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             <option value="kerala_state">Kerala State</option>
             <option value="cbse">CBSE</option>
@@ -88,13 +88,13 @@ export default function CreateInstitutionForm() {
       ) : null}
       <div className="w-full sm:w-auto">
         <label className="mb-1 block text-xs text-zinc-500">Default locale</label>
-        <select name="defaultLocale" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="defaultLocale" className="w-full rounded-full border px-3 py-1.5 text-sm sm:w-auto focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="en">English</option>
           <option value="ml">Malayalam</option>
         </select>
       </div>
 
-      <div className="w-full border-t border-zinc-100 pt-3 sm:basis-full">
+      <div className="w-full border-t pt-3 sm:basis-full">
         <p className="mb-2 text-xs text-zinc-500">
           Optional — create the institution&apos;s first admin login right now (fill in all three, or leave all
           three blank to add an admin later from that institution&apos;s own Users &amp; Roles page).
@@ -102,15 +102,15 @@ export default function CreateInstitutionForm() {
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <div className="w-full sm:w-48">
             <label className="mb-1 block text-xs text-zinc-500">Admin email</label>
-            <input name="adminEmail" type="email" placeholder="admin@example.com" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input name="adminEmail" type="email" placeholder="admin@example.com" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="w-full sm:w-48">
             <label className="mb-1 block text-xs text-zinc-500">Admin full name</label>
-            <input name="adminFullName" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input name="adminFullName" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="w-full sm:w-40">
             <label className="mb-1 block text-xs text-zinc-500">Admin password</label>
-            <input name="adminPassword" type="password" minLength={8} placeholder="8+ characters" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input name="adminPassword" type="password" minLength={8} placeholder="8+ characters" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function CreateInstitutionForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-50 sm:w-auto"
+        className="w-full rounded-full bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-50 sm:w-auto"
       >
         Create institution
       </button>

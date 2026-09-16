@@ -36,7 +36,7 @@ export default function StaffAttendanceGrid({
             setSelectedDate(e.target.value);
             router.push(`/staff?date=${e.target.value}`);
           }}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <form action={formAction} className="space-y-3">
@@ -50,7 +50,7 @@ export default function StaffAttendanceGrid({
               <th className="py-1.5">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {rows.map((r) => (
               <tr key={r.staff_id}>
                 <td className="py-1.5">
@@ -70,7 +70,7 @@ export default function StaffAttendanceGrid({
                     name={`status_${r.staff_id}`}
                     defaultValue={r.status_id ?? defaultStatusId}
                     disabled={!canEnter}
-                    className="rounded-lg border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   >
                     {statuses.map((st) => (
                       <option key={st.id} value={st.id}>{st.label}</option>
@@ -86,7 +86,7 @@ export default function StaffAttendanceGrid({
         </table>
         </div>
         {canEnter && rows.length > 0 ? (
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Save attendance
           </button>
         ) : null}

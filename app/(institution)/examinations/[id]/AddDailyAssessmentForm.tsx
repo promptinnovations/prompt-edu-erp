@@ -31,29 +31,29 @@ export default function AddDailyAssessmentForm({
       <input type="hidden" name="examinationId" value={examinationId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Date</label>
-        <input name="assessmentDate" type="date" required defaultValue={today} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="assessmentDate" type="date" required defaultValue={today} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Class</label>
-        <select name="classId" required value={classId} onChange={(e) => setClassId(e.target.value)} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="classId" required value={classId} onChange={(e) => setClassId(e.target.value)} className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Subject</label>
-        <select name="subjectId" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="subjectId" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {subjectOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
       <div className="min-w-[220px] flex-1">
         <label className="mb-1 block text-xs text-zinc-500">Portion</label>
-        <input name="portion" required placeholder="e.g. Chapter 3: Fractions" className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="portion" required placeholder="e.g. Chapter 3: Fractions" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Maximum mark</label>
-        <input name="maxMarks" type="number" min="1" step="0.5" required defaultValue={20} className="w-24 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="maxMarks" type="number" min="1" step="0.5" required defaultValue={20} className="w-24 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
-      <button type="submit" disabled={pending || classes.length === 0} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending || classes.length === 0} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Add
       </button>
       {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

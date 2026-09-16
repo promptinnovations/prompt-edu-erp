@@ -18,7 +18,7 @@ function ReviewButton({ action, label, leaveId }: { action: typeof approveLeaveA
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="leaveId" value={leaveId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -51,7 +51,7 @@ export default function LeaveApplications({
             <th className="py-1.5" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y">
           {leaves.map((l) => (
             <tr key={l.id}>
               <td className="py-1.5">{l.applicant_name}</td>

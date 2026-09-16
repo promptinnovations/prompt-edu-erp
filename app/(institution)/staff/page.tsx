@@ -49,7 +49,7 @@ export default async function StaffPage({
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Staff</h1>
 
-      <section id="directory" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="directory" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Directory</h2>
         {can(ctx.permissions, "staff.create") ? (
           <div className="mb-4">
@@ -69,7 +69,7 @@ export default async function StaffPage({
               <th className="py-1.5">Login</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {staff.map((s) => (
               <tr key={s.id}>
                 <td className="py-1.5">{s.staff_code}</td>
@@ -91,7 +91,7 @@ export default async function StaffPage({
         </div>
       </section>
 
-      <section id="staff-attendance" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="staff-attendance" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Staff attendance</h2>
         <StaffAttendanceGrid
           rows={attendanceGrid}
@@ -101,7 +101,7 @@ export default async function StaffPage({
         />
       </section>
 
-      <section id="staff-leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="staff-leave" className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Staff leave</h2>
         <p className="text-sm text-zinc-500">
           Staff now apply for their own leave, and the principal reviews it, on the{" "}
@@ -111,7 +111,7 @@ export default async function StaffPage({
         </p>
       </section>
 
-      <section id="portion-plans" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="portion-plans" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Portion plans (§D.12)</h2>
         {academicYear ? (
           <PortionPlanSection
@@ -127,7 +127,7 @@ export default async function StaffPage({
         )}
       </section>
 
-      <section id="teacher-observations" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="teacher-observations" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Teacher observations</h2>
         <TeacherObservationForm
           teachers={staff.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -136,7 +136,7 @@ export default async function StaffPage({
         />
       </section>
 
-      <section id="teacher-assignments" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="teacher-assignments" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Teacher assignments (§D.3)</h2>
         {academicYear ? (
           <TeacherAssignmentForm
@@ -153,7 +153,7 @@ export default async function StaffPage({
         )}
       </section>
 
-      <section id="section-head-assignments" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="section-head-assignments" className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Section Head assignments</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Who oversees which section (KG/LP/UP/HS/HSS) — they also need the &quot;Section Head&quot; role itself,

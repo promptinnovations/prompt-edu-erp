@@ -18,7 +18,7 @@ export default function ClassFilterForm({
         <select
           name="classId"
           defaultValue={classId}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="">All classes</option>
           {classes.map((c) => (
@@ -26,7 +26,7 @@ export default function ClassFilterForm({
           ))}
         </select>
       </div>
-      <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+      <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
         Filter
       </button>
     </form>

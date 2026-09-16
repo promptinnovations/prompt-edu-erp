@@ -26,7 +26,7 @@ export default function WhatsAppConfigForm({
           name="idInstance"
           defaultValue={idInstance ?? ""}
           placeholder="e.g. 1101123456"
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <div>
@@ -35,13 +35,13 @@ export default function WhatsAppConfigForm({
           name="apiTokenInstance"
           defaultValue={apiTokenInstance ?? ""}
           placeholder="e.g. d3f9c8a1b2..."
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-full bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-50"
       >
         Save
       </button>

@@ -47,13 +47,13 @@ export default async function LibraryPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Library</h1>
 
-      <section id="catalogue" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="catalogue" className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-[var(--heading)]">Catalogue</h2>
           <span className="text-xs text-zinc-500">{books.length} title{books.length === 1 ? "" : "s"}</span>
         </div>
         {canManage ? (
-          <details className="mb-4 rounded-xl border border-dashed border-zinc-300 p-3">
+          <details className="mb-4 rounded-card border border-dashed p-3">
             <summary className="cursor-pointer text-sm font-medium text-zinc-600">+ Add a book</summary>
             <div className="mt-3">
               <AddBookForm authors={authors} publishers={publishers} categories={categories} shelves={shelves} />
@@ -70,7 +70,7 @@ export default async function LibraryPage() {
       </section>
 
       {canIssue ? (
-        <section id="issue" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section id="issue" className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Issue a book</h2>
           <IssueBookForm
             students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -80,7 +80,7 @@ export default async function LibraryPage() {
         </section>
       ) : null}
 
-      <section id="currently-issued" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="currently-issued" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Currently issued</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -92,7 +92,7 @@ export default async function LibraryPage() {
               <th className="py-1.5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {issued.map((i) => (
               <tr key={i.id}>
                 <td className="py-1.5">{i.book_title}</td>
@@ -109,12 +109,12 @@ export default async function LibraryPage() {
         </div>
       </section>
 
-      <section id="reading-reviews" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="reading-reviews" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Reading reviews</h2>
         <ReadingReviewQueue records={pendingReviews} canReview={canManage} />
       </section>
 
-      <section id="pre-bookings" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="pre-bookings" className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Pre-bookings (waitlist)</h2>
         <p className="mb-3 text-xs text-zinc-500">
           A student is notified automatically (in-app + WhatsApp) the moment a copy of a held book is returned.
@@ -122,11 +122,11 @@ export default async function LibraryPage() {
         <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at }))} />
       </section>
 
-      <section id="review-corner" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="review-corner" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Review Corner</h2>
         <div className="space-y-3">
           {approvedReviews.map((r) => (
-            <div key={r.id} className="rounded-xl border border-zinc-200 p-4 text-sm shadow-sm">
+            <div key={r.id} className="rounded-card border p-4 text-sm shadow-card">
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-semibold text-zinc-800">{r.book_title}</span>
                 <span className="text-xs text-zinc-500">

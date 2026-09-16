@@ -25,7 +25,7 @@ export default function EnrollForm({
         <select
           name="sectionAndClass"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           onChange={(e) => {
             const [classId, sectionId] = e.currentTarget.value.split("|");
             const form = e.currentTarget.form!;
@@ -46,7 +46,7 @@ export default function EnrollForm({
       <button
         type="submit"
         disabled={pending || sections.length === 0}
-        className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         Enroll
       </button>

@@ -16,7 +16,7 @@ export default function PhotoForm({ studentId, photoUrl }: { studentId: string; 
 
   return (
     <div className="flex items-center gap-4">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white">
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- authenticated /api/files route, not a static asset
           <img src={photoUrl} alt="" className="h-full w-full object-cover" />
@@ -34,7 +34,7 @@ export default function PhotoForm({ studentId, photoUrl }: { studentId: string; 
             required
             className="max-w-full text-xs text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-[var(--accent-teal)] file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-white hover:file:opacity-90"
           />
-          <button type="submit" disabled={uploadPending} className="rounded-lg bg-[var(--brand)] px-2.5 py-1 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={uploadPending} className="rounded-full bg-[var(--brand)] px-2.5 py-1 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             {photoUrl ? "Replace" : "Upload"}
           </button>
         </form>

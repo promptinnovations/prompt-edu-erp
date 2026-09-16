@@ -17,7 +17,7 @@ export default function ConsecutiveAbsenteesList({ rows }: { rows: ConsecutiveAb
     return <p className="text-sm text-zinc-500">No student has been absent 3+ days in a row right now.</p>;
   }
   return (
-    <ul className="divide-y divide-zinc-100">
+    <ul className="divide-y">
       {rows.map((r) => (
         <li key={r.studentId} className="flex items-center justify-between gap-3 py-2 text-sm">
           <div className="min-w-0">

@@ -49,7 +49,7 @@ export default async function StudentDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card">
         {summary.student?.photo_file_id ? (
           // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
           <img
@@ -72,7 +72,7 @@ export default async function StudentDashboardPage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-sm">
+          <div key={s.label} className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-card">
             <div className="text-2xl font-semibold text-[var(--foreground)]">{s.value}</div>
             <div className="mt-1 text-sm text-zinc-500">{s.label}</div>
           </div>
@@ -97,14 +97,14 @@ export default async function StudentDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Link
           href="/portal/student/exams"
-          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand)]"
+          className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card transition-colors hover:border-[var(--brand)]"
         >
           <h2 className="text-sm font-semibold text-[var(--heading)]">Exam performance</h2>
           <p className="mt-1 text-xs text-zinc-500">Results, attendance and consolidated score in detail.</p>
         </Link>
         <Link
           href="/portal/student/library"
-          className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand)]"
+          className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card transition-colors hover:border-[var(--brand)]"
         >
           <h2 className="text-sm font-semibold text-[var(--heading)]">Library &amp; reading</h2>
           <p className="mt-1 text-xs text-zinc-500">Catalogue, pre-booking, and all book reviews.</p>

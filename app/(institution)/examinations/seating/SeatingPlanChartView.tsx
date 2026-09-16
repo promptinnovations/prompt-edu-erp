@@ -21,7 +21,7 @@ export default function SeatingPlanChartView({
   const generatedOn = plan.created_at.slice(0, 10);
 
   return (
-    <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
+    <section className="print-area rounded-card border bg-white p-5">
       <PrintLetterhead institutionName={institutionName} logoCode={logoCode} />
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -40,7 +40,7 @@ export default function SeatingPlanChartView({
         <div className="no-print flex flex-wrap items-center gap-2">
           <Link
             href={`/examinations/seating/stickers?examinationId=${examinationId}`}
-            className="rounded-lg bg-[var(--accent-teal)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--accent-teal-hover)]"
+            className="rounded-full bg-[var(--accent-teal)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--accent-teal-hover)]"
           >
             Bench stickers
           </Link>
@@ -65,18 +65,18 @@ export default function SeatingPlanChartView({
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="text-left text-zinc-500">
-                    <th className="border border-zinc-200 px-2 py-1 font-normal">Bench</th>
+                    <th className="border px-2 py-1 font-normal">Bench</th>
                     {Array.from({ length: room.seats_per_bench }, (_, i) => (
-                      <th key={i} className="border border-zinc-200 px-2 py-1 font-normal">Seat {i + 1}</th>
+                      <th key={i} className="border px-2 py-1 font-normal">Seat {i + 1}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {room.benches.map((bench) => (
                     <tr key={bench.benchNumber}>
-                      <td className="border border-zinc-200 px-2 py-1 text-center font-medium">{bench.benchNumber}</td>
+                      <td className="border px-2 py-1 text-center font-medium">{bench.benchNumber}</td>
                       {bench.seats.map((seat, i) => (
-                        <td key={i} className="border border-zinc-200 px-2 py-1 align-top">
+                        <td key={i} className="border px-2 py-1 align-top">
                           {seat ? (
                             <>
                               <span className="block font-medium text-zinc-800">{seat.student_name}</span>

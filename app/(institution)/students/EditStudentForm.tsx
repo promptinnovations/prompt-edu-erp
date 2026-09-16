@@ -29,29 +29,29 @@ export default function EditStudentForm({
   }
 
   return (
-    <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-zinc-200 p-3">
+    <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-card border p-3">
       <input type="hidden" name="studentId" value={studentId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Admission number</label>
-        <input name="admissionNumber" defaultValue={admissionNumber} required className="w-32 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="admissionNumber" defaultValue={admissionNumber} required className="w-32 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-        <input name="fullName" defaultValue={fullName} required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="fullName" defaultValue={fullName} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Date of birth</label>
-        <input type="date" name="dateOfBirth" defaultValue={dateOfBirth ?? ""} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input type="date" name="dateOfBirth" defaultValue={dateOfBirth ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Gender</label>
-        <select name="gender" defaultValue={gender ?? ""} className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="gender" defaultValue={gender ?? ""} className="rounded-full border bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="">—</option>
           <option value="male">Male</option>
           <option value="female">Female</option>
         </select>
       </div>
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Save
       </button>
       <button type="button" onClick={() => setEditing(false)} className="text-sm text-zinc-500 hover:text-zinc-700">

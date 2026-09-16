@@ -9,8 +9,8 @@ function ReplyForm({ messageId, onDone }: { messageId: string; onDone: () => voi
   return (
     <form action={formAction} className="mt-2 flex flex-wrap items-end gap-2" onSubmit={() => onDone()}>
       <input type="hidden" name="messageId" value={messageId} />
-      <textarea name="replyText" required rows={2} placeholder="Write a reply…" className="min-w-[240px] flex-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm" />
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <textarea name="replyText" required rows={2} placeholder="Write a reply…" className="min-w-[240px] flex-1 rounded-lg border px-3 py-1.5 text-sm" />
+      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Send reply
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -23,7 +23,7 @@ export default function MessageRow({ message }: { message: ParentMessageRow }) {
   const [markState, markAction] = useActionState<{ error: string | null }, FormData>(markMessageReadAction, { error: null });
 
   return (
-    <div className={`rounded-xl border p-3 ${message.read_at ? "border-zinc-200" : "border-indigo-300 bg-indigo-50/50"}`}>
+    <div className={`rounded-card border p-3 ${message.read_at ? "" : "border-indigo-300 bg-indigo-50/50"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-zinc-900">{message.subject}</div>
         <div className="text-xs text-zinc-500">{message.created_at}</div>
@@ -33,7 +33,7 @@ export default function MessageRow({ message }: { message: ParentMessageRow }) {
       </div>
       <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{message.body}</p>
       {message.reply_text ? (
-        <div className="mt-2 rounded-lg bg-zinc-100 p-2 text-sm text-zinc-700">
+        <div className="mt-2 rounded-card bg-zinc-100 p-2 text-sm text-zinc-700">
           <span className="text-xs font-medium text-zinc-500">Your reply: </span>{message.reply_text}
         </div>
       ) : replying ? (

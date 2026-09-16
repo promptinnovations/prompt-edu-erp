@@ -34,7 +34,7 @@ export default function DailyAssessmentFilters({
         <select
           value={classParam}
           onChange={(e) => update("classId", e.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="">Select a class…</option>
           {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -45,7 +45,7 @@ export default function DailyAssessmentFilters({
         <select
           value={subjectParam}
           onChange={(e) => update("subjectId", e.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="">All subjects</option>
           {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

@@ -104,7 +104,7 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
       <div className="flex items-center gap-3">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg border border-zinc-200 object-cover" />
+          <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg border object-cover" />
         ) : (
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--brand)] text-sm font-semibold text-white">
             {appName.charAt(0).toUpperCase()}
@@ -135,7 +135,7 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
           type="button"
           onClick={handleInstall}
           disabled={busy}
-          className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50 sm:ml-auto"
+          className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50 sm:ml-auto"
         >
           {busy ? "Installing…" : "Download / Install app"}
         </button>

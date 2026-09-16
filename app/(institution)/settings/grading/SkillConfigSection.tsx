@@ -22,11 +22,11 @@ function ActivityRow({ activity, canManage }: { activity: SkillActivity; canMana
       <li className="py-1">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="skillActivityId" value={activity.id} />
-          <input name="name" defaultValue={activity.name} className="rounded border border-zinc-300 px-2 py-1 text-sm" />
+          <input name="name" defaultValue={activity.name} className="rounded-full border px-2 py-1 text-sm" />
           <label className="flex items-center gap-1 text-xs text-zinc-500">
             <input type="checkbox" name="isActive" defaultChecked={activity.is_active} /> Active
           </label>
-          <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+          <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
         {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
@@ -62,13 +62,13 @@ function SkillTypeCard({
   const [, addActivityAction] = useActionState(createSkillActivityAction, INIT);
 
   return (
-    <div className="rounded-xl border border-zinc-200 p-4">
+    <div className="rounded-card border p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         {editing ? (
           <form action={updateAction} className="flex items-center gap-2" onSubmit={() => setEditing(false)}>
             <input type="hidden" name="skillTypeId" value={type.id} />
-            <input name="name" defaultValue={type.name} className="rounded border border-zinc-300 px-2 py-1 text-sm" />
-            <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+            <input name="name" defaultValue={type.name} className="rounded-full border px-2 py-1 text-sm" />
+            <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
         ) : (
@@ -87,17 +87,17 @@ function SkillTypeCard({
       {updateState.error ? <p className="mb-2 text-xs text-red-600">{updateState.error}</p> : null}
       {deleteState.error ? <p className="mb-2 text-xs text-red-600">{deleteState.error}</p> : null}
 
-      <ul className="divide-y divide-zinc-100">
+      <ul className="divide-y">
         {activities.length === 0 ? <li className="py-1 text-xs text-zinc-500">No activities yet.</li> : null}
         {activities.map((a) => <ActivityRow key={a.id} activity={a} canManage={canManage} />)}
       </ul>
 
       {canManage ? (
-        <form action={addActivityAction} className="mt-3 flex flex-wrap items-end gap-2 border-t border-zinc-100 pt-3">
+        <form action={addActivityAction} className="mt-3 flex flex-wrap items-end gap-2 border-t pt-3">
           <input type="hidden" name="skillTypeId" value={type.id} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500">New activity</label>
-            <input name="name" required placeholder="e.g. Weekly reading log" className="rounded border border-zinc-300 px-2 py-1.5 text-sm" />
+            <input name="name" required placeholder="e.g. Weekly reading log" className="rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
             <input type="checkbox" name="evidenceRequired" /> Evidence
@@ -108,7 +108,7 @@ function SkillTypeCard({
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
             <input type="checkbox" name="approvalRequired" /> Approval
           </label>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add activity
           </button>
         </form>
@@ -130,12 +130,12 @@ export default function SkillConfigSection({
       ))}
 
       {canManage ? (
-        <form action={createAction} className="flex items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-3">
+        <form action={createAction} className="flex items-end gap-2 rounded-card border border-dashed p-3">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">New skill type</label>
-            <input name="name" required placeholder="e.g. Reading" className="rounded border border-zinc-300 px-2 py-1.5 text-sm" />
+            <input name="name" required placeholder="e.g. Reading" className="rounded-full border px-2 py-1.5 text-sm" />
           </div>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add skill type
           </button>
         </form>

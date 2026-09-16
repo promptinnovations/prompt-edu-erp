@@ -27,12 +27,12 @@ export default function ExamResultsSection({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Performance trend</h2>
         <TeacherPerformanceTrendChart points={trend} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
           <input type="hidden" name="tab" value="results" />
           <div>
@@ -40,14 +40,14 @@ export default function ExamResultsSection({
             <select
               name="examId"
               defaultValue={selectedExamId ?? ""}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             >
               {examinations.map((e) => (
                 <option key={e.id} value={e.id}>{e.name}</option>
               ))}
             </select>
           </div>
-          <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+          <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
             View
           </button>
         </form>
@@ -81,7 +81,7 @@ export default function ExamResultsSection({
                     <th className="py-1.5 pr-3">Failed</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y">
                   {report.rows.map((r) => (
                     <tr key={`${r.class_id}-${r.section_id ?? "all"}-${r.subject_id}`}>
                       <td className="py-1.5 pr-3 text-zinc-900">

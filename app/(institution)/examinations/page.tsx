@@ -23,12 +23,12 @@ export default async function ExaminationsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Examinations</h1>
 
-      <section id="create" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="create" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Create examination</h2>
         <ExaminationForm examTypes={examTypes} academicYears={academicYears} educationMode={institution?.educationMode ?? "academic"} />
       </section>
 
-      <section id="list" className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+      <section id="list" className="overflow-hidden rounded-2xl border bg-white">
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -38,7 +38,7 @@ export default async function ExaminationsPage() {
               <th className="px-4 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {examinations.map((e) => (
               <tr key={e.id}>
                 <td className="px-4 py-2">{e.name}</td>

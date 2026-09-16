@@ -31,7 +31,7 @@ export default function HoldsWaitlist({ holds }: { holds: HoldRow[] }) {
             <th className="py-1.5" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y">
           {holds.map((h) => (
             <tr key={h.id}>
               <td className="py-1.5">{h.book_title}</td>

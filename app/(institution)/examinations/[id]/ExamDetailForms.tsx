@@ -53,18 +53,18 @@ export function ExamScopeSection({
         <input type="hidden" name="examinationId" value={examinationId} />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {classGroups.map((g) => (
-            <fieldset key={g.classId} className="rounded-xl border border-zinc-200 p-3">
+            <fieldset key={g.classId} className="rounded-card border p-3">
               <legend className="px-1 text-xs font-semibold text-zinc-700">Class {g.className}</legend>
               {g.divisions.length === 0 ? (
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="sectionAndClass" value={`${g.classId}|`} className="rounded border-zinc-300" />
+                  <input type="checkbox" name="sectionAndClass" value={`${g.classId}|`} className="rounded" />
                   Whole class (no divisions)
                 </label>
               ) : (
                 <div className="space-y-1">
                   {g.divisions.map((d) => (
                     <label key={d.sectionId} className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" name="sectionAndClass" value={`${g.classId}|${d.sectionId}`} className="rounded border-zinc-300" />
+                      <input type="checkbox" name="sectionAndClass" value={`${g.classId}|${d.sectionId}`} className="rounded" />
                       Division {d.sectionName}
                     </label>
                   ))}
@@ -74,7 +74,7 @@ export function ExamScopeSection({
           ))}
           {classGroups.length === 0 ? <p className="text-sm text-zinc-500">No classes set up yet.</p> : null}
         </div>
-        <button type="submit" disabled={pending || classGroups.length === 0} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending || classGroups.length === 0} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Confirm scope
         </button>
         {typeof state.added === "number" ? <span className="ml-2 text-sm text-zinc-500">{state.added} confirmed.</span> : null}
@@ -110,7 +110,7 @@ export function ExamSubjectsSection({
             <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr><th className="py-1.5">Subject</th><th className="py-1.5">Max</th><th className="py-1.5">Pass</th><th className="py-1.5" /><th className="py-1.5" /></tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {linked.map((l) => (
                 <tr key={l.examSubjectId}>
                   <td className="py-1.5">{l.name}</td>
@@ -144,25 +144,25 @@ export function ExamSubjectsSection({
               <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr><th className="py-1.5" /><th className="py-1.5">Subject</th><th className="py-1.5">Max marks</th><th className="py-1.5">Pass marks</th></tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {remaining.map((s) => (
                   <tr key={s.id}>
                     <td className="py-1.5">
-                      <input type="checkbox" name="subjectId" value={s.id} className="rounded border-zinc-300" />
+                      <input type="checkbox" name="subjectId" value={s.id} className="rounded" />
                     </td>
                     <td className="py-1.5">{s.name}</td>
                     <td className="py-1.5">
-                      <input name={`max_${s.id}`} type="number" defaultValue={100} className="w-20 rounded-lg border border-zinc-300 px-2 py-1 text-sm" />
+                      <input name={`max_${s.id}`} type="number" defaultValue={100} className="w-20 rounded-full border px-2 py-1 text-sm" />
                     </td>
                     <td className="py-1.5">
-                      <input name={`pass_${s.id}`} type="number" defaultValue={35} className="w-20 rounded-lg border border-zinc-300 px-2 py-1 text-sm" />
+                      <input name={`pass_${s.id}`} type="number" defaultValue={35} className="w-20 rounded-full border px-2 py-1 text-sm" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Add checked subjects
           </button>
           {typeof state.added === "number" ? <span className="ml-2 text-sm text-zinc-500">{state.added} added.</span> : null}
@@ -178,7 +178,7 @@ export function ComputeResultsButton({ examinationId }: { examinationId: string 
   return (
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Compute results
       </button>
       {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

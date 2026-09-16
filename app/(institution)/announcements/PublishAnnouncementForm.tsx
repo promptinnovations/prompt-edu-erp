@@ -13,11 +13,11 @@ export default function PublishAnnouncementForm({ roles }: { roles: RoleOption[]
     <form action={formAction} className="space-y-3">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Title</label>
-        <input name="title" required maxLength={300} className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="title" required maxLength={300} className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Message</label>
-        <textarea name="body" required rows={3} className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <textarea name="body" required rows={3} className="w-full rounded-lg border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Audience</label>
@@ -42,7 +42,7 @@ export default function PublishAnnouncementForm({ roles }: { roles: RoleOption[]
           </div>
         ) : null}
       </div>
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         {pending ? "Publishing…" : "Publish announcement"}
       </button>
       {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}

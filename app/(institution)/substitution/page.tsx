@@ -51,12 +51,12 @@ export default async function SubstitutionPage({
       </div>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Find substitutes for an absent teacher</h2>
           <form method="get" className="flex flex-wrap items-end gap-2">
             <div>
               <label className="mb-1 block text-xs text-zinc-500">Absent staff member</label>
-              <select name="absentStaffId" defaultValue={absentStaffId} required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
+              <select name="absentStaffId" defaultValue={absentStaffId} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]">
                 <option value="">Select…</option>
                 {staff.map((s) => (
                   <option key={s.id} value={s.id}>{s.full_name}{s.staff_code ? ` (${s.staff_code})` : ""}</option>
@@ -65,9 +65,9 @@ export default async function SubstitutionPage({
             </div>
             <div>
               <label className="mb-1 block text-xs text-zinc-500">Date</label>
-              <input type="date" name="date" defaultValue={date || today} required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+              <input type="date" name="date" defaultValue={date || today} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
             </div>
-            <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+            <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
               Generate substitutes
             </button>
           </form>
@@ -94,7 +94,7 @@ export default async function SubstitutionPage({
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recent confirmed substitutions (last 14 days)</h2>
         {recent.length === 0 ? (
           <p className="text-sm text-zinc-500">No substitutions recorded yet.</p>
@@ -111,7 +111,7 @@ export default async function SubstitutionPage({
                   {canManage ? <th className="py-1.5 pr-3" /> : null}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {recent.map((r) => (
                   <tr key={r.id}>
                     <td className="py-2 pr-3 whitespace-nowrap">{formatDate(r.date)}</td>

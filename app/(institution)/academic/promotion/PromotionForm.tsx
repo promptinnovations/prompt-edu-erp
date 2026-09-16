@@ -79,7 +79,7 @@ export default function PromotionForm({
   });
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <section className="rounded-card border bg-white p-5">
       <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">2. Review &amp; confirm ({students.length} students)</h2>
 
       <div className="mb-4">
@@ -87,7 +87,7 @@ export default function PromotionForm({
         <select
           value={toAcademicYearId}
           onChange={(e) => setToAcademicYearId(e.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="" disabled>Select a target academic year…</option>
           {nonCurrentYears.map((y) => (
@@ -104,7 +104,7 @@ export default function PromotionForm({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-zinc-500">
+            <tr className="border-b text-left text-zinc-500">
               <th className="pb-2 font-medium">Roll</th>
               <th className="pb-2 font-medium">Name</th>
               <th className="pb-2 font-medium">Action</th>
@@ -117,14 +117,14 @@ export default function PromotionForm({
               const o = overrides[s.student_id];
               const advancing = o.action === "promote" || o.action === "repeat";
               return (
-                <tr key={s.student_id} className="border-b border-zinc-100">
+                <tr key={s.student_id} className="border-b">
                   <td className="py-2 text-zinc-500">{s.roll_number ?? "—"}</td>
                   <td className="py-2 text-zinc-900">{s.full_name}</td>
                   <td className="py-2">
                     <select
                       value={o.action}
                       onChange={(e) => update(s.student_id, { action: e.target.value as PreviewRow["suggested_action"] })}
-                      className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                      className="rounded-lg border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                     >
                       {ACTIONS.map((a) => (
                         <option key={a.value} value={a.value}>{a.label}</option>
@@ -136,7 +136,7 @@ export default function PromotionForm({
                       <select
                         value={o.toClassId}
                         onChange={(e) => update(s.student_id, { toClassId: e.target.value, toSectionId: "" })}
-                        className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                        className="rounded-lg border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                       >
                         <option value="" disabled>Select…</option>
                         {classes.map((c) => (
@@ -153,7 +153,7 @@ export default function PromotionForm({
                         value={o.toSectionId}
                         onChange={(e) => update(s.student_id, { toSectionId: e.target.value })}
                         disabled={!o.toClassId}
-                        className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 disabled:opacity-50"
+                        className="rounded-lg border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 disabled:opacity-50"
                       >
                         <option value="" disabled>Select…</option>
                         {(sectionsByClass.get(o.toClassId) ?? []).map((sec) => (
@@ -188,7 +188,7 @@ export default function PromotionForm({
         <button
           type="submit"
           disabled={pending || !toAcademicYearId}
-          className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+          className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
         >
           Confirm promotion
         </button>

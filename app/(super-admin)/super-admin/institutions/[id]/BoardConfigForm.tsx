@@ -26,7 +26,7 @@ export default function BoardConfigForm({
         <select
           name="board"
           defaultValue={board ?? (isSchool ? "kerala_state" : "sksvb")}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           {isSchool ? (
             <>
@@ -45,7 +45,7 @@ export default function BoardConfigForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-full bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-50"
       >
         Save
       </button>

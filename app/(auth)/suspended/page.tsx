@@ -19,7 +19,7 @@ export default async function SuspendedPage({
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 text-center">
+      <div className="w-full max-w-md rounded-card border bg-white p-8 text-center">
         <h1 className="text-lg font-semibold text-[var(--heading)]">
           {isSuspended ? "Institution suspended" : "Institution inactive"}
         </h1>
@@ -29,7 +29,7 @@ export default async function SuspendedPage({
             : "This institution is not currently active. Please contact Prompt Innovations for assistance."}
         </p>
         <form action={signOutAction} className="mt-6">
-          <button type="submit" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">
+          <button type="submit" className="rounded-full bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">
             Sign out
           </button>
         </form>

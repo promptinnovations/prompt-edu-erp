@@ -31,7 +31,7 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
           <select
             value={reportType}
             onChange={(e) => setReportType(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="w-full rounded-lg border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           >
             {definitions.map((d) => (
               <option key={d.code} value={d.code}>{d.name}</option>
@@ -40,7 +40,7 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Format</label>
-          <select name="format" defaultValue="pdf" className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+          <select name="format" defaultValue="pdf" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
             <option value="pdf">PDF</option>
             <option value="xlsx">Excel (.xlsx)</option>
           </select>
@@ -50,7 +50,7 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
       {reportType === "examination_results" ? (
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Examination</label>
-          <select name="examinationId" className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required>
+          <select name="examinationId" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required>
             <option value="">Select an examination…</option>
             {examinations.map((e) => (
               <option key={e.id} value={e.id}>{e.name}</option>
@@ -67,7 +67,7 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
               name="classId"
               value={classId}
               onChange={(e) => setClassId(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="w-full rounded-lg border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
               required
             >
               <option value="">Select a class…</option>
@@ -78,7 +78,7 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Division</label>
-            <select name="sectionId" className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required>
+            <select name="sectionId" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required>
               <option value="">Select a division…</option>
               {filteredSections.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -87,11 +87,11 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">From date</label>
-            <input type="date" name="fromDate" className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
+            <input type="date" name="fromDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">To date</label>
-            <input type="date" name="toDate" className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
+            <input type="date" name="toDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
           </div>
         </div>
       ) : null}
@@ -103,13 +103,13 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
             type="text"
             name="period"
             placeholder="e.g. Term 1 2026"
-            className="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             required
           />
         </div>
       ) : null}
 
-      <button type="submit" className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]">
+      <button type="submit" className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]">
         Generate &amp; download
       </button>
     </form>

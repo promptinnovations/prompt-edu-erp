@@ -78,7 +78,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Divisions</h2>
         {sections.length === 0 ? (
           <p className="text-sm text-zinc-500">
@@ -88,7 +88,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-zinc-500">
+                <tr className="border-b text-left text-zinc-500">
                   <th className="pb-2 font-medium">Division</th>
                   <th className="pb-2 font-medium">Class teacher</th>
                   <th className="pb-2 font-medium">Students</th>
@@ -101,7 +101,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                   const teachers = classTeacherBySection.get(s.id) ?? [];
                   const count = students.filter((st) => st.section_name === s.name).length;
                   return (
-                    <tr key={s.id} className="border-b border-zinc-100">
+                    <tr key={s.id} className="border-b">
                       <td className="py-2 text-zinc-900">{s.name}</td>
                       <td className="py-2 text-zinc-500">
                         {teachers.length > 0 ? teachers.join(", ") : (
@@ -135,7 +135,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[var(--heading)]">Subjects</h2>
           <Link href="/academic" className="text-xs text-indigo-600 underline hover:text-indigo-800">
@@ -159,7 +159,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[var(--heading)]">Students ({students.length})</h2>
           <Link href={`/students?classId=${classId}`} className="text-xs text-indigo-600 underline hover:text-indigo-800">
@@ -172,7 +172,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-zinc-500">
+                <tr className="border-b text-left text-zinc-500">
                   <th className="pb-2 font-medium">Roll no.</th>
                   <th className="pb-2 font-medium">Admission no.</th>
                   <th className="pb-2 font-medium">Name</th>
@@ -185,7 +185,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                 {[...students]
                   .sort((a, b) => (a.section_name ?? "").localeCompare(b.section_name ?? "") || (a.roll_number ?? 999) - (b.roll_number ?? 999) || a.full_name.localeCompare(b.full_name))
                   .map((s) => (
-                  <tr key={s.id} className="border-b border-zinc-100">
+                  <tr key={s.id} className="border-b">
                     <td className="py-2 text-zinc-500">{s.roll_number ?? "—"}</td>
                     <td className="py-2 text-zinc-500">{s.admission_number}</td>
                     <td className="py-2 text-zinc-900">
@@ -202,7 +202,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Exams ({exams.length})</h2>
         {exams.length === 0 ? (
           <p className="text-sm text-zinc-500">No examinations cover this class yet.</p>
@@ -223,7 +223,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       </section>
 
       {can(ctx.permissions, "discipline.view") ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[var(--heading)]">Discipline records ({disciplineRecords.length})</h2>
             <Link href="/discipline" className="text-xs text-indigo-600 underline hover:text-indigo-800">
@@ -245,7 +245,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[var(--heading)]">
             Skills &amp; achievements ({skillSubmissions.length + achievements.length})
@@ -276,7 +276,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       </section>
 
       {can(ctx.permissions, "library.view") ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[var(--heading)]">Library — reading record ({readingRecords.length})</h2>
             <Link href="/library" className="text-xs text-indigo-600 underline hover:text-indigo-800">

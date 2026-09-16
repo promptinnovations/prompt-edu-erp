@@ -51,7 +51,7 @@ export default async function AcademicPage() {
     <div className="space-y-8">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">{t("title")}</h1>
 
-      <section id="academic-years" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="academic-years" className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[var(--heading)]">Academic years</h2>
           {can(ctx.permissions, "academic.promote") ? (
@@ -61,7 +61,7 @@ export default async function AcademicPage() {
           ) : null}
         </div>
         {canManage ? <AcademicYearForm /> : null}
-        <ul className="mt-4 divide-y divide-zinc-100 text-sm">
+        <ul className="mt-4 divide-y text-sm">
           {academicYears.map((y) => (
             <li key={y.id} className="flex items-center justify-between py-2">
               <span>
@@ -85,10 +85,10 @@ export default async function AcademicPage() {
         </ul>
       </section>
 
-      <section id="classes" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="classes" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{t("classesHeading")}</h2>
         {canManage ? <ClassForm /> : null}
-        <ul className="mt-4 divide-y divide-zinc-100 text-sm">
+        <ul className="mt-4 divide-y text-sm">
           {classes.map((c) => (
             <ClassRow
               key={c.id}
@@ -103,10 +103,10 @@ export default async function AcademicPage() {
         </ul>
       </section>
 
-      <section id="divisions" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="divisions" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{t("sectionsHeading")}</h2>
         {canManage ? <SectionForm classes={classes} /> : null}
-        <ul className="mt-4 divide-y divide-zinc-100 text-sm">
+        <ul className="mt-4 divide-y text-sm">
           {sections.map((s) => (
             <SectionRow
               key={s.id}
@@ -120,7 +120,7 @@ export default async function AcademicPage() {
         </ul>
       </section>
 
-      <section id="subjects" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="subjects" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{t("subjectsHeading")}</h2>
         <SubjectForm educationMode={educationMode} />
         {educationMode === "both" ? (
@@ -130,7 +130,7 @@ export default async function AcademicPage() {
                 <h3 className="mb-1 section-label">
                   {TRACK_LABEL[track] ?? track}
                 </h3>
-                <ul className="divide-y divide-zinc-100 text-sm">
+                <ul className="divide-y text-sm">
                   {subjects.filter((s) => s.track === track).map((s) => (
                     <li key={s.id} className="flex items-center justify-between py-2">
                       <span>{s.name}</span>
@@ -146,7 +146,7 @@ export default async function AcademicPage() {
             {subjects.filter((s) => !s.track).length > 0 ? (
               <div>
                 <h3 className="mb-1 section-label">Untagged</h3>
-                <ul className="divide-y divide-zinc-100 text-sm">
+                <ul className="divide-y text-sm">
                   {subjects.filter((s) => !s.track).map((s) => (
                     <li key={s.id} className="flex items-center justify-between py-2">
                       <span>{s.name}</span>
@@ -158,7 +158,7 @@ export default async function AcademicPage() {
             ) : null}
           </div>
         ) : (
-          <ul className="mt-4 divide-y divide-zinc-100 text-sm">
+          <ul className="mt-4 divide-y text-sm">
             {subjects.map((s) => (
               <li key={s.id} className="py-2">
                 {s.name}
@@ -169,12 +169,12 @@ export default async function AcademicPage() {
         )}
       </section>
 
-      <section id="subjects-per-class" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="subjects-per-class" className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Subjects per class</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Which subjects each class studies — shown to teachers/students on that class&apos;s own page.
         </p>
-        <ul className="divide-y divide-zinc-100 text-sm">
+        <ul className="divide-y text-sm">
           {classes.map((c) => (
             <ClassSubjectsForm
               key={c.id}

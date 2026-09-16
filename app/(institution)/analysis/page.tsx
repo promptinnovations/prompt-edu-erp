@@ -116,7 +116,7 @@ export default async function AnalysisPage() {
           <Link
             key={c.href}
             href={c.href}
-            className="rounded-2xl border border-zinc-200 bg-white p-5 transition-colors hover:border-[var(--brand)]"
+            className="rounded-card border bg-white p-5 transition-colors hover:border-[var(--brand)]"
           >
             <h2 className="mb-1.5 text-sm font-semibold text-[var(--heading)]">{c.title}</h2>
             <p className="text-sm text-zinc-500">{c.body}</p>

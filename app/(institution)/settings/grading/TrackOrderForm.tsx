@@ -20,12 +20,12 @@ export default function TrackOrderForm({ trackOrder, canManage }: { trackOrder: 
     <form action={action} className="flex flex-wrap items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Shown first</label>
-        <select name="firstTrack" defaultValue={first} className="rounded border border-zinc-300 px-2 py-1.5 text-sm">
+        <select name="firstTrack" defaultValue={first} className="rounded-full border px-2 py-1.5 text-sm">
           <option value="academic">Academic</option>
           <option value="islamic">Islamic</option>
         </select>
       </div>
-      <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+      <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
         Save
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}

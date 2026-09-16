@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { createExamRoomAction, updateExamRoomAction, deleteExamRoomAction, type UpdateExamRoomState } from "./actions";
 import type { ExamRoomRecord } from "../../../../modules/examination/seating-service";
 
-const INPUT = "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
+const INPUT = "rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
 
 const GENDER_LABEL: Record<string, string> = { male: "Boys only", female: "Girls only" };
 
@@ -42,7 +42,7 @@ export default function ExamRoomManager({ rooms }: { rooms: ExamRoomRecord[] }) 
             <option value="female">Girls only</option>
           </select>
         </div>
-        <button type="submit" disabled={creating} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={creating} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Add room
         </button>
         {createState.error ? <span className="text-sm text-red-600">{createState.error}</span> : null}
@@ -62,7 +62,7 @@ export default function ExamRoomManager({ rooms }: { rooms: ExamRoomRecord[] }) 
               <th className="px-3 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {rooms.map((room) =>
               editingId === room.id ? (
                 <tr key={room.id}>
@@ -147,10 +147,10 @@ function EditRoomRow({ room, onDone }: { room: ExamRoomRecord; onDone: () => voi
           companion field is what tells the action "the box was cleared"
           rather than "the field was never rendered". */}
       <input type="hidden" name="isActive" value="false" />
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Save
       </button>
-      <button type="button" onClick={onDone} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50">
+      <button type="button" onClick={onDone} className="rounded-full border px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50">
         Cancel
       </button>
       {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

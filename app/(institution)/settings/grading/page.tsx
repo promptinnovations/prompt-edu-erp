@@ -66,17 +66,17 @@ export default async function GradingSettingsPage() {
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Exam types</h2>
         <ExamTypeSection examTypes={examTypes} canManage={canManage} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Grading scales</h2>
         <GradeScaleSection gradeScales={gradeScales} bandsByScale={bandsByScale} canManage={canManage} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Pass percentage</h2>
         <p className="mb-3 text-xs text-zinc-500">
           The tenant-wide default used to decide pass/fail — separate from grade bands above (a grade label is
@@ -86,7 +86,7 @@ export default async function GradingSettingsPage() {
       </section>
 
       {institution?.educationMode === "both" ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Academic / Islamic order</h2>
           <p className="mb-3 text-xs text-zinc-500">
             This institution teaches both Academic and Islamic curricula side by side — choose which one shows
@@ -96,17 +96,17 @@ export default async function GradingSettingsPage() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Scoring rules</h2>
         <ScoringRuleSection rules={scoringRules} canManage={canManage} />
       </section>
 
-      <section id="achievements" className="rounded-2xl border border-zinc-200 bg-white p-5 scroll-mt-20">
+      <section id="achievements" className="rounded-card border bg-white p-5 scroll-mt-20">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Achievements</h2>
         <AchievementConfigSection categories={achievementCategories} levels={achievementLevels} canManage={canManage} />
       </section>
 
-      <section id="skills" className="rounded-2xl border border-zinc-200 bg-white p-5 scroll-mt-20">
+      <section id="skills" className="rounded-card border bg-white p-5 scroll-mt-20">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Skills</h2>
         <SkillConfigSection skillTypes={skillTypes} activitiesByType={activitiesByType} canManage={canManage} />
       </section>

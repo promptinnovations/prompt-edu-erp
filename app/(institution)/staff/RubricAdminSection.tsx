@@ -14,14 +14,14 @@ const LevelFields = ({ score, defaults }: { score: number; defaults?: { descript
       defaultValue={defaults?.descriptor ?? ""}
       placeholder="Descriptor"
       required
-      className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm"
+      className="rounded-full border bg-white px-2.5 py-1.5 text-sm"
     />
     <input
       name={`level_${score}_explanation`}
       defaultValue={defaults?.explanation ?? ""}
       placeholder="Explanation"
       required
-      className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm"
+      className="rounded-full border bg-white px-2.5 py-1.5 text-sm"
     />
   </div>
 );
@@ -36,20 +36,20 @@ function CriterionEditor({ criterion }: { criterion: ObservationCriterionRecord 
   const byScore = new Map(criterion.levels_jsonb.map((l) => [l.score, l]));
 
   return (
-    <details className="rounded-lg border border-zinc-200 p-3">
+    <details className="rounded-card border p-3">
       <summary className="cursor-pointer text-sm text-zinc-700">
         <span className="text-xs text-zinc-500">{criterion.domain}</span> — {criterion.criteria_text}
       </summary>
       <form action={formAction} className="mt-3 space-y-2">
         <input type="hidden" name="criterionId" value={criterion.id} />
         <div className="grid gap-2 sm:grid-cols-2">
-          <input name="domain" defaultValue={criterion.domain} placeholder="Domain" required className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
-          <input name="criteriaText" defaultValue={criterion.criteria_text} placeholder="Criterion" required className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+          <input name="domain" defaultValue={criterion.domain} placeholder="Domain" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input name="criteriaText" defaultValue={criterion.criteria_text} placeholder="Criterion" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
-        <input name="sortOrder" type="number" defaultValue={criterion.sort_order} className="w-24 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+        <input name="sortOrder" type="number" defaultValue={criterion.sort_order} className="w-24 rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         {[5, 4, 3, 2, 1].map((s) => <LevelFields key={s} score={s} defaults={byScore.get(s)} />)}
         <div className="flex items-center gap-2">
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             {pending ? "Saving…" : "Save"}
           </button>
           {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -71,17 +71,17 @@ function AddCriterionForm() {
     createObservationCriterionAction, { error: null }
   );
   return (
-    <details className="rounded-lg border border-dashed border-zinc-300 p-3">
+    <details className="rounded-card border border-dashed p-3">
       <summary className="cursor-pointer text-sm text-zinc-600">+ Add criterion</summary>
       <form action={formAction} className="mt-3 space-y-2">
         <div className="grid gap-2 sm:grid-cols-2">
-          <input name="domain" placeholder="Domain (e.g. A. Planning &amp; Preparation)" required className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
-          <input name="criteriaText" placeholder="Criterion" required className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+          <input name="domain" placeholder="Domain (e.g. A. Planning &amp; Preparation)" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input name="criteriaText" placeholder="Criterion" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
-        <input name="sortOrder" type="number" defaultValue={0} className="w-24 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm" />
+        <input name="sortOrder" type="number" defaultValue={0} className="w-24 rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         {[5, 4, 3, 2, 1].map((s) => <LevelFields key={s} score={s} />)}
         <div className="flex items-center gap-2">
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             {pending ? "Adding…" : "Add criterion"}
           </button>
           {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}

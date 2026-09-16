@@ -32,7 +32,7 @@ export default function PendingConfirmations({ payments }: { payments: PendingPa
         </thead>
         <tbody>
           {payments.map((p) => (
-            <tr key={p.id} className="border-t border-zinc-100">
+            <tr key={p.id} className="border-t">
               <td className="py-1.5 pr-3">{p.student_name}</td>
               <td className="py-1.5 pr-3">{p.category_name}</td>
               <td className="py-1.5 pr-3">₹{p.amount}</td>
@@ -40,8 +40,8 @@ export default function PendingConfirmations({ payments }: { payments: PendingPa
               <td className="py-1.5 pr-3">{p.reference_no ?? "—"}</td>
               <td className="py-1.5 pr-3">
                 <div className="flex gap-2">
-                  <DecisionButton paymentId={p.id} decision="confirmed" label="Confirm" className="rounded-lg bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700" />
-                  <DecisionButton paymentId={p.id} decision="rejected" label="Reject" className="rounded-lg border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50" />
+                  <DecisionButton paymentId={p.id} decision="confirmed" label="Confirm" className="rounded-full bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700" />
+                  <DecisionButton paymentId={p.id} decision="rejected" label="Reject" className="rounded-full border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50" />
                 </div>
               </td>
             </tr>

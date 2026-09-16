@@ -47,7 +47,7 @@ export default function DailyMarksGridForm({
               <th className="py-1.5">Absent</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {students.map((s) => (
               <tr key={s.student_id}>
                 <td className="py-1.5">
@@ -62,7 +62,7 @@ export default function DailyMarksGridForm({
                     step="0.01"
                     defaultValue={s.marks_obtained ?? ""}
                     disabled={!editable}
-                    className="w-24 rounded-lg border border-zinc-300 px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="w-24 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
                 <td className="py-1.5">
@@ -74,7 +74,7 @@ export default function DailyMarksGridForm({
         </table>
       </div>
       {editable ? (
-        <button type="submit" disabled={pending} className="mt-3 rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="mt-3 rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Save marks
         </button>
       ) : null}

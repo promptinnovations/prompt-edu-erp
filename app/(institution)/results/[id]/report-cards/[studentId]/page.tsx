@@ -38,7 +38,7 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
         <PrintButton />
       </div>
 
-      <section className="print-area mx-auto max-w-2xl rounded-2xl border border-zinc-200 bg-white p-8">
+      <section className="print-area mx-auto max-w-2xl rounded-card border bg-white p-8">
         <div className="mb-6 text-center">
           <PrintLetterhead
             institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
@@ -62,14 +62,14 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-zinc-500">
+            <tr className="border-b text-left text-zinc-500">
               <th className="py-1.5">Subject</th>
               <th className="py-1.5 text-right">Max Marks</th>
               <th className="py-1.5 text-right">Pass Marks</th>
               <th className="py-1.5 text-right">Marks Obtained</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {studentRows.map((r) => (
               <tr key={r.exam_subject_id}>
                 <td className="py-1.5">{r.subject_name}</td>
@@ -82,7 +82,7 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
         </table>
 
         {overall ? (
-          <div className="mt-6 flex justify-between border-t border-zinc-200 pt-3 text-sm font-medium">
+          <div className="mt-6 flex justify-between border-t pt-3 text-sm font-medium">
             <span>Total</span>
             <span>{overall.total_marks} / {overall.max_total_marks} ({Number(overall.percentage).toFixed(2)}%)</span>
           </div>

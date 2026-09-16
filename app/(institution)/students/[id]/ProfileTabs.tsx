@@ -23,7 +23,7 @@ export default function ProfileTabs({
 
   return (
     <div className="flex flex-col gap-6 md:flex-row">
-      <nav className="flex gap-1 overflow-x-auto border-b border-zinc-200 pb-2 md:w-48 md:shrink-0 md:flex-col md:gap-0.5 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+      <nav className="flex gap-1 overflow-x-auto border-b pb-2 md:w-48 md:shrink-0 md:flex-col md:gap-0.5 md:border-b-0 md:border-r md:pb-0 md:pr-4">
         {tabs.map((t) => (
           <button
             key={t.id}

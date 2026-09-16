@@ -39,7 +39,7 @@ export default function ObservationsSection({
   return (
     <div className="space-y-6">
       {canRecord ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">New classroom observation</h2>
           {criteria.length === 0 ? (
             <p className="text-sm text-zinc-500">No observation rubric configured yet.</p>
@@ -49,12 +49,12 @@ export default function ObservationsSection({
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Observation history</h2>
         {observations.length === 0 ? (
           <p className="text-sm text-zinc-500">No observations recorded yet.</p>
         ) : (
-          <ul className="divide-y divide-zinc-100">
+          <ul className="divide-y">
             {observations.map((o) => {
               const payload = parsePayload(o.criteria_jsonb);
               return (
@@ -92,7 +92,7 @@ export default function ObservationsSection({
       </section>
 
       {canManageRubric ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Observation rubric (admin)</h2>
           <RubricAdminSection criteria={criteria} />
         </section>

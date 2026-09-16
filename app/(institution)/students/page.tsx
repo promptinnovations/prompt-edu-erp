@@ -56,11 +56,11 @@ export default async function StudentsPage({
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">{t("title")}</h1>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <StudentForm academicYearId={academicYear?.id ?? null} sections={sectionOptions} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <form className="flex flex-wrap items-end gap-2" method="get">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">{t("search")}</label>
@@ -68,7 +68,7 @@ export default async function StudentsPage({
               name="q"
               defaultValue={q}
               placeholder={t("searchPlaceholder")}
-              className="w-56 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="w-56 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             />
           </div>
           <div>
@@ -76,7 +76,7 @@ export default async function StudentsPage({
             <select
               name="classId"
               defaultValue={classId}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             >
               <option value="">{t("allClasses")}</option>
               {classes.map((c) => (
@@ -90,7 +90,7 @@ export default async function StudentsPage({
           </label>
           <button
             type="submit"
-            className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]"
+            className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]"
           >
             {t("applyFilters")}
           </button>
@@ -102,7 +102,7 @@ export default async function StudentsPage({
         </form>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+      <section className="overflow-hidden rounded-2xl border bg-white">
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -116,7 +116,7 @@ export default async function StudentsPage({
               <th className="px-4 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {students.map((s) => (
               <tr key={s.id} className={s.status === "withdrawn" ? "opacity-50" : undefined}>
                 <td className="px-4 py-2">

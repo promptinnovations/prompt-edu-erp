@@ -17,12 +17,12 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
             type="email"
             required
             placeholder="person@example.com"
-            className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-          <input name="fullName" required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input name="fullName" required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Password</label>
@@ -32,7 +32,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
             required
             minLength={6}
             placeholder="At least 6 characters"
-            className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+            className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
         </div>
       </div>
@@ -42,7 +42,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
         <div className="flex flex-wrap gap-3">
           {roleOptions.map((r) => (
             <label key={r.id} className="flex items-center gap-1.5 text-sm text-zinc-700">
-              <input type="checkbox" name="roleCodes" value={r.code} className="rounded border-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+              <input type="checkbox" name="roleCodes" value={r.code} className="rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
               {r.name}
             </label>
           ))}
@@ -52,7 +52,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-[var(--brand)] px-4 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-full bg-[var(--brand)] px-4 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         Create login
       </button>

@@ -115,7 +115,7 @@ export default async function ClassesPage() {
         </p>
       ) : (
         orderedPhases.map((phase) => (
-          <section key={phase} className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <section key={phase} className="rounded-card border bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">{phase}</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {groups.get(phase)!.flatMap((c) => {
@@ -129,7 +129,7 @@ export default async function ClassesPage() {
                     <Link
                       key={c.id}
                       href={`/classes/${c.id}`}
-                      className="rounded-xl border border-zinc-200 p-4 hover:border-indigo-400 transition-colors"
+                      className="rounded-card border p-4 hover:border-indigo-400 transition-colors"
                     >
                       <div className="font-medium text-zinc-900">Class {c.name}</div>
                       <div className="mt-1 text-xs text-zinc-500">
@@ -150,7 +150,7 @@ export default async function ClassesPage() {
                     <Link
                       key={sec.id}
                       href={`/classes/${c.id}`}
-                      className="rounded-xl border border-zinc-200 p-4 hover:border-indigo-400 transition-colors"
+                      className="rounded-card border p-4 hover:border-indigo-400 transition-colors"
                     >
                       <div className="font-medium text-zinc-900">Class {c.name} {sec.name}</div>
                       <div className="mt-1 text-xs text-zinc-500">

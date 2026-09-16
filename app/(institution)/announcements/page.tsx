@@ -19,20 +19,20 @@ export default async function AnnouncementsPage() {
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Announcements (§D.13)</h1>
 
       {canPublish ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Publish a new announcement</h2>
           <PublishAnnouncementForm roles={roles} />
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recent announcements</h2>
         {announcements.length === 0 ? (
           <p className="text-sm text-zinc-500">No announcements published yet.</p>
         ) : (
           <ul className="space-y-4">
             {announcements.map((a) => (
-              <li key={a.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
+              <li key={a.id} className="border-b pb-4 last:border-0 last:pb-0">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-[var(--heading)]">{a.title}</h3>
                   <span className="text-xs text-zinc-500">{new Date(a.published_at).toLocaleString()}</span>

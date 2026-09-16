@@ -14,7 +14,7 @@ export default function ClassForm() {
         <input
           name="name"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           placeholder="e.g. Grade 5"
         />
       </div>
@@ -22,14 +22,14 @@ export default function ClassForm() {
         <label className="mb-1 block text-xs text-zinc-500">Stage</label>
         <input
           name="stage"
-          className="w-28 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="w-28 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           placeholder="e.g. LP, UP, HS"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         {t("add")}
       </button>

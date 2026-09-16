@@ -371,7 +371,7 @@ export function LineTrendChart({
 // ---------------------------------------------------------------------------
 export function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
+    <div className="rounded-card border bg-white p-4">
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold" style={accent ? { color: accent } : undefined}>{value}</p>
       {sub ? <p className="mt-0.5 text-[11px] text-zinc-500">{sub}</p> : null}

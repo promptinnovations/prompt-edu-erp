@@ -325,7 +325,7 @@ export default async function InstitutionLayout({ children }: { children: React.
               <select
                 name="locale"
                 defaultValue={locale}
-                className="w-full rounded-lg border border-[var(--sidebar-border)] bg-[var(--sidebar-active)]/40 px-2 py-1.5 text-sm text-[var(--sidebar-text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]"
+                className="w-full rounded-full border border-[var(--sidebar-border)] bg-[var(--sidebar-active)]/40 px-2 py-1.5 text-sm text-[var(--sidebar-text)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]"
               >
                 {enabledLocales.map((l) => (
                   <option key={l} value={l}>
@@ -334,14 +334,14 @@ export default async function InstitutionLayout({ children }: { children: React.
                 ))}
               </select>
             </div>
-            <button type="submit" className="rounded-lg border border-[var(--sidebar-border)] px-2 py-1.5 text-sm text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]">
+            <button type="submit" className="rounded-full border border-[var(--sidebar-border)] px-2 py-1.5 text-sm text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]">
               Go
             </button>
           </form>
         ) : null}
 
         <form action={signOutAction}>
-          <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)] hover:text-white">
+          <button type="submit" className="w-full rounded-full px-3 py-2 text-left text-sm text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)] hover:text-white">
             {t("signOut")}
           </button>
         </form>
@@ -364,20 +364,20 @@ export default async function InstitutionLayout({ children }: { children: React.
             <div className="flex shrink-0 gap-2">
               {ctx.viewingAsUser ? (
                 <form action={exitSamplePortalAction}>
-                  <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+                  <button type="submit" className="rounded-full bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
                     Exit sample portal
                   </button>
                 </form>
               ) : null}
               <form action={exitSuperAdminViewAction}>
-                <button type="submit" className="rounded-lg bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
+                <button type="submit" className="rounded-full bg-white/20 px-2 py-0.5 text-xs hover:bg-white/30">
                   Exit to Super Admin console
                 </button>
               </form>
             </div>
           </div>
         ) : null}
-        <header data-app-shell className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2.5 sm:px-6">
+        <header data-app-shell className="flex items-center justify-between gap-3 border-b bg-white px-4 py-2.5 sm:px-6">
           <Breadcrumb />
           <div className="flex items-center gap-3">
             {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}

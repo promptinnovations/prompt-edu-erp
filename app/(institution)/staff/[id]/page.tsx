@@ -63,7 +63,7 @@ export default async function StaffDetailPage({
   const photoUrl = profile.photo_file_id ? `/api/files/${profile.photo_file_id}` : null;
 
   const header = (
-    <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-6">
+    <div className="flex flex-wrap items-center gap-4 rounded-card border bg-white p-6">
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- avatar from an authenticated /api/files route, not a static/optimizable asset
         <img src={photoUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-100" />
@@ -94,11 +94,11 @@ export default async function StaffDetailPage({
         <Link href="/staff/directory" className="text-sm text-zinc-500 underline">← Back to Staff profiles</Link>
         {header}
       {kudos.length > 0 ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudos.map((k) => (
-              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={k.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
                 <span className="text-zinc-500">{k.created_at}</span>
               </li>
@@ -108,7 +108,7 @@ export default async function StaffDetailPage({
       ) : null}
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="rounded-card border bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
             <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               <div>
@@ -155,7 +155,7 @@ export default async function StaffDetailPage({
           </div>
 
           {canEditSelfFields ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <div className="rounded-card border bg-white p-5">
               <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Photo</h2>
               <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
             </div>
@@ -187,7 +187,7 @@ export default async function StaffDetailPage({
 
   const profileTab = (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <div className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
@@ -230,7 +230,7 @@ export default async function StaffDetailPage({
       </div>
 
       {canEditSelfFields ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Photo</h2>
           <PhotoForm staffId={profile.id} photoUrl={photoUrl} />
         </div>
@@ -250,11 +250,11 @@ export default async function StaffDetailPage({
       {header}
 
       {kudos.length > 0 ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudos.map((k) => (
-              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={k.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
                 <span className="text-zinc-500">{k.created_at}</span>
               </li>

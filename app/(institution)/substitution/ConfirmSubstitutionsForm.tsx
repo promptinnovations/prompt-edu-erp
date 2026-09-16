@@ -48,7 +48,7 @@ export default function ConfirmSubstitutionsForm({
               <th className="py-1.5 pr-3">Covering teacher</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {suggestions.map((s, i) => (
               <tr key={`${s.classId}:${s.sectionId}:${s.periodNo}`}>
                 <td className="py-2 pr-3 whitespace-nowrap">{s.className} – {s.sectionName}</td>
@@ -58,7 +58,7 @@ export default function ConfirmSubstitutionsForm({
                   <select
                     value={choices[i] ?? ""}
                     onChange={(e) => setChoices((c) => ({ ...c, [i]: e.target.value }))}
-                    className="rounded-lg border border-zinc-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]"
+                    className="rounded-lg border px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]"
                   >
                     <option value="">— No substitute available —</option>
                     {s.freeStaffOptions.map((o) => (
@@ -73,7 +73,7 @@ export default function ConfirmSubstitutionsForm({
       </div>
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {pending ? "Confirming…" : "Confirm substitutions"}
         </button>
         {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}

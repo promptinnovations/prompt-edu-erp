@@ -75,7 +75,7 @@ export default async function SeatingStickersPage({
           No seating plan has been generated for this examination yet.
         </p>
       ) : (
-        <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="print-area rounded-card border bg-white p-5">
           <PrintLetterhead
             institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
             logoCode={institution?.logoFileId ? institution.code : null}
@@ -86,7 +86,7 @@ export default async function SeatingStickersPage({
 
           {byRoom.map((room) => (
             <div key={room.roomName} className="mb-6">
-              <h2 className="mb-2 border-b border-zinc-200 pb-1 text-sm font-semibold text-[var(--heading)]">
+              <h2 className="mb-2 border-b pb-1 text-sm font-semibold text-[var(--heading)]">
                 {room.roomName}
               </h2>
               {room.benches.map((bench) => (
@@ -98,7 +98,7 @@ export default async function SeatingStickersPage({
                     {bench.seats.map((seat) => (
                       <div
                         key={seat.id}
-                        className="break-inside-avoid rounded-lg border border-dashed border-zinc-400 p-2.5"
+                        className="break-inside-avoid rounded-card border border-dashed border-zinc-400 p-2.5"
                       >
                         <p className="text-sm font-semibold leading-tight text-zinc-900">{seat.student_name}</p>
                         <p className="mt-0.5 text-xs text-zinc-700">
@@ -107,7 +107,7 @@ export default async function SeatingStickersPage({
                         <p className="text-xs text-zinc-700">
                           Roll No: <strong>{seat.roll_number ?? "—"}</strong>
                         </p>
-                        <p className="mt-1 border-t border-zinc-200 pt-1 text-[11px] text-zinc-500">
+                        <p className="mt-1 border-t pt-1 text-[11px] text-zinc-500">
                           {room.roomName} · Bench {seat.bench_number} · Seat {seat.seat_number}
                         </p>
                       </div>

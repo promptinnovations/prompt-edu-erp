@@ -35,7 +35,7 @@ export default async function StaffDirectoryPage() {
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         {staff.length === 0 ? (
           <p className="py-6 text-center text-sm text-zinc-500">No staff members yet.</p>
         ) : (
@@ -46,7 +46,7 @@ export default async function StaffDirectoryPage() {
                 <Link
                   key={s.id}
                   href={`/staff/${s.id}`}
-                  className="flex flex-col items-center rounded-xl border border-transparent p-4 text-center hover:border-indigo-400 hover:bg-zinc-50 transition-colors"
+                  className="flex flex-col items-center rounded-card border border-transparent p-4 text-center hover:border-indigo-400 hover:bg-zinc-50 transition-colors"
                 >
                   {s.photo_file_id ? (
                     // eslint-disable-next-line @next/next/no-img-element -- avatar thumbnail from an authenticated /api/files route, not a static/optimizable asset

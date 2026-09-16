@@ -37,7 +37,7 @@ export default function ParentPortalSectionsForm({ sections }: { sections: Recor
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+        className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
       >
         Save
       </button>

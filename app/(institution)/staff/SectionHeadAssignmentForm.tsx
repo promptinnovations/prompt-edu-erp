@@ -41,21 +41,21 @@ export default function SectionHeadAssignmentForm({
         <form action={formAction} className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Staff member</label>
-            <select name="userId" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+            <select name="userId" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
               {staff.map((s) => <option key={s.userId} value={s.userId}>{s.full_name}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Section (e.g. KG, LP, UP, HS, HSS)</label>
             {stages.length > 0 ? (
-              <select name="stage" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+              <select name="stage" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
                 {stages.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             ) : (
-              <input name="stage" required placeholder="e.g. HSS" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+              <input name="stage" required placeholder="e.g. HSS" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
             )}
           </div>
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Assign
           </button>
           {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
@@ -67,7 +67,7 @@ export default function SectionHeadAssignmentForm({
           <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr><th className="py-1.5">Staff member</th><th className="py-1.5">Section</th><th className="py-1.5" /></tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {assignments.map((a) => (
               <tr key={a.id}>
                 <td className="py-1.5">{a.user_full_name}</td>

@@ -20,7 +20,7 @@ export default function LogoForm({ logoUrl }: { logoUrl: string | null }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-white">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- external/dynamic per-institution URL, not a static asset next/image can optimize meaningfully here
             <img src={logoUrl} alt="Institution logo" className="h-full w-full object-contain" />
@@ -40,7 +40,7 @@ export default function LogoForm({ logoUrl }: { logoUrl: string | null }) {
           <button
             type="submit"
             disabled={uploadPending}
-            className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+            className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
           >
             {logoUrl ? "Replace logo" : "Upload logo"}
           </button>

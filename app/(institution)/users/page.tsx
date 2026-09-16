@@ -48,13 +48,13 @@ export default async function UsersPage() {
       </p>
 
       {canManageUsers ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Create a login</h2>
           <CreateUserForm roleOptions={roles} />
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Staff ({staff.length})</h2>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -70,7 +70,7 @@ export default async function UsersPage() {
               {canManageUsers ? <th className="py-1.5"></th> : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {staff.map((u) => (
               <tr key={u.userId}>
                 <td className="py-2 font-medium text-zinc-900">{u.fullName}</td>
@@ -115,7 +115,7 @@ export default async function UsersPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Students ({students.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">
           Section → Grade → Division → Roll number order. Each student&apos;s own parent login is shown alongside them.
@@ -137,7 +137,7 @@ export default async function UsersPage() {
               {canManageUsers ? <th className="py-1.5"></th> : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {students.map((s) => (
               <tr key={s.userId}>
                 <td className="py-2 font-medium text-zinc-900">{s.fullName}</td>

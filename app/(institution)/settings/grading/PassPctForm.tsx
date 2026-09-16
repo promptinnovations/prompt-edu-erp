@@ -20,10 +20,10 @@ export default function PassPctForm({ passPct, canManage }: { passPct: number; c
         <label className="mb-1 block text-xs text-zinc-500">Default pass percentage</label>
         <input
           name="passPct" type="number" step="0.01" min={0} max={100} defaultValue={passPct}
-          className="w-24 rounded border border-zinc-300 px-2 py-1.5 text-sm"
+          className="w-24 rounded-full border px-2 py-1.5 text-sm"
         />
       </div>
-      <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+      <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
         Save
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}

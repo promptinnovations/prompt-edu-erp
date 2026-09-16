@@ -16,26 +16,26 @@ export interface ParentLinkRow {
 function EditParentForm({ studentId, parent, onDone }: { studentId: string; parent: ParentLinkRow; onDone: () => void }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(updateParentAction, { error: null });
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2 rounded-lg border border-zinc-200 p-2" onSubmit={() => onDone()}>
+    <form action={formAction} className="flex flex-wrap items-end gap-2 rounded-card border p-2" onSubmit={() => onDone()}>
       <input type="hidden" name="studentId" value={studentId} />
       <input type="hidden" name="parentId" value={parent.id} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Name</label>
-        <input name="fullName" defaultValue={parent.full_name} required className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="fullName" defaultValue={parent.full_name} required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Phone</label>
-        <input name="phone" defaultValue={parent.phone ?? ""} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="phone" defaultValue={parent.phone ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Email</label>
-        <input name="email" type="email" defaultValue={parent.email ?? ""} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="email" type="email" defaultValue={parent.email ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Occupation</label>
-        <input name="occupation" defaultValue={parent.occupation ?? ""} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="occupation" defaultValue={parent.occupation ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
         Save
       </button>
       <button type="button" onClick={onDone} className="text-xs text-zinc-500 hover:text-zinc-700">
@@ -73,9 +73,9 @@ function ProvisionParentAccountForm({ parentId, studentId, defaultEmail, default
     <form action={formAction} className="mt-1 flex flex-wrap items-end gap-1">
       <input type="hidden" name="parentId" value={parentId} />
       <input type="hidden" name="redirectStudentId" value={studentId} />
-      <input name="email" type="email" defaultValue={defaultEmail} placeholder="login email" required className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input name="email" type="email" defaultValue={defaultEmail} placeholder="login email" required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       <input type="hidden" name="fullName" value={defaultName} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Create parent portal login
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -89,7 +89,7 @@ function LinkStudentLoginToParentButton({ studentId, parentId }: { studentId: st
     <form action={formAction}>
       <input type="hidden" name="studentId" value={studentId} />
       <input type="hidden" name="parentId" value={parentId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
         Use the student&apos;s login for this parent (same credential)
       </button>
       {state.error ? <div className="text-xs text-red-600">{state.error}</div> : null}
@@ -103,7 +103,7 @@ function LinkParentLoginToStudentButton({ studentId, parentId }: { studentId: st
     <form action={formAction} className="mt-1">
       <input type="hidden" name="studentId" value={studentId} />
       <input type="hidden" name="parentId" value={parentId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
         Use this login for the student (same credential)
       </button>
       {state.error ? <div className="text-xs text-red-600">{state.error}</div> : null}
@@ -126,24 +126,24 @@ export default function ParentSection({
           <input type="hidden" name="studentId" value={studentId} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Name</label>
-            <input name="fullName" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input name="fullName" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Relationship</label>
-            <input name="relationship" placeholder="Father / Mother / Guardian" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input name="relationship" placeholder="Father / Mother / Guardian" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Phone</label>
-            <input name="phone" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input name="phone" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Email</label>
-            <input name="email" type="email" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input name="email" type="email" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <label className="flex items-center gap-1 text-xs text-zinc-500">
             <input type="checkbox" name="isPrimaryContact" /> Primary contact
           </label>
-          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Add parent/guardian
           </button>
           {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
@@ -161,7 +161,7 @@ export default function ParentSection({
             {canManage ? <th className="py-1.5" /> : null}
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y">
           {parents.map((p) => (
             editingId === p.id ? (
               <tr key={p.id}>
@@ -228,10 +228,10 @@ export function ProvisionStudentAccountForm({
         <input type="hidden" name="studentId" value={studentId} />
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Login email</label>
-          <input name="email" type="email" defaultValue={defaultEmail} required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input name="email" type="email" defaultValue={defaultEmail} required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
         <input type="hidden" name="fullName" value={defaultName} />
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Create student portal login
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

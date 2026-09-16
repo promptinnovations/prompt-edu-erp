@@ -30,7 +30,7 @@ export default async function ParentPortalPage({
   const ownParentId = await getOwnParentId(institutionId, authUserId, ctx.userId);
   if (!ownParentId) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+      <div className="rounded-card border bg-white p-6">
         <p className="text-sm text-zinc-500">
           Your account isn&apos;t linked to a parent/guardian record yet. Ask your institution admin to set this up.
         </p>
@@ -41,7 +41,7 @@ export default async function ParentPortalPage({
   const children = await listChildrenForParent(institutionId, authUserId, ownParentId);
   if (children.length === 0) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+      <div className="rounded-card border bg-white p-6">
         <p className="text-sm text-zinc-500">No children are linked to your account yet.</p>
       </div>
     );
@@ -91,7 +91,7 @@ export default async function ParentPortalPage({
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {sections.attendance ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="rounded-card border bg-white p-5">
             <div className="text-2xl font-semibold text-zinc-900">
               {summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—"}
             </div>
@@ -99,7 +99,7 @@ export default async function ParentPortalPage({
           </div>
         ) : null}
         {sections.results ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="rounded-card border bg-white p-5">
             <div className="text-2xl font-semibold text-zinc-900">
               {summary.latestResult ? `${summary.latestResult.percentage}%` : "—"}
             </div>
@@ -110,13 +110,13 @@ export default async function ParentPortalPage({
         ) : null}
         {sections.portfolio ? (
           <>
-            <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <div className="rounded-card border bg-white p-5">
               <div className="text-2xl font-semibold text-zinc-900">
                 {summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—"}
               </div>
               <div className="mt-1 text-sm text-zinc-500">Consolidated score</div>
             </div>
-            <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <div className="rounded-card border bg-white p-5">
               <div className="text-2xl font-semibold text-zinc-900">{summary.recentPortfolioEvents.length}</div>
               <div className="mt-1 text-sm text-zinc-500">Recent portfolio events</div>
             </div>
@@ -125,11 +125,11 @@ export default async function ParentPortalPage({
       </div>
 
       {sections.portfolio ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recent portfolio timeline</h2>
           <ul className="space-y-2 text-sm">
             {summary.recentPortfolioEvents.map((e) => (
-              <li key={e.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={e.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{e.title}</span>
                 <span className="text-zinc-500">{e.event_date}</span>
               </li>
@@ -140,11 +140,11 @@ export default async function ParentPortalPage({
       ) : null}
 
       {sections.discipline && summary.activeDisciplineFlags ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Discipline</h2>
           <ul className="space-y-2 text-sm">
             {summary.activeDisciplineFlags.map((d) => (
-              <li key={d.id} className="border-b border-zinc-100 pb-2 last:border-0">
+              <li key={d.id} className="border-b pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span>{d.category_name}{d.severity ? ` — ${d.severity}` : ""}</span>
                   <span className="text-zinc-500">{d.date}</span>
@@ -161,11 +161,11 @@ export default async function ParentPortalPage({
       ) : null}
 
       {sections.character ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Character assessments</h2>
           <ul className="space-y-2 text-sm">
             {characterAssessments.map((c) => (
-              <li key={c.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={c.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{c.attribute_name} — {c.period}</span>
                 <span className="text-zinc-500">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
               </li>
@@ -176,11 +176,11 @@ export default async function ParentPortalPage({
       ) : null}
 
       {sections.mentoring ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Mentoring</h2>
           <ul className="space-y-2 text-sm">
             {mentoringNotes.map((m) => (
-              <li key={m.id} className="border-b border-zinc-100 pb-2 last:border-0">
+              <li key={m.id} className="border-b pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span>{m.mentor_name}</span>
                   <span className="text-zinc-500">{m.date}</span>
@@ -195,11 +195,11 @@ export default async function ParentPortalPage({
       ) : null}
 
       {sections.achievements ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Achievements</h2>
           <ul className="space-y-2 text-sm">
             {achievements.map((a) => (
-              <li key={a.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={a.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{a.title} ({a.category_name})</span>
                 <span className="text-zinc-500">{a.status}</span>
               </li>
@@ -210,11 +210,11 @@ export default async function ParentPortalPage({
       ) : null}
 
       {sections.skills ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Skills</h2>
           <ul className="space-y-2 text-sm">
             {skillSubmissions.map((s) => (
-              <li key={s.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={s.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{s.activity_name}</span>
                 <span className="text-zinc-500">{s.status}</span>
               </li>
@@ -225,11 +225,11 @@ export default async function ParentPortalPage({
       ) : null}
 
       {sections.library ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Library — reading record</h2>
           <ul className="space-y-2 text-sm">
             {readingRecords.map((r) => (
-              <li key={r.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={r.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{r.book_title}</span>
                 <span className="text-zinc-500">{r.review_status}</span>
               </li>
@@ -248,7 +248,7 @@ export default async function ParentPortalPage({
       ) : null}
 
       {can(ctx.permissions, "fees.pay_own") ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Pay fees</h2>
           <PayFeeForm
             invoices={pendingInvoices.map((i) => ({
@@ -261,7 +261,7 @@ export default async function ParentPortalPage({
       ) : null}
 
       {can(ctx.permissions, "messages.send_to_staff") ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Message a teacher or the principal</h2>
           <SendMessageForm
             studentId={selectedChildId}
@@ -271,7 +271,7 @@ export default async function ParentPortalPage({
       ) : null}
 
       {can(ctx.permissions, "kudos.send") ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="rounded-card border bg-white p-6">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Send a flower or congratulations 🌸</h2>
           <SendKudosForm
             studentId={selectedChildId}

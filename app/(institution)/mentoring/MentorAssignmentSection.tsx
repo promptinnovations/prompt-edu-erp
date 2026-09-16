@@ -51,13 +51,13 @@ export default function MentorAssignmentSection({
       <form action={action} className="flex flex-wrap items-end gap-2">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Mentor (staff)</label>
-          <select name="mentorStaffId" required className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
+          <select name="mentorStaffId" required className="rounded-full border px-3 py-1.5 text-sm">
             {mentors.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
           </select>
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Assign to student</label>
-          <select name="studentId" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
+          <select name="studentId" className="rounded-full border px-3 py-1.5 text-sm">
             <option value="">—</option>
             {students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
           </select>
@@ -65,12 +65,12 @@ export default function MentorAssignmentSection({
         <span className="pb-2 text-xs text-zinc-500">or</span>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Assign to whole class</label>
-          <select name="classId" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
+          <select name="classId" className="rounded-full border px-3 py-1.5 text-sm">
             <option value="">—</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+        <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
           Assign
         </button>
       </form>
@@ -81,7 +81,7 @@ export default function MentorAssignmentSection({
           <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr><th className="py-1.5">Mentor</th><th className="py-1.5">Assigned to</th><th className="py-1.5">Status</th><th className="py-1.5"></th></tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {assignments.map((a) => <AssignmentRowItem key={a.id} a={a} />)}
             {assignments.length === 0 ? <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No mentor assignments yet.</td></tr> : null}
           </tbody>

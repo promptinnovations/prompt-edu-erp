@@ -13,8 +13,8 @@ function SubmitReviewForm({ readingRecordId }: { readingRecordId: string }) {
   return (
     <form action={formAction} className="flex items-center gap-1">
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
-      <input name="reviewText" placeholder="Review text…" className="rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <input name="reviewText" placeholder="Review text…" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Save
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -27,7 +27,7 @@ function ReviewDecisionButton({ action, label, readingRecordId }: { action: type
   return (
     <form action={formAction} className="inline-flex items-center gap-1">
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
-      <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+      <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         {label}
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -53,7 +53,7 @@ export default function ReadingReviewQueue({
           <th className="py-1.5" />
         </tr>
       </thead>
-      <tbody className="divide-y divide-zinc-100">
+      <tbody className="divide-y">
         {records.map((r) => (
           <tr key={r.id}>
             <td className="py-1.5">{r.student_name}</td>

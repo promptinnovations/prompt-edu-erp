@@ -22,13 +22,13 @@ function GradeBandRow({ band, canManage }: { band: GradeBand; canManage: boolean
       <li className="flex flex-wrap items-center gap-2 py-1 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="gradeBandId" value={band.id} />
-          <input name="gradeLabel" defaultValue={band.grade_label} className="w-16 rounded border border-zinc-300 px-2 py-1 text-xs" />
-          <input name="minPercent" type="number" step="0.01" defaultValue={band.min_percent} className="w-20 rounded border border-zinc-300 px-2 py-1 text-xs" placeholder="Min %" />
+          <input name="gradeLabel" defaultValue={band.grade_label} className="w-16 rounded-full border px-2 py-1 text-xs" />
+          <input name="minPercent" type="number" step="0.01" defaultValue={band.min_percent} className="w-20 rounded-full border px-2 py-1 text-xs" placeholder="Min %" />
           <span className="text-xs text-zinc-500">–</span>
-          <input name="maxPercent" type="number" step="0.01" defaultValue={band.max_percent} className="w-20 rounded border border-zinc-300 px-2 py-1 text-xs" placeholder="Max %" />
-          <input name="gradePoint" type="number" step="0.01" defaultValue={band.grade_point ?? ""} className="w-16 rounded border border-zinc-300 px-2 py-1 text-xs" placeholder="GP" />
-          <input name="color" type="color" defaultValue={band.color ?? "#94a3b8"} className="h-7 w-9 rounded border border-zinc-300 p-0.5" title="Band color" />
-          <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+          <input name="maxPercent" type="number" step="0.01" defaultValue={band.max_percent} className="w-20 rounded-full border px-2 py-1 text-xs" placeholder="Max %" />
+          <input name="gradePoint" type="number" step="0.01" defaultValue={band.grade_point ?? ""} className="w-16 rounded-full border px-2 py-1 text-xs" placeholder="GP" />
+          <input name="color" type="color" defaultValue={band.color ?? "#94a3b8"} className="h-7 w-9 rounded border p-0.5" title="Band color" />
+          <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
         {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
@@ -65,13 +65,13 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
   const [, addBandAction] = useActionState(createGradeBandAction, INIT);
 
   return (
-    <div className="rounded-xl border border-zinc-200 p-4">
+    <div className="rounded-card border p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         {editing ? (
           <form action={updateAction} className="flex items-center gap-2" onSubmit={() => setEditing(false)}>
             <input type="hidden" name="gradeScaleId" value={scale.id} />
-            <input name="name" defaultValue={scale.name} className="rounded border border-zinc-300 px-2 py-1 text-sm" />
-            <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+            <input name="name" defaultValue={scale.name} className="rounded-full border px-2 py-1 text-sm" />
+            <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
         ) : (
@@ -100,35 +100,35 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
       </div>
       {updateState.error ? <p className="mb-2 text-xs text-red-600">{updateState.error}</p> : null}
 
-      <ul className="divide-y divide-zinc-100">
+      <ul className="divide-y">
         {bands.length === 0 ? <li className="py-1 text-xs text-zinc-500">No grade bands yet.</li> : null}
         {bands.map((b) => <GradeBandRow key={b.id} band={b} canManage={canManage} />)}
       </ul>
 
       {canManage ? (
-        <form action={addBandAction} className="mt-3 flex flex-wrap items-end gap-2 border-t border-zinc-100 pt-3">
+        <form action={addBandAction} className="mt-3 flex flex-wrap items-end gap-2 border-t pt-3">
           <input type="hidden" name="gradeScaleId" value={scale.id} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Label</label>
-            <input name="gradeLabel" required placeholder="A+" className="w-16 rounded border border-zinc-300 px-2 py-1 text-sm" />
+            <input name="gradeLabel" required placeholder="A+" className="w-16 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Min %</label>
-            <input name="minPercent" type="number" step="0.01" required className="w-20 rounded border border-zinc-300 px-2 py-1 text-sm" />
+            <input name="minPercent" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Max %</label>
-            <input name="maxPercent" type="number" step="0.01" required className="w-20 rounded border border-zinc-300 px-2 py-1 text-sm" />
+            <input name="maxPercent" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Grade point</label>
-            <input name="gradePoint" type="number" step="0.01" className="w-16 rounded border border-zinc-300 px-2 py-1 text-sm" />
+            <input name="gradePoint" type="number" step="0.01" className="w-16 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Color</label>
-            <input name="color" type="color" defaultValue="#4f46e5" className="h-8 w-10 rounded border border-zinc-300 p-0.5" />
+            <input name="color" type="color" defaultValue="#4f46e5" className="h-8 w-10 rounded border p-0.5" />
           </div>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add band
           </button>
         </form>
@@ -152,15 +152,15 @@ export default function GradeScaleSection({
       ))}
 
       {canManage ? (
-        <form action={createAction} className="flex items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-3">
+        <form action={createAction} className="flex items-end gap-2 rounded-card border border-dashed p-3">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">New grade scale name</label>
-            <input name="name" required placeholder="e.g. A+–F Letter Grades" className="rounded border border-zinc-300 px-2 py-1.5 text-sm" />
+            <input name="name" required placeholder="e.g. A+–F Letter Grades" className="rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
             <input type="checkbox" name="isDefault" /> Make default
           </label>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add grade scale
           </button>
         </form>

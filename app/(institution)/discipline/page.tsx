@@ -34,7 +34,7 @@ export default async function DisciplinePage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Discipline &amp; Character</h1>
 
-      <section id="records" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="records" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Discipline records</h2>
         <DisciplineRecordForm
           students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -44,7 +44,7 @@ export default async function DisciplinePage() {
         />
       </section>
 
-      <section id="character" className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section id="character" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Character assessments</h2>
         <CharacterAssessmentForm
           students={students.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -56,7 +56,7 @@ export default async function DisciplinePage() {
       </section>
 
       {canManage ? (
-        <section id="config" className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section id="config" className="rounded-card border bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Configure categories, attributes &amp; rating scale</h2>
           <p className="mb-3 text-xs text-zinc-500">
             Add, rename, reorder, or deactivate discipline categories and character attributes anytime — no code

@@ -11,7 +11,7 @@ const Field = ({ label, name, defaultValue, type = "text" }: { label: string; na
       name={name}
       type={type}
       defaultValue={defaultValue}
-      className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+      className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
     />
   </div>
 );
@@ -23,13 +23,13 @@ const TextArea = ({ label, name, defaultValue }: { label: string; name: string; 
       name={name}
       defaultValue={defaultValue}
       rows={2}
-      className="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+      className="w-full rounded-lg border bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
     />
   </div>
 );
 
 const Section = ({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) => (
-  <fieldset className="rounded-xl border border-zinc-200 p-4">
+  <fieldset className="rounded-card border p-4">
     <legend className="px-1 text-sm font-semibold text-zinc-700">{title}</legend>
     {note ? <p className="mb-3 -mt-1 text-xs text-zinc-500">{note}</p> : null}
     <div className="grid gap-3 sm:grid-cols-2">{children}</div>
@@ -133,7 +133,7 @@ export default function TeacherProfileForm({ profile }: { profile: StaffProfileR
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+          className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save profile"}
         </button>

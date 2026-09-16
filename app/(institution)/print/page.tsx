@@ -76,7 +76,7 @@ export default async function PrintCenterPage() {
             <Link
               key={t.title}
               href={t.href}
-              className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-5 transition-colors hover:border-[var(--brand)]"
+              className="flex flex-col gap-2 rounded-card border bg-white p-5 transition-colors hover:border-[var(--brand)]"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]">
                 <Icon className="h-5 w-5" />

@@ -36,7 +36,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           <input type="hidden" name="institutionId" value={id} />
           <button
             type="submit"
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800"
+            className="rounded-full bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800"
           >
             Open this institution&apos;s console
           </button>
@@ -48,7 +48,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
         there lets you exit back here at any time.
       </p>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Modules</h2>
         <p className="mb-4 text-xs text-zinc-500">
           Core modules (Academic Structure, Student Management) are always on — every institution needs them to
@@ -65,7 +65,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
               <th className="py-1.5"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {modules.map((m) => (
               <tr key={m.code}>
                 <td className="py-2">
@@ -96,7 +96,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
       </section>
 
       {institution.type === "madrasa" || institution.type === "school" ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">
             {institution.type === "school" ? "Board / curriculum" : "Educational board"}
           </h2>
@@ -107,7 +107,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">WhatsApp (GREEN-API)</h2>
         <p className="mb-4 text-xs text-zinc-500">
           Each institution sends attendance alerts from its own WhatsApp number — enter the ID Instance and API

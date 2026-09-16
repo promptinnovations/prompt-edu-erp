@@ -24,11 +24,11 @@ function CategoryRow({ category }: { category: Category }) {
       <li className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="categoryId" value={category.id} />
-          <input name="name" defaultValue={category.name} className="rounded border border-zinc-300 px-2 py-1 text-sm" />
+          <input name="name" defaultValue={category.name} className="rounded-full border px-2 py-1 text-sm" />
           <label className="flex items-center gap-1 text-xs text-zinc-500">
             <input type="checkbox" name="isPositive" defaultChecked={category.is_positive} /> Positive/appreciation category
           </label>
-          <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+          <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
         {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
@@ -76,8 +76,8 @@ function AttributeRow({ attribute }: { attribute: Attribute }) {
       <li className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="attributeId" value={attribute.id} />
-          <input name="name" defaultValue={attribute.name} className="rounded border border-zinc-300 px-2 py-1 text-sm" />
-          <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+          <input name="name" defaultValue={attribute.name} className="rounded-full border px-2 py-1 text-sm" />
+          <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
         {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
@@ -118,8 +118,8 @@ function RatingLabelRow({ ratingLabel }: { ratingLabel: RatingLabel }) {
       <form action={action} className="flex items-center gap-2">
         <input type="hidden" name="rating" value={ratingLabel.rating} />
         <span className="w-6 text-xs text-zinc-500">{ratingLabel.rating}</span>
-        <input name="label" defaultValue={ratingLabel.label} className="w-48 rounded border border-zinc-300 px-2 py-1 text-sm" />
-        <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
+        <input name="label" defaultValue={ratingLabel.label} className="w-48 rounded-full border px-2 py-1 text-sm" />
+        <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
         {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
       </form>
     </li>
@@ -138,27 +138,27 @@ export default function DisciplineConfigSection({
     <div className="grid gap-6 md:grid-cols-3">
       <div>
         <h3 className="mb-2 section-label">Discipline categories</h3>
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y">
           {categories.map((c) => <CategoryRow key={c.id} category={c} />)}
         </ul>
-        <form action={createCatAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-2">
-          <input name="name" required placeholder="New category" className="w-32 rounded border border-zinc-300 px-2 py-1 text-sm" />
+        <form action={createCatAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-card border border-dashed p-2">
+          <input name="name" required placeholder="New category" className="w-32 rounded-full border px-2 py-1 text-sm" />
           <label className="flex items-center gap-1 text-xs text-zinc-500">
             <input type="checkbox" name="isPositive" /> Positive
           </label>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-2 py-1 text-xs font-medium text-white hover:opacity-90">Add</button>
+          <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-2 py-1 text-xs font-medium text-white hover:opacity-90">Add</button>
         </form>
         {createCatState.error ? <p className="mt-1 text-xs text-red-600">{createCatState.error}</p> : null}
       </div>
 
       <div>
         <h3 className="mb-2 section-label">Character attributes</h3>
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y">
           {attributes.map((a) => <AttributeRow key={a.id} attribute={a} />)}
         </ul>
-        <form action={createAttrAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 p-2">
-          <input name="name" required placeholder="New attribute" className="w-32 rounded border border-zinc-300 px-2 py-1 text-sm" />
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-2 py-1 text-xs font-medium text-white hover:opacity-90">Add</button>
+        <form action={createAttrAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-card border border-dashed p-2">
+          <input name="name" required placeholder="New attribute" className="w-32 rounded-full border px-2 py-1 text-sm" />
+          <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-2 py-1 text-xs font-medium text-white hover:opacity-90">Add</button>
         </form>
         {createAttrState.error ? <p className="mt-1 text-xs text-red-600">{createAttrState.error}</p> : null}
       </div>

@@ -52,7 +52,7 @@ export default async function PromotionPage({
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">1. Choose a class</h2>
         <form action={pickClass} className="flex flex-wrap items-end gap-2">
           <div>
@@ -61,7 +61,7 @@ export default async function PromotionPage({
               name="classId"
               defaultValue={classId ?? ""}
               required
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             >
               <option value="" disabled>Select a class…</option>
               {classes.map((c) => (
@@ -74,7 +74,7 @@ export default async function PromotionPage({
             <select
               name="sectionId"
               defaultValue={sectionId ?? ""}
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+              className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
             >
               <option value="">All divisions</option>
               {sectionsForChosenClass.map((s) => (
@@ -82,7 +82,7 @@ export default async function PromotionPage({
               ))}
             </select>
           </div>
-          <button type="submit" className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
+          <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
             Load roster
           </button>
         </form>

@@ -5,7 +5,7 @@ import { admitStudentAction } from "./actions";
 
 interface SectionOption { id: string; classId: string; label: string }
 
-const inputCls = "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
+const inputCls = "rounded-full border bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400";
 
 /**
  * §Student Profile feature — "Enrollment" (the user's own naming: "add-
@@ -103,7 +103,7 @@ export default function StudentForm({
       </p>
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {pending ? "Admitting…" : "Admit student"}
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

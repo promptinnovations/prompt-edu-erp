@@ -121,7 +121,7 @@ export default async function StudentDetailPage({
 
   const personalTab = (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <div className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
@@ -167,7 +167,7 @@ export default async function StudentDetailPage({
       </div>
 
       {canManage ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Photo</h2>
           <PhotoForm studentId={profile.id} photoUrl={profile.photo_file_id ? `/api/files/${profile.photo_file_id}` : null} />
         </div>
@@ -175,7 +175,7 @@ export default async function StudentDetailPage({
 
       {canManage ? <StudentProfileForm profile={profile} /> : null}
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <div className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Class enrollment</h2>
         {enrollment ? (
           <ClassEnrollmentSection
@@ -205,13 +205,13 @@ export default async function StudentDetailPage({
         )}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <div className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Family background — parents / guardians</h2>
         <ParentSection studentId={profile.id} parents={parents} canManage={canManage} studentHasAccount={!!profile.user_id} />
       </div>
 
       {can(ctx.permissions, "users.manage") ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Student portal login (§137)</h2>
           <StudentLoginSection
             studentId={profile.id}
@@ -240,7 +240,7 @@ export default async function StudentDetailPage({
   const summaryTab = (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-card border bg-white p-5">
           <div className="section-label">Latest result</div>
           {student360.latestResult ? (
             <>
@@ -254,7 +254,7 @@ export default async function StudentDetailPage({
           )}
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-card border bg-white p-5">
           <div className="section-label">Attendance (this year)</div>
           {student360.attendanceSummary ? (
             <>
@@ -268,7 +268,7 @@ export default async function StudentDetailPage({
           )}
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 sm:col-span-2">
+        <div className="rounded-card border bg-white p-5 sm:col-span-2">
           <div className="section-label">Consolidated score</div>
           {student360.latestConsolidatedScore ? (
             <>
@@ -282,11 +282,11 @@ export default async function StudentDetailPage({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Monthly attendance</h2>
           <MonthlyAttendanceBarChart points={monthlyAttendance} />
         </section>
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
             Exam report{examReport ? ` — ${examReport.examination_name}` : ""}
           </h2>
@@ -301,12 +301,12 @@ export default async function StudentDetailPage({
   // Phase D §1 — real Fee module data now backs this tab (was a
   // placeholder before the Fee module existed).
   const feesTab = feeInvoices.length === 0 ? (
-    <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center">
+    <div className="rounded-card border border-dashed bg-white p-8 text-center">
       <p className="text-sm font-medium text-zinc-600">No fee invoices for this student yet.</p>
       <p className="mt-1 text-xs text-zinc-500">Assign a fee structure from the Fees page to generate one.</p>
     </div>
   ) : (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <div className="rounded-card border bg-white p-5">
       <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Fee invoices</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -317,7 +317,7 @@ export default async function StudentDetailPage({
           </thead>
           <tbody>
             {feeInvoices.map((i) => (
-              <tr key={i.id} className="border-t border-zinc-100">
+              <tr key={i.id} className="border-t">
                 <td className="py-1.5 pr-3">{i.category_name}</td>
                 <td className="py-1.5 pr-3">₹{i.amount_due}</td>
                 <td className="py-1.5 pr-3">₹{i.amount_paid}</td>
@@ -351,10 +351,10 @@ export default async function StudentDetailPage({
         Only approved activities appear here — nothing pending or rejected ever shows up (§L.3). This is the verified record of what {profile.full_name} has achieved and worked on so far.
       </p>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Academic performance</h2>
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-zinc-100 p-3">
+          <div className="rounded-card border p-3">
             <div className="text-xs text-zinc-500">Latest result</div>
             <div className="mt-1 text-lg font-semibold text-zinc-900">
               {student360.latestResult ? `${Number(student360.latestResult.percentage).toFixed(1)}%` : "—"}
@@ -365,13 +365,13 @@ export default async function StudentDetailPage({
               </div>
             ) : null}
           </div>
-          <div className="rounded-xl border border-zinc-100 p-3">
+          <div className="rounded-card border p-3">
             <div className="text-xs text-zinc-500">Attendance (this year)</div>
             <div className="mt-1 text-lg font-semibold text-zinc-900">
               {student360.attendanceSummary ? `${student360.attendanceSummary.present_percent}%` : "—"}
             </div>
           </div>
-          <div className="rounded-xl border border-zinc-100 p-3">
+          <div className="rounded-card border p-3">
             <div className="text-xs text-zinc-500">Consolidated score</div>
             <div className="mt-1 text-lg font-semibold text-zinc-900">
               {student360.latestConsolidatedScore ? student360.latestConsolidatedScore.score : "—"}
@@ -384,7 +384,7 @@ export default async function StudentDetailPage({
               <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                 <tr><th className="py-1.5 pr-4">Subject</th><th className="py-1.5 pr-4">Marks</th></tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {examReport.subjects.map((s) => (
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
@@ -401,7 +401,7 @@ export default async function StudentDetailPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Achievements &amp; awards</h2>
         <p className="mb-3 text-xs text-zinc-500">Grouped by this institution&apos;s own achievement categories — including competitions, prizes and recognitions.</p>
         {achievementsByCategory.size === 0 ? (
@@ -413,7 +413,7 @@ export default async function StudentDetailPage({
                 <h3 className="mb-2 section-label">{category}</h3>
                 <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {items!.map((a) => (
-                    <li key={a.id} className="flex items-center justify-between rounded-xl border border-zinc-100 p-3 text-sm">
+                    <li key={a.id} className="flex items-center justify-between rounded-card border p-3 text-sm">
                       <div>
                         <div className="text-zinc-900">{a.title}</div>
                         <div className="text-xs text-zinc-500">
@@ -430,7 +430,7 @@ export default async function StudentDetailPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Certifications</h2>
         <p className="mb-3 text-xs text-zinc-500">Achievements with an uploaded certificate document.</p>
         {certifiedAchievements.length === 0 ? (
@@ -438,7 +438,7 @@ export default async function StudentDetailPage({
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {certifiedAchievements.map((a) => (
-              <li key={a.id} className="flex items-center justify-between rounded-xl border border-zinc-100 p-3 text-sm">
+              <li key={a.id} className="flex items-center justify-between rounded-card border p-3 text-sm">
                 <div>
                   <div className="text-zinc-900">{a.title}</div>
                   <div className="text-xs text-zinc-500">{a.category_name}</div>
@@ -452,7 +452,7 @@ export default async function StudentDetailPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Skills &amp; co-curricular activities</h2>
         <p className="mb-3 text-xs text-zinc-500">Approved skill/activity submissions — sports, arts, clubs and other co-curricular participation, per this institution&apos;s own configured activities.</p>
         {approvedSkillSubmissions.length === 0 ? (
@@ -460,7 +460,7 @@ export default async function StudentDetailPage({
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {approvedSkillSubmissions.map((s) => (
-              <li key={s.id} className="rounded-xl border border-zinc-100 p-3 text-sm">
+              <li key={s.id} className="rounded-card border p-3 text-sm">
                 <div className="text-zinc-900">{s.activity_name}</div>
                 {s.submitted_at ? <div className="text-xs text-zinc-500">{formatDate(s.submitted_at)}</div> : null}
               </li>
@@ -470,7 +470,7 @@ export default async function StudentDetailPage({
       </section>
 
       {canViewDiscipline ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[var(--heading)]">Discipline &amp; character</h2>
             <Link href="/discipline" className="text-xs text-indigo-600 underline hover:text-indigo-800">
@@ -487,7 +487,7 @@ export default async function StudentDetailPage({
               ) : (
                 <ul className="space-y-2">
                   {disciplineRecords.map((d) => (
-                    <li key={d.id} className="rounded-xl border border-zinc-100 p-3 text-sm">
+                    <li key={d.id} className="rounded-card border p-3 text-sm">
                       <div className="flex items-center justify-between">
                         <span className={`font-medium ${d.is_positive ? "text-emerald-700" : "text-red-700"}`}>
                           {d.category_name}
@@ -512,7 +512,7 @@ export default async function StudentDetailPage({
               ) : (
                 <ul className="space-y-2">
                   {characterAssessments.map((c) => (
-                    <li key={c.id} className="flex items-center justify-between rounded-xl border border-zinc-100 p-3 text-sm">
+                    <li key={c.id} className="flex items-center justify-between rounded-card border p-3 text-sm">
                       <div>
                         <div className="text-zinc-900">{c.attribute_name}</div>
                         <div className="text-xs text-zinc-500">{c.period}{c.notes ? ` — ${c.notes}` : ""}</div>
@@ -527,13 +527,13 @@ export default async function StudentDetailPage({
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Books read ({allReadingRecords.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">Every book this student has finished and returned.</p>
         {allReadingRecords.length === 0 ? (
           <p className="text-sm text-zinc-500">No books read yet.</p>
         ) : (
-          <ul className="divide-y divide-zinc-100">
+          <ul className="divide-y">
             {allReadingRecords.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="text-zinc-900">{r.book_title}</span>
@@ -553,7 +553,7 @@ export default async function StudentDetailPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Reading reviews ({approvedReadingRecords.length})</h2>
         <p className="mb-3 text-xs text-zinc-500">Reviews this student posted, once approved.</p>
         {approvedReadingRecords.length === 0 ? (
@@ -561,7 +561,7 @@ export default async function StudentDetailPage({
         ) : (
           <ul className="space-y-3">
             {approvedReadingRecords.map((r) => (
-              <li key={r.id} className="rounded-xl border border-zinc-100 p-3 text-sm">
+              <li key={r.id} className="rounded-card border p-3 text-sm">
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <span className="font-medium text-zinc-900">{r.book_title}</span>
                   <span className="text-xs text-zinc-500">{formatDate(r.created_at)}</span>
@@ -573,10 +573,10 @@ export default async function StudentDetailPage({
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Activity timeline</h2>
         <p className="mb-3 text-xs text-zinc-500">A chronological view across every module — projects, accomplishments and other development records all flow through here as they&apos;re approved.</p>
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y">
           {student360.recentPortfolioEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between py-2 text-sm">
               <div>
@@ -596,11 +596,11 @@ export default async function StudentDetailPage({
       </section>
 
       {kudosReceived.length > 0 ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Kudos received</h2>
           <ul className="space-y-2 text-sm">
             {kudosReceived.map((k) => (
-              <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
+              <li key={k.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
                 <span className="text-zinc-500">{k.created_at}</span>
               </li>
@@ -613,7 +613,7 @@ export default async function StudentDetailPage({
 
   const academicsTab = (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">
           {examReport ? examReport.examination_name : "Subject-wise marks"}
         </h2>
@@ -637,7 +637,7 @@ export default async function StudentDetailPage({
                   <th className="py-1.5 pr-4">%</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {trackSubjects.map((s) => (
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
@@ -670,7 +670,7 @@ export default async function StudentDetailPage({
                   <th className="py-1.5 pr-4">%</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {examReport.subjects.filter((s) => !s.track).map((s) => (
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
@@ -698,7 +698,7 @@ export default async function StudentDetailPage({
                   <th className="py-1.5 pr-4">%</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {examReport.subjects.map((s) => (
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
@@ -719,7 +719,7 @@ export default async function StudentDetailPage({
         )}
       </section>
       {dailyAssessmentHistory.length > 0 ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Daily performance</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -731,7 +731,7 @@ export default async function StudentDetailPage({
                   <th className="py-1.5 pr-4">Marks</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {dailyAssessmentHistory.map((d, i) => (
                   <tr key={i}>
                     <td className="py-1.5 pr-4 text-zinc-900">{formatDate(d.assessment_date)}</td>
@@ -757,7 +757,7 @@ export default async function StudentDetailPage({
         ← Back to Student profiles
       </Link>
 
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-6">
+      <div className="flex flex-wrap items-center gap-4 rounded-card border bg-white p-6">
         {profile.photo_file_id ? (
           // eslint-disable-next-line @next/next/no-img-element -- avatar from an authenticated /api/files route, not a static/optimizable asset
           <img src={`/api/files/${profile.photo_file_id}`} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-100" />

@@ -69,8 +69,8 @@ export default function RichTextEditor({
   );
 
   return (
-    <div className="rounded-lg border border-zinc-300 focus-within:ring-1 focus-within:ring-indigo-400 focus-within:border-indigo-400">
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 px-1.5 py-1">
+    <div className="rounded-lg border focus-within:ring-1 focus-within:ring-indigo-400 focus-within:border-indigo-400">
+      <div className="flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
         <ToolbarButton command="bold" label="Bold"><span className="font-bold">B</span></ToolbarButton>
         <ToolbarButton command="italic" label="Italic"><span className="italic">I</span></ToolbarButton>
         <ToolbarButton command="underline" label="Underline"><span className="underline">U</span></ToolbarButton>

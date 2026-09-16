@@ -32,34 +32,34 @@ export default function EditStaffForm({
   }
 
   return (
-    <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-zinc-200 p-3">
+    <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-card border p-3">
       <input type="hidden" name="staffId" value={staffId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Staff code</label>
-        <input name="staffCode" defaultValue={staffCode} required className="w-32 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="staffCode" defaultValue={staffCode} required className="w-32 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-        <input name="fullName" defaultValue={fullName} required className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="fullName" defaultValue={fullName} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Designation</label>
-        <input name="designation" defaultValue={designation ?? ""} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="designation" defaultValue={designation ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Department</label>
-        <input name="department" defaultValue={department ?? ""} className="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input name="department" defaultValue={department ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Employment status</label>
-        <select name="employmentStatus" defaultValue={employmentStatus} className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+        <select name="employmentStatus" defaultValue={employmentStatus} className="rounded-full border bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           <option value="active">Active</option>
           <option value="on_leave">On leave</option>
           <option value="resigned">Resigned</option>
           <option value="terminated">Terminated</option>
         </select>
       </div>
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Save
       </button>
       <button type="button" onClick={() => setEditing(false)} className="text-sm text-zinc-500 hover:text-zinc-700">

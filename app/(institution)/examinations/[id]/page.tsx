@@ -140,19 +140,19 @@ export default async function ExaminationDetailPage({
         <p className="mt-1 text-sm text-zinc-500">{examTypeName} · {examination.status}</p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">1. Confirm scope</h2>
         <p className="mb-3 text-xs text-zinc-500">Which grades and divisions does this exam apply to?</p>
         <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">2. Subjects &amp; total marks</h2>
         <p className="mb-3 text-xs text-zinc-500">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
         <ExamSubjectsSection examinationId={id} subjects={subjects} linked={linkedSubjects} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[var(--heading)]">Results</h2>
           <ComputeResultsButton examinationId={id} />
@@ -167,7 +167,7 @@ export default async function ExaminationDetailPage({
               <th className="py-1.5">Grade</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {results.map((r) => (
               <tr key={r.student_id}>
                 <td className="py-1.5">{r.student_name}</td>

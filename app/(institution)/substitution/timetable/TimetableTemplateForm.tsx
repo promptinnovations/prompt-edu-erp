@@ -30,7 +30,7 @@ export default function TimetableTemplateForm({ classes }: { classes: Array<{ id
         <p className="mb-1 text-xs text-zinc-500">Classes</p>
         <div className="flex flex-wrap gap-2">
           {classes.map((c) => (
-            <label key={c.id} className="flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs">
+            <label key={c.id} className="flex items-center gap-1 rounded-full border px-2 py-1 text-xs">
               <input type="checkbox" checked={selectedClassIds.includes(c.id)} onChange={() => toggleClass(c.id)} /> {c.name}
             </label>
           ))}
@@ -41,7 +41,7 @@ export default function TimetableTemplateForm({ classes }: { classes: Array<{ id
         <p className="mb-1 text-xs text-zinc-500">Working days</p>
         <div className="flex flex-wrap gap-2">
           {DAYS.map((d) => (
-            <label key={d.value} className="flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs">
+            <label key={d.value} className="flex items-center gap-1 rounded-full border px-2 py-1 text-xs">
               <input type="checkbox" checked={selectedDays.includes(d.value)} onChange={() => toggleDay(d.value)} /> {d.label}
             </label>
           ))}
@@ -53,12 +53,12 @@ export default function TimetableTemplateForm({ classes }: { classes: Array<{ id
         <input
           type="number" min={1} max={20} value={periodsPerDay}
           onChange={(e) => setPeriodsPerDay(Number(e.target.value))}
-          className="w-24 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm"
+          className="w-24 rounded-lg border px-3 py-1.5 text-sm"
         />
       </div>
 
       {canDownload ? (
-        <a href={downloadUrl} className="inline-block rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+        <a href={downloadUrl} className="inline-block rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
           Download configured template
         </a>
       ) : (

@@ -21,7 +21,7 @@ export default async function StoragePage() {
         <p className="text-sm text-zinc-500">You do not have permission to manage institution file storage (&quot;files.manage&quot;).</p>
       ) : (
         <>
-          <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <section className="rounded-card border bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Active provider</h2>
             <p className="text-sm text-zinc-600">
               New uploads are currently stored via <span className="font-medium capitalize">{activeProvider}</span>{" "}
@@ -29,7 +29,7 @@ export default async function StoragePage() {
             </p>
           </section>
 
-          <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <section className="rounded-card border bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Migrate existing files</h2>
             <p className="mb-3 text-sm text-zinc-500">
               Moves every file not already on the chosen provider (§U.2) — byte-verified, one file at a time.
@@ -37,7 +37,7 @@ export default async function StoragePage() {
             <MigrateStorageForm activeProvider={activeProvider} />
           </section>
 
-          <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <section className="rounded-card border bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Recent files (this institution)</h2>
             {files.length === 0 ? (
               <p className="text-sm text-zinc-500">No files uploaded yet.</p>
@@ -54,7 +54,7 @@ export default async function StoragePage() {
                     <th className="py-1.5" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y">
                   {files.map((f) => (
                     <tr key={f.id}>
                       <td className="py-1.5">{f.file_name}</td>

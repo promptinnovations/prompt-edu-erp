@@ -52,8 +52,8 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-10 mt-1 w-80 rounded-lg border border-zinc-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-2">
+        <div className="absolute right-0 z-10 mt-1 w-80 rounded-lg border bg-white shadow-float">
+          <div className="flex items-center justify-between border-b px-3 py-2">
             <span className="text-xs font-semibold text-zinc-500">Notifications</span>
             {initialUnreadCount > 0 ? (
               <button type="button" onClick={handleMarkAllRead} disabled={pending} className="text-xs text-zinc-500 underline hover:text-zinc-900 disabled:opacity-50">

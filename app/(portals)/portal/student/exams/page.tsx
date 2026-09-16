@@ -20,7 +20,7 @@ export default async function StudentExamsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-sm">
+        <div className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-card">
           <div className="text-2xl font-semibold text-[var(--foreground)]">
             {summary.latestResult ? `${summary.latestResult.percentage}%` : "—"}
           </div>
@@ -28,7 +28,7 @@ export default async function StudentExamsPage() {
             {summary.latestResult ? `${summary.latestResult.examination_name}${summary.latestResult.grade_label ? ` · Grade ${summary.latestResult.grade_label}` : ""}` : "No results yet"}
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-sm">
+        <div className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-card">
           <div className="text-2xl font-semibold text-[var(--foreground)]">
             {summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—"}
           </div>
@@ -36,7 +36,7 @@ export default async function StudentExamsPage() {
             {summary.attendanceSummary ? `${summary.attendanceSummary.present_days} / ${summary.attendanceSummary.total_days} days present` : "Attendance this year"}
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-sm">
+        <div className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-card">
           <div className="text-2xl font-semibold text-[var(--foreground)]">
             {summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—"}
           </div>

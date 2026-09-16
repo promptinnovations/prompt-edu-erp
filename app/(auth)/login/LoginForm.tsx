@@ -59,7 +59,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
         <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[var(--brand-via)]/15 blur-3xl" />
       </div>
 
-      <div className="relative z-10 grid w-full max-w-4xl overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl shadow-black/10 md:grid-cols-2">
+      <div className="relative z-10 grid w-full max-w-4xl overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-float md:grid-cols-2">
         {/* Left: brand hero panel, hidden on small screens */}
         <div className="hidden flex-col justify-between bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] p-10 text-white md:flex">
           <div>
@@ -92,18 +92,18 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
           </div>
 
           {institutionName ? (
-            <div className="mb-4 flex rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-0.5 text-sm">
+            <div className="mb-4 flex rounded-card border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-0.5 text-sm">
               <button
                 type="button"
                 onClick={() => setStudentMode(false)}
-                className={`flex-1 rounded-md px-3 py-1.5 transition-colors ${!studentMode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm" : "text-zinc-500 hover:text-[var(--foreground)]"}`}
+                className={`flex-1 rounded-md px-3 py-1.5 transition-colors ${!studentMode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-card" : "text-zinc-500 hover:text-[var(--foreground)]"}`}
               >
                 {t("staffTab")}
               </button>
               <button
                 type="button"
                 onClick={() => setStudentMode(true)}
-                className={`flex-1 rounded-md px-3 py-1.5 transition-colors ${studentMode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm" : "text-zinc-500 hover:text-[var(--foreground)]"}`}
+                className={`flex-1 rounded-md px-3 py-1.5 transition-colors ${studentMode ? "bg-[var(--surface)] text-[var(--foreground)] shadow-card" : "text-zinc-500 hover:text-[var(--foreground)]"}`}
               >
                 {t("studentTab")}
               </button>
@@ -151,7 +151,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
               <button
                 type="submit"
                 disabled={pending}
-                className="w-full rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-2 text-sm font-medium text-white shadow-lg shadow-[var(--brand)]/20 transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="w-full rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-2 text-sm font-medium text-white shadow-float shadow-[var(--brand)]/20 transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {t("signIn")}
               </button>
@@ -191,7 +191,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
                   name="intent"
                   value="signin"
                   disabled={pending}
-                  className="flex-1 rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-2 text-sm font-medium text-white shadow-lg shadow-[var(--brand)]/20 transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="flex-1 rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-2 text-sm font-medium text-white shadow-float shadow-[var(--brand)]/20 transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   {t("signIn")}
                 </button>
@@ -200,7 +200,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
                   name="intent"
                   value="signup"
                   disabled={pending}
-                  className="flex-1 rounded-lg border border-[var(--border-subtle)] px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-[var(--surface-muted)] disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]"
+                  className="flex-1 rounded-full border border-[var(--border-subtle)] px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-[var(--surface-muted)] disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]"
                 >
                   {t("signUp")}
                 </button>

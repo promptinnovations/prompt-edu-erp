@@ -17,16 +17,16 @@ export default function PortalRoleToggle() {
   const isStudent = pathname?.startsWith("/portal/student");
 
   return (
-    <div className="flex items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-0.5 text-xs">
+    <div className="flex items-center rounded-card border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-0.5 text-xs">
       <Link
         href="/portal/student"
-        className={`rounded-md px-2.5 py-1 font-medium transition-colors ${isStudent ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:text-zinc-700"}`}
+        className={`rounded-full px-2.5 py-1 font-medium transition-colors ${isStudent ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:text-zinc-700"}`}
       >
         Student
       </Link>
       <Link
         href="/portal/parent"
-        className={`rounded-md px-2.5 py-1 font-medium transition-colors ${isParent ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:text-zinc-700"}`}
+        className={`rounded-full px-2.5 py-1 font-medium transition-colors ${isParent ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:text-zinc-700"}`}
       >
         Parent
       </Link>

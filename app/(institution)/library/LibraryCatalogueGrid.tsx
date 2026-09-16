@@ -66,12 +66,12 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search title or author…"
-          className="min-w-[200px] flex-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="min-w-[200px] flex-1 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
         >
           <option value="">All categories</option>
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -95,7 +95,7 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
             return (
               <div
                 key={b.id}
-                className="group overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="group overflow-hidden rounded-xl border bg-white shadow-card transition-shadow hover:shadow-raised"
               >
                 <div className="h-2" style={{ backgroundColor: spine }} />
                 <div className="p-3">

@@ -25,7 +25,7 @@ export default async function SkillsPage() {
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Skills</h1>
 
       {can(ctx.permissions, "skills.submit") ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-[var(--heading)]">Submit an activity</h2>
             {can(ctx.permissions, "settings.manage") ? (
@@ -49,7 +49,7 @@ export default async function SkillsPage() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Submissions</h2>
         <SubmissionsTable
           submissions={submissions}

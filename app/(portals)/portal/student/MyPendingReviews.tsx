@@ -17,7 +17,7 @@ function ReviewForm({ readingRecordId }: { readingRecordId: string }) {
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
       <RichTextEditor name="reviewText" placeholder="What did you think of this book?" minHeightClassName="min-h-[8rem]" />
       <div className="flex items-center gap-2">
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-4 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-4 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Post review
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
@@ -40,7 +40,7 @@ export default function MyPendingReviews({ reviews }: { reviews: PendingReviewRo
   return (
     <div className="space-y-4">
       {reviews.map((r) => (
-        <div key={r.id} className="rounded-xl border border-zinc-100 p-3">
+        <div key={r.id} className="rounded-card border p-3">
           <p className="mb-2 text-sm font-medium text-zinc-800">{r.book_title}</p>
           <ReviewForm readingRecordId={r.id} />
         </div>

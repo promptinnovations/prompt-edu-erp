@@ -70,12 +70,12 @@ export default async function MonthlyRegisterPage({
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Monthly Attendance Register</h1>
 
-      <section className="no-print rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="no-print rounded-card border bg-white p-5">
         <RegisterPicker classes={classes} sections={sections} classId={effectiveClassId} sectionId={effectiveSectionId} month={effectiveMonth} />
       </section>
 
       {register ? (
-        <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="print-area rounded-card border bg-white p-5">
           <PrintLetterhead
             institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
             logoCode={institution?.logoFileId ? institution.code : null}
@@ -103,7 +103,7 @@ export default async function MonthlyRegisterPage({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y">
                 {register.students.map((s) => (
                   <tr key={s.student_id}>
                     <td className="sticky left-0 bg-white whitespace-nowrap py-1 pr-2">

@@ -28,7 +28,7 @@ export default function SeatingGenderRuleForm({ current }: { current: "hard" | "
         {OPTIONS.map((opt) => (
           <label
             key={opt.value}
-            className="flex cursor-pointer items-start gap-2 rounded-xl border border-zinc-200 p-3 text-sm hover:border-[var(--brand)]"
+            className="flex cursor-pointer items-start gap-2 rounded-card border p-3 text-sm hover:border-[var(--brand)]"
           >
             <input type="radio" name="examSeatingGenderRule" value={opt.value} defaultChecked={current === opt.value} className="mt-0.5 h-4 w-4" />
             <span>
@@ -39,7 +39,7 @@ export default function SeatingGenderRuleForm({ current }: { current: "hard" | "
         ))}
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Save
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

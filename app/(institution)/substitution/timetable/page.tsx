@@ -44,12 +44,12 @@ export default async function TimetablePage() {
         </Link>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Configured bulk-upload template</h2>
         <TimetableTemplateForm classes={classes.map((c) => ({ id: c.id, name: c.name }))} />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Add / update a period</h2>
         <AddTimetablePeriodForm
           classes={classes}
@@ -59,7 +59,7 @@ export default async function TimetablePage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Current timetable</h2>
         {grouped.size === 0 ? (
           <p className="text-sm text-zinc-500">No periods set up yet — add one above, or bulk-upload an Excel file.</p>
@@ -79,7 +79,7 @@ export default async function TimetablePage() {
                         <th className="py-1 pr-3" />
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y">
                       {group.rows.map((p) => (
                         <tr key={p.id}>
                           <td className="py-1.5 pr-3">{DAY_NAMES[p.dayOfWeek]}</td>

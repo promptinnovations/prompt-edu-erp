@@ -38,9 +38,9 @@ export default function StaffLoginCell({ staffId, hasLogin, canManage }: { staff
         minLength={4}
         maxLength={30}
         placeholder="Password (e.g. phone number)"
-        className="w-40 rounded-lg border border-zinc-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+        className="w-40 rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
       />
-      <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-2 py-1 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-2 py-1 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         {hasLogin ? "Reset" : "Create"}
       </button>
       <button type="button" onClick={() => setOpen(false)} className="text-xs text-zinc-500 hover:text-zinc-600">

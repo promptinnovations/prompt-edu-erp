@@ -145,7 +145,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl bg-[var(--brand)] p-6 text-white shadow-lg sm:p-8">
+      <div className="relative overflow-hidden rounded-card bg-[var(--brand)] p-6 text-white shadow-float sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
         <div className="relative">
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
             <Link
               key={b.label}
               href={b.href}
-              className="flex flex-col items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3 py-3 text-center shadow-sm transition-colors hover:border-[var(--brand)]"
+              className="flex flex-col items-center gap-1.5 rounded-full border bg-white px-3 py-3 text-center shadow-card transition-colors hover:border-[var(--brand)]"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
                 {b.icon}
@@ -180,7 +180,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {statCards.map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div key={label} className="rounded-card border bg-white p-4 shadow-card">
             <div className="text-2xl font-semibold text-zinc-900">{value}</div>
             <div className="mt-1 text-sm text-zinc-500">{label}</div>
           </div>
@@ -191,7 +191,7 @@ export default async function DashboardPage() {
         <h2 className="mb-3 text-lg font-semibold text-[var(--heading)]">Dashboard</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {attendanceToday ? (
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <section className="rounded-card border bg-white p-5">
               <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Today&apos;s attendance</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -216,13 +216,13 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <section className="rounded-card border bg-white p-5">
             <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">To do list</h3>
             <TodoWidget todos={todos} />
           </section>
 
           {hasExaminationAccess && recentExam ? (
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <section className="rounded-card border bg-white p-5">
               <h3 className="mb-1 text-sm font-semibold text-[var(--heading)]">Mark entry status</h3>
               <p className="mb-3 text-xs text-zinc-500">{recentExam.name}</p>
               {markExpected === 0 ? (
@@ -240,7 +240,7 @@ export default async function DashboardPage() {
           ) : null}
 
           {hasExaminationAccess && passRateTrendByStage.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <section className="rounded-card border bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--heading)]">Pass rate trend</h3>
                 <Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
@@ -250,7 +250,7 @@ export default async function DashboardPage() {
           ) : null}
 
           {isSectionOrAbove && attendanceTrendByStage.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <section className="rounded-card border bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--heading)]">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
@@ -259,7 +259,7 @@ export default async function DashboardPage() {
               <AttendanceStageTrendChart points={attendanceTrendByStage} />
             </section>
           ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <section className="rounded-card border bg-white p-5">
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--heading)]">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
@@ -270,7 +270,7 @@ export default async function DashboardPage() {
           ) : null}
 
           {isSectionOrAbove && consecutiveAbsentees.length > 0 ? (
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <section className="rounded-card border bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--heading)]">Chronic absentees (3+ days)</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
@@ -280,7 +280,7 @@ export default async function DashboardPage() {
           ) : null}
 
           {hasUnrestrictedLeaveReview || hasScopedLeaveReview ? (
-            <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <section className="rounded-card border bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--heading)]">Pending leave requests</h3>
                 <Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>
@@ -302,7 +302,7 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <section className="rounded-card border bg-white p-5">
             <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Upcoming calendar</h3>
             {upcoming.length === 0 ? (
               <p className="text-sm text-zinc-500">Nothing scheduled.</p>

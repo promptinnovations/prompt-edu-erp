@@ -53,13 +53,13 @@ export default async function CalendarPage() {
       </div>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Add an event</h2>
           <AddEventForm />
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Upcoming</h2>
         {upcoming.length === 0 ? (
           <p className="text-sm text-zinc-500">No upcoming events.</p>
@@ -87,7 +87,7 @@ export default async function CalendarPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Past</h2>
         {past.length === 0 ? (
           <p className="text-sm text-zinc-500">No past events yet.</p>

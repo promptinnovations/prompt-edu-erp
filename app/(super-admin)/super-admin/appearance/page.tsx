@@ -26,7 +26,7 @@ export default async function SuperAdminAppearancePage() {
         own choice on their own Settings page.
       </p>
 
-      <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5">
+      <section className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-5">
         <PalettePicker currentId={currentId} action={updatePlatformPaletteAction} />
       </section>
     </div>

@@ -186,7 +186,7 @@ export default async function AnalyticsPage({
         refresh needed for those.
       </p>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Examination performance</h2>
         <ExaminationPicker
           examinations={examinations}
@@ -206,7 +206,7 @@ export default async function AnalyticsPage({
                 <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr><th className="py-1.5">Rank</th><th className="py-1.5">Subject</th><th className="py-1.5">Marked</th><th className="py-1.5">Average</th><th className="py-1.5">Pass %</th></tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y">
                   {[...subjectComparison].sort((a, b) => (b.avg_marks ?? -1) - (a.avg_marks ?? -1)).map((s, idx) => (
                     <tr key={s.subject_id}>
                       <td className="py-1.5 text-zinc-500">#{idx + 1}</td>
@@ -231,7 +231,7 @@ export default async function AnalyticsPage({
                 <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr><th className="py-1.5">Subject</th><th className="py-1.5">Division avg</th><th className="py-1.5">Division pass %</th></tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y">
                   {indicators.map((i, idx) => (
                     <tr key={`${i.subject_id}-${i.class_id}-${i.section_id}-${idx}`}>
                       <td className="py-1.5">{i.subject_name}</td>
@@ -254,7 +254,7 @@ export default async function AnalyticsPage({
                 <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
                   <tr><th className="py-1.5">Student</th><th className="py-1.5">Percentage</th><th className="py-1.5">Band</th></tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y">
                   {classification.map((c) => (
                     <tr key={c.student_id}><td className="py-1.5">{c.student_name}</td><td className="py-1.5">{c.percentage}%</td><td className="py-1.5 capitalize">{c.band.replace("_", " ")}</td></tr>
                   ))}
@@ -270,7 +270,7 @@ export default async function AnalyticsPage({
       </section>
 
       {examinationId ? (
-        <section className="print-area rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="print-area rounded-card border bg-white p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-[var(--heading)]">Result Analysis</h2>
             <PrintButton label="Print this report" />
@@ -281,12 +281,12 @@ export default async function AnalyticsPage({
             </p>
           ) : null}
 
-          <nav className="no-print mb-4 flex flex-wrap gap-1 border-b border-zinc-200 pb-2">
+          <nav className="no-print mb-4 flex flex-wrap gap-1 border-b pb-2">
             {RESULT_TABS.map((t) => (
               <Link
                 key={t.key}
                 href={tabHref(t.key)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${tab === t.key ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100"}`}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium ${tab === t.key ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100"}`}
               >
                 {t.label}
               </Link>
@@ -308,7 +308,7 @@ export default async function AnalyticsPage({
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {trackSummaries.map((t: TrackResultSummary) => (
-                      <div key={t.track} className="rounded-xl border border-zinc-200 p-4">
+                      <div key={t.track} className="rounded-card border p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500 capitalize">{t.track}</p>
                         <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                           <div>
@@ -344,7 +344,7 @@ export default async function AnalyticsPage({
                 {subjectRankChart.length > 0 ? <BarChart data={subjectRankChart} orientation="horizontal" /> : <p className="text-sm text-zinc-500">No approved marks yet.</p>}
               </div>
               {topTeacher ? (
-                <div className="rounded-xl border border-zinc-200 p-4">
+                <div className="rounded-card border p-4">
                   <p className="text-xs text-zinc-500">Top-performing teacher (this exam)</p>
                   <p className="mt-1 text-lg font-semibold text-zinc-900">{topTeacher.teacher_name} <span className="text-sm font-normal text-zinc-500">— {topTeacher.subject_name}</span></p>
                   <p className="text-xs text-zinc-500">Average {topTeacher.average_marks}/{topTeacher.max_marks} · Pass {fmtPct(topTeacher.pass_percentage)}</p>
@@ -398,7 +398,7 @@ export default async function AnalyticsPage({
                     <Link
                       key={c.id}
                       href={tabHref("class", { classId: c.id })}
-                      className={`rounded-lg px-2.5 py-1 text-xs ${histogramClassId === c.id ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600"}`}
+                      className={`rounded-full px-2.5 py-1 text-xs ${histogramClassId === c.id ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600"}`}
                     >
                       {c.name}
                     </Link>
@@ -418,13 +418,13 @@ export default async function AnalyticsPage({
           ) : null}
         </section>
       ) : (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Result Analysis</h2>
           <p className="text-sm text-zinc-500">Select an examination above to see School/Section/Grade/Class/Subject/Teacher-wise reports.</p>
         </section>
       )}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Class attendance trend</h2>
         <AttendanceTrendPicker
           classes={classes}
@@ -441,7 +441,7 @@ export default async function AnalyticsPage({
             <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
               <tr><th className="py-1.5">Month</th><th className="py-1.5">Present days</th><th className="py-1.5">Late days</th><th className="py-1.5">Total days</th><th className="py-1.5">Present %</th></tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y">
               {attendanceTrend.map((t) => (
                 <tr key={t.month}><td className="py-1.5">{t.month}</td><td className="py-1.5">{t.present_days}</td><td className="py-1.5">{t.late_days}</td><td className="py-1.5">{t.total_days}</td><td className="py-1.5">{t.present_percent}%</td></tr>
               ))}
@@ -455,7 +455,7 @@ export default async function AnalyticsPage({
       </section>
 
       {canManage ? (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <section className="rounded-card border bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Classification thresholds (percentage)</h2>
           <ClassificationRuleForm highThreshold={rule?.high_threshold ?? 75} lowThreshold={rule?.low_threshold ?? 40} />
         </section>
@@ -488,7 +488,7 @@ function ResultGroupSection({
               <th className="py-1.5">Pass %</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {rows.map((r, idx) => (
               <tr key={r.id}>
                 <td className="py-1.5 text-zinc-500">#{idx + 1}</td>
@@ -549,7 +549,7 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
                     <th className="py-1.5">Pass %</th><th className="py-1.5">Fail %</th><th className="py-1.5">Top bands</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y">
                   {subjects.map((s) => (
                     <tr key={s.subject_id}>
                       <td className="py-1.5">{s.subject_name}</td>
@@ -618,7 +618,7 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
               <th className="py-1.5">Pass %</th><th className="py-1.5">Full marks</th><th className="py-1.5">Fail</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y">
             {rows.map((t, idx) => (
               <tr key={`${t.teacher_user_id}-${t.subject_id}`}>
                 <td className="py-1.5 text-zinc-500">#{idx + 1}</td>

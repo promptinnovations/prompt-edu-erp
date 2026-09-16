@@ -57,7 +57,7 @@ export default function ClassEnrollmentSection({
                   <select
                     name="sectionAndClass"
                     required
-                    className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                     onChange={(e) => {
                       const [classId, sectionId] = e.currentTarget.value.split("|");
                       const form = e.currentTarget.form!;
@@ -73,7 +73,7 @@ export default function ClassEnrollmentSection({
                   <input type="hidden" name="classId" />
                   <input type="hidden" name="sectionId" />
                 </div>
-                <button type="submit" disabled={moving} className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50">
+                <button type="submit" disabled={moving} className="rounded-full border px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-50">
                   {moving ? "Moving…" : "Move"}
                 </button>
               </form>
@@ -103,7 +103,7 @@ export default function ClassEnrollmentSection({
           </summary>
           <div className="mt-2 space-y-2">
             {pastRows.map((h) => (
-              <div key={h.id} className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-xs">
+              <div key={h.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-xs">
                 <span className="text-zinc-600">
                   {h.class_name} — {h.section_name} ({h.academic_year_name}) —{" "}
                   <span className={h.status === "transferred" ? "text-amber-600" : "text-red-600"}>{h.status}</span>
