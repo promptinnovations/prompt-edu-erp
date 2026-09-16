@@ -1,5 +1,6 @@
 import type { MonthlyAttendancePoint } from "../../../../modules/attendance/service";
 import type { StudentSubjectMarkRow } from "../../../../modules/examination/service";
+import { seriesColor } from "../../../components/charts/series";
 
 const MONTH_LABEL = (ym: string) => {
   const [, m] = ym.split("-");
@@ -25,7 +26,7 @@ export function MonthlyAttendanceBarChart({ points }: { points: MonthlyAttendanc
           return (
             <div key={p.month} className="flex flex-1 flex-col items-center justify-end" style={{ height: "100%" }}>
               <div className="flex w-full max-w-[28px] flex-col justify-end overflow-hidden rounded-t-sm" style={{ height: "100%" }}>
-                <div style={{ height: `${absentH}%` }} className="w-full bg-red-300" title={`${p.absent} absent`} />
+                <div style={{ height: `${absentH}%` }} className="w-full bg-red-400" title={`${p.absent} absent`} />
                 <div style={{ height: `${presentH}%` }} className="w-full bg-emerald-400" title={`${p.present} present`} />
               </div>
               <div className="mt-1.5 text-[10px] text-zinc-500">{MONTH_LABEL(p.month)}</div>
@@ -35,15 +36,11 @@ export function MonthlyAttendanceBarChart({ points }: { points: MonthlyAttendanc
       </div>
       <div className="mt-3 flex items-center gap-4 text-xs text-zinc-500">
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-400" /> Present</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-300" /> Absent</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-400" /> Absent</span>
       </div>
     </div>
   );
 }
-
-const SLICE_COLORS = [
-  "#6366f1", "#22c55e", "#f59e0b", "#ec4899", "#06b6d4", "#a855f7", "#ef4444", "#84cc16", "#14b8a6", "#f97316",
-];
 
 /** §Student Profile feature (Summary/Academics tabs) — a conic-gradient
  *  donut showing how this student's most recent examination marks split
@@ -67,7 +64,7 @@ export function ExamSubjectPieChart({ subjects }: { subjects: StudentSubjectMark
     const share = totalObtained > 0 ? (Number(s.marks_obtained) / totalObtained) * 100 : 100 / scored.length;
     const from = cursor;
     cursor += share;
-    return `${SLICE_COLORS[i % SLICE_COLORS.length]} ${from}% ${cursor}%`;
+    return `${seriesColor(i)} ${from}% ${cursor}%`;
   });
 
   return (
@@ -84,7 +81,7 @@ export function ExamSubjectPieChart({ subjects }: { subjects: StudentSubjectMark
       <ul className="space-y-1 text-sm">
         {scored.map((s, i) => (
           <li key={s.subject_id} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: SLICE_COLORS[i % SLICE_COLORS.length] }} />
+            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: seriesColor(i) }} />
             <span className="text-zinc-700">{s.subject_name}</span>
             <span className="text-zinc-500">{s.marks_obtained}/{s.max_marks}</span>
           </li>

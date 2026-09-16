@@ -15,10 +15,11 @@
  * fixed PASS_COLOR/FAIL_COLOR pair (modules/examination/service.ts) — never
  * a literal hex chosen here. These components only render whatever color
  * they're given; they never choose one themselves (the one exception is
- * DEFAULT_SERIES_COLORS below, used only for chart series that have no
+ * seriesColor() from ./series.ts, used only for chart series that have no
  * institution-config color to begin with, e.g. a multi-exam score trend
  * line — never for a grade band or pass/fail).
  */
+import { seriesColor } from "./series";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -28,11 +29,6 @@ export interface ChartDatum {
   value: number;
   color: string;
 }
-
-/** Neutral, non-grading palette for charts that have no institution-config
- *  color to draw from at all (e.g. one line per teacher in a ranking line
- *  chart). Never used for anything grade/pass-fail related. */
-const DEFAULT_SERIES_COLORS = ["#4f46e5", "#0891b2", "#c026d3", "#ea580c", "#65a30d", "#0d9488", "#9333ea", "#dc2626"];
 
 function fmtPct(n: number): string {
   return `${Math.round(n * 10) / 10}%`;
@@ -302,7 +298,7 @@ export function LineTrendChart({
             })
           : null}
         {nonEmpty.map((s, si) => {
-          const color = s.color ?? DEFAULT_SERIES_COLORS[si % DEFAULT_SERIES_COLORS.length];
+          const color = s.color ?? seriesColor(si);
           // Split into contiguous non-null runs so a gap (missing day for
           // this series) breaks the line instead of interpolating across
           // it or shifting every later point out of alignment with the
@@ -357,7 +353,7 @@ export function LineTrendChart({
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
         {nonEmpty.map((s, si) => (
           <span key={s.label} className="inline-flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color ?? DEFAULT_SERIES_COLORS[si % DEFAULT_SERIES_COLORS.length] }} />
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color ?? seriesColor(si) }} />
             {s.label}
           </span>
         ))}

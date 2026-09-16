@@ -18,6 +18,7 @@ import ExaminationPicker from "./ExaminationPicker";
 import AttendanceTrendPicker from "./AttendanceTrendPicker";
 import ClassificationRuleForm from "./ClassificationRuleForm";
 import RefreshButton from "./RefreshButton";
+import { CHART_SERIES, CHART_OVERFLOW, seriesColor } from "../../components/charts/series";
 
 function monthsAgo(n: number): string {
   const d = new Date();
@@ -45,8 +46,7 @@ function gradeCountsToChart(counts: Record<string, number>): ChartDatum[] {
   // carry grade_bands.color) — falls back to a neutral series color, never
   // a literal "meaningful" color per band (§K only binds actual grading
   // colors, not this best-effort small-multiple).
-  const palette = ["#4f46e5", "#0891b2", "#c026d3", "#ea580c", "#65a30d", "#0d9488", "#9333ea", "#dc2626", "#2563eb"];
-  return Object.entries(counts).map(([label, value], i) => ({ label, value, color: palette[i % palette.length] }));
+  return Object.entries(counts).map(([label, value], i) => ({ label, value, color: seriesColor(i) }));
 }
 
 export default async function AnalyticsPage({
@@ -160,7 +160,7 @@ export default async function AnalyticsPage({
 
   const gradeDonutSegments: ChartDatum[] = (schoolSummary?.grade_distribution ?? [])
     .filter((g) => g.student_count > 0)
-    .map((g) => ({ label: g.grade_label, value: g.student_count, color: g.color ?? "#94a3b8" }));
+    .map((g) => ({ label: g.grade_label, value: g.student_count, color: g.color ?? CHART_OVERFLOW }));
   const passFailSegments: ChartDatum[] = schoolSummary
     ? [
         { label: "Pass", value: schoolSummary.pass_count, color: PASS_COLOR },
@@ -170,7 +170,7 @@ export default async function AnalyticsPage({
   const subjectRankChart: ChartDatum[] = [...subjectComparison]
     .filter((s) => s.avg_marks !== null)
     .sort((a, b) => (b.avg_marks ?? 0) - (a.avg_marks ?? 0))
-    .map((s) => ({ label: s.subject_name, value: Number(s.avg_marks), color: "#4f46e5" }));
+    .map((s) => ({ label: s.subject_name, value: Number(s.avg_marks), color: CHART_SERIES[0] }));
   const topTeacher = scopedByTeacher[0] ?? null;
 
   return (
@@ -374,7 +374,7 @@ export default async function AnalyticsPage({
                     if (divisions.length === 0) return null;
                     const chart: ChartDatum[] = divisions.map((d, i) => ({
                       label: d.name, value: d.average_percent ?? 0,
-                      color: ["#4f46e5", "#0891b2", "#c026d3", "#ea580c", "#65a30d"][i % 5],
+                      color: seriesColor(i),
                     }));
                     return (
                       <div key={g.id}>
@@ -534,7 +534,7 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
         const chart: ChartDatum[] = subjects
           .filter((s) => s.average_percent !== null)
           .sort((a, b) => (b.average_percent ?? 0) - (a.average_percent ?? 0))
-          .map((s) => ({ label: s.subject_name, value: s.average_percent ?? 0, color: "#4f46e5" }));
+          .map((s) => ({ label: s.subject_name, value: s.average_percent ?? 0, color: CHART_SERIES[0] }));
         return (
           <div key={className}>
             <h3 className="mb-2 text-sm font-semibold text-[var(--heading)]">{className}</h3>
@@ -565,7 +565,7 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
                       <td className="py-1.5 text-xs">
                         {s.top_band_counts.map((b) => (
                           <span key={b.grade_label} className="mr-1.5 inline-flex items-center gap-1">
-                            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: b.color ?? "#94a3b8" }} />
+                            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: b.color ?? CHART_OVERFLOW }} />
                             {b.grade_label}: {b.count}
                           </span>
                         ))}
@@ -605,7 +605,7 @@ function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
 function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
   const chart: ChartDatum[] = rows
     .filter((r) => r.average_marks !== null)
-    .map((r) => ({ label: `${r.teacher_name} (${r.subject_name})`, value: r.average_marks ?? 0, color: "#4f46e5" }));
+    .map((r) => ({ label: `${r.teacher_name} (${r.subject_name})`, value: r.average_marks ?? 0, color: CHART_SERIES[0] }));
   return (
     <div className="space-y-6">
       <div className="overflow-x-auto">

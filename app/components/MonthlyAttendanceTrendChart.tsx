@@ -38,7 +38,7 @@ export default function MonthlyAttendanceTrendChart({ points }: { points: Attend
           <div key={p.month} className="flex flex-1 flex-col items-center gap-1">
             <span className="text-xs font-medium text-zinc-700">{p.present_percent}%</span>
             <div
-              className="w-full rounded-t bg-[var(--brand)]/70"
+              className="w-full rounded-t bg-chart-1"
               style={{ height: `${Math.max(4, (p.present_percent / maxPercent) * 70)}px` }}
               title={`${formatMonth(p.month)}: ${p.present_percent}% (${p.total_days} student-days)`}
             />

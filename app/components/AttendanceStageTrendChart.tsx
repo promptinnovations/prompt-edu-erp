@@ -15,13 +15,11 @@
  */
 import { LineTrendChart, type LineSeries } from "./charts/ResultCharts";
 import type { AttendanceTrendByStagePoint } from "../../modules/attendance/service";
+import { seriesColor } from "./charts/series";
 
-// Same neutral palette convention as ResultCharts.tsx's own
-// DEFAULT_SERIES_COLORS (this is genuinely institution/stage-agnostic data
-// with no grading-scale color to draw from), duplicated locally rather than
-// exported from that file since colors here are matched to STAGE NAMES,
-// not chart-primitive internals.
-const STAGE_COLORS = ["#4f46e5", "#0891b2", "#c026d3", "#ea580c", "#65a30d", "#0d9488", "#9333ea", "#dc2626"];
+// Stages take the fixed chart series slots in (sorted) stage order — the
+// same assignment as PassRateStageTrendChart, so a stage is drawn the same
+// colour across both Dashboard charts.
 
 function formatDate(d: string) {
   return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
@@ -44,7 +42,7 @@ export default function AttendanceStageTrendChart({ points }: { points: Attendan
     const byDate = new Map(points.filter((p) => p.stage === stage).map((p) => [p.date, p]));
     return {
       label: stage,
-      color: STAGE_COLORS[i % STAGE_COLORS.length],
+      color: seriesColor(i),
       // One point per shared date, always — a stage with no attendance
       // marked on a given date gets `y: null` (a gap in its line) rather
       // than being omitted, which would otherwise shift its remaining

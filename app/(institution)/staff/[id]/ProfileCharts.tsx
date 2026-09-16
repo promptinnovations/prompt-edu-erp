@@ -1,4 +1,5 @@
 import type { TeacherPerformanceTrendPoint } from "../../../../modules/analytics/service";
+import { CHART_SERIES } from "../../../components/charts/series";
 
 /**
  * §Teacher-Profile feature ("a curve that shows growth and fall") — a pure
@@ -38,10 +39,10 @@ export function TeacherPerformanceTrendChart({ points }: { points: TeacherPerfor
   return (
     <div>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: 180 }}>
-        <path d={areaD} fill="var(--brand)" opacity={0.08} />
-        <path d={pathD} fill="none" stroke="var(--brand)" strokeWidth={2} />
+        <path d={areaD} fill={CHART_SERIES[0]} opacity={0.08} />
+        <path d={pathD} fill="none" stroke={CHART_SERIES[0]} strokeWidth={2} />
         {linePoints.map(([x, y], i) => (
-          <circle key={points[i].examinationId} cx={x} cy={y} r={3.5} fill="var(--brand)" />
+          <circle key={points[i].examinationId} cx={x} cy={y} r={3.5} fill={CHART_SERIES[0]} />
         ))}
       </svg>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">

@@ -13,11 +13,10 @@
  */
 import { LineTrendChart, type LineSeries } from "./charts/ResultCharts";
 import type { PassRateTrendByStagePoint } from "../../modules/examination/service";
+import { seriesColor } from "./charts/series";
 
-// Same palette as AttendanceStageTrendChart.tsx's STAGE_COLORS, kept in
-// sync deliberately so the same stage is drawn the same colour across
-// both Dashboard charts.
-const STAGE_COLORS = ["#4f46e5", "#0891b2", "#c026d3", "#ea580c", "#65a30d", "#0d9488", "#9333ea", "#dc2626"];
+// Same stage -> series slot assignment as AttendanceStageTrendChart, so the
+// same stage is drawn the same colour across both Dashboard charts.
 
 // Exam names ("Final Term Examination 2026-27") are much longer than the
 // short dates AttendanceStageTrendChart's X axis shows — shorten for the
@@ -44,7 +43,7 @@ export default function PassRateStageTrendChart({ points }: { points: PassRateTr
     const byExam = new Map(points.filter((p) => p.stage === stage).map((p) => [p.examinationId, p]));
     return {
       label: stage,
-      color: STAGE_COLORS[i % STAGE_COLORS.length],
+      color: seriesColor(i),
       // One point per shared exam, always — a stage with no students in a
       // given exam gets `y: null` (a gap) rather than being omitted, which
       // would otherwise shift its remaining points out of alignment with

@@ -44,7 +44,7 @@ export default function AttendanceTrendChart({
           <div key={p.date} className="flex flex-1 flex-col items-center gap-1">
             {!compact ? <span className="text-xs font-medium text-zinc-700">{p.presentPercent}%</span> : null}
             <div
-              className="w-full rounded-t bg-[var(--brand)]/70"
+              className="w-full rounded-t bg-chart-1"
               style={{ height: `${Math.max(4, (p.presentPercent / maxPercent) * (compact ? 44 : 70))}px` }}
               title={`${formatDate(p.date)}: ${p.presentPercent}% (${p.totalMarked} marked)`}
             />
