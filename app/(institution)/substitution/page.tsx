@@ -75,7 +75,7 @@ export default async function SubstitutionPage({
           {absentStaffId && date ? (
             <div className="mt-5">
               {suggestions === null ? null : suggestions.length === 0 ? (
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-zinc-500">
                   {absentStaffName || "This staff member"} has no timetabled periods on {formatDate(date)} — nothing to substitute
                   {canManageTimetable ? (
                     <> (set up the <Link href="/substitution/timetable" className="underline">timetable</Link> first if this is unexpected).</>
@@ -97,7 +97,7 @@ export default async function SubstitutionPage({
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent confirmed substitutions (last 14 days)</h2>
         {recent.length === 0 ? (
-          <p className="text-sm text-zinc-400">No substitutions recorded yet.</p>
+          <p className="text-sm text-zinc-500">No substitutions recorded yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -118,7 +118,7 @@ export default async function SubstitutionPage({
                     <td className="py-2 pr-3 whitespace-nowrap">{r.className} – {r.sectionName}</td>
                     <td className="py-2 pr-3">{r.periodNo}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">{r.absentStaffName}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap">{r.coveringStaffName ?? <span className="text-zinc-400">— unfilled —</span>}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{r.coveringStaffName ?? <span className="text-zinc-500">— unfilled —</span>}</td>
                     {canManage ? <td className="py-2 pr-3"><DeleteSubstitutionButton substitutionId={r.id} /></td> : null}
                   </tr>
                 ))}

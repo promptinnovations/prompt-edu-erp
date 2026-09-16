@@ -50,7 +50,7 @@ export default async function LibraryPage() {
       <section id="catalogue" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-zinc-700">Catalogue</h2>
-          <span className="text-xs text-zinc-400">{books.length} title{books.length === 1 ? "" : "s"}</span>
+          <span className="text-xs text-zinc-500">{books.length} title{books.length === 1 ? "" : "s"}</span>
         </div>
         {canManage ? (
           <details className="mb-4 rounded-xl border border-dashed border-zinc-300 p-3">
@@ -102,7 +102,7 @@ export default async function LibraryPage() {
               </tr>
             ))}
             {issued.length === 0 ? (
-              <tr><td colSpan={4} className="py-4 text-center text-zinc-400">Nothing currently issued.</td></tr>
+              <tr><td colSpan={4} className="py-4 text-center text-zinc-500">Nothing currently issued.</td></tr>
             ) : null}
           </tbody>
         </table>
@@ -116,7 +116,7 @@ export default async function LibraryPage() {
 
       <section id="pre-bookings" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Pre-bookings (waitlist)</h2>
-        <p className="mb-3 text-xs text-zinc-400">
+        <p className="mb-3 text-xs text-zinc-500">
           A student is notified automatically (in-app + WhatsApp) the moment a copy of a held book is returned.
         </p>
         <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at }))} />
@@ -129,7 +129,7 @@ export default async function LibraryPage() {
             <div key={r.id} className="rounded-xl border border-zinc-200 p-4 text-sm shadow-sm">
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-semibold text-zinc-800">{r.book_title}</span>
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-zinc-500">
                   by {r.student_name} · 👍 {r.like_count} · 👎 {r.dislike_count}
                 </span>
               </div>
@@ -137,7 +137,7 @@ export default async function LibraryPage() {
             </div>
           ))}
           {approvedReviews.length === 0 ? (
-            <p className="text-sm text-zinc-400">No approved reviews yet.</p>
+            <p className="text-sm text-zinc-500">No approved reviews yet.</p>
           ) : null}
         </div>
       </section>

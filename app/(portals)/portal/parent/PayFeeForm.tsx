@@ -7,7 +7,7 @@ export interface PendingInvoiceOption { id: string; label: string; balance: numb
 
 export default function PayFeeForm({ invoices }: { invoices: PendingInvoiceOption[] }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(payChildFeeAction, { error: null });
-  if (invoices.length === 0) return <p className="text-sm text-zinc-400">No pending fees for this child. 🎉</p>;
+  if (invoices.length === 0) return <p className="text-sm text-zinc-500">No pending fees for this child. 🎉</p>;
   return (
     <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -41,7 +41,7 @@ export default function PayFeeForm({ invoices }: { invoices: PendingInvoiceOptio
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
       </div>
-      <p className="sm:col-span-2 text-xs text-zinc-400">
+      <p className="sm:col-span-2 text-xs text-zinc-500">
         Submitting here records that you&apos;ve paid — the school office will confirm it shortly, and the balance will update once confirmed.
       </p>
     </form>

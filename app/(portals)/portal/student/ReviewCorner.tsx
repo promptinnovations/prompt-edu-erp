@@ -40,7 +40,7 @@ function ReactButton({ readingRecordId, reaction, label, active }: { readingReco
  *  via the action's own "No student record linked" error surfaced inline. */
 export default function ReviewCorner({ reviews }: { reviews: ApprovedReviewProps[] }) {
   if (reviews.length === 0) {
-    return <p className="text-sm text-zinc-400">No reviews yet — be the first to post one after finishing a book!</p>;
+    return <p className="text-sm text-zinc-500">No reviews yet — be the first to post one after finishing a book!</p>;
   }
   return (
     <div className="space-y-4">
@@ -48,7 +48,7 @@ export default function ReviewCorner({ reviews }: { reviews: ApprovedReviewProps
         <div key={r.id} className="rounded-xl border border-zinc-200 p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-zinc-800">{r.book_title}</p>
-            <span className="text-xs text-zinc-400">by {r.student_name}</span>
+            <span className="text-xs text-zinc-500">by {r.student_name}</span>
           </div>
           <RichTextContent html={r.review_text} className="mb-3" />
           <div className="flex items-center gap-2">

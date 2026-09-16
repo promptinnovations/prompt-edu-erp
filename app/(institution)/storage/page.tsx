@@ -18,7 +18,7 @@ export default async function StoragePage() {
       <h1 className="text-2xl font-semibold text-zinc-900">Storage</h1>
 
       {!canManage ? (
-        <p className="text-sm text-zinc-400">You do not have permission to manage institution file storage (&quot;files.manage&quot;).</p>
+        <p className="text-sm text-zinc-500">You do not have permission to manage institution file storage (&quot;files.manage&quot;).</p>
       ) : (
         <>
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
@@ -40,7 +40,7 @@ export default async function StoragePage() {
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent files (this institution)</h2>
             {files.length === 0 ? (
-              <p className="text-sm text-zinc-400">No files uploaded yet.</p>
+              <p className="text-sm text-zinc-500">No files uploaded yet.</p>
             ) : (
               <div className="overflow-x-auto">
               <table className="w-full text-sm">

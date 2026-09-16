@@ -14,7 +14,7 @@ function formatDate(d: string) {
 
 export default function ConsecutiveAbsenteesList({ rows }: { rows: ConsecutiveAbsenteeRow[] }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-zinc-400">No student has been absent 3+ days in a row right now.</p>;
+    return <p className="text-sm text-zinc-500">No student has been absent 3+ days in a row right now.</p>;
   }
   return (
     <ul className="divide-y divide-zinc-100">
@@ -22,7 +22,7 @@ export default function ConsecutiveAbsenteesList({ rows }: { rows: ConsecutiveAb
         <li key={r.studentId} className="flex items-center justify-between gap-3 py-2 text-sm">
           <div className="min-w-0">
             <p className="truncate font-medium text-zinc-800">{r.studentName}</p>
-            <p className="truncate text-xs text-zinc-400">
+            <p className="truncate text-xs text-zinc-500">
               {r.className} · {r.sectionName}
               {r.stage ? ` · ${r.stage}` : ""}
             </p>
@@ -31,7 +31,7 @@ export default function ConsecutiveAbsenteesList({ rows }: { rows: ConsecutiveAb
             <span className="inline-block rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
               {r.streakLength} days
             </span>
-            <p className="mt-0.5 text-[11px] text-zinc-400">
+            <p className="mt-0.5 text-[11px] text-zinc-500">
               since {formatDate(r.streakStart)}
             </p>
           </div>

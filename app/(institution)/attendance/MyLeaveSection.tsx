@@ -55,7 +55,7 @@ export default function MyLeaveSection({ leaves }: { leaves: MyLeaveRow[] }) {
               </tr>
             ))}
             {leaves.length === 0 ? (
-              <tr><td colSpan={3} className="py-4 text-center text-zinc-400">You haven&apos;t applied for leave yet.</td></tr>
+              <tr><td colSpan={3} className="py-4 text-center text-zinc-500">You haven&apos;t applied for leave yet.</td></tr>
             ) : null}
           </tbody>
         </table>

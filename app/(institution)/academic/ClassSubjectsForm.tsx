@@ -33,7 +33,7 @@ export default function ClassSubjectsForm({
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium text-zinc-900">{className}</span>
         {assigned.length === 0 ? (
-          <span className="text-xs text-zinc-400">No subjects assigned yet.</span>
+          <span className="text-xs text-zinc-500">No subjects assigned yet.</span>
         ) : (
           assigned.map((a) => (
             <span
@@ -45,7 +45,7 @@ export default function ClassSubjectsForm({
                 <form action={removeAction} className="inline">
                   <input type="hidden" name="classId" value={classId} />
                   <input type="hidden" name="subjectId" value={a.subjectId} />
-                  <button type="submit" className="text-zinc-400 hover:text-red-600" aria-label={`Remove ${a.subjectName}`}>
+                  <button type="submit" className="text-zinc-500 hover:text-red-600" aria-label={`Remove ${a.subjectName}`}>
                     ×
                   </button>
                 </form>

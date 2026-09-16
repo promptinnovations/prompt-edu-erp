@@ -66,7 +66,7 @@ export default function TeacherObservationForm({
             </tr>
           ))}
           {observations.length === 0 ? (
-            <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No observations recorded yet.</td></tr>
+            <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No observations recorded yet.</td></tr>
           ) : null}
         </tbody>
       </table>

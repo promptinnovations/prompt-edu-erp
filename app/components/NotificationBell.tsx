@@ -63,7 +63,7 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
           </div>
           <div className="max-h-80 overflow-y-auto">
             {initialItems.length === 0 ? (
-              <p className="px-3 py-4 text-sm text-zinc-400">No notifications yet.</p>
+              <p className="px-3 py-4 text-sm text-zinc-500">No notifications yet.</p>
             ) : (
               initialItems.map((n) => (
                 <button
@@ -71,7 +71,7 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
                   type="button"
                   onClick={() => handleMarkRead(n.id)}
                   disabled={pending}
-                  className={`block w-full border-b border-zinc-50 px-3 py-2 text-left text-sm last:border-0 hover:bg-zinc-50 ${n.read_at ? "text-zinc-400" : "text-zinc-900"}`}
+                  className={`block w-full border-b border-zinc-50 px-3 py-2 text-left text-sm last:border-0 hover:bg-zinc-50 ${n.read_at ? "text-zinc-500" : "text-zinc-900"}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{n.title}</span>

@@ -84,7 +84,7 @@ export default async function StaffPage({
               </tr>
             ))}
             {staff.length === 0 ? (
-              <tr><td colSpan={7} className="py-4 text-center text-zinc-400">No staff members yet.</td></tr>
+              <tr><td colSpan={7} className="py-4 text-center text-zinc-500">No staff members yet.</td></tr>
             ) : null}
           </tbody>
         </table>
@@ -123,7 +123,7 @@ export default async function StaffPage({
             canManage={can(ctx.permissions, "staff.portion.manage")}
           />
         ) : (
-          <p className="text-sm text-zinc-400">No current academic year configured.</p>
+          <p className="text-sm text-zinc-500">No current academic year configured.</p>
         )}
       </section>
 
@@ -149,13 +149,13 @@ export default async function StaffPage({
             canManage={can(ctx.permissions, "staff.assignment.manage")}
           />
         ) : (
-          <p className="text-sm text-zinc-400">No current academic year configured.</p>
+          <p className="text-sm text-zinc-500">No current academic year configured.</p>
         )}
       </section>
 
       <section id="section-head-assignments" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Section Head assignments</h2>
-        <p className="mb-3 text-xs text-zinc-400">
+        <p className="mb-3 text-xs text-zinc-500">
           Who oversees which section (KG/LP/UP/HS/HSS) — they also need the &quot;Section Head&quot; role itself,
           granted separately from Users &amp; Roles, for this to unlock the stage-wide attendance overview on the{" "}
           <Link href="/attendance#overview" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">

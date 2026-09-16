@@ -24,7 +24,7 @@ export default async function ReportCardsListPage({ params }: { params: Promise<
       <Link href="/results" className="text-sm text-zinc-500 underline">← Back to Results</Link>
       <h1 className="text-2xl font-semibold text-zinc-900">Report Cards — {examination.name}</h1>
       {results.length === 0 ? (
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-500">
           No results computed yet for this examination — compute results from its{" "}
           <Link href={`/examinations/${id}`} className="underline">detail page</Link> first.
         </p>

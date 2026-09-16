@@ -52,7 +52,7 @@ export default async function ExaminationsPage() {
             ))}
             {examinations.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-zinc-400">—</td>
+                <td colSpan={3} className="px-4 py-6 text-center text-zinc-500">—</td>
               </tr>
             ) : null}
           </tbody>

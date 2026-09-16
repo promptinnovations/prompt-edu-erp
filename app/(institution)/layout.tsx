@@ -348,7 +348,7 @@ export default async function InstitutionLayout({ children }: { children: React.
       </ResponsiveSidebar>
       <div className="flex min-w-0 flex-1 flex-col">
         {ctx.viewingInstitutionAsSuperAdmin ? (
-          <div className="flex flex-col items-start gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-col items-start gap-1 bg-accent-800 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <span>
               {ctx.viewingAsUser ? (
                 <>

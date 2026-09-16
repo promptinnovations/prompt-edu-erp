@@ -18,7 +18,7 @@ function AssignmentRowItem({ a }: { a: AssignmentRow }) {
     <tr>
       <td className="py-1.5">{a.mentorName}</td>
       <td className="py-1.5">{a.studentName ? a.studentName : <span className="text-zinc-500">Whole class: {a.className}</span>}</td>
-      <td className="py-1.5">{a.isActive ? <span className="text-emerald-700">Active</span> : <span className="text-zinc-400">Deactivated</span>}</td>
+      <td className="py-1.5">{a.isActive ? <span className="text-emerald-700">Active</span> : <span className="text-zinc-500">Deactivated</span>}</td>
       <td className="py-1.5">
         <form action={toggleAction}>
           <input type="hidden" name="assignmentId" value={a.id} />
@@ -62,7 +62,7 @@ export default function MentorAssignmentSection({
             {students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
           </select>
         </div>
-        <span className="pb-2 text-xs text-zinc-400">or</span>
+        <span className="pb-2 text-xs text-zinc-500">or</span>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Assign to whole class</label>
           <select name="classId" className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
@@ -70,7 +70,7 @@ export default function MentorAssignmentSection({
             {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+        <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
           Assign
         </button>
       </form>
@@ -83,7 +83,7 @@ export default function MentorAssignmentSection({
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {assignments.map((a) => <AssignmentRowItem key={a.id} a={a} />)}
-            {assignments.length === 0 ? <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No mentor assignments yet.</td></tr> : null}
+            {assignments.length === 0 ? <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No mentor assignments yet.</td></tr> : null}
           </tbody>
         </table>
       </div>

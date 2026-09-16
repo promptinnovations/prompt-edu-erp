@@ -33,7 +33,7 @@ export default async function SuspendedPage({
             Sign out
           </button>
         </form>
-        <Link href="/login" className="mt-3 block text-xs text-zinc-400 hover:text-zinc-600">
+        <Link href="/login" className="mt-3 block text-xs text-zinc-500 hover:text-zinc-600">
           Back to sign in
         </Link>
       </div>

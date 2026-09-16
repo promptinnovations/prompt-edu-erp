@@ -197,18 +197,18 @@ export default async function DashboardPage() {
                 <div>
                   <p className="text-xs text-zinc-500">Students</p>
                   <p className="text-xl font-semibold text-zinc-900">
-                    {attendanceToday.studentsPresent}<span className="text-sm font-normal text-zinc-400">/{attendanceToday.studentsEnrolled}</span>
+                    {attendanceToday.studentsPresent}<span className="text-sm font-normal text-zinc-500">/{attendanceToday.studentsEnrolled}</span>
                   </p>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-zinc-500">
                     {attendanceToday.studentsMarked > 0 ? `${attendanceToday.studentsAbsent} absent` : "Not marked yet"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-zinc-500">Staff</p>
                   <p className="text-xl font-semibold text-zinc-900">
-                    {attendanceToday.staffPresent}<span className="text-sm font-normal text-zinc-400">/{attendanceToday.staffTotal}</span>
+                    {attendanceToday.staffPresent}<span className="text-sm font-normal text-zinc-500">/{attendanceToday.staffTotal}</span>
                   </p>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-zinc-500">
                     {attendanceToday.staffMarked > 0 ? `${attendanceToday.staffAbsent} absent` : "Not marked yet"}
                   </p>
                 </div>
@@ -224,9 +224,9 @@ export default async function DashboardPage() {
           {hasExaminationAccess && recentExam ? (
             <section className="rounded-2xl border border-zinc-200 bg-white p-5">
               <h3 className="mb-1 text-sm font-semibold text-zinc-700">Mark entry status</h3>
-              <p className="mb-3 text-xs text-zinc-400">{recentExam.name}</p>
+              <p className="mb-3 text-xs text-zinc-500">{recentExam.name}</p>
               {markExpected === 0 ? (
-                <p className="text-sm text-zinc-400">No students/subjects configured yet.</p>
+                <p className="text-sm text-zinc-500">No students/subjects configured yet.</p>
               ) : (
                 <>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-700">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
-              <p className="mb-1 text-xs text-zinc-400">{attendanceVisibility.label} · last 15 days</p>
+              <p className="mb-1 text-xs text-zinc-500">{attendanceVisibility.label} · last 15 days</p>
               <AttendanceStageTrendChart points={attendanceTrendByStage} />
             </section>
           ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
@@ -264,7 +264,7 @@ export default async function DashboardPage() {
                 <h3 className="text-sm font-semibold text-zinc-700">Attendance trend</h3>
                 <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
               </div>
-              <p className="mb-1 text-xs text-zinc-400">{attendanceVisibility.label}</p>
+              <p className="mb-1 text-xs text-zinc-500">{attendanceVisibility.label}</p>
               <AttendanceTrendChart points={attendanceTrend} compact />
             </section>
           ) : null}
@@ -286,15 +286,15 @@ export default async function DashboardPage() {
                 <Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>
               </div>
               {pendingLeave.length === 0 ? (
-                <p className="text-sm text-zinc-400">Nothing pending.</p>
+                <p className="text-sm text-zinc-500">Nothing pending.</p>
               ) : (
                 <ul className="space-y-2">
                   {pendingLeave.map((l) => (
                     <li key={l.id} className="flex items-center justify-between gap-2 text-sm">
                       <span className="truncate text-zinc-700">
-                        {l.applicant_name} <span className="text-xs text-zinc-400 capitalize">({l.applicant_type})</span>
+                        {l.applicant_name} <span className="text-xs text-zinc-500 capitalize">({l.applicant_type})</span>
                       </span>
-                      <span className="shrink-0 text-xs text-zinc-400">{l.start_date} → {l.end_date}</span>
+                      <span className="shrink-0 text-xs text-zinc-500">{l.start_date} → {l.end_date}</span>
                     </li>
                   ))}
                 </ul>
@@ -305,13 +305,13 @@ export default async function DashboardPage() {
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
             <h3 className="mb-3 text-sm font-semibold text-zinc-700">Upcoming calendar</h3>
             {upcoming.length === 0 ? (
-              <p className="text-sm text-zinc-400">Nothing scheduled.</p>
+              <p className="text-sm text-zinc-500">Nothing scheduled.</p>
             ) : (
               <ul className="space-y-2">
                 {upcoming.map((u) => (
                   <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
                     <span className="truncate text-zinc-700">{u.title}</span>
-                    <span className="shrink-0 text-xs text-zinc-400">
+                    <span className="shrink-0 text-xs text-zinc-500">
                       {formatDate(u.date)}{u.endDate ? ` – ${formatDate(u.endDate)}` : ""}
                     </span>
                   </li>

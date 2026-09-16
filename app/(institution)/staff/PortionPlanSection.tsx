@@ -98,7 +98,7 @@ export default function PortionPlanSection({
             </tr>
           ))}
           {plans.length === 0 ? (
-            <tr><td colSpan={canManage ? 5 : 4} className="py-4 text-center text-zinc-400">No portion plans yet.</td></tr>
+            <tr><td colSpan={canManage ? 5 : 4} className="py-4 text-center text-zinc-500">No portion plans yet.</td></tr>
           ) : null}
         </tbody>
       </table>

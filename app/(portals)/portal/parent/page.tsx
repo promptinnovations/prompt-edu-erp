@@ -131,10 +131,10 @@ export default async function ParentPortalPage({
             {summary.recentPortfolioEvents.map((e) => (
               <li key={e.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{e.title}</span>
-                <span className="text-zinc-400">{e.event_date}</span>
+                <span className="text-zinc-500">{e.event_date}</span>
               </li>
             ))}
-            {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+            {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -147,7 +147,7 @@ export default async function ParentPortalPage({
               <li key={d.id} className="border-b border-zinc-100 pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span>{d.category_name}{d.severity ? ` — ${d.severity}` : ""}</span>
-                  <span className="text-zinc-400">{d.date}</span>
+                  <span className="text-zinc-500">{d.date}</span>
                 </div>
                 {d.action_taken ? <p className="mt-1 text-xs text-zinc-500">Action taken: {d.action_taken}</p> : null}
                 {d.evidence_photo_file_id ? (
@@ -155,7 +155,7 @@ export default async function ParentPortalPage({
                 ) : null}
               </li>
             ))}
-            {summary.activeDisciplineFlags.length === 0 ? <li className="text-zinc-400">Nothing to flag.</li> : null}
+            {summary.activeDisciplineFlags.length === 0 ? <li className="text-zinc-500">Nothing to flag.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -167,10 +167,10 @@ export default async function ParentPortalPage({
             {characterAssessments.map((c) => (
               <li key={c.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{c.attribute_name} — {c.period}</span>
-                <span className="text-zinc-400">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
+                <span className="text-zinc-500">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
               </li>
             ))}
-            {characterAssessments.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+            {characterAssessments.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -183,13 +183,13 @@ export default async function ParentPortalPage({
               <li key={m.id} className="border-b border-zinc-100 pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span>{m.mentor_name}</span>
-                  <span className="text-zinc-400">{m.date}</span>
+                  <span className="text-zinc-500">{m.date}</span>
                 </div>
                 {m.goals ? <p className="mt-1 text-xs text-zinc-500">Goals: {m.goals}</p> : null}
                 {m.action_plan ? <p className="mt-1 text-xs text-zinc-500">Action plan: {m.action_plan}</p> : null}
               </li>
             ))}
-            {mentoringNotes.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+            {mentoringNotes.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -201,10 +201,10 @@ export default async function ParentPortalPage({
             {achievements.map((a) => (
               <li key={a.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{a.title} ({a.category_name})</span>
-                <span className="text-zinc-400">{a.status}</span>
+                <span className="text-zinc-500">{a.status}</span>
               </li>
             ))}
-            {achievements.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+            {achievements.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -216,10 +216,10 @@ export default async function ParentPortalPage({
             {skillSubmissions.map((s) => (
               <li key={s.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{s.activity_name}</span>
-                <span className="text-zinc-400">{s.status}</span>
+                <span className="text-zinc-500">{s.status}</span>
               </li>
             ))}
-            {skillSubmissions.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+            {skillSubmissions.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -231,10 +231,10 @@ export default async function ParentPortalPage({
             {readingRecords.map((r) => (
               <li key={r.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{r.book_title}</span>
-                <span className="text-zinc-400">{r.review_status}</span>
+                <span className="text-zinc-500">{r.review_status}</span>
               </li>
             ))}
-            {readingRecords.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+            {readingRecords.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
           </ul>
         </div>
       ) : null}

@@ -86,7 +86,7 @@ export default function TeacherAssignmentForm({
             </tr>
           ))}
           {assignments.length === 0 ? (
-            <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No teacher assignments yet.</td></tr>
+            <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No teacher assignments yet.</td></tr>
           ) : null}
         </tbody>
       </table>

@@ -67,7 +67,7 @@ export default async function ResultsPage() {
                 </tr>
               ))}
               {examinations.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-zinc-400">
+                <tr><td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
                   No examinations yet — create one under Examination &gt; Create Exam.
                 </td></tr>
               ) : null}

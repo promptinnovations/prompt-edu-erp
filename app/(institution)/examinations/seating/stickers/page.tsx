@@ -71,7 +71,7 @@ export default async function SeatingStickersPage({
       </h1>
 
       {stickers.length === 0 ? (
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-500">
           No seating plan has been generated for this examination yet.
         </p>
       ) : (
@@ -91,7 +91,7 @@ export default async function SeatingStickersPage({
               </h2>
               {room.benches.map((bench) => (
                 <div key={bench.benchNumber} className="mb-3">
-                  <p className="mb-1 text-[10px] uppercase tracking-wide text-zinc-400">
+                  <p className="mb-1 text-[10px] uppercase tracking-wide text-zinc-500">
                     Bench {bench.benchNumber}
                   </p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

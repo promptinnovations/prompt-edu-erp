@@ -62,7 +62,7 @@ export default async function TimetablePage() {
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Current timetable</h2>
         {grouped.size === 0 ? (
-          <p className="text-sm text-zinc-400">No periods set up yet — add one above, or bulk-upload an Excel file.</p>
+          <p className="text-sm text-zinc-500">No periods set up yet — add one above, or bulk-upload an Excel file.</p>
         ) : (
           <div className="space-y-5">
             {Array.from(grouped.entries()).map(([key, group]) => (
@@ -85,7 +85,7 @@ export default async function TimetablePage() {
                           <td className="py-1.5 pr-3">{DAY_NAMES[p.dayOfWeek]}</td>
                           <td className="py-1.5 pr-3">{p.periodNo}</td>
                           <td className="py-1.5 pr-3">{p.subjectName ?? "—"}</td>
-                          <td className="py-1.5 pr-3">{p.teacherName ?? <span className="text-zinc-400">Free</span>}</td>
+                          <td className="py-1.5 pr-3">{p.teacherName ?? <span className="text-zinc-500">Free</span>}</td>
                           <td className="py-1.5 pr-3"><DeleteTimetablePeriodButton periodId={p.id} /></td>
                         </tr>
                       ))}

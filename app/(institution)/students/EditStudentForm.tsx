@@ -54,7 +54,7 @@ export default function EditStudentForm({
       <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Save
       </button>
-      <button type="button" onClick={() => setEditing(false)} className="text-sm text-zinc-400 hover:text-zinc-700">
+      <button type="button" onClick={() => setEditing(false)} className="text-sm text-zinc-500 hover:text-zinc-700">
         Cancel
       </button>
       {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}

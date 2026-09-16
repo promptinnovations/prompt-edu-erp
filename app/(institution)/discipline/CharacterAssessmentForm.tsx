@@ -81,7 +81,7 @@ export default function CharacterAssessmentForm({
             </tr>
           ))}
           {assessments.length === 0 ? (
-            <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No character assessments yet.</td></tr>
+            <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No character assessments yet.</td></tr>
           ) : null}
         </tbody>
       </table>

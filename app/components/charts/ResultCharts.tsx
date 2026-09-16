@@ -99,7 +99,7 @@ export function Donut({
       {centerLabel ? (
         <div className="text-center" style={{ marginTop: -size / 2 - 8, height: size / 2 }}>
           <div className="text-lg font-semibold text-zinc-800">{centerLabel}</div>
-          {centerSubLabel ? <div className="text-[11px] text-zinc-400">{centerSubLabel}</div> : null}
+          {centerSubLabel ? <div className="text-[11px] text-zinc-500">{centerSubLabel}</div> : null}
         </div>
       ) : null}
       <ChartLegend segments={segments} total={total} />
@@ -267,7 +267,7 @@ export function LineTrendChart({
 }) {
   const nonEmpty = series.filter((s) => s.points.length > 0);
   if (nonEmpty.length === 0) {
-    return <p className="text-sm text-zinc-400">Not enough data yet to draw a trend.</p>;
+    return <p className="text-sm text-zinc-500">Not enough data yet to draw a trend.</p>;
   }
   const width = 560;
   const padX = showAxes ? 34 : 32;
@@ -372,9 +372,9 @@ export function LineTrendChart({
 export function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-4">
-      <p className="text-xs text-zinc-400">{label}</p>
+      <p className="text-xs text-zinc-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold" style={accent ? { color: accent } : undefined}>{value}</p>
-      {sub ? <p className="mt-0.5 text-[11px] text-zinc-400">{sub}</p> : null}
+      {sub ? <p className="mt-0.5 text-[11px] text-zinc-500">{sub}</p> : null}
     </div>
   );
 }

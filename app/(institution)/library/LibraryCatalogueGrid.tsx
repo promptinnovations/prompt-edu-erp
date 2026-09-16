@@ -80,11 +80,11 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
           <input type="checkbox" checked={onlyAvailable} onChange={(e) => setOnlyAvailable(e.target.checked)} />
           Available only
         </label>
-        <span className="text-xs text-zinc-400">{filtered.length} of {books.length} books</span>
+        <span className="text-xs text-zinc-500">{filtered.length} of {books.length} books</span>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-zinc-400">
+        <p className="py-6 text-center text-sm text-zinc-500">
           {books.length === 0 ? "No books yet." : "No books match your search."}
         </p>
       ) : (
@@ -125,7 +125,7 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
                     </span>
                   </div>
                   {b.shelf_name ? (
-                    <div className="mt-1.5 text-[11px] text-zinc-400">Shelf: {b.shelf_name}</div>
+                    <div className="mt-1.5 text-[11px] text-zinc-500">Shelf: {b.shelf_name}</div>
                   ) : null}
                 </div>
               </div>

@@ -59,7 +59,7 @@ export default function StaffLeaveReviewTable({ leaves }: { leaves: StaffLeaveRe
             </tr>
           ))}
           {leaves.length === 0 ? (
-            <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No pending staff leave applications.</td></tr>
+            <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No pending staff leave applications.</td></tr>
           ) : null}
         </tbody>
       </table>

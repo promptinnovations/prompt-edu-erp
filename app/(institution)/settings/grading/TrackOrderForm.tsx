@@ -25,11 +25,11 @@ export default function TrackOrderForm({ trackOrder, canManage }: { trackOrder: 
           <option value="islamic">Islamic</option>
         </select>
       </div>
-      <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+      <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
         Save
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
-      <p className="w-full text-[11px] text-zinc-400">
+      <p className="w-full text-[11px] text-zinc-500">
         Controls the order Academic/Islamic sections appear in throughout this institution — Subjects, Student
         Portfolio, and Result Analysis.
       </p>

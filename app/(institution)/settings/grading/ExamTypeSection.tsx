@@ -39,7 +39,7 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
             className="w-36 rounded border border-zinc-300 px-2 py-1 text-xs"
           />
           <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">Cancel</button>
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
         {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
       </li>
@@ -50,7 +50,7 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
     <li className="flex items-center justify-between gap-2 py-1.5 text-sm">
       <span>
         <strong className="text-zinc-900">{examType.name}</strong>{" "}
-        <span className="text-zinc-400">({examType.code})</span>
+        <span className="text-zinc-500">({examType.code})</span>
         {examType.category ? (
           <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">{examType.category}</span>
         ) : null}
@@ -86,7 +86,7 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
         Monthly, or your own wording).
       </p>
       <ul className="divide-y divide-zinc-100">
-        {examTypes.length === 0 ? <li className="py-1 text-xs text-zinc-400">No exam types yet.</li> : null}
+        {examTypes.length === 0 ? <li className="py-1 text-xs text-zinc-500">No exam types yet.</li> : null}
         {examTypes.map((et) => <ExamTypeRow key={et.id} examType={et} canManage={canManage} />)}
       </ul>
 
@@ -115,7 +115,7 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
               className="w-36 rounded border border-zinc-300 px-2 py-1.5 text-sm"
             />
           </div>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add exam type
           </button>
         </form>

@@ -29,7 +29,7 @@ function formatDate(d: string) {
 
 export default function AttendanceStageTrendChart({ points }: { points: AttendanceTrendByStagePoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-zinc-400">No attendance has been taken yet.</p>;
+    return <p className="text-sm text-zinc-500">No attendance has been taken yet.</p>;
   }
 
   // Every distinct calendar date across all stages, in order — the shared

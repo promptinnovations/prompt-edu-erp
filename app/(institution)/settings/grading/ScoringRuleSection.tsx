@@ -31,7 +31,7 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
               <input type="checkbox" name="isActive" defaultChecked={rule.is_active} /> Active
             </label>
             <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
-            <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">Cancel</button>
+            <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
           {updateState.error ? <p className="mt-1 text-xs text-red-600">{updateState.error}</p> : null}
         </td>
@@ -70,12 +70,12 @@ export default function ScoringRuleSection({ rules, canManage }: { rules: Scorin
   return (
     <div className="space-y-4">
       {rules.length === 0 ? (
-        <p className="text-sm text-zinc-400">No scoring rules yet.</p>
+        <p className="text-sm text-zinc-500">No scoring rules yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-zinc-400">
+              <tr className="border-b border-zinc-200 text-left text-zinc-500">
                 <th className="pb-2 font-medium">Module</th>
                 <th className="pb-2 font-medium">Activity</th>
                 <th className="pb-2 font-medium">Points</th>
@@ -114,13 +114,13 @@ export default function ScoringRuleSection({ rules, canManage }: { rules: Scorin
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
             <input type="checkbox" name="approvalRequired" defaultChecked /> Needs approval
           </label>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add scoring rule
           </button>
           {createState.error ? <p className="w-full text-xs text-red-600">{createState.error}</p> : null}
         </form>
       ) : null}
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Advanced condition/bonus thresholds (e.g. &quot;min 50 pages&quot;) aren&apos;t editable here yet — use this form for
         the common case of a flat points value per activity; contact support for conditional rules.
       </p>

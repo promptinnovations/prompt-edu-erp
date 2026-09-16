@@ -61,7 +61,7 @@ export default async function ScoringPage() {
                 </tr>
               ))}
               {rules.length === 0 ? (
-                <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No scoring rules configured yet.</td></tr>
+                <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No scoring rules configured yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -121,7 +121,7 @@ export default async function ScoringPage() {
                 </tr>
               ))}
               {scores.length === 0 ? (
-                <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No consolidated scores computed yet.</td></tr>
+                <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No consolidated scores computed yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -152,7 +152,7 @@ export default async function ScoringPage() {
                 </tr>
               ))}
               {events.length === 0 ? (
-                <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No score events yet.</td></tr>
+                <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No score events yet.</td></tr>
               ) : null}
             </tbody>
           </table>

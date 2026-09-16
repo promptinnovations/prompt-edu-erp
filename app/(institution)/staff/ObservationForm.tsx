@@ -113,7 +113,7 @@ export default function ObservationForm({
       <div className="rounded-xl border border-zinc-200 p-4">
         <p className="mb-2 text-sm text-zinc-600">
           Provisional total: <span className="font-semibold text-zinc-900">{provisionalTotal ?? "—"}{provisionalTotal !== null ? "%" : ""}</span>
-          {answeredCount > 0 ? <span className="ml-1 text-xs text-zinc-400">({answeredCount} of {criteria.length} criteria scored)</span> : null}
+          {answeredCount > 0 ? <span className="ml-1 text-xs text-zinc-500">({answeredCount} of {criteria.length} criteria scored)</span> : null}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>

@@ -23,11 +23,11 @@ export default function PassPctForm({ passPct, canManage }: { passPct: number; c
           className="w-24 rounded border border-zinc-300 px-2 py-1.5 text-sm"
         />
       </div>
-      <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+      <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
         Save
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
-      <p className="w-full text-[11px] text-zinc-400">
+      <p className="w-full text-[11px] text-zinc-500">
         Used whenever a subject has no pass-marks override of its own — this is a separate rule from grade bands
         (a grade label like &ldquo;E&rdquo; or &ldquo;D&rdquo; is descriptive only; pass/fail is always this number).
       </p>

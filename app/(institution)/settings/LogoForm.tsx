@@ -25,7 +25,7 @@ export default function LogoForm({ logoUrl }: { logoUrl: string | null }) {
             // eslint-disable-next-line @next/next/no-img-element -- external/dynamic per-institution URL, not a static asset next/image can optimize meaningfully here
             <img src={logoUrl} alt="Institution logo" className="h-full w-full object-contain" />
           ) : (
-            <span className="text-xs text-zinc-400">No logo</span>
+            <span className="text-xs text-zinc-500">No logo</span>
           )}
         </div>
 
@@ -59,7 +59,7 @@ export default function LogoForm({ logoUrl }: { logoUrl: string | null }) {
         ) : null}
       </div>
 
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         PNG, JPEG, GIF, or WebP. Shown in the sidebar, the login page, report cards, and the installed app icon.
       </p>
       {uploadState.error ? <p className="text-xs text-red-600">{uploadState.error}</p> : null}

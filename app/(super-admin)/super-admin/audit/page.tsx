@@ -37,7 +37,7 @@ export default async function PlatformAuditPage() {
               </tr>
             ))}
             {logs.length === 0 ? (
-              <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No platform-level activity yet.</td></tr>
+              <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No platform-level activity yet.</td></tr>
             ) : null}
           </tbody>
         </table>

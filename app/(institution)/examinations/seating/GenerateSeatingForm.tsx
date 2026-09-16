@@ -56,7 +56,7 @@ export default function GenerateSeatingForm({
       <div>
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Rooms from the master list</h3>
         {rooms.length === 0 ? (
-          <p className="text-sm text-zinc-400">No rooms in the master list yet — add some above, or add an ad-hoc room below.</p>
+          <p className="text-sm text-zinc-500">No rooms in the master list yet — add some above, or add an ad-hoc room below.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {rooms.map((room) => (
@@ -101,7 +101,7 @@ export default function GenerateSeatingForm({
           </button>
         </div>
         {adHoc.length === 0 ? (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-500">
             Nothing extra. Add a hall or spare room borrowed just for this exam — it is used for this plan only and never saved to the master list.
           </p>
         ) : (

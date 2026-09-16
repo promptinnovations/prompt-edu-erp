@@ -91,7 +91,7 @@ export default async function MarkEntryStatusPage({
                 );
               })}
               {status.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-zinc-400">
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-zinc-500">
                   {examinations.length === 0 ? "No examinations yet." : "No subjects/classes configured for this examination yet."}
                 </td></tr>
               ) : null}

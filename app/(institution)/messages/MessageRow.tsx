@@ -26,7 +26,7 @@ export default function MessageRow({ message }: { message: ParentMessageRow }) {
     <div className={`rounded-xl border p-3 ${message.read_at ? "border-zinc-200" : "border-indigo-300 bg-indigo-50/50"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-zinc-900">{message.subject}</div>
-        <div className="text-xs text-zinc-400">{message.created_at}</div>
+        <div className="text-xs text-zinc-500">{message.created_at}</div>
       </div>
       <div className="mt-0.5 text-xs text-zinc-500">
         From {message.parent_name}{message.student_name ? ` (parent of ${message.student_name})` : ""}
@@ -46,7 +46,7 @@ export default function MessageRow({ message }: { message: ParentMessageRow }) {
           {!message.read_at ? (
             <form action={markAction}>
               <input type="hidden" name="messageId" value={message.id} />
-              <button type="submit" className="text-xs text-zinc-400 underline">Mark as read</button>
+              <button type="submit" className="text-xs text-zinc-500 underline">Mark as read</button>
             </form>
           ) : null}
         </div>

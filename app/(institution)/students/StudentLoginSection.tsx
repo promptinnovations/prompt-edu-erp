@@ -24,7 +24,7 @@ export default function StudentLoginSection({
       <div className="space-y-2 text-sm">
         <p className="text-zinc-700">
           Login ID: <span className="font-mono font-medium text-zinc-900">{loginId}</span>
-          <span className="ml-2 text-xs text-zinc-400">Password: the parent&apos;s phone number</span>
+          <span className="ml-2 text-xs text-zinc-500">Password: the parent&apos;s phone number</span>
         </p>
         {resetting ? (
           <form action={resetAction} className="flex flex-wrap items-end gap-2">
@@ -36,7 +36,7 @@ export default function StudentLoginSection({
             <button type="submit" disabled={resetPending} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
               Reset password
             </button>
-            <button type="button" onClick={() => setResetting(false)} className="text-sm text-zinc-400 hover:text-zinc-700">
+            <button type="button" onClick={() => setResetting(false)} className="text-sm text-zinc-500 hover:text-zinc-700">
               Cancel
             </button>
           </form>

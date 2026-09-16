@@ -12,7 +12,7 @@ export default function DeleteEventButton({ eventId }: { eventId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="text-xs text-zinc-400 hover:text-red-600 disabled:opacity-50"
+        className="text-xs text-zinc-500 hover:text-red-600 disabled:opacity-50"
       >
         Remove
       </button>

@@ -38,7 +38,7 @@ export default function DailyAssessmentSection({
       {canManage ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">Add today&apos;s assessment</h2>
-          <p className="mb-3 text-xs text-zinc-400">
+          <p className="mb-3 text-xs text-zinc-500">
             Conducted based on the portion completed that day — the same subject can be assessed again on a later day.
           </p>
           <AddDailyAssessmentForm examinationId={examinationId} classes={classes} subjectsByClass={subjectsByClass} allSubjects={allSubjects} />
@@ -81,7 +81,7 @@ export default function DailyAssessmentSection({
                 </tr>
               ))}
               {entries.length === 0 ? (
-                <tr><td colSpan={7} className="py-4 text-center text-zinc-400">No assessments recorded yet this month.</td></tr>
+                <tr><td colSpan={7} className="py-4 text-center text-zinc-500">No assessments recorded yet this month.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -90,7 +90,7 @@ export default function DailyAssessmentSection({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Monthly consolidated result</h2>
-        <p className="mb-3 text-xs text-zinc-400">Updates automatically as each day&apos;s marks are entered.</p>
+        <p className="mb-3 text-xs text-zinc-500">Updates automatically as each day&apos;s marks are entered.</p>
         <div className="mb-3">
           <DailyAssessmentFilters classes={classes} subjects={allSubjects} classParam={classParam} subjectParam={subjectParam} />
         </div>
@@ -119,13 +119,13 @@ export default function DailyAssessmentSection({
                   </tr>
                 ))}
                 {consolidated.length === 0 ? (
-                  <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No completed sessions for this class yet.</td></tr>
+                  <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No completed sessions for this class yet.</td></tr>
                 ) : null}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">Choose a class above to see its consolidated result.</p>
+          <p className="text-sm text-zinc-500">Choose a class above to see its consolidated result.</p>
         )}
       </section>
 
@@ -151,7 +151,7 @@ export default function DailyAssessmentSection({
                 </tr>
               ))}
               {subjectAnalysis.length === 0 ? (
-                <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No completed sessions yet.</td></tr>
+                <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No completed sessions yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -178,7 +178,7 @@ export default function DailyAssessmentSection({
                 </tr>
               ))}
               {classAnalysis.length === 0 ? (
-                <tr><td colSpan={3} className="py-4 text-center text-zinc-400">No completed sessions yet.</td></tr>
+                <tr><td colSpan={3} className="py-4 text-center text-zinc-500">No completed sessions yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -187,7 +187,7 @@ export default function DailyAssessmentSection({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Monthly analysis — student-wise</h2>
-        <p className="mb-3 text-xs text-zinc-400">Uses the class selected above.</p>
+        <p className="mb-3 text-xs text-zinc-500">Uses the class selected above.</p>
         {classParam ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -209,13 +209,13 @@ export default function DailyAssessmentSection({
                   </tr>
                 ))}
                 {studentAnalysis.length === 0 ? (
-                  <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No completed sessions for this class yet.</td></tr>
+                  <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No completed sessions for this class yet.</td></tr>
                 ) : null}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">Choose a class above to see student-wise analysis.</p>
+          <p className="text-sm text-zinc-500">Choose a class above to see student-wise analysis.</p>
         )}
       </section>
     </div>

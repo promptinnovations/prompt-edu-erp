@@ -100,7 +100,7 @@ export default async function StaffDetailPage({
             {kudos.map((k) => (
               <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
-                <span className="text-zinc-400">{k.created_at}</span>
+                <span className="text-zinc-500">{k.created_at}</span>
               </li>
             ))}
           </ul>
@@ -112,27 +112,27 @@ export default async function StaffDetailPage({
             <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity &amp; employment</h2>
             <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               <div>
-                <dt className="text-zinc-400">Staff ID</dt>
+                <dt className="text-zinc-500">Staff ID</dt>
                 <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400">Designation</dt>
+                <dt className="text-zinc-500">Designation</dt>
                 <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400">Department</dt>
+                <dt className="text-zinc-500">Department</dt>
                 <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400">Joining date</dt>
+                <dt className="text-zinc-500">Joining date</dt>
                 <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400">Employment status</dt>
+                <dt className="text-zinc-500">Employment status</dt>
                 <dd className="mt-0.5 capitalize text-zinc-900">{profile.employment_status.replace("_", " ")}</dd>
               </div>
               <div>
-                <dt className="text-zinc-400">Email</dt>
+                <dt className="text-zinc-500">Email</dt>
                 <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
               </div>
             </dl>
@@ -148,7 +148,7 @@ export default async function StaffDetailPage({
                 />
               </div>
             ) : null}
-            <p className="mt-4 text-xs text-zinc-400">
+            <p className="mt-4 text-xs text-zinc-500">
               Exam analysis and observation tracking apply only to teaching staff — assign this person a subject via Staff &gt; Teacher
               assignments to enable those.
             </p>
@@ -191,27 +191,27 @@ export default async function StaffDetailPage({
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity &amp; employment</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
-            <dt className="text-zinc-400">Staff ID</dt>
+            <dt className="text-zinc-500">Staff ID</dt>
             <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Joining date</dt>
+            <dt className="text-zinc-500">Joining date</dt>
             <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Designation</dt>
+            <dt className="text-zinc-500">Designation</dt>
             <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Department / section</dt>
+            <dt className="text-zinc-500">Department / section</dt>
             <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
           </div>
           <div className="col-span-2 sm:col-span-4">
-            <dt className="text-zinc-400">Classes &amp; subjects handled</dt>
+            <dt className="text-zinc-500">Classes &amp; subjects handled</dt>
             <dd className="mt-0.5 text-zinc-900">{classesSubjectsHandled || "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Email</dt>
+            <dt className="text-zinc-500">Email</dt>
             <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
           </div>
         </dl>
@@ -239,7 +239,7 @@ export default async function StaffDetailPage({
       {canEditSelfFields ? (
         <TeacherProfileForm profile={profile} />
       ) : (
-        <p className="text-sm text-zinc-400">You don&apos;t have permission to edit this profile.</p>
+        <p className="text-sm text-zinc-500">You don&apos;t have permission to edit this profile.</p>
       )}
     </div>
   );
@@ -256,7 +256,7 @@ export default async function StaffDetailPage({
             {kudos.map((k) => (
               <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
-                <span className="text-zinc-400">{k.created_at}</span>
+                <span className="text-zinc-500">{k.created_at}</span>
               </li>
             ))}
           </ul>

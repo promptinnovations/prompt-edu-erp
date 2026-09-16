@@ -27,7 +27,7 @@ function ActivityRow({ activity, canManage }: { activity: SkillActivity; canMana
             <input type="checkbox" name="isActive" defaultChecked={activity.is_active} /> Active
           </label>
           <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">Cancel</button>
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
         {updateState.error ? <span className="text-xs text-red-600">{updateState.error}</span> : null}
       </li>
@@ -69,7 +69,7 @@ function SkillTypeCard({
             <input type="hidden" name="skillTypeId" value={type.id} />
             <input name="name" defaultValue={type.name} className="rounded border border-zinc-300 px-2 py-1 text-sm" />
             <button type="submit" className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
-            <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">Cancel</button>
+            <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
         ) : (
           <h3 className="font-medium text-zinc-900">{type.name}</h3>
@@ -88,7 +88,7 @@ function SkillTypeCard({
       {deleteState.error ? <p className="mb-2 text-xs text-red-600">{deleteState.error}</p> : null}
 
       <ul className="divide-y divide-zinc-100">
-        {activities.length === 0 ? <li className="py-1 text-xs text-zinc-400">No activities yet.</li> : null}
+        {activities.length === 0 ? <li className="py-1 text-xs text-zinc-500">No activities yet.</li> : null}
         {activities.map((a) => <ActivityRow key={a.id} activity={a} canManage={canManage} />)}
       </ul>
 
@@ -108,7 +108,7 @@ function SkillTypeCard({
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
             <input type="checkbox" name="approvalRequired" /> Approval
           </label>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add activity
           </button>
         </form>
@@ -124,7 +124,7 @@ export default function SkillConfigSection({
 
   return (
     <div className="space-y-4">
-      {skillTypes.length === 0 ? <p className="text-sm text-zinc-400">No skill types yet.</p> : null}
+      {skillTypes.length === 0 ? <p className="text-sm text-zinc-500">No skill types yet.</p> : null}
       {skillTypes.map((t) => (
         <SkillTypeCard key={t.id} type={t} activities={activitiesByType[t.id] ?? []} canManage={canManage} />
       ))}
@@ -135,7 +135,7 @@ export default function SkillConfigSection({
             <label className="mb-1 block text-xs text-zinc-500">New skill type</label>
             <input name="name" required placeholder="e.g. Reading" className="rounded border border-zinc-300 px-2 py-1.5 text-sm" />
           </div>
-          <button type="submit" className="rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+          <button type="submit" className="rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add skill type
           </button>
         </form>

@@ -179,7 +179,7 @@ export default async function AnalyticsPage({
         <h1 className="text-2xl font-semibold text-zinc-900">Analytics</h1>
         <RefreshButton />
       </div>
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Subject comparison/indicators below read a periodically-refreshed rollup — use &ldquo;Refresh
         analytics&rdquo; after bulk mark approval to see the latest data there. The Result Analysis tabs further
         down read the live `results` table, recomputed automatically the moment marks are approved/locked — no
@@ -209,7 +209,7 @@ export default async function AnalyticsPage({
                 <tbody className="divide-y divide-zinc-100">
                   {[...subjectComparison].sort((a, b) => (b.avg_marks ?? -1) - (a.avg_marks ?? -1)).map((s, idx) => (
                     <tr key={s.subject_id}>
-                      <td className="py-1.5 text-zinc-400">#{idx + 1}</td>
+                      <td className="py-1.5 text-zinc-500">#{idx + 1}</td>
                       <td className="py-1.5">{s.subject_name}</td>
                       <td className="py-1.5">{s.marked_count}</td>
                       <td className="py-1.5">{s.avg_marks !== null ? Number(s.avg_marks).toFixed(2) : "—"}</td>
@@ -217,7 +217,7 @@ export default async function AnalyticsPage({
                     </tr>
                   ))}
                   {subjectComparison.length === 0 ? (
-                    <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No approved marks yet for this examination.</td></tr>
+                    <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No approved marks yet for this examination.</td></tr>
                   ) : null}
                 </tbody>
               </table>
@@ -239,7 +239,7 @@ export default async function AnalyticsPage({
                       <td className="py-1.5">{fmtPct(i.pass_percentage)}</td>
                     </tr>
                   ))}
-                  {indicators.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-400">—</td></tr>) : null}
+                  {indicators.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-500">—</td></tr>) : null}
                 </tbody>
               </table>
               </div>
@@ -258,14 +258,14 @@ export default async function AnalyticsPage({
                   {classification.map((c) => (
                     <tr key={c.student_id}><td className="py-1.5">{c.student_name}</td><td className="py-1.5">{c.percentage}%</td><td className="py-1.5 capitalize">{c.band.replace("_", " ")}</td></tr>
                   ))}
-                  {classification.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-400">No computed results for this examination yet.</td></tr>) : null}
+                  {classification.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-500">No computed results for this examination yet.</td></tr>) : null}
                 </tbody>
               </table>
               </div>
             </div>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400">Select an examination to see subject and student analytics.</p>
+          <p className="mt-4 text-sm text-zinc-500">Select an examination to see subject and student analytics.</p>
         )}
       </section>
 
@@ -276,7 +276,7 @@ export default async function AnalyticsPage({
             <PrintButton label="Print this report" />
           </div>
           {!hasBroadResultAccess ? (
-            <p className="mb-3 text-xs text-zinc-400">
+            <p className="mb-3 text-xs text-zinc-500">
               Showing your own assigned classes/subjects only{staffStageScope && staffStageScope.stages.size > 0 ? ` (section: ${[...staffStageScope.stages].join(", ")})` : ""}.
             </p>
           ) : null}
@@ -313,15 +313,15 @@ export default async function AnalyticsPage({
                         <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                           <div>
                             <div className="text-lg font-semibold text-zinc-900">{t.total_students}</div>
-                            <div className="text-[11px] text-zinc-400">Students</div>
+                            <div className="text-[11px] text-zinc-500">Students</div>
                           </div>
                           <div>
                             <div className="text-lg font-semibold text-zinc-900">{fmtPct(t.average_percent)}</div>
-                            <div className="text-[11px] text-zinc-400">Average</div>
+                            <div className="text-[11px] text-zinc-500">Average</div>
                           </div>
                           <div>
                             <div className="text-lg font-semibold" style={{ color: PASS_COLOR }}>{fmtPct(t.pass_percent)}</div>
-                            <div className="text-[11px] text-zinc-400">Pass rate</div>
+                            <div className="text-[11px] text-zinc-500">Pass rate</div>
                           </div>
                         </div>
                       </div>
@@ -341,18 +341,18 @@ export default async function AnalyticsPage({
               </div>
               <div>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Subjects ranked by average marks</h3>
-                {subjectRankChart.length > 0 ? <BarChart data={subjectRankChart} orientation="horizontal" /> : <p className="text-sm text-zinc-400">No approved marks yet.</p>}
+                {subjectRankChart.length > 0 ? <BarChart data={subjectRankChart} orientation="horizontal" /> : <p className="text-sm text-zinc-500">No approved marks yet.</p>}
               </div>
               {topTeacher ? (
                 <div className="rounded-xl border border-zinc-200 p-4">
-                  <p className="text-xs text-zinc-400">Top-performing teacher (this exam)</p>
+                  <p className="text-xs text-zinc-500">Top-performing teacher (this exam)</p>
                   <p className="mt-1 text-lg font-semibold text-zinc-900">{topTeacher.teacher_name} <span className="text-sm font-normal text-zinc-500">— {topTeacher.subject_name}</span></p>
                   <p className="text-xs text-zinc-500">Average {topTeacher.average_marks}/{topTeacher.max_marks} · Pass {fmtPct(topTeacher.pass_percentage)}</p>
                 </div>
               ) : null}
             </div>
           ) : null}
-          {tab === "school" && !schoolSummary ? <p className="text-sm text-zinc-400">No computed results for this examination yet.</p> : null}
+          {tab === "school" && !schoolSummary ? <p className="text-sm text-zinc-500">No computed results for this examination yet.</p> : null}
 
           {tab === "section" ? (
             <ResultGroupSection
@@ -404,7 +404,7 @@ export default async function AnalyticsPage({
                     </Link>
                   ))}
                 </div>
-                {histogram.length > 0 ? <Histogram buckets={histogram.map((h) => ({ label: h.label, value: h.count, color: h.color }))} /> : <p className="text-sm text-zinc-400">Select a division above.</p>}
+                {histogram.length > 0 ? <Histogram buckets={histogram.map((h) => ({ label: h.label, value: h.count, color: h.color }))} /> : <p className="text-sm text-zinc-500">Select a division above.</p>}
               </div>
             </div>
           ) : null}
@@ -420,7 +420,7 @@ export default async function AnalyticsPage({
       ) : (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">Result Analysis</h2>
-          <p className="text-sm text-zinc-400">Select an examination above to see School/Section/Grade/Class/Subject/Teacher-wise reports.</p>
+          <p className="text-sm text-zinc-500">Select an examination above to see School/Section/Grade/Class/Subject/Teacher-wise reports.</p>
         </section>
       )}
 
@@ -445,12 +445,12 @@ export default async function AnalyticsPage({
               {attendanceTrend.map((t) => (
                 <tr key={t.month}><td className="py-1.5">{t.month}</td><td className="py-1.5">{t.present_days}</td><td className="py-1.5">{t.late_days}</td><td className="py-1.5">{t.total_days}</td><td className="py-1.5">{t.present_percent}%</td></tr>
               ))}
-              {attendanceTrend.length === 0 ? (<tr><td colSpan={5} className="py-4 text-center text-zinc-400">No attendance data in this range.</td></tr>) : null}
+              {attendanceTrend.length === 0 ? (<tr><td colSpan={5} className="py-4 text-center text-zinc-500">No attendance data in this range.</td></tr>) : null}
             </tbody>
           </table>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400">Select a class and section to see the attendance trend.</p>
+          <p className="mt-4 text-sm text-zinc-500">Select a class and section to see the attendance trend.</p>
         )}
       </section>
 
@@ -491,7 +491,7 @@ function ResultGroupSection({
           <tbody className="divide-y divide-zinc-100">
             {rows.map((r, idx) => (
               <tr key={r.id}>
-                <td className="py-1.5 text-zinc-400">#{idx + 1}</td>
+                <td className="py-1.5 text-zinc-500">#{idx + 1}</td>
                 {showParent ? <td className="py-1.5">{r.parent_name}</td> : null}
                 <td className="py-1.5">{r.name}</td>
                 <td className="py-1.5">{r.student_count}</td>
@@ -501,7 +501,7 @@ function ResultGroupSection({
                 <td className="py-1.5">{fmtPct(r.pass_percent)}</td>
               </tr>
             ))}
-            {rows.length === 0 ? (<tr><td colSpan={showParent ? 8 : 7} className="py-4 text-center text-zinc-400">{emptyText}</td></tr>) : null}
+            {rows.length === 0 ? (<tr><td colSpan={showParent ? 8 : 7} className="py-4 text-center text-zinc-500">{emptyText}</td></tr>) : null}
           </tbody>
         </table>
       </div>
@@ -522,7 +522,7 @@ function ResultGroupSection({
 }
 
 function SubjectWiseSection({ rows }: { rows: SubjectGradeGroupRow[] }) {
-  if (rows.length === 0) return <p className="text-sm text-zinc-400">No computed marks for this examination yet.</p>;
+  if (rows.length === 0) return <p className="text-sm text-zinc-500">No computed marks for this examination yet.</p>;
   const byClass = new Map<string, SubjectGradeGroupRow[]>();
   for (const r of rows) {
     if (!byClass.has(r.class_name)) byClass.set(r.class_name, []);
@@ -621,7 +621,7 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
           <tbody className="divide-y divide-zinc-100">
             {rows.map((t, idx) => (
               <tr key={`${t.teacher_user_id}-${t.subject_id}`}>
-                <td className="py-1.5 text-zinc-400">#{idx + 1}</td>
+                <td className="py-1.5 text-zinc-500">#{idx + 1}</td>
                 <td className="py-1.5">{t.teacher_name}</td>
                 <td className="py-1.5">{t.subject_name}</td>
                 <td className="py-1.5">{t.marked_count}</td>
@@ -635,7 +635,7 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
                 <td className="py-1.5" style={{ color: FAIL_COLOR }}>{t.fail_count}</td>
               </tr>
             ))}
-            {rows.length === 0 ? (<tr><td colSpan={12} className="py-4 text-center text-zinc-400">No teacher assignments cover this examination&apos;s subjects/classes yet.</td></tr>) : null}
+            {rows.length === 0 ? (<tr><td colSpan={12} className="py-4 text-center text-zinc-500">No teacher assignments cover this examination&apos;s subjects/classes yet.</td></tr>) : null}
           </tbody>
         </table>
       </div>

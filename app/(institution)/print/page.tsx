@@ -87,7 +87,7 @@ export default async function PrintCenterPage() {
           );
         })}
         {tiles.length === 0 ? (
-          <p className="text-sm text-zinc-400">Nothing printable is available for your role yet.</p>
+          <p className="text-sm text-zinc-500">Nothing printable is available for your role yet.</p>
         ) : null}
       </div>
     </div>

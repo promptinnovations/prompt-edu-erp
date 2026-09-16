@@ -142,13 +142,13 @@ export default async function ExaminationDetailPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">1. Confirm scope</h2>
-        <p className="mb-3 text-xs text-zinc-400">Which grades and divisions does this exam apply to?</p>
+        <p className="mb-3 text-xs text-zinc-500">Which grades and divisions does this exam apply to?</p>
         <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">2. Subjects &amp; total marks</h2>
-        <p className="mb-3 text-xs text-zinc-400">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
+        <p className="mb-3 text-xs text-zinc-500">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
         <ExamSubjectsSection examinationId={id} subjects={subjects} linked={linkedSubjects} />
       </section>
 
@@ -177,7 +177,7 @@ export default async function ExaminationDetailPage({
               </tr>
             ))}
             {results.length === 0 ? (
-              <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No results computed yet.</td></tr>
+              <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No results computed yet.</td></tr>
             ) : null}
           </tbody>
         </table>

@@ -24,7 +24,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <Link href="/super-admin" className="text-xs text-zinc-400 hover:text-zinc-600">
+          <Link href="/super-admin" className="text-xs text-zinc-500 hover:text-zinc-600">
             ← All institutions
           </Link>
           <h1 className="mt-1 text-2xl font-semibold text-zinc-900">{institution.name}</h1>
@@ -42,7 +42,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           </button>
         </form>
       </div>
-      <p className="-mt-4 text-xs text-zinc-400">
+      <p className="-mt-4 text-xs text-zinc-500">
         Opens the exact admin app any real user of this institution sees — every enabled module, fully functional
         (create, edit, approve, everything), so you can try it out or fix something. A banner while you&apos;re in
         there lets you exit back here at any time.
@@ -50,7 +50,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Modules</h2>
-        <p className="mb-4 text-xs text-zinc-400">
+        <p className="mb-4 text-xs text-zinc-500">
           Core modules (Academic Structure, Student Management) are always on — every institution needs them to
           function. Everything else can be turned on or off here; a disabled module disappears from that
           institution&apos;s navigation and its pages become unreachable.
@@ -70,7 +70,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
               <tr key={m.code}>
                 <td className="py-2">
                   <div className="font-medium text-zinc-900">{m.name}</div>
-                  {m.description ? <div className="text-xs text-zinc-400">{m.description}</div> : null}
+                  {m.description ? <div className="text-xs text-zinc-500">{m.description}</div> : null}
                 </td>
                 <td className="py-2 text-zinc-500">{m.category ?? "—"}</td>
                 <td className="py-2">
@@ -81,7 +81,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
                   >
                     {m.isEnabled ? "Enabled" : "Disabled"}
                   </span>
-                  {m.isCore ? <span className="ml-1 text-xs text-zinc-400">(core)</span> : null}
+                  {m.isCore ? <span className="ml-1 text-xs text-zinc-500">(core)</span> : null}
                 </td>
                 <td className="py-2 text-right">
                   {m.isCore ? null : (
@@ -100,7 +100,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">
             {institution.type === "school" ? "Board / curriculum" : "Educational board"}
           </h2>
-          <p className="mb-4 text-xs text-zinc-400">
+          <p className="mb-4 text-xs text-zinc-500">
             Current: {institution.board ? institution.board.replace(/_/g, " ").toUpperCase() : "not set"}.
           </p>
           <BoardConfigForm institutionId={id} institutionType={institution.type} board={institution.board} />
@@ -109,7 +109,7 @@ export default async function InstitutionDetailPage({ params }: { params: Promis
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">WhatsApp (GREEN-API)</h2>
-        <p className="mb-4 text-xs text-zinc-400">
+        <p className="mb-4 text-xs text-zinc-500">
           Each institution sends attendance alerts from its own WhatsApp number — enter the ID Instance and API
           Token Instance from this institution&apos;s own GREEN-API console. Leave both blank to disable WhatsApp
           sending for this institution (alerts still log to the console/notifications table as skipped).

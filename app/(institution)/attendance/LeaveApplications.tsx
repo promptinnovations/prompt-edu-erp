@@ -70,7 +70,7 @@ export default function LeaveApplications({
           ))}
           {leaves.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-4 text-center text-zinc-400">—</td>
+              <td colSpan={5} className="py-4 text-center text-zinc-500">—</td>
             </tr>
           ) : null}
         </tbody>

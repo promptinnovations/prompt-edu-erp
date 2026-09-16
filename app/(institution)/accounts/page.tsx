@@ -95,12 +95,12 @@ export default async function AccountsPage() {
                   <td className="py-1.5 pr-3">₹{t.amount}</td>
                   <td className="py-1.5 pr-3">
                     {t.description ?? "—"}
-                    {t.vendor_name ? <span className="text-zinc-400"> · {t.vendor_name}{t.item_description ? ` (${t.item_description})` : ""}</span> : null}
+                    {t.vendor_name ? <span className="text-zinc-500"> · {t.vendor_name}{t.item_description ? ` (${t.item_description})` : ""}</span> : null}
                   </td>
-                  <td className="py-1.5 pr-3 text-xs text-zinc-400">{t.source_module ?? "manual"}</td>
+                  <td className="py-1.5 pr-3 text-xs text-zinc-500">{t.source_module ?? "manual"}</td>
                 </tr>
               ))}
-              {transactions.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400">No transactions yet.</td></tr> : null}
+              {transactions.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-500">No transactions yet.</td></tr> : null}
             </tbody>
           </table>
         </div>

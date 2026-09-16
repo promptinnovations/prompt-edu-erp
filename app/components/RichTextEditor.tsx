@@ -81,7 +81,7 @@ export default function RichTextEditor({
       </div>
       <div className="relative">
         {isEmpty && placeholder ? (
-          <p className="pointer-events-none absolute left-3 top-2.5 text-sm text-zinc-400">{placeholder}</p>
+          <p className="pointer-events-none absolute left-3 top-2.5 text-sm text-zinc-500">{placeholder}</p>
         ) : null}
         <div
           ref={editorRef}

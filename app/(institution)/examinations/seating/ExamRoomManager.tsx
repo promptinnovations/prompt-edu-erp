@@ -93,7 +93,7 @@ export default function ExamRoomManager({ rooms }: { rooms: ExamRoomRecord[] }) 
             )}
             {rooms.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-zinc-400">
+                <td colSpan={6} className="px-3 py-6 text-center text-zinc-500">
                   No rooms yet — add the classrooms you use for examinations, once, and reuse them for every exam.
                 </td>
               </tr>

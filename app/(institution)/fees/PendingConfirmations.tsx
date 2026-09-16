@@ -20,7 +20,7 @@ function DecisionButton({ paymentId, decision, label, className }: { paymentId: 
 }
 
 export default function PendingConfirmations({ payments }: { payments: PendingPaymentRow[] }) {
-  if (payments.length === 0) return <p className="text-sm text-zinc-400">No parent-submitted payments awaiting confirmation.</p>;
+  if (payments.length === 0) return <p className="text-sm text-zinc-500">No parent-submitted payments awaiting confirmation.</p>;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">

@@ -84,10 +84,10 @@ export default async function StudentDashboardPage() {
           {summary.recentPortfolioEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 last:border-0">
               <span className="text-[var(--foreground)]">{e.title}</span>
-              <span className="text-zinc-400">{e.event_date}</span>
+              <span className="text-zinc-500">{e.event_date}</span>
             </li>
           ))}
-          {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+          {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
         </ul>
         <Link href="/portal/student/portfolio" className="mt-3 inline-block text-xs font-medium text-[var(--brand)] hover:underline">
           View full portfolio →
@@ -117,12 +117,12 @@ export default async function StudentDashboardPage() {
             <li key={r.id} className="border-b border-[var(--border-subtle)] pb-2 last:border-0">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-[var(--foreground)]">{r.book_title}</span>
-                <span className="text-zinc-400">👍 {r.like_count}</span>
+                <span className="text-zinc-500">👍 {r.like_count}</span>
               </div>
               <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{r.review_text}</p>
             </li>
           ))}
-          {myReviews.length === 0 ? <li className="text-zinc-400">You haven&apos;t posted a review yet.</li> : null}
+          {myReviews.length === 0 ? <li className="text-zinc-500">You haven&apos;t posted a review yet.</li> : null}
         </ul>
       </Card>
 
@@ -134,7 +134,7 @@ export default async function StudentDashboardPage() {
                 <span className="text-[var(--foreground)]">
                   {k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}
                 </span>
-                <span className="text-zinc-400">{k.created_at}</span>
+                <span className="text-zinc-500">{k.created_at}</span>
               </li>
             ))}
           </ul>

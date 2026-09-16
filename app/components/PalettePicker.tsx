@@ -44,7 +44,7 @@ export default function PalettePicker({ currentId, action, allowPlatformDefault 
               selected === null ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30" : "border-[var(--border-subtle)] hover:border-[var(--brand)]/50"
             }`}
           >
-            <span className="flex h-9 w-full items-center justify-center rounded-lg border border-dashed border-[var(--border-subtle)] text-[10px] uppercase tracking-wide text-zinc-400">
+            <span className="flex h-9 w-full items-center justify-center rounded-lg border border-dashed border-[var(--border-subtle)] text-[10px] uppercase tracking-wide text-zinc-500">
               Auto
             </span>
             <span className="text-xs font-medium text-[var(--foreground)]">Platform default</span>

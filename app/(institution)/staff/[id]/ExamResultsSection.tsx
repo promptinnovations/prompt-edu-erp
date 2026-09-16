@@ -53,9 +53,9 @@ export default function ExamResultsSection({
         </form>
 
         {!report ? (
-          <p className="text-sm text-zinc-400">No examinations found.</p>
+          <p className="text-sm text-zinc-500">No examinations found.</p>
         ) : report.rows.length === 0 ? (
-          <p className="text-sm text-zinc-400">No subject-teacher assignments cover this examination yet.</p>
+          <p className="text-sm text-zinc-500">No subject-teacher assignments cover this examination yet.</p>
         ) : (
           <>
             <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">

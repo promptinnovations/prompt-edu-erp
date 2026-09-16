@@ -75,7 +75,7 @@ export default function SubmissionsTable({
           </tr>
         ))}
         {submissions.length === 0 ? (
-          <tr><td colSpan={5} className="py-4 text-center text-zinc-400">—</td></tr>
+          <tr><td colSpan={5} className="py-4 text-center text-zinc-500">—</td></tr>
         ) : null}
       </tbody>
     </table>

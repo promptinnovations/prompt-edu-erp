@@ -51,7 +51,7 @@ export default function BoardConfigForm({
       </button>
       {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
       {state.saved ? <span className="text-sm text-emerald-600">Saved.</span> : null}
-      <p className="w-full text-[11px] text-zinc-400">
+      <p className="w-full text-[11px] text-zinc-500">
         {isSchool
           ? "(Re-)creates a matching default grading scale (grade bands + pass %) for this institution — safe to run again; a fresh scale is added and marked default each time."
           : "Setting SKSVB (re-)creates classes 1–12 and their subjects for this institution — safe to run again, existing classes/subjects are matched by name, never duplicated."}

@@ -72,7 +72,7 @@ export default function ReadingReviewQueue({
           </tr>
         ))}
         {records.length === 0 ? (
-          <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No pending reading reviews.</td></tr>
+          <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No pending reading reviews.</td></tr>
         ) : null}
       </tbody>
     </table>

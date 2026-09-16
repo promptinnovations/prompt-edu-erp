@@ -17,7 +17,7 @@ export default function SectionRow({
       <li className="py-2">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="sectionId" value={sectionId} />
-          <span className="text-zinc-400">{classLabel} —</span>
+          <span className="text-zinc-500">{classLabel} —</span>
           <input
             name="name"
             defaultValue={name}
@@ -27,7 +27,7 @@ export default function SectionRow({
           <button type="submit" disabled={updatePending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
             Save
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">
             Cancel
           </button>
         </form>

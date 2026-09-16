@@ -62,7 +62,7 @@ export default function MyAttendanceSection({
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
       </form>
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Awaiting the principal&apos;s approval on the Staff attendance grid. You can update this until then.
       </p>
     </div>

@@ -151,7 +151,7 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
       )}
 
       {outcome === "dismissed" ? (
-        <p className="text-xs text-zinc-400">Install dismissed — you can try again anytime.</p>
+        <p className="text-xs text-zinc-500">Install dismissed — you can try again anytime.</p>
       ) : null}
     </div>
   );

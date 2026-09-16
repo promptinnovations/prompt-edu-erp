@@ -42,7 +42,7 @@ export default function ObservationsSection({
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-zinc-700">New classroom observation</h2>
           {criteria.length === 0 ? (
-            <p className="text-sm text-zinc-400">No observation rubric configured yet.</p>
+            <p className="text-sm text-zinc-500">No observation rubric configured yet.</p>
           ) : (
             <ObservationForm teacherId={teacherId} criteria={criteria} />
           )}
@@ -52,7 +52,7 @@ export default function ObservationsSection({
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Observation history</h2>
         {observations.length === 0 ? (
-          <p className="text-sm text-zinc-400">No observations recorded yet.</p>
+          <p className="text-sm text-zinc-500">No observations recorded yet.</p>
         ) : (
           <ul className="divide-y divide-zinc-100">
             {observations.map((o) => {

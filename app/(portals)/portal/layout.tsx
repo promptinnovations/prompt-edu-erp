@@ -74,7 +74,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   const banner = ctx.viewingInstitutionAsSuperAdmin ? (
-    <div className="flex flex-col items-start gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div className="flex flex-col items-start gap-1 bg-accent-800 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <span>
         {ctx.viewingAsUser ? (
           <>
@@ -128,7 +128,7 @@ export default async function PortalLayout({ children }: { children: React.React
   );
 
   const footer = (
-    <footer className="py-4 text-center text-[10px] uppercase tracking-wide text-zinc-400">
+    <footer className="py-4 text-center text-[10px] uppercase tracking-wide text-zinc-500">
       PROMPT EDU ERP · Prompt Innovations
     </footer>
   );

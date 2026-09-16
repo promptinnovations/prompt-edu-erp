@@ -38,7 +38,7 @@ function EditParentForm({ studentId, parent, onDone }: { studentId: string; pare
       <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
         Save
       </button>
-      <button type="button" onClick={onDone} className="text-xs text-zinc-400 hover:text-zinc-700">
+      <button type="button" onClick={onDone} className="text-xs text-zinc-500 hover:text-zinc-700">
         Cancel
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -202,7 +202,7 @@ export default function ParentSection({
             )
           ))}
           {parents.length === 0 ? (
-            <tr><td colSpan={canManage ? 5 : 4} className="py-4 text-center text-zinc-400">No parents/guardians linked yet.</td></tr>
+            <tr><td colSpan={canManage ? 5 : 4} className="py-4 text-center text-zinc-500">No parents/guardians linked yet.</td></tr>
           ) : null}
         </tbody>
       </table>

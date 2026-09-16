@@ -117,7 +117,7 @@ export default function DisciplineRecordForm({
             </tr>
           ))}
           {records.length === 0 ? (
-            <tr><td colSpan={8} className="py-4 text-center text-zinc-400">No discipline records yet.</td></tr>
+            <tr><td colSpan={8} className="py-4 text-center text-zinc-500">No discipline records yet.</td></tr>
           ) : null}
         </tbody>
       </table>

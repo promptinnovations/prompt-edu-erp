@@ -22,7 +22,7 @@ function WorkflowButton({
         {label}
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
-      {typeof state.count === "number" ? <span className="text-xs text-zinc-400">({state.count} updated)</span> : null}
+      {typeof state.count === "number" ? <span className="text-xs text-zinc-500">({state.count} updated)</span> : null}
     </form>
   );
 }

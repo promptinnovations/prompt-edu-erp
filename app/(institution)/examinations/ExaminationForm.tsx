@@ -85,7 +85,7 @@ export default function ExaminationForm({
       </div>
       {isDailyAssessment ? (
         <div className="max-w-xs">
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-zinc-500">
             A monthly register (named &amp; dated automatically) will be created — or reused if this month&apos;s already exists.
           </p>
           <input type="hidden" name="name" value="Daily Assessment" />

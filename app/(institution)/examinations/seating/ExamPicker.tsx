@@ -28,7 +28,7 @@ export default function ExamPicker({
         Load
       </button>
       {examinations.length === 0 ? (
-        <span className="pb-2 text-sm text-zinc-400">No examinations created yet.</span>
+        <span className="pb-2 text-sm text-zinc-500">No examinations created yet.</span>
       ) : null}
     </form>
   );

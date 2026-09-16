@@ -61,7 +61,7 @@ export default function ApplyLeaveForm({
               </tr>
             ))}
             {leaves.length === 0 ? (
-              <tr><td colSpan={3} className="py-4 text-center text-zinc-400">No leave applications yet.</td></tr>
+              <tr><td colSpan={3} className="py-4 text-center text-zinc-500">No leave applications yet.</td></tr>
             ) : null}
           </tbody>
         </table>

@@ -52,7 +52,7 @@ export default function PreBookSection({
             {myHolds.map((h) => (
               <li key={h.id} className="flex items-center justify-between text-sm">
                 <span className="text-zinc-700">
-                  {h.book_title} <span className="text-xs text-zinc-400">({h.status === "notified" ? "ready to collect!" : "waiting"})</span>
+                  {h.book_title} <span className="text-xs text-zinc-500">({h.status === "notified" ? "ready to collect!" : "waiting"})</span>
                 </span>
                 <CancelHoldButton holdId={h.id} />
               </li>
@@ -64,7 +64,7 @@ export default function PreBookSection({
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Fully issued — pre-book one</p>
         {holdableBooks.length === 0 ? (
-          <p className="text-sm text-zinc-400">Every book currently has a copy available — nothing to pre-book.</p>
+          <p className="text-sm text-zinc-500">Every book currently has a copy available — nothing to pre-book.</p>
         ) : (
           <ul className="space-y-1">
             {holdableBooks.map((b) => (

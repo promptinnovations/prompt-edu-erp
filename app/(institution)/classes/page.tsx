@@ -110,7 +110,7 @@ export default async function ClassesPage() {
       </div>
 
       {classes.length === 0 ? (
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-500">
           No classes yet — add some under <Link href="/academic" className="underline">Academic Setup</Link>.
         </p>
       ) : (

@@ -87,7 +87,7 @@ export default async function ConsolidatedMarksPage({
                 return (
                   <tr key={studentId}>
                     <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-2">
-                      {student.name} <span className="text-zinc-400">({student.admissionNumber})</span>
+                      {student.name} <span className="text-zinc-500">({student.admissionNumber})</span>
                     </td>
                     {subjectList.map((s) => {
                       const c = cell.get(`${studentId}:${s.id}`);
@@ -100,7 +100,7 @@ export default async function ConsolidatedMarksPage({
                 );
               })}
               {studentOrder.length === 0 ? (
-                <tr><td colSpan={subjectList.length + 2} className="px-4 py-6 text-center text-zinc-400">
+                <tr><td colSpan={subjectList.length + 2} className="px-4 py-6 text-center text-zinc-500">
                   No students/subjects configured for this examination yet.
                 </td></tr>
               ) : null}

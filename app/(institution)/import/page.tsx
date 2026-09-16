@@ -25,7 +25,7 @@ export default async function ImportExportPage() {
         {canImport ? (
           <ImportWizard entities={entities.map((e) => ({ entityType: e.entityType, label: e.label }))} />
         ) : (
-          <p className="text-sm text-zinc-400">You do not have permission to bulk-import data (&quot;data.import&quot;).</p>
+          <p className="text-sm text-zinc-500">You do not have permission to bulk-import data (&quot;data.import&quot;).</p>
         )}
       </section>
 
@@ -33,12 +33,12 @@ export default async function ImportExportPage() {
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recent imports (this institution)</h2>
           {recentBatches.length === 0 ? (
-            <p className="text-sm text-zinc-400">No imports yet.</p>
+            <p className="text-sm text-zinc-500">No imports yet.</p>
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-zinc-400">
+                <tr className="border-b border-zinc-200 text-left text-zinc-500">
                   <th className="pb-2 font-medium">File</th>
                   <th className="pb-2 font-medium">Entity</th>
                   <th className="pb-2 font-medium">Status</th>
@@ -78,7 +78,7 @@ export default async function ImportExportPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">You do not have permission to export data (&quot;data.export&quot;).</p>
+          <p className="text-sm text-zinc-500">You do not have permission to export data (&quot;data.export&quot;).</p>
         )}
       </section>
     </div>

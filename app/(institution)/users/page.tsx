@@ -105,7 +105,7 @@ export default async function UsersPage() {
             ))}
             {staff.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-4 text-center text-zinc-400">
+                <td colSpan={8} className="py-4 text-center text-zinc-500">
                   No staff logins yet.
                 </td>
               </tr>
@@ -180,7 +180,7 @@ export default async function UsersPage() {
                       {s.parent.isClaimed ? "Signed in" : "Not signed up yet"}
                     </span>
                   ) : (
-                    <span className="text-zinc-400">—</span>
+                    <span className="text-zinc-500">—</span>
                   )}
                 </td>
                 {canManageUsers ? (
@@ -197,7 +197,7 @@ export default async function UsersPage() {
             ))}
             {students.length === 0 ? (
               <tr>
-                <td colSpan={11} className="py-4 text-center text-zinc-400">
+                <td colSpan={11} className="py-4 text-center text-zinc-500">
                   No student logins yet.
                 </td>
               </tr>

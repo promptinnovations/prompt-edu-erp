@@ -9,13 +9,13 @@ import type { TeacherPerformanceTrendPoint } from "../../../../modules/analytics
  */
 export function TeacherPerformanceTrendChart({ points }: { points: TeacherPerformanceTrendPoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-zinc-400">No exam results recorded yet for this teacher.</p>;
+    return <p className="text-sm text-zinc-500">No exam results recorded yet for this teacher.</p>;
   }
   if (points.length === 1) {
     return (
       <div className="text-sm text-zinc-600">
         {points[0].examinationName}: <span className="font-semibold">{points[0].percentage}%</span>
-        <p className="mt-1 text-xs text-zinc-400">Need at least two examinations to draw a trend.</p>
+        <p className="mt-1 text-xs text-zinc-500">Need at least two examinations to draw a trend.</p>
       </div>
     );
   }

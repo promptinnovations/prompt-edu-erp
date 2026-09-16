@@ -78,7 +78,7 @@ export default async function GradingSettingsPage() {
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Pass percentage</h2>
-        <p className="mb-3 text-xs text-zinc-400">
+        <p className="mb-3 text-xs text-zinc-500">
           The tenant-wide default used to decide pass/fail — separate from grade bands above (a grade label is
           descriptive only). A subject can still override this via its own pass marks when added to an exam.
         </p>
@@ -88,7 +88,7 @@ export default async function GradingSettingsPage() {
       {institution?.educationMode === "both" ? (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">Academic / Islamic order</h2>
-          <p className="mb-3 text-xs text-zinc-400">
+          <p className="mb-3 text-xs text-zinc-500">
             This institution teaches both Academic and Islamic curricula side by side — choose which one shows
             first wherever they&apos;re split into two sections.
           </p>

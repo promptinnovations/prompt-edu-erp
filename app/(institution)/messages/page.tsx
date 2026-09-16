@@ -19,7 +19,7 @@ export default async function MessagesPage() {
       <div className="space-y-3">
         {messages.map((m) => <MessageRow key={m.id} message={m} />)}
         {messages.length === 0 ? (
-          <p className="text-sm text-zinc-400">No messages yet.</p>
+          <p className="text-sm text-zinc-500">No messages yet.</p>
         ) : null}
       </div>
     </div>

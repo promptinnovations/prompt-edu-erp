@@ -81,14 +81,14 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Divisions</h2>
         {sections.length === 0 ? (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-500">
             No divisions yet — add one under <Link href="/academic" className="underline">Academic Setup</Link>.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-zinc-400">
+                <tr className="border-b border-zinc-200 text-left text-zinc-500">
                   <th className="pb-2 font-medium">Division</th>
                   <th className="pb-2 font-medium">Class teacher</th>
                   <th className="pb-2 font-medium">Students</th>
@@ -115,7 +115,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                         {academicYear ? (
                           <RecomputeRollNumbersButton classId={classId} sectionId={s.id} academicYearId={academicYear.id} />
                         ) : (
-                          <span className="text-xs text-zinc-400">No current academic year</span>
+                          <span className="text-xs text-zinc-500">No current academic year</span>
                         )}
                       </td>
                       <td className="py-2 text-right">
@@ -143,7 +143,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
           </Link>
         </div>
         {classSubjects.length === 0 ? (
-          <p className="text-sm text-zinc-400">No subjects assigned to this class yet.</p>
+          <p className="text-sm text-zinc-500">No subjects assigned to this class yet.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {classSubjects.map((cs) => (
@@ -152,7 +152,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
                 className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-700"
               >
                 {cs.subject_name}
-                {!cs.is_core ? <span className="ml-1 text-zinc-400">(practical)</span> : null}
+                {!cs.is_core ? <span className="ml-1 text-zinc-500">(practical)</span> : null}
               </span>
             ))}
           </div>
@@ -167,12 +167,12 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
           </Link>
         </div>
         {students.length === 0 ? (
-          <p className="text-sm text-zinc-400">No students enrolled in this class yet.</p>
+          <p className="text-sm text-zinc-500">No students enrolled in this class yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-zinc-400">
+                <tr className="border-b border-zinc-200 text-left text-zinc-500">
                   <th className="pb-2 font-medium">Roll no.</th>
                   <th className="pb-2 font-medium">Admission no.</th>
                   <th className="pb-2 font-medium">Name</th>
@@ -205,7 +205,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Exams ({exams.length})</h2>
         {exams.length === 0 ? (
-          <p className="text-sm text-zinc-400">No examinations cover this class yet.</p>
+          <p className="text-sm text-zinc-500">No examinations cover this class yet.</p>
         ) : (
           <ol className="space-y-1.5">
             {exams.map((e, i) => (
@@ -231,13 +231,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
             </Link>
           </div>
           {disciplineRecords.length === 0 ? (
-            <p className="text-sm text-zinc-400">No discipline records for this class.</p>
+            <p className="text-sm text-zinc-500">No discipline records for this class.</p>
           ) : (
             <ul className="space-y-1.5">
               {disciplineRecords.slice(0, 10).map((d) => (
                 <li key={d.id} className="flex items-center justify-between text-sm">
                   <span className="text-zinc-700">{d.student_name} — {d.category_name}</span>
-                  <span className="text-xs text-zinc-400">{d.date}</span>
+                  <span className="text-xs text-zinc-500">{d.date}</span>
                 </li>
               ))}
             </ul>
@@ -256,19 +256,19 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
           </span>
         </div>
         {skillSubmissions.length === 0 && achievements.length === 0 ? (
-          <p className="text-sm text-zinc-400">Nothing recorded for this class yet.</p>
+          <p className="text-sm text-zinc-500">Nothing recorded for this class yet.</p>
         ) : (
           <ul className="space-y-1.5">
             {achievements.slice(0, 5).map((a) => (
               <li key={a.id} className="flex items-center justify-between text-sm">
                 <span className="text-zinc-700">{a.student_name} — {a.title} ({a.category_name})</span>
-                <span className="text-xs text-zinc-400">{a.status}</span>
+                <span className="text-xs text-zinc-500">{a.status}</span>
               </li>
             ))}
             {skillSubmissions.slice(0, 5).map((s) => (
               <li key={s.id} className="flex items-center justify-between text-sm">
                 <span className="text-zinc-700">{s.student_name} — {s.activity_name}</span>
-                <span className="text-xs text-zinc-400">{s.status}</span>
+                <span className="text-xs text-zinc-500">{s.status}</span>
               </li>
             ))}
           </ul>
@@ -284,13 +284,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
             </Link>
           </div>
           {readingRecords.length === 0 ? (
-            <p className="text-sm text-zinc-400">No reading records for this class yet.</p>
+            <p className="text-sm text-zinc-500">No reading records for this class yet.</p>
           ) : (
             <ul className="space-y-1.5">
               {readingRecords.slice(0, 10).map((r) => (
                 <li key={r.id} className="flex items-center justify-between text-sm">
                   <span className="text-zinc-700">{r.student_name} — {r.book_title}</span>
-                  <span className="text-xs text-zinc-400">{r.review_status}</span>
+                  <span className="text-xs text-zinc-500">{r.review_status}</span>
                 </li>
               ))}
             </ul>

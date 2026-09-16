@@ -58,11 +58,11 @@ export default function TimetableTemplateForm({ classes }: { classes: Array<{ id
       </div>
 
       {canDownload ? (
-        <a href={downloadUrl} className="inline-block rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+        <a href={downloadUrl} className="inline-block rounded-lg bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
           Download configured template
         </a>
       ) : (
-        <p className="text-xs text-zinc-400">Select at least one class and one working day to enable download.</p>
+        <p className="text-xs text-zinc-500">Select at least one class and one working day to enable download.</p>
       )}
     </div>
   );

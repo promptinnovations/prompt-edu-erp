@@ -21,7 +21,7 @@ export default function PhotoForm({ studentId, photoUrl }: { studentId: string; 
           // eslint-disable-next-line @next/next/no-img-element -- authenticated /api/files route, not a static asset
           <img src={photoUrl} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-xs text-zinc-400">No photo</span>
+          <span className="text-xs text-zinc-500">No photo</span>
         )}
       </div>
       <div className="flex flex-col gap-1">

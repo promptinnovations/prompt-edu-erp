@@ -125,31 +125,31 @@ export default async function StudentDetailPage({
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Core identity</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
-            <dt className="text-zinc-400">Admission number</dt>
+            <dt className="text-zinc-500">Admission number</dt>
             <dd className="mt-0.5 text-zinc-900">{profile.admission_number}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Roll number</dt>
+            <dt className="text-zinc-500">Roll number</dt>
             <dd className="mt-0.5 text-zinc-900">{enrollment?.roll_number ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Date of admission</dt>
+            <dt className="text-zinc-500">Date of admission</dt>
             <dd className="mt-0.5 text-zinc-900">{formatDate(profile.created_at)}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Academic year</dt>
+            <dt className="text-zinc-500">Academic year</dt>
             <dd className="mt-0.5 text-zinc-900">{academicYear?.name ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Date of birth</dt>
+            <dt className="text-zinc-500">Date of birth</dt>
             <dd className="mt-0.5 text-zinc-900">{profile.date_of_birth ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Gender</dt>
+            <dt className="text-zinc-500">Gender</dt>
             <dd className="mt-0.5 text-zinc-900">{profile.gender ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-zinc-400">Class & division</dt>
+            <dt className="text-zinc-500">Class & division</dt>
             <dd className="mt-0.5 text-zinc-900">{classDivisionLabel}</dd>
           </div>
         </dl>
@@ -201,7 +201,7 @@ export default async function StudentDetailPage({
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">No current academic year configured.</p>
+          <p className="text-sm text-zinc-500">No current academic year configured.</p>
         )}
       </div>
 
@@ -250,7 +250,7 @@ export default async function StudentDetailPage({
               </div>
             </>
           ) : (
-            <div className="mt-2 text-sm text-zinc-400">No results yet</div>
+            <div className="mt-2 text-sm text-zinc-500">No results yet</div>
           )}
         </div>
 
@@ -264,7 +264,7 @@ export default async function StudentDetailPage({
               </div>
             </>
           ) : (
-            <div className="mt-2 text-sm text-zinc-400">No attendance yet</div>
+            <div className="mt-2 text-sm text-zinc-500">No attendance yet</div>
           )}
         </div>
 
@@ -276,7 +276,7 @@ export default async function StudentDetailPage({
               <div className="mt-1 text-xs text-zinc-500">{student360.latestConsolidatedScore.period}</div>
             </>
           ) : (
-            <div className="mt-2 text-sm text-zinc-400">Not computed yet — see the Scoring page.</div>
+            <div className="mt-2 text-sm text-zinc-500">Not computed yet — see the Scoring page.</div>
           )}
         </div>
       </div>
@@ -291,7 +291,7 @@ export default async function StudentDetailPage({
             Exam report{examReport ? ` — ${examReport.examination_name}` : ""}
           </h2>
           {examReport ? <ExamSubjectPieChart subjects={examReport.subjects} /> : (
-            <p className="text-sm text-zinc-400">No exam marks recorded yet.</p>
+            <p className="text-sm text-zinc-500">No exam marks recorded yet.</p>
           )}
         </section>
       </div>
@@ -303,7 +303,7 @@ export default async function StudentDetailPage({
   const feesTab = feeInvoices.length === 0 ? (
     <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center">
       <p className="text-sm font-medium text-zinc-600">No fee invoices for this student yet.</p>
-      <p className="mt-1 text-xs text-zinc-400">Assign a fee structure from the Fees page to generate one.</p>
+      <p className="mt-1 text-xs text-zinc-500">Assign a fee structure from the Fees page to generate one.</p>
     </div>
   ) : (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5">
@@ -347,7 +347,7 @@ export default async function StudentDetailPage({
 
   const portfolioTab = (
     <div className="space-y-6">
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Only approved activities appear here — nothing pending or rejected ever shows up (§L.3). This is the verified record of what {profile.full_name} has achieved and worked on so far.
       </p>
 
@@ -355,7 +355,7 @@ export default async function StudentDetailPage({
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Academic performance</h2>
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-zinc-100 p-3">
-            <div className="text-xs text-zinc-400">Latest result</div>
+            <div className="text-xs text-zinc-500">Latest result</div>
             <div className="mt-1 text-lg font-semibold text-zinc-900">
               {student360.latestResult ? `${Number(student360.latestResult.percentage).toFixed(1)}%` : "—"}
             </div>
@@ -366,13 +366,13 @@ export default async function StudentDetailPage({
             ) : null}
           </div>
           <div className="rounded-xl border border-zinc-100 p-3">
-            <div className="text-xs text-zinc-400">Attendance (this year)</div>
+            <div className="text-xs text-zinc-500">Attendance (this year)</div>
             <div className="mt-1 text-lg font-semibold text-zinc-900">
               {student360.attendanceSummary ? `${student360.attendanceSummary.present_percent}%` : "—"}
             </div>
           </div>
           <div className="rounded-xl border border-zinc-100 p-3">
-            <div className="text-xs text-zinc-400">Consolidated score</div>
+            <div className="text-xs text-zinc-500">Consolidated score</div>
             <div className="mt-1 text-lg font-semibold text-zinc-900">
               {student360.latestConsolidatedScore ? student360.latestConsolidatedScore.score : "—"}
             </div>
@@ -397,15 +397,15 @@ export default async function StudentDetailPage({
             </table>
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">No exam marks recorded yet. Full report cards are under Academics.</p>
+          <p className="text-sm text-zinc-500">No exam marks recorded yet. Full report cards are under Academics.</p>
         )}
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Achievements &amp; awards</h2>
-        <p className="mb-3 text-xs text-zinc-400">Grouped by this institution&apos;s own achievement categories — including competitions, prizes and recognitions.</p>
+        <p className="mb-3 text-xs text-zinc-500">Grouped by this institution&apos;s own achievement categories — including competitions, prizes and recognitions.</p>
         {achievementsByCategory.size === 0 ? (
-          <p className="text-sm text-zinc-400">No approved achievements yet.</p>
+          <p className="text-sm text-zinc-500">No approved achievements yet.</p>
         ) : (
           <div className="space-y-4">
             {Array.from(achievementsByCategory.entries()).map(([category, items]) => (
@@ -432,9 +432,9 @@ export default async function StudentDetailPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Certifications</h2>
-        <p className="mb-3 text-xs text-zinc-400">Achievements with an uploaded certificate document.</p>
+        <p className="mb-3 text-xs text-zinc-500">Achievements with an uploaded certificate document.</p>
         {certifiedAchievements.length === 0 ? (
-          <p className="text-sm text-zinc-400">No certificates uploaded yet.</p>
+          <p className="text-sm text-zinc-500">No certificates uploaded yet.</p>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {certifiedAchievements.map((a) => (
@@ -454,9 +454,9 @@ export default async function StudentDetailPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Skills &amp; co-curricular activities</h2>
-        <p className="mb-3 text-xs text-zinc-400">Approved skill/activity submissions — sports, arts, clubs and other co-curricular participation, per this institution&apos;s own configured activities.</p>
+        <p className="mb-3 text-xs text-zinc-500">Approved skill/activity submissions — sports, arts, clubs and other co-curricular participation, per this institution&apos;s own configured activities.</p>
         {approvedSkillSubmissions.length === 0 ? (
-          <p className="text-sm text-zinc-400">No approved skill submissions yet.</p>
+          <p className="text-sm text-zinc-500">No approved skill submissions yet.</p>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {approvedSkillSubmissions.map((s) => (
@@ -483,7 +483,7 @@ export default async function StudentDetailPage({
                 Discipline records ({disciplineRecords.length})
               </h3>
               {disciplineRecords.length === 0 ? (
-                <p className="text-sm text-zinc-400">No discipline records.</p>
+                <p className="text-sm text-zinc-500">No discipline records.</p>
               ) : (
                 <ul className="space-y-2">
                   {disciplineRecords.map((d) => (
@@ -492,7 +492,7 @@ export default async function StudentDetailPage({
                         <span className={`font-medium ${d.is_positive ? "text-emerald-700" : "text-red-700"}`}>
                           {d.category_name}
                         </span>
-                        <span className="text-xs text-zinc-400">{d.date}</span>
+                        <span className="text-xs text-zinc-500">{d.date}</span>
                       </div>
                       {d.severity ? <div className="mt-0.5 text-xs text-zinc-500">Severity: {d.severity}</div> : null}
                       {d.description ? <div className="mt-1 text-xs text-zinc-600">{d.description}</div> : null}
@@ -508,14 +508,14 @@ export default async function StudentDetailPage({
                 Character assessments ({characterAssessments.length})
               </h3>
               {characterAssessments.length === 0 ? (
-                <p className="text-sm text-zinc-400">No character assessments.</p>
+                <p className="text-sm text-zinc-500">No character assessments.</p>
               ) : (
                 <ul className="space-y-2">
                   {characterAssessments.map((c) => (
                     <li key={c.id} className="flex items-center justify-between rounded-xl border border-zinc-100 p-3 text-sm">
                       <div>
                         <div className="text-zinc-900">{c.attribute_name}</div>
-                        <div className="text-xs text-zinc-400">{c.period}{c.notes ? ` — ${c.notes}` : ""}</div>
+                        <div className="text-xs text-zinc-500">{c.period}{c.notes ? ` — ${c.notes}` : ""}</div>
                       </div>
                       <span className="rounded-full bg-[var(--brand)]/10 px-2 py-0.5 text-xs font-medium text-[var(--brand)]">{c.rating}/5</span>
                     </li>
@@ -529,15 +529,15 @@ export default async function StudentDetailPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Books read ({allReadingRecords.length})</h2>
-        <p className="mb-3 text-xs text-zinc-400">Every book this student has finished and returned.</p>
+        <p className="mb-3 text-xs text-zinc-500">Every book this student has finished and returned.</p>
         {allReadingRecords.length === 0 ? (
-          <p className="text-sm text-zinc-400">No books read yet.</p>
+          <p className="text-sm text-zinc-500">No books read yet.</p>
         ) : (
           <ul className="divide-y divide-zinc-100">
             {allReadingRecords.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="text-zinc-900">{r.book_title}</span>
-                <span className="flex items-center gap-2 text-xs text-zinc-400">
+                <span className="flex items-center gap-2 text-xs text-zinc-500">
                   {r.review_status === "approved" ? (
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700">Reviewed</span>
                   ) : r.review_status === "pending" ? (
@@ -555,16 +555,16 @@ export default async function StudentDetailPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Reading reviews ({approvedReadingRecords.length})</h2>
-        <p className="mb-3 text-xs text-zinc-400">Reviews this student posted, once approved.</p>
+        <p className="mb-3 text-xs text-zinc-500">Reviews this student posted, once approved.</p>
         {approvedReadingRecords.length === 0 ? (
-          <p className="text-sm text-zinc-400">No approved reading reviews yet.</p>
+          <p className="text-sm text-zinc-500">No approved reading reviews yet.</p>
         ) : (
           <ul className="space-y-3">
             {approvedReadingRecords.map((r) => (
               <li key={r.id} className="rounded-xl border border-zinc-100 p-3 text-sm">
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <span className="font-medium text-zinc-900">{r.book_title}</span>
-                  <span className="text-xs text-zinc-400">{formatDate(r.created_at)}</span>
+                  <span className="text-xs text-zinc-500">{formatDate(r.created_at)}</span>
                 </div>
                 {r.review_text ? <RichTextContent html={r.review_text} /> : null}
               </li>
@@ -575,7 +575,7 @@ export default async function StudentDetailPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Activity timeline</h2>
-        <p className="mb-3 text-xs text-zinc-400">A chronological view across every module — projects, accomplishments and other development records all flow through here as they&apos;re approved.</p>
+        <p className="mb-3 text-xs text-zinc-500">A chronological view across every module — projects, accomplishments and other development records all flow through here as they&apos;re approved.</p>
         <ul className="divide-y divide-zinc-100">
           {student360.recentPortfolioEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between py-2 text-sm">
@@ -590,7 +590,7 @@ export default async function StudentDetailPage({
             </li>
           ))}
           {student360.recentPortfolioEvents.length === 0 ? (
-            <li className="py-4 text-center text-sm text-zinc-400">No approved activities yet.</li>
+            <li className="py-4 text-center text-sm text-zinc-500">No approved activities yet.</li>
           ) : null}
         </ul>
       </section>
@@ -602,7 +602,7 @@ export default async function StudentDetailPage({
             {kudosReceived.map((k) => (
               <li key={k.id} className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-0">
                 <span>{k.kind === "flower" ? "🌸" : "🎉"} {k.message || (k.kind === "flower" ? "Sent a flower" : "Congratulations!")} — from {k.parent_name}</span>
-                <span className="text-zinc-400">{k.created_at}</span>
+                <span className="text-zinc-500">{k.created_at}</span>
               </li>
             ))}
           </ul>
@@ -624,7 +624,7 @@ export default async function StudentDetailPage({
                 const trackSubjects = examReport.subjects.filter((s) => s.track === track);
                 return (
                   <div key={track}>
-                    <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                       {TRACK_LABEL[track] ?? track}
                     </h3>
                     {trackSubjects.length > 0 ? (
@@ -653,14 +653,14 @@ export default async function StudentDetailPage({
             </table>
           </div>
                     ) : (
-                      <p className="text-xs text-zinc-400">No {(TRACK_LABEL[track] ?? track).toLowerCase()} subjects tagged yet.</p>
+                      <p className="text-xs text-zinc-500">No {(TRACK_LABEL[track] ?? track).toLowerCase()} subjects tagged yet.</p>
                     )}
                   </div>
                 );
               })}
               {examReport.subjects.filter((s) => !s.track).length > 0 ? (
                 <div>
-                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">Untagged</h3>
+                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Untagged</h3>
                   <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
@@ -715,7 +715,7 @@ export default async function StudentDetailPage({
           </div>
           )
         ) : (
-          <p className="text-sm text-zinc-400">No exam marks recorded yet.</p>
+          <p className="text-sm text-zinc-500">No exam marks recorded yet.</p>
         )}
       </section>
       {dailyAssessmentHistory.length > 0 ? (
@@ -745,7 +745,7 @@ export default async function StudentDetailPage({
           </div>
         </section>
       ) : null}
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         For full report cards and past examinations, see <Link href="/results" className="underline">Results</Link>.
       </p>
     </div>

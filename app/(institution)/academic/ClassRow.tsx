@@ -42,7 +42,7 @@ export default function ClassRow({
           <button type="submit" disabled={updatePending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
             Save
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">
             Cancel
           </button>
         </form>
@@ -53,9 +53,9 @@ export default function ClassRow({
 
   return (
     <li className="flex items-center justify-between gap-2 py-2">
-      <span>{name}{stage ? <span className="ml-2 text-xs text-zinc-400">({stage})</span> : null}</span>
+      <span>{name}{stage ? <span className="ml-2 text-xs text-zinc-500">({stage})</span> : null}</span>
       <span className="flex items-center gap-2">
-        <span className="text-xs text-zinc-400">{sectionsLabel}</span>
+        <span className="text-xs text-zinc-500">{sectionsLabel}</span>
         {canManage ? (
           <>
             <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">

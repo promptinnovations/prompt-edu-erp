@@ -66,7 +66,7 @@ export default async function StaffMonthlyRegisterPage({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-zinc-700">{effectiveMonth}</h2>
-            <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-400">
+            <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-500">
               {statuses.map((s) => (
                 <span key={s.id}>{s.code.charAt(0).toUpperCase()} = {s.label}</span>
               ))}
@@ -88,7 +88,7 @@ export default async function StaffMonthlyRegisterPage({
               {register.staff.map((s) => (
                 <tr key={s.staff_id}>
                   <td className="sticky left-0 bg-white whitespace-nowrap py-1 pr-2">
-                    {s.full_name} {s.staff_code ? <span className="text-zinc-400">({s.staff_code})</span> : null}
+                    {s.full_name} {s.staff_code ? <span className="text-zinc-500">({s.staff_code})</span> : null}
                   </td>
                   {days.map((d) => {
                     const date = `${effectiveMonth}-${String(d).padStart(2, "0")}`;
@@ -103,7 +103,7 @@ export default async function StaffMonthlyRegisterPage({
                 </tr>
               ))}
               {register.staff.length === 0 ? (
-                <tr><td colSpan={daysInMonth + 1} className="py-4 text-center text-zinc-400">No active staff.</td></tr>
+                <tr><td colSpan={daysInMonth + 1} className="py-4 text-center text-zinc-500">No active staff.</td></tr>
               ) : null}
             </tbody>
           </table>

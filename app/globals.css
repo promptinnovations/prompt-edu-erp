@@ -1,103 +1,198 @@
 @import "tailwindcss";
 
-/* Old-Android/older-browser compatibility. Tailwind v4's default palette is
- * defined in OKLCH — an unsupported CSS colour function on any browser
- * older than Chrome 111 / Safari 16.4 (both March 2023), which an
- * unpredictable share of real Android devices in the field still are, either
- * running an old OS's bundled WebView or a Chrome build that was never
- * auto-updated. An unsupported color() value doesn't fall back gracefully —
- * the browser drops the whole declaration, so text/backgrounds render as
- * transparent/unstyled ("looks broken", not just "looks different").
+/* Prompt Innovations UI standard — design tokens.
  *
- * Tailwind's own compatibility docs are explicit that v4 "is designed for
- * and tested on modern browsers" and specifically depends on Chrome
- * 111+/Safari 16.4+/Firefox 128+ (https://tailwindcss.com/docs/compatibility)
- * — there's no built-in downlevel switch for this. Rather than dropping to
- * Tailwind v3 (a full framework migration), this block redefines every
- * theme colour family actually used anywhere in this codebase back to
- * plain, universally-supported hex values (Tailwind's own long-published
- * reference swatches — the same hex values Tailwind v3 shipped for years).
- * Every existing bg-zinc-900/text-red-600/etc. utility class keeps working
- * completely unchanged; it's the CSS variable *definition* underneath
- * that's a hex value instead of oklch(). The indigo/violet/fuchsia/sky/pink
- * families were added for the gradient design refresh — any new colour
- * family added later needs the same treatment or it'll silently vanish on
- * older Android. */
+ * Old-Android/older-browser compatibility still governs how every colour
+ * here is written. Tailwind v4's default palette is defined in OKLCH — an
+ * unsupported CSS colour function on any browser older than Chrome 111 /
+ * Safari 16.4 (both March 2023), which an unpredictable share of real
+ * Android devices in the field still are. An unsupported color() value
+ * doesn't fall back gracefully — the browser drops the whole declaration,
+ * so text/backgrounds render as transparent/unstyled. So every colour below
+ * is a plain hex literal (not oklch(), not color-mix(), and not a var()
+ * reference to another theme variable, which Tailwind may tree-shake), and
+ * any Tailwind colour family used anywhere in the app must be redefined
+ * here or it silently vanishes on older Android.
+ *
+ * Five families only (spec §1): brand primary (navy), brand accent (gold),
+ * warm sand neutrals, four semantic text/soft-fill pairs, and the fixed
+ * 8-slot chart series. The legacy Tailwind family names the codebase
+ * already uses (zinc, red, emerald, amber, green, sky, rose, blue, indigo)
+ * are kept as aliases so no existing class has to change to pick up the
+ * standard — each is re-pointed at its standard equivalent below.
+ */
 @theme {
-  --color-zinc-50: #fafafa;
-  --color-zinc-100: #f4f4f5;
-  --color-zinc-200: #e4e4e7;
-  --color-zinc-300: #d4d4d8;
-  --color-zinc-400: #9f9fa9;
-  --color-zinc-500: #71717b;
-  --color-zinc-600: #52525c;
-  --color-zinc-700: #3f3f46;
-  --color-zinc-800: #27272a;
-  --color-zinc-900: #18181b;
-  --color-zinc-950: #09090b;
-  --color-red-600: #e7000b;
-  --color-red-700: #c10007;
-  --color-emerald-50: #ecfdf5;
-  --color-emerald-200: #a4f4cf;
-  --color-emerald-600: #009966;
-  --color-emerald-700: #007a55;
-  --color-emerald-800: #006045;
-  --color-amber-100: #fef3c6;
-  --color-amber-500: #fe9a00;
-  --color-amber-700: #bb4d00;
-  --color-green-100: #dcfce7;
-  --color-green-700: #008236;
-  --color-blue-600: #155dfc;
-  /* Gradient/accent families for the design refresh */
-  --color-indigo-400: #818cf8;
-  --color-indigo-500: #6366f1;
-  --color-indigo-600: #4f46e5;
-  --color-indigo-700: #4338ca;
-  --color-violet-400: #a78bfa;
-  --color-violet-500: #8b5cf6;
-  --color-violet-600: #7c3aed;
-  --color-violet-700: #6d28d9;
-  --color-fuchsia-400: #e879f9;
-  --color-fuchsia-500: #d946ef;
-  --color-fuchsia-600: #c026d3;
-  --color-sky-400: #38bdf8;
-  --color-sky-500: #0ea5e9;
-  --color-pink-500: #ec4899;
-  /* Extra stops pulled in by the mechanical dark-mode pass + hero
-     gradients/badges — same reasoning as the rest of this block. */
-  --color-amber-400: #fbbf24;
-  --color-amber-900: #78350f;
-  --color-emerald-300: #6ee7b7;
-  --color-emerald-400: #34d399;
-  --color-emerald-950: #022c22;
-  --color-green-400: #4ade80;
-  --color-green-900: #14532d;
-  --color-indigo-950: #1e1b4b;
-  --color-orange-500: #f97316;
-  --color-red-400: #f87171;
-  --color-violet-900: #4c1d95;
-  --color-violet-950: #2e1065;
+  /* Typography. Inter is not downloaded: it's used only where installed
+     locally, otherwise the system stack this app has always used (§80
+     low-end-device constraint). Lora is self-hosted via next/font in
+     app/layout.tsx and exposed as --font-lora. */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Noto Sans", "Noto Sans Malayalam", "Noto Sans Arabic", Arial, sans-serif;
+  --font-display: var(--font-lora), "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, serif;
+
+  /* Warm sand neutrals + three text tones (spec reference values). */
+  --color-sand-50: #fbf9f5;  /* lifted surface, table headers */
+  --color-sand-100: #f7f4ee; /* page ground */
+  --color-sand-200: #efeae0; /* subtle fills, skeletons */
+  --color-sand-300: #e2dbcc; /* all borders */
+  --color-sand-400: #c7bda9; /* heavy dividers */
+  --color-ink: #1d2430;      /* headings and primary text */
+  --color-body: #4a5464;     /* running text */
+  --color-muted: #79839a;    /* captions, labels, axis text */
+
+  /* Brand primary — 11 steps, anchored at 900 = #0B1F3A exactly. The spec
+     names the step count but not the values; the other steps are derived
+     at the anchor's hue (214.5°) by lightness, so this block is the one
+     place to swap in official values if they're published. */
+  --color-primary-50: #f4f7fa;
+  --color-primary-100: #e6ecf5;
+  --color-primary-200: #c8d6ea;
+  --color-primary-300: #99b5db;
+  --color-primary-400: #5e8cc9;
+  --color-primary-500: #3267ae;
+  --color-primary-600: #234f8b;
+  --color-primary-700: #183c6d;
+  --color-primary-800: #102c50;
+  --color-primary-900: #0b1f3a;
+  --color-primary-950: #061223;
+
+  /* Brand accent — 7 steps, anchored at 500 = #C8A84B exactly (derived the
+     same way). Gold 500 is only 2.3:1 on white: never use it for text or
+     under white text; 700+ is the readable end. */
+  --color-accent-50: #fbf8ef;
+  --color-accent-100: #f4edd7;
+  --color-accent-200: #e6d6a8;
+  --color-accent-500: #c8a84b;
+  --color-accent-600: #ae8e32;
+  --color-accent-700: #896f24;
+  --color-accent-800: #66521a;
+
+  /* Semantic pairs — text colour on soft fill. */
+  --color-success: #1f7a4d;
+  --color-success-soft: #e6f4ec;
+  --color-warning: #a8710f;
+  --color-warning-soft: #fdf1dc;
+  --color-danger: #a72f3a;
+  --color-danger-soft: #fbeaec;
+  --color-info: #1f6f8c;
+  --color-info-soft: #e4f1f6;
+
+  /* Chart series — fixed 8 slots, CVD-validated. Assign in order, never
+     cycle, never substitute brand colours. Mirrored for SVG/JS use in
+     app/components/charts/series.ts. */
+  --color-chart-1: #2a78d6;
+  --color-chart-2: #eb6834;
+  --color-chart-3: #1baf7a;
+  --color-chart-4: #eda100;
+  --color-chart-5: #e87ba4;
+  --color-chart-6: #008300;
+  --color-chart-7: #4a3aa7;
+  --color-chart-8: #e34948;
+
+  /* Shape and depth. Shadows are tinted with brand primary, never black. */
+  --radius-card: 0.875rem;
+  --shadow-card: 0 1px 2px rgba(11, 31, 58, 0.04), 0 1px 3px rgba(11, 31, 58, 0.06);
+  --shadow-raised: 0 4px 6px -1px rgba(11, 31, 58, 0.06), 0 2px 4px -2px rgba(11, 31, 58, 0.04);
+  --shadow-float: 0 12px 28px -8px rgba(11, 31, 58, 0.18), 0 4px 10px -4px rgba(11, 31, 58, 0.06);
+  --shadow-sm: 0 1px 2px rgba(11, 31, 58, 0.04), 0 1px 3px rgba(11, 31, 58, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(11, 31, 58, 0.06), 0 2px 4px -2px rgba(11, 31, 58, 0.04);
+  --shadow-lg: 0 12px 28px -8px rgba(11, 31, 58, 0.18), 0 4px 10px -4px rgba(11, 31, 58, 0.06);
+
+  /* Legacy alias: zinc (cool grey) -> warm sand + text tones. 500/600 are
+     both muted, 700/800 both body, 900/950 both ink — no element in the app
+     pairs two merged shades as base/hover, so nothing needs an extra stop.
+     text-zinc-400 has been moved to text-zinc-500 at the call sites, since
+     sand-400 (1.9:1 on white) is a divider colour, not a text colour. */
+  --color-zinc-50: #fbf9f5;
+  --color-zinc-100: #f7f4ee;
+  --color-zinc-200: #efeae0;
+  --color-zinc-300: #e2dbcc;
+  --color-zinc-400: #c7bda9;
+  --color-zinc-500: #79839a;
+  --color-zinc-600: #79839a;
+  --color-zinc-700: #4a5464;
+  --color-zinc-800: #4a5464;
+  --color-zinc-900: #1d2430;
+  --color-zinc-950: #1d2430;
+
+  /* Legacy alias: indigo -> brand primary, step for step. */
+  --color-indigo-50: #f4f7fa;
+  --color-indigo-100: #e6ecf5;
+  --color-indigo-200: #c8d6ea;
+  --color-indigo-300: #99b5db;
+  --color-indigo-400: #5e8cc9;
+  --color-indigo-500: #3267ae;
+  --color-indigo-600: #234f8b;
+  --color-indigo-700: #183c6d;
+  --color-indigo-800: #102c50;
+  --color-indigo-900: #0b1f3a;
+  --color-indigo-950: #061223;
+
+  /* Legacy alias: status families -> semantic pairs. Steps 50-100 are the
+     soft fill, 200-300 (only ever used as borders) the global border
+     neutral, 400+ the text colour. */
+  --color-red-50: #fbeaec;
+  --color-red-100: #fbeaec;
+  --color-red-200: #e2dbcc;
+  --color-red-300: #e2dbcc;
+  --color-red-400: #a72f3a;
+  --color-red-500: #a72f3a;
+  --color-red-600: #a72f3a;
+  --color-red-700: #a72f3a;
+  --color-red-800: #a72f3a;
+  --color-red-900: #a72f3a;
+  --color-rose-100: #fbeaec;
+  --color-rose-500: #a72f3a;
+  --color-rose-700: #a72f3a;
+
+  --color-emerald-50: #e6f4ec;
+  --color-emerald-100: #e6f4ec;
+  --color-emerald-200: #e2dbcc;
+  --color-emerald-300: #1f7a4d;
+  --color-emerald-400: #1f7a4d;
+  --color-emerald-500: #1f7a4d;
+  --color-emerald-600: #1f7a4d;
+  --color-emerald-700: #1f7a4d;
+  --color-emerald-800: #1f7a4d;
+  --color-emerald-900: #1f7a4d;
+  --color-emerald-950: #1f7a4d;
+  --color-green-50: #e6f4ec;
+  --color-green-100: #e6f4ec;
+  --color-green-400: #1f7a4d;
+  --color-green-700: #1f7a4d;
+  --color-green-900: #1f7a4d;
+
+  --color-amber-50: #fdf1dc;
+  --color-amber-100: #fdf1dc;
+  --color-amber-200: #e2dbcc;
+  --color-amber-400: #a8710f;
+  --color-amber-500: #a8710f;
+  --color-amber-600: #a8710f;
+  --color-amber-700: #a8710f;
+  --color-amber-800: #a8710f;
+  --color-amber-900: #a8710f;
+
+  --color-sky-100: #e4f1f6;
+  --color-sky-500: #1f6f8c;
+  --color-sky-700: #1f6f8c;
+  --color-blue-600: #1f6f8c;
 }
 
-/* Semantic tokens — one fixed palette for the whole app (the earlier
- * per-institution colour picker has been retired; see (institution)/
- * layout.tsx and (portals)/portal/layout.tsx, which no longer inject a
- * per-tenant override here). Every primary button in the app is styled
- * with bg-[var(--brand)]/hover:bg-[var(--brand-hover)], so changing these
- * two lines re-colours every button in the product at once.
- *
- * "Remove that black or white colour ... let it look organized" follow-up:
- * swapped the indigo/violet/fuchsia gradient brand for a single, calmer
- * navy-and-teal professional palette (matching the reference screenshots —
- * a solid navy header/rail, teal primary actions, white content), and gave
- * the sidebar rail its OWN token set (--sidebar-*) so it's a proper navy
- * blue instead of near-black zinc-950 in both light and dark content mode
- * (the rail has always been independent of the light/dark toggle — see
- * ResponsiveSidebar.tsx's own doc comment — this just changes its colour,
- * not that independence). */
+/* Semantic tokens — the fallback before a layout injects the resolved
+ * palette (services/branding/palettes.ts's paletteCssVars(); every layout
+ * — institution, portal, Super Admin, login — injects one, keyed off the
+ * institution's saved choice or the platform default). These values mirror
+ * the code default palette (DEFAULT_PALETTE_ID, "navy-teal") so a page that
+ * somehow renders without injection still matches the platform default.
+ * Primary buttons are bg-[var(--brand)]/hover:bg-[var(--brand-hover)]; the
+ * sidebar rail has its own --sidebar-* set. --heading is the page/section
+ * heading colour (brand-primary-900 in Navy & Gold, the palette's
+ * foreground elsewhere). */
 :root {
   --background: #f4f6fb;
   --foreground: #1e293b;
+  --heading: #1e293b;
   --surface: #ffffff;
   --surface-muted: #eef1f8;
   --border-subtle: #dde3ef;
@@ -118,12 +213,58 @@
   --sidebar-icon: #b9c1ec;
 }
 
+@layer base {
+  /* All borders one neutral, set globally — an element opts into a border
+     by width alone (border, border-b, divide-y) and gets this colour. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border-subtle);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    letter-spacing: -0.011em;
+  }
+
+  /* Lora is reserved for display headings: page titles (every h1 in this
+     app is one) and anything explicitly marked .display. */
+  h1,
+  .display {
+    font-family: var(--font-display);
+  }
+
+  /* Figures that line up in a column must be tabular — money, counts and
+     dates in every table. Only digit widths change, so text columns are
+     unaffected. */
+  table,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Noto Sans", "Noto Sans Malayalam", "Noto Sans Arabic", Arial, sans-serif;
+  font-family: var(--font-sans);
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Section labels: small, uppercase, tracked, muted. */
+@utility section-label {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
 }
 
 /* Print support ("Print Center" follow-up) — any page can opt in to a
@@ -150,12 +291,10 @@ body {
 }
 
 /* Data-table polish (plain rgba, not color-mix() — same old-Android
- * compatibility reasoning as the rest of this file: color-mix() shipped
- * in the same 2023 browser wave as oklch(), so it gets the same
- * treatment of "just use a plain, universally-supported value"). */
+ * compatibility reasoning as the rest of this file). Hover is a navy tint. */
 table tbody tr:nth-child(even) {
   background-color: var(--surface-muted);
 }
 table tbody tr:hover {
-  background-color: rgba(79, 70, 229, 0.06);
+  background-color: rgba(11, 31, 58, 0.04);
 }

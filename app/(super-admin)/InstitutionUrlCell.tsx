@@ -61,7 +61,7 @@ export default function InstitutionUrlCell({
         <button type="submit" disabled={pending} className="rounded-lg border border-zinc-300 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           Save
         </button>
-        <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-400 hover:text-zinc-700">
+        <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">
           Cancel
         </button>
       </form>
@@ -75,7 +75,7 @@ export default function InstitutionUrlCell({
         <button type="button" onClick={copyUrl} className="shrink-0 rounded-lg border border-zinc-300 px-1.5 py-0.5 text-xs text-zinc-600 hover:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
           {copied ? "Copied" : "Copy"}
         </button>
-        <button type="button" onClick={() => setEditing(true)} className="shrink-0 text-xs text-zinc-400 underline hover:text-zinc-700">
+        <button type="button" onClick={() => setEditing(true)} className="shrink-0 text-xs text-zinc-500 underline hover:text-zinc-700">
           Edit
         </button>
       </div>

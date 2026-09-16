@@ -33,17 +33,17 @@ export default async function SuperAdminOverviewPage() {
     { students: 0, staff: 0, users: 0 }
   );
   const summary: Array<[string, number, string]> = [
-    ["Institutions", institutions.length, "from-indigo-500 to-violet-500"],
-    ["Students", totals.students, "from-violet-500 to-fuchsia-500"],
-    ["Staff", totals.staff, "from-fuchsia-500 to-pink-500"],
-    ["Platform users", totals.users, "from-sky-500 to-indigo-500"],
+    ["Institutions", institutions.length, "from-[var(--brand-from)] to-[var(--brand-via)]"],
+    ["Students", totals.students, "from-[var(--brand-from)] to-[var(--brand-via)]"],
+    ["Staff", totals.staff, "from-[var(--brand-from)] to-[var(--brand-via)]"],
+    ["Platform users", totals.users, "from-[var(--brand-from)] to-[var(--brand-via)]"],
   ];
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 via-indigo-950 to-violet-950 p-6 text-white shadow-lg sm:p-8">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--sidebar-bg-2)] via-[var(--sidebar-bg)] to-[var(--sidebar-bg)] p-6 text-white shadow-lg sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/20 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-fuchsia-500/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-white/5 blur-2xl" />
         <div className="relative">
           <div className="text-xs font-medium uppercase tracking-wide text-white/60">Super Admin Console</div>
           <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Institutions</h1>
@@ -66,7 +66,7 @@ export default async function SuperAdminOverviewPage() {
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">All institutions ({institutions.length})</h2>
-        <p className="mb-3 text-xs text-zinc-400">
+        <p className="mb-3 text-xs text-zinc-500">
           Usage counts below are live, on-demand totals — not the scheduled `usage_metrics` rollup described in
           ARCHITECTURE.md §W.1 (no job scheduler is wired up yet, same as the analytics-refresh follow-up; see docs/SETUP.md).
         </p>
@@ -117,7 +117,7 @@ export default async function SuperAdminOverviewPage() {
                 );
               })}
               {institutions.length === 0 ? (
-                <tr><td colSpan={9} className="py-4 text-center text-zinc-400">No institutions yet.</td></tr>
+                <tr><td colSpan={9} className="py-4 text-center text-zinc-500">No institutions yet.</td></tr>
               ) : null}
             </tbody>
           </table>

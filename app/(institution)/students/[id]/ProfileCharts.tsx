@@ -13,7 +13,7 @@ const MONTH_LABEL = (ym: string) => {
  *  only, not a third "leave" series. */
 export function MonthlyAttendanceBarChart({ points }: { points: MonthlyAttendancePoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-zinc-400">No attendance recorded yet this year.</p>;
+    return <p className="text-sm text-zinc-500">No attendance recorded yet this year.</p>;
   }
   const maxTotal = Math.max(...points.map((p) => p.total), 1);
   return (
@@ -28,7 +28,7 @@ export function MonthlyAttendanceBarChart({ points }: { points: MonthlyAttendanc
                 <div style={{ height: `${absentH}%` }} className="w-full bg-red-300" title={`${p.absent} absent`} />
                 <div style={{ height: `${presentH}%` }} className="w-full bg-emerald-400" title={`${p.present} present`} />
               </div>
-              <div className="mt-1.5 text-[10px] text-zinc-400">{MONTH_LABEL(p.month)}</div>
+              <div className="mt-1.5 text-[10px] text-zinc-500">{MONTH_LABEL(p.month)}</div>
             </div>
           );
         })}
@@ -59,7 +59,7 @@ export function ExamSubjectPieChart({ subjects }: { subjects: StudentSubjectMark
   const overallPercent = totalMax > 0 ? Math.round((totalObtained / totalMax) * 1000) / 10 : 0;
 
   if (scored.length === 0) {
-    return <p className="text-sm text-zinc-400">No approved marks yet for this exam.</p>;
+    return <p className="text-sm text-zinc-500">No approved marks yet for this exam.</p>;
   }
 
   let cursor = 0;
@@ -78,7 +78,7 @@ export function ExamSubjectPieChart({ subjects }: { subjects: StudentSubjectMark
       >
         <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-white text-center">
           <div className="text-lg font-semibold text-zinc-900">{overallPercent}%</div>
-          <div className="text-[10px] text-zinc-400">total</div>
+          <div className="text-[10px] text-zinc-500">total</div>
         </div>
       </div>
       <ul className="space-y-1 text-sm">
@@ -86,11 +86,11 @@ export function ExamSubjectPieChart({ subjects }: { subjects: StudentSubjectMark
           <li key={s.subject_id} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: SLICE_COLORS[i % SLICE_COLORS.length] }} />
             <span className="text-zinc-700">{s.subject_name}</span>
-            <span className="text-zinc-400">{s.marks_obtained}/{s.max_marks}</span>
+            <span className="text-zinc-500">{s.marks_obtained}/{s.max_marks}</span>
           </li>
         ))}
         {subjects.filter((s) => s.is_absent).map((s) => (
-          <li key={s.subject_id} className="flex items-center gap-2 text-zinc-400">
+          <li key={s.subject_id} className="flex items-center gap-2 text-zinc-500">
             <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-zinc-300" />
             <span>{s.subject_name}</span>
             <span>Absent</span>

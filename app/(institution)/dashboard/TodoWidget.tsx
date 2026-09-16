@@ -28,7 +28,7 @@ function DeleteForm({ todoId }: { todoId: string }) {
   return (
     <form action={formAction}>
       <input type="hidden" name="todoId" value={todoId} />
-      <button type="submit" className="text-xs text-zinc-400 hover:text-red-600">✕</button>
+      <button type="submit" className="text-xs text-zinc-500 hover:text-red-600">✕</button>
     </form>
   );
 }
@@ -52,13 +52,13 @@ export default function TodoWidget({ todos }: { todos: Todo[] }) {
       {state.error ? <p className="text-xs text-red-600">{state.error}</p> : null}
 
       {todos.length === 0 ? (
-        <p className="text-sm text-zinc-400">Nothing on your list yet.</p>
+        <p className="text-sm text-zinc-500">Nothing on your list yet.</p>
       ) : (
         <ul className="space-y-1.5">
           {[...pending_, ...done].map((t) => (
             <li key={t.id} className="flex items-center gap-2">
               <ToggleForm todo={t} />
-              <span className={`min-w-0 flex-1 truncate text-sm ${t.is_done ? "text-zinc-400 line-through" : "text-zinc-700"}`}>
+              <span className={`min-w-0 flex-1 truncate text-sm ${t.is_done ? "text-zinc-500 line-through" : "text-zinc-700"}`}>
                 {t.text}
               </span>
               <DeleteForm todoId={t.id} />

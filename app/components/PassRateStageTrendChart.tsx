@@ -29,7 +29,7 @@ function shortLabel(name: string) {
 
 export default function PassRateStageTrendChart({ points }: { points: PassRateTrendByStagePoint[] }) {
   if (points.length === 0) {
-    return <p className="text-sm text-zinc-400">No published results yet.</p>;
+    return <p className="text-sm text-zinc-500">No published results yet.</p>;
   }
 
   // Every distinct examination across all stages, in the order it was

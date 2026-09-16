@@ -109,7 +109,7 @@ export default async function FeesPage({
                 </tr>
               ))}
               {classSummary.length === 0 ? (
-                <tr><td colSpan={7} className="py-3 text-center text-zinc-400">No fee invoices yet.</td></tr>
+                <tr><td colSpan={7} className="py-3 text-center text-zinc-500">No fee invoices yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -155,7 +155,7 @@ export default async function FeesPage({
                     <td className="py-1.5 pr-3"><AssignFeeStructureButton feeStructureId={s.id} /></td>
                   </tr>
                 ))}
-                {structures.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400">No fee structures yet.</td></tr> : null}
+                {structures.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-500">No fee structures yet.</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -200,7 +200,7 @@ export default async function FeesPage({
                 Filter
               </button>
               {classId ? (
-                <a href={status ? `/fees?status=${status}` : "/fees"} className="text-zinc-400 hover:underline">
+                <a href={status ? `/fees?status=${status}` : "/fees"} className="text-zinc-500 hover:underline">
                   Clear
                 </a>
               ) : null}
@@ -229,10 +229,10 @@ export default async function FeesPage({
             <tbody>
               {invoices.map((i) => (
                 <tr key={i.id} className="border-t border-zinc-100">
-                  <td className="py-1.5 pr-3">{i.student_name} <span className="text-zinc-400">({i.admission_number})</span></td>
+                  <td className="py-1.5 pr-3">{i.student_name} <span className="text-zinc-500">({i.admission_number})</span></td>
                   <td className="py-1.5 pr-3">
                     {i.class_name ? `${i.class_name} ${i.section_name ?? ""}`.trim() : "—"}
-                    {i.roll_number != null ? <span className="text-zinc-400"> #{i.roll_number}</span> : null}
+                    {i.roll_number != null ? <span className="text-zinc-500"> #{i.roll_number}</span> : null}
                   </td>
                   <td className="py-1.5 pr-3">{i.category_name}</td>
                   <td className="py-1.5 pr-3">₹{i.amount_due}</td>
@@ -242,7 +242,7 @@ export default async function FeesPage({
                   </td>
                 </tr>
               ))}
-              {invoices.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-400">No invoices.</td></tr> : null}
+              {invoices.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-500">No invoices.</td></tr> : null}
             </tbody>
           </table>
         </div>

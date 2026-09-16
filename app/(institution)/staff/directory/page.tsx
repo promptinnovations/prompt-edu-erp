@@ -37,7 +37,7 @@ export default async function StaffDirectoryPage() {
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         {staff.length === 0 ? (
-          <p className="py-6 text-center text-sm text-zinc-400">No staff members yet.</p>
+          <p className="py-6 text-center text-sm text-zinc-500">No staff members yet.</p>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {staff.map((s) => {
@@ -62,7 +62,7 @@ export default async function StaffDirectoryPage() {
                   )}
                   <div className="mt-3 text-sm font-medium text-zinc-900">{s.full_name}</div>
                   <div className="mt-0.5 text-xs text-zinc-500">{s.designation ?? "—"}</div>
-                  <div className="mt-0.5 text-xs text-zinc-400">{s.staff_code}</div>
+                  <div className="mt-0.5 text-xs text-zinc-500">{s.staff_code}</div>
                   {isTeacher ? (
                     <span className="mt-1.5 rounded-full bg-[var(--brand)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--brand)]">Teacher</span>
                   ) : null}

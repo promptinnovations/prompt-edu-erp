@@ -26,7 +26,7 @@ export default function StudentForm({
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(admitStudentAction, { error: null });
 
   if (!academicYearId) {
-    return <p className="text-sm text-zinc-400">No current academic year configured — set one up in Academic Setup before admitting students.</p>;
+    return <p className="text-sm text-zinc-500">No current academic year configured — set one up in Academic Setup before admitting students.</p>;
   }
 
   return (
@@ -97,7 +97,7 @@ export default function StudentForm({
           <input name="motherPhone" className={`w-full ${inputCls}`} />
         </div>
       </div>
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         At least one parent&apos;s name and phone number is required. Blood group, medical history, hobbies and
         the rest of the Student Profile Record can be filled in later from the student&apos;s own Personal tab.
       </p>

@@ -65,7 +65,7 @@ export default async function AcademicPage() {
           {academicYears.map((y) => (
             <li key={y.id} className="flex items-center justify-between py-2">
               <span>
-                {y.name} <span className="text-zinc-400">({y.start_date} — {y.end_date})</span>
+                {y.name} <span className="text-zinc-500">({y.start_date} — {y.end_date})</span>
               </span>
               {y.is_current ? (
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -81,7 +81,7 @@ export default async function AcademicPage() {
               )}
             </li>
           ))}
-          {academicYears.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
+          {academicYears.length === 0 ? <li className="py-2 text-zinc-500">—</li> : null}
         </ul>
       </section>
 
@@ -99,7 +99,7 @@ export default async function AcademicPage() {
               canManage={canManage}
             />
           ))}
-          {classes.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
+          {classes.length === 0 ? <li className="py-2 text-zinc-500">—</li> : null}
         </ul>
       </section>
 
@@ -116,7 +116,7 @@ export default async function AcademicPage() {
               canManage={canManage}
             />
           ))}
-          {sections.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
+          {sections.length === 0 ? <li className="py-2 text-zinc-500">—</li> : null}
         </ul>
       </section>
 
@@ -127,7 +127,7 @@ export default async function AcademicPage() {
           <div className="mt-4 space-y-4">
             {trackOrder.map((track) => (
               <div key={track}>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                   {TRACK_LABEL[track] ?? track}
                 </h3>
                 <ul className="divide-y divide-zinc-100 text-sm">
@@ -138,14 +138,14 @@ export default async function AcademicPage() {
                     </li>
                   ))}
                   {subjects.filter((s) => s.track === track).length === 0 ? (
-                    <li className="py-2 text-zinc-400">—</li>
+                    <li className="py-2 text-zinc-500">—</li>
                   ) : null}
                 </ul>
               </div>
             ))}
             {subjects.filter((s) => !s.track).length > 0 ? (
               <div>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">Untagged</h3>
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">Untagged</h3>
                 <ul className="divide-y divide-zinc-100 text-sm">
                   {subjects.filter((s) => !s.track).map((s) => (
                     <li key={s.id} className="flex items-center justify-between py-2">
@@ -164,14 +164,14 @@ export default async function AcademicPage() {
                 {s.name}
               </li>
             ))}
-            {subjects.length === 0 ? <li className="py-2 text-zinc-400">—</li> : null}
+            {subjects.length === 0 ? <li className="py-2 text-zinc-500">—</li> : null}
           </ul>
         )}
       </section>
 
       <section id="subjects-per-class" className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-zinc-700">Subjects per class</h2>
-        <p className="mb-3 text-xs text-zinc-400">
+        <p className="mb-3 text-xs text-zinc-500">
           Which subjects each class studies — shown to teachers/students on that class&apos;s own page.
         </p>
         <ul className="divide-y divide-zinc-100 text-sm">
@@ -185,7 +185,7 @@ export default async function AcademicPage() {
               canManage={canManage}
             />
           ))}
-          {classes.length === 0 ? <li className="py-2 text-zinc-400">Add a class above first.</li> : null}
+          {classes.length === 0 ? <li className="py-2 text-zinc-500">Add a class above first.</li> : null}
         </ul>
       </section>
     </div>

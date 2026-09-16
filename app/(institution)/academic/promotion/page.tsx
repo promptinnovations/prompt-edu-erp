@@ -90,7 +90,7 @@ export default async function PromotionPage({
 
       {classId ? (
         preview.length === 0 ? (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-500">
             No active students found for this class — check that an academic year is marked current.
           </p>
         ) : (

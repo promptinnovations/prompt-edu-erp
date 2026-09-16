@@ -28,7 +28,7 @@ export default function NavLinks({ items }: { items: NavItem[] }) {
               "relative rounded-lg px-3 py-2 pl-4 transition-colors",
               item.separated ? "mt-2 border border-zinc-800" : "",
               active
-                ? "bg-gradient-to-r from-indigo-500/20 via-violet-500/10 to-transparent font-medium text-white before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-gradient-to-b before:from-indigo-400 before:to-fuchsia-400"
+                ? "bg-white/10 font-medium text-white before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-accent-500"
                 : item.muted
                   ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
                   : "text-zinc-300 hover:bg-zinc-800 hover:text-white",

@@ -41,7 +41,7 @@ export default function HoldsWaitlist({ holds }: { holds: HoldRow[] }) {
             </tr>
           ))}
           {holds.length === 0 ? (
-            <tr><td colSpan={4} className="py-4 text-center text-zinc-400">No pre-bookings right now.</td></tr>
+            <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No pre-bookings right now.</td></tr>
           ) : null}
         </tbody>
       </table>

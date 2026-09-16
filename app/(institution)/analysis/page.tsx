@@ -123,7 +123,7 @@ export default async function AnalysisPage() {
           </Link>
         ))}
         {cards.length === 0 ? (
-          <p className="text-sm text-zinc-400">Nothing to analyze yet for your role/modules.</p>
+          <p className="text-sm text-zinc-500">Nothing to analyze yet for your role/modules.</p>
         ) : null}
       </div>
     </div>

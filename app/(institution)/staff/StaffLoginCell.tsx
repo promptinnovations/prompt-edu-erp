@@ -14,7 +14,7 @@ export default function StaffLoginCell({ staffId, hasLogin, canManage }: { staff
   const action = hasLogin ? resetStaffLoginPasswordAction : createStaffLoginAction;
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(action, { error: null });
 
-  if (!canManage) return <span className="text-xs text-zinc-400">{hasLogin ? "Has login" : "No login yet"}</span>;
+  if (!canManage) return <span className="text-xs text-zinc-500">{hasLogin ? "Has login" : "No login yet"}</span>;
 
   if (!open) {
     return (
@@ -43,7 +43,7 @@ export default function StaffLoginCell({ staffId, hasLogin, canManage }: { staff
       <button type="submit" disabled={pending} className="rounded-lg bg-[var(--brand)] px-2 py-1 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         {hasLogin ? "Reset" : "Create"}
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-xs text-zinc-400 hover:text-zinc-600">
+      <button type="button" onClick={() => setOpen(false)} className="text-xs text-zinc-500 hover:text-zinc-600">
         Cancel
       </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}

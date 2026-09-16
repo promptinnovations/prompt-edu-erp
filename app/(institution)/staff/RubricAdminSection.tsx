@@ -38,7 +38,7 @@ function CriterionEditor({ criterion }: { criterion: ObservationCriterionRecord 
   return (
     <details className="rounded-lg border border-zinc-200 p-3">
       <summary className="cursor-pointer text-sm text-zinc-700">
-        <span className="text-xs text-zinc-400">{criterion.domain}</span> — {criterion.criteria_text}
+        <span className="text-xs text-zinc-500">{criterion.domain}</span> — {criterion.criteria_text}
       </summary>
       <form action={formAction} className="mt-3 space-y-2">
         <input type="hidden" name="criterionId" value={criterion.id} />
@@ -101,7 +101,7 @@ function AddCriterionForm() {
 export default function RubricAdminSection({ criteria }: { criteria: ObservationCriterionRecord[] }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Each criterion is scored 1–5; every level needs its own descriptor and explanation text, shown together when an observer picks that score.
       </p>
       {criteria.map((c) => <CriterionEditor key={c.id} criterion={c} />)}

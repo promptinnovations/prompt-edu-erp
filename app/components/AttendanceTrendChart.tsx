@@ -20,7 +20,7 @@ export default function AttendanceTrendChart({
   compact?: boolean;
 }) {
   if (points.length === 0) {
-    return <p className="text-sm text-zinc-400">No attendance has been taken yet.</p>;
+    return <p className="text-sm text-zinc-500">No attendance has been taken yet.</p>;
   }
   const maxPercent = Math.max(1, ...points.map((p) => p.presentPercent));
   const first = points[0].presentPercent;
@@ -30,7 +30,7 @@ export default function AttendanceTrendChart({
   return (
     <div>
       {!compact ? (
-        <p className="mb-3 text-xs text-zinc-400">
+        <p className="mb-3 text-xs text-zinc-500">
           Institution-wide present-percentage, last {points.length} day{points.length === 1 ? "" : "s"} with attendance taken
           {delta !== 0 ? (
             <span className={delta > 0 ? "ml-1 text-emerald-600" : "ml-1 text-red-600"}>
@@ -49,7 +49,7 @@ export default function AttendanceTrendChart({
               title={`${formatDate(p.date)}: ${p.presentPercent}% (${p.totalMarked} marked)`}
             />
             {!compact ? (
-              <span className="max-w-full truncate text-[10px] text-zinc-400">{formatDate(p.date)}</span>
+              <span className="max-w-full truncate text-[10px] text-zinc-500">{formatDate(p.date)}</span>
             ) : null}
           </div>
         ))}

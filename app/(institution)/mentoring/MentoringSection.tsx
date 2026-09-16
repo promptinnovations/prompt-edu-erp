@@ -74,7 +74,7 @@ export default function MentoringSection({
           {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
         </form>
       ) : canCreate ? (
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-500">
           You have mentoring.create, but no staff record yet — ask an admin to add you under Staff first.
         </p>
       ) : null}
@@ -107,7 +107,7 @@ export default function MentoringSection({
             </tr>
           ))}
           {records.length === 0 ? (
-            <tr><td colSpan={5} className="py-4 text-center text-zinc-400">No mentoring records visible to you yet.</td></tr>
+            <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No mentoring records visible to you yet.</td></tr>
           ) : null}
         </tbody>
       </table>

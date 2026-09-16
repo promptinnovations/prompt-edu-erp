@@ -9,7 +9,7 @@ export default function DeleteSubstitutionButton({ substitutionId }: { substitut
   return (
     <form action={formAction}>
       <input type="hidden" name="substitutionId" value={substitutionId} />
-      <button type="submit" disabled={pending} className="text-xs text-zinc-400 hover:text-red-600 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="text-xs text-zinc-500 hover:text-red-600 disabled:opacity-50">
         Remove
       </button>
     </form>

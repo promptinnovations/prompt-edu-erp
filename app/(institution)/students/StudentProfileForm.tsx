@@ -30,7 +30,7 @@ const TextArea = ({ label, name, defaultValue }: { label: string; name: string; 
 const Section = ({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) => (
   <fieldset className="rounded-xl border border-zinc-200 p-4">
     <legend className="px-1 text-sm font-semibold text-zinc-700">{title}</legend>
-    {note ? <p className="mb-3 -mt-1 text-xs text-zinc-400">{note}</p> : null}
+    {note ? <p className="mb-3 -mt-1 text-xs text-zinc-500">{note}</p> : null}
     <div className="grid gap-3 sm:grid-cols-2">{children}</div>
   </fieldset>
 );

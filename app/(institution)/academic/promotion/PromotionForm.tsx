@@ -104,7 +104,7 @@ export default function PromotionForm({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-zinc-400">
+            <tr className="border-b border-zinc-200 text-left text-zinc-500">
               <th className="pb-2 font-medium">Roll</th>
               <th className="pb-2 font-medium">Name</th>
               <th className="pb-2 font-medium">Action</th>
@@ -144,7 +144,7 @@ export default function PromotionForm({
                         ))}
                       </select>
                     ) : (
-                      <span className="text-xs text-zinc-400">—</span>
+                      <span className="text-xs text-zinc-500">—</span>
                     )}
                   </td>
                   <td className="py-2">
@@ -161,7 +161,7 @@ export default function PromotionForm({
                         ))}
                       </select>
                     ) : (
-                      <span className="text-xs text-zinc-400">—</span>
+                      <span className="text-xs text-zinc-500">—</span>
                     )}
                   </td>
                 </tr>

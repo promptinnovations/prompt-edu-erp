@@ -44,7 +44,7 @@ export default function CreateInstitutionForm() {
           <option value="islamic">Islamic only</option>
           <option value="both">Both (Academic + Islamic)</option>
         </select>
-        <p className="mt-1 text-[11px] text-zinc-400 sm:w-44">
+        <p className="mt-1 text-[11px] text-zinc-500 sm:w-44">
           &quot;Both&quot; keeps this institution&apos;s subjects, exam types, portfolio and results split into
           two dedicated Academic/Islamic sections everywhere — the institution&apos;s own admin can later
           choose which one shows first.
@@ -62,7 +62,7 @@ export default function CreateInstitutionForm() {
             <option value="sksvb">SKSVB</option>
             <option value="skimvb">SKIMVB</option>
           </select>
-          <p className="mt-1 text-[11px] text-zinc-400 sm:w-40">
+          <p className="mt-1 text-[11px] text-zinc-500 sm:w-40">
             SKSVB auto-creates classes 1–12 and their subjects. SKIMVB just records the choice for now.
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function CreateInstitutionForm() {
             <option value="cbse">CBSE</option>
             <option value="icse">ICSE</option>
           </select>
-          <p className="mt-1 text-[11px] text-zinc-400 sm:w-40">
+          <p className="mt-1 text-[11px] text-zinc-500 sm:w-40">
             Auto-creates a matching grading scale (grade bands + pass %) — editable afterward from this
             institution&apos;s own Examinations settings.
           </p>

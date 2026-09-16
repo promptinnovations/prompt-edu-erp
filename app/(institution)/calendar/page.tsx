@@ -11,16 +11,16 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   holiday: "Holiday", exam: "Exam", meeting: "Meeting", ptm: "PTM", other: "Other",
 };
 const EVENT_TYPE_DOT: Record<string, string> = {
-  holiday: "bg-rose-500", exam: "bg-amber-500", meeting: "bg-sky-500", ptm: "bg-violet-500", other: "bg-zinc-400",
+  holiday: "bg-rose-500", exam: "bg-amber-500", meeting: "bg-sky-500", ptm: "bg-accent-500", other: "bg-zinc-400",
 };
 const EVENT_TYPE_BORDER: Record<string, string> = {
-  holiday: "border-l-rose-500", exam: "border-l-amber-500", meeting: "border-l-sky-500", ptm: "border-l-violet-500", other: "border-l-zinc-400",
+  holiday: "border-l-rose-500", exam: "border-l-amber-500", meeting: "border-l-sky-500", ptm: "border-l-accent-500", other: "border-l-zinc-400",
 };
 const EVENT_TYPE_BADGE: Record<string, string> = {
   holiday: "bg-rose-100 text-rose-700",
   exam: "bg-amber-100 text-amber-700",
   meeting: "bg-sky-100 text-sky-700",
-  ptm: "bg-violet-100 text-violet-700",
+  ptm: "bg-accent-100 text-accent-800",
   other: "bg-zinc-100 text-zinc-600",
 };
 
@@ -62,7 +62,7 @@ export default async function CalendarPage() {
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Upcoming</h2>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-zinc-400">No upcoming events.</p>
+          <p className="text-sm text-zinc-500">No upcoming events.</p>
         ) : (
           <ul className="space-y-2">
             {upcoming.map((e) => (
@@ -71,7 +71,7 @@ export default async function CalendarPage() {
                   <span className={`h-2 w-2 shrink-0 rounded-full ${EVENT_TYPE_DOT[e.event_type]}`} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-zinc-900">{e.title}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
                       <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${EVENT_TYPE_BADGE[e.event_type]}`}>
                         {EVENT_TYPE_LABEL[e.event_type]}
                       </span>
@@ -90,7 +90,7 @@ export default async function CalendarPage() {
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Past</h2>
         {past.length === 0 ? (
-          <p className="text-sm text-zinc-400">No past events yet.</p>
+          <p className="text-sm text-zinc-500">No past events yet.</p>
         ) : (
           <ul className="space-y-2 opacity-70">
             {past.map((e) => (
@@ -99,7 +99,7 @@ export default async function CalendarPage() {
                   <span className={`h-2 w-2 shrink-0 rounded-full ${EVENT_TYPE_DOT[e.event_type]}`} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-zinc-900">{e.title}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-400">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
                       <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${EVENT_TYPE_BADGE[e.event_type]}`}>
                         {EVENT_TYPE_LABEL[e.event_type]}
                       </span>

@@ -146,7 +146,7 @@ export default async function StudentsPage({
                   {s.login_id ? (
                     <>
                       {s.login_id}
-                      {s.parent_phone ? <span className="text-zinc-400"> / {s.parent_phone}</span> : null}
+                      {s.parent_phone ? <span className="text-zinc-500"> / {s.parent_phone}</span> : null}
                     </>
                   ) : "—"}
                 </td>
@@ -168,7 +168,7 @@ export default async function StudentsPage({
             ))}
             {students.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-zinc-400">
+                <td colSpan={7} className="px-4 py-6 text-center text-zinc-500">
                   {q || classId ? t("noMatches") : "—"}
                 </td>
               </tr>

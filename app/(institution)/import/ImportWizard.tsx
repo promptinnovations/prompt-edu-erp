@@ -90,7 +90,7 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
             <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-zinc-400">
+                <tr className="border-b border-zinc-200 text-left text-zinc-500">
                   <th className="pb-1 pr-2 font-medium">Row</th>
                   <th className="pb-1 pr-2 font-medium">Status</th>
                   <th className="pb-1 font-medium">Errors</th>

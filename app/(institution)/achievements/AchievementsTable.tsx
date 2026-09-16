@@ -80,7 +80,7 @@ export default function AchievementsTable({
           </tr>
         ))}
         {achievements.length === 0 ? (
-          <tr><td colSpan={7} className="py-4 text-center text-zinc-400">—</td></tr>
+          <tr><td colSpan={7} className="py-4 text-center text-zinc-500">—</td></tr>
         ) : null}
       </tbody>
     </table>

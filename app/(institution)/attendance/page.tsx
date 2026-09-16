@@ -165,7 +165,7 @@ export default async function AttendancePage({
               </a>
             </div>
           </div>
-          <p className="mb-3 text-xs text-zinc-400">{overviewLabel}</p>
+          <p className="mb-3 text-xs text-zinc-500">{overviewLabel}</p>
           {trendView === "monthly" ? (
             <MonthlyAttendanceTrendChart points={monthlyTrend} />
           ) : (
@@ -179,7 +179,7 @@ export default async function AttendancePage({
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">
             Daily overview — {effectiveDate}
           </h2>
-          <p className="mb-3 text-xs text-zinc-400">
+          <p className="mb-3 text-xs text-zinc-500">
             {overviewLabel} — every class/division&apos;s attendance status for the day.
           </p>
           <div className="overflow-x-auto">
@@ -208,7 +208,7 @@ export default async function AttendancePage({
                   </tr>
                 ))}
                 {dailyOverview.classes.length === 0 ? (
-                  <tr><td colSpan={7} className="py-4 text-center text-zinc-400">No classes/divisions yet.</td></tr>
+                  <tr><td colSpan={7} className="py-4 text-center text-zinc-500">No classes/divisions yet.</td></tr>
                 ) : null}
               </tbody>
             </table>
@@ -220,7 +220,7 @@ export default async function AttendancePage({
               </h3>
               <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">
                 {dailyOverview.absentees.map((a) => (
-                  <li key={a.studentId}>{a.studentName} <span className="text-zinc-400">({a.className}-{a.sectionName})</span></li>
+                  <li key={a.studentId}>{a.studentName} <span className="text-zinc-500">({a.className}-{a.sectionName})</span></li>
                 ))}
               </ul>
             </div>
@@ -249,7 +249,7 @@ export default async function AttendancePage({
             />
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-400">
+          <p className="mt-4 text-sm text-zinc-500">
             {teacherScope && classId && !classInScope
               ? "You're not assigned to that class."
               : "Select a class and division to load the attendance grid."}
@@ -261,7 +261,7 @@ export default async function AttendancePage({
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">
           Student Leave Applications — {effectiveDate}
         </h2>
-        <p className="mb-3 text-xs text-zinc-400">
+        <p className="mb-3 text-xs text-zinc-500">
           {effectiveClassId ? "This class's" : "Institution-wide"} leaves applied by students/parents from their
           own portal — class teacher review below is the class teacher&apos;s sign-off. Nothing can be entered here.
         </p>
@@ -271,7 +271,7 @@ export default async function AttendancePage({
       {ownStaffId ? (
         <section id="my-attendance" className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">My attendance</h2>
-          <p className="mb-3 text-xs text-zinc-400">
+          <p className="mb-3 text-xs text-zinc-500">
             Mark your own attendance for today — the principal (Institution Admin/Management) approves it on the{" "}
             <Link href="/staff#staff-attendance" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
               Staff attendance
@@ -285,7 +285,7 @@ export default async function AttendancePage({
       {ownStaffId ? (
         <section id="my-leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">My leave</h2>
-          <p className="mb-3 text-xs text-zinc-400">
+          <p className="mb-3 text-xs text-zinc-500">
             Apply for your own leave — the principal (Institution Admin/Management) reviews it below.
           </p>
           <MyLeaveSection leaves={myLeaves} />
@@ -295,7 +295,7 @@ export default async function AttendancePage({
       {hasUnrestrictedEdit ? (
         <section id="staff-leave" className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-zinc-700">Staff leave — principal review</h2>
-          <p className="mb-3 text-xs text-zinc-400">
+          <p className="mb-3 text-xs text-zinc-500">
             Every staff member&apos;s own leave application, applied from their own &quot;My leave&quot; section above.
           </p>
           <StaffLeaveReviewTable leaves={staffLeaveRows} />

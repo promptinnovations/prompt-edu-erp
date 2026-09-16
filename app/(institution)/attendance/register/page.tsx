@@ -85,7 +85,7 @@ export default async function MonthlyRegisterPage({
               <h2 className="text-sm font-semibold text-zinc-700">
                 {className} — {sectionName} · {effectiveMonth}
               </h2>
-              <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-400">
+              <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-500">
                 {statuses.map((s) => (
                   <span key={s.id}>{s.code.charAt(0).toUpperCase()} = {s.label}</span>
                 ))}
@@ -107,7 +107,7 @@ export default async function MonthlyRegisterPage({
                 {register.students.map((s) => (
                   <tr key={s.student_id}>
                     <td className="sticky left-0 bg-white whitespace-nowrap py-1 pr-2">
-                      {s.student_name} <span className="text-zinc-400">({s.admission_number})</span>
+                      {s.student_name} <span className="text-zinc-500">({s.admission_number})</span>
                     </td>
                     {days.map((d) => {
                       const date = `${effectiveMonth}-${String(d).padStart(2, "0")}`;
@@ -125,14 +125,14 @@ export default async function MonthlyRegisterPage({
                   </tr>
                 ))}
                 {register.students.length === 0 ? (
-                  <tr><td colSpan={daysInMonth + 1} className="py-4 text-center text-zinc-400">No students enrolled in this class/section.</td></tr>
+                  <tr><td colSpan={daysInMonth + 1} className="py-4 text-center text-zinc-500">No students enrolled in this class/section.</td></tr>
                 ) : null}
               </tbody>
             </table>
           </div>
         </section>
       ) : (
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-500">
           {teacherScope && classId && !classInScope ? "You're not assigned to that class." : "Select a class, division, and month to load the register."}
         </p>
       )}

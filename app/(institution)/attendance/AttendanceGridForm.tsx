@@ -56,7 +56,7 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
             <div key={a.studentId} className="rounded-lg border border-amber-200 bg-white p-3">
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <div className="text-sm font-medium text-zinc-900">
-                  {a.studentName} <span className="text-zinc-400">({a.admissionNumber})</span>{" "}
+                  {a.studentName} <span className="text-zinc-500">({a.admissionNumber})</span>{" "}
                   <span className="text-xs text-zinc-500">— {a.statusLabel}{a.isLate ? ` · Late${a.lateMinutes ? ` ${a.lateMinutes}m` : ""}` : ""}</span>
                 </div>
                 {noPhone ? (
@@ -198,7 +198,7 @@ export default function AttendanceGridForm({
             ))}
             {students.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-zinc-400">No students enrolled in this section.</td>
+                <td colSpan={5} className="py-6 text-center text-zinc-500">No students enrolled in this section.</td>
               </tr>
             ) : null}
           </tbody>

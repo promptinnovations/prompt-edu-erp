@@ -35,7 +35,7 @@ function ReviewForm({ readingRecordId }: { readingRecordId: string }) {
  *  won't be in this list again once approved/rejected). */
 export default function MyPendingReviews({ reviews }: { reviews: PendingReviewRow[] }) {
   if (reviews.length === 0) {
-    return <p className="text-sm text-zinc-400">No books waiting for a review right now.</p>;
+    return <p className="text-sm text-zinc-500">No books waiting for a review right now.</p>;
   }
   return (
     <div className="space-y-4">

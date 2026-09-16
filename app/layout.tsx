@@ -3,12 +3,17 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { getRequestContext } from "../services/request-context";
 import { resolveAppIdentity } from "../services/branding/app-identity";
+import { Lora } from "next/font/google";
 import "./globals.css";
 
-// System font stack (no next/font/google network dependency, §80 "optimize
-// for lower-end mobile devices and slower networks" — a system stack loads
-// instantly with zero extra requests).
-const fontClass = "font-sans";
+// Interface text stays on the system font stack (§80 "optimize for
+// lower-end mobile devices and slower networks" — zero extra requests).
+// Lora is the one display face, reserved for h1 page titles / .display
+// (see globals.css): one weight, Latin only, self-hosted by next/font at
+// build time — served from this app's own origin (CSP font-src 'self'),
+// never fetched from Google at runtime, with a serif fallback stack.
+const lora = Lora({ subsets: ["latin"], weight: "600", display: "swap", preload: false, variable: "--font-lora" });
+const fontClass = `font-sans ${lora.variable}`;
 
 // Dynamic (not a static `export const metadata`) so the browser tab title,
 // favicon, and — critically — `apple-mobile-web-app-title` /

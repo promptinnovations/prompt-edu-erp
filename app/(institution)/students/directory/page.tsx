@@ -107,7 +107,7 @@ export default async function StudentDirectoryPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         {students.length === 0 ? (
-          <p className="py-6 text-center text-sm text-zinc-400">
+          <p className="py-6 text-center text-sm text-zinc-500">
             {q || classId ? "No students match those filters." : "No students yet."}
           </p>
         ) : (
@@ -137,7 +137,7 @@ export default async function StudentDirectoryPage({
                 <div className="mt-0.5 text-xs text-zinc-500">
                   {s.class_name ? `${s.class_name}${s.section_name ? ` · Div. ${s.section_name}` : ""}` : "Not enrolled"}
                 </div>
-                <div className="mt-0.5 text-xs text-zinc-400">{s.admission_number}</div>
+                <div className="mt-0.5 text-xs text-zinc-500">{s.admission_number}</div>
               </Link>
             ))}
           </div>

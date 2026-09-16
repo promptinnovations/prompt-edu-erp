@@ -42,7 +42,7 @@ export default async function ReportsPage() {
             examinations={examinations.map((e) => ({ id: e.id, name: e.name }))}
           />
         ) : (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-500">
             You can view the report catalogue below, but generating/downloading reports requires the
             &quot;reports.export&quot; permission.
           </p>
@@ -54,7 +54,7 @@ export default async function ReportsPage() {
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-zinc-400">
+            <tr className="border-b border-zinc-200 text-left text-zinc-500">
               <th className="pb-2 font-medium">Report</th>
               <th className="pb-2 font-medium">Data source</th>
             </tr>
@@ -74,12 +74,12 @@ export default async function ReportsPage() {
       <section className="rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700">Recently generated (this institution)</h2>
         {recent.length === 0 ? (
-          <p className="text-sm text-zinc-400">No reports generated yet.</p>
+          <p className="text-sm text-zinc-500">No reports generated yet.</p>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-zinc-400">
+              <tr className="border-b border-zinc-200 text-left text-zinc-500">
                 <th className="pb-2 font-medium">Report type</th>
                 <th className="pb-2 font-medium">Format</th>
                 <th className="pb-2 font-medium">Generated at</th>

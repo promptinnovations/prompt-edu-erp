@@ -76,7 +76,7 @@ export default function SectionHeadAssignmentForm({
               </tr>
             ))}
             {assignments.length === 0 ? (
-              <tr><td colSpan={3} className="py-4 text-center text-zinc-400">No Section Heads assigned yet.</td></tr>
+              <tr><td colSpan={3} className="py-4 text-center text-zinc-500">No Section Heads assigned yet.</td></tr>
             ) : null}
           </tbody>
         </table>

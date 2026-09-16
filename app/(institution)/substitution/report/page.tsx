@@ -68,7 +68,7 @@ export default async function SubstitutionReportPage({
         </p>
 
         {report.length === 0 ? (
-          <p className="text-sm text-zinc-400">No substitutions in this range.</p>
+          <p className="text-sm text-zinc-500">No substitutions in this range.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

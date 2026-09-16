@@ -50,10 +50,10 @@ export default async function StudentPortfolioPage() {
           {summary.recentPortfolioEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 last:border-0">
               <span className="text-[var(--foreground)]">{e.title}</span>
-              <span className="text-zinc-400">{e.event_date}</span>
+              <span className="text-zinc-500">{e.event_date}</span>
             </li>
           ))}
-          {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+          {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
         </ul>
       </Card>
 
@@ -64,7 +64,7 @@ export default async function StudentPortfolioPage() {
               <li key={d.id} className="border-b border-[var(--border-subtle)] pb-2 last:border-0">
                 <div className="flex items-center justify-between">
                   <span className="text-[var(--foreground)]">{d.category_name}{d.severity ? ` — ${d.severity}` : ""}</span>
-                  <span className="text-zinc-400">{d.date}</span>
+                  <span className="text-zinc-500">{d.date}</span>
                 </div>
                 {d.action_taken ? <p className="mt-1 text-xs text-zinc-500">Action taken: {d.action_taken}</p> : null}
                 {d.evidence_photo_file_id ? (
@@ -74,7 +74,7 @@ export default async function StudentPortfolioPage() {
                 ) : null}
               </li>
             ))}
-            {disciplineFlags.length === 0 ? <li className="text-zinc-400">Nothing to flag.</li> : null}
+            {disciplineFlags.length === 0 ? <li className="text-zinc-500">Nothing to flag.</li> : null}
           </ul>
         </Card>
 
@@ -83,10 +83,10 @@ export default async function StudentPortfolioPage() {
             {characterAssessments.map((c) => (
               <li key={c.id} className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 last:border-0">
                 <span className="text-[var(--foreground)]">{c.attribute_name} — {c.period}</span>
-                <span className="text-zinc-400">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
+                <span className="text-zinc-500">{ratingLabelByValue.get(c.rating) ?? c.rating} ({c.rating}/5)</span>
               </li>
             ))}
-            {characterAssessments.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+            {characterAssessments.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
           </ul>
         </Card>
       </div>
@@ -97,13 +97,13 @@ export default async function StudentPortfolioPage() {
             <li key={m.id} className="border-b border-[var(--border-subtle)] pb-2 last:border-0">
               <div className="flex items-center justify-between">
                 <span className="text-[var(--foreground)]">{m.mentor_name}</span>
-                <span className="text-zinc-400">{m.date}</span>
+                <span className="text-zinc-500">{m.date}</span>
               </div>
               {m.goals ? <p className="mt-1 text-xs text-zinc-500">Goals: {m.goals}</p> : null}
               {m.action_plan ? <p className="mt-1 text-xs text-zinc-500">Action plan: {m.action_plan}</p> : null}
             </li>
           ))}
-          {mentoringNotes.length === 0 ? <li className="text-zinc-400">Nothing yet.</li> : null}
+          {mentoringNotes.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
         </ul>
       </Card>
 

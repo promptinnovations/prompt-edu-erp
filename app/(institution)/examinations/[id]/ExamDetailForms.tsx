@@ -38,7 +38,7 @@ export function ExamScopeSection({
                 <form action={removeAction} className="inline">
                   <input type="hidden" name="examinationId" value={examinationId} />
                   <input type="hidden" name="examClassId" value={l.examClassId} />
-                  <button type="submit" className="text-zinc-400 hover:text-red-600" aria-label={`Remove ${l.label}`}>×</button>
+                  <button type="submit" className="text-zinc-500 hover:text-red-600" aria-label={`Remove ${l.label}`}>×</button>
                 </form>
               </li>
             ))}
@@ -46,7 +46,7 @@ export function ExamScopeSection({
           {removeState.error ? <p className="mt-1 text-xs text-red-600">{removeState.error}</p> : null}
         </div>
       ) : (
-        <p className="text-xs text-zinc-400">No grades/divisions confirmed yet — check the ones below and Save.</p>
+        <p className="text-xs text-zinc-500">No grades/divisions confirmed yet — check the ones below and Save.</p>
       )}
 
       <form action={formAction} className="space-y-3">
@@ -72,7 +72,7 @@ export function ExamScopeSection({
               )}
             </fieldset>
           ))}
-          {classGroups.length === 0 ? <p className="text-sm text-zinc-400">No classes set up yet.</p> : null}
+          {classGroups.length === 0 ? <p className="text-sm text-zinc-500">No classes set up yet.</p> : null}
         </div>
         <button type="submit" disabled={pending || classGroups.length === 0} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Confirm scope
@@ -133,7 +133,7 @@ export function ExamSubjectsSection({
           {removeState.error ? <p className="mt-1 text-xs text-red-600">{removeState.error}</p> : null}
         </div>
       ) : (
-        <p className="text-xs text-zinc-400">No subjects added yet — check the ones below, set marks, and Save.</p>
+        <p className="text-xs text-zinc-500">No subjects added yet — check the ones below, set marks, and Save.</p>
       )}
 
       {remaining.length > 0 ? (

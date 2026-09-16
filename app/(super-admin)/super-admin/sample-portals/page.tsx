@@ -65,7 +65,7 @@ export default async function SamplePortalsPage({
               {i.name}
             </Link>
           ))}
-          {institutions.length === 0 ? <p className="text-sm text-zinc-400">No institutions yet.</p> : null}
+          {institutions.length === 0 ? <p className="text-sm text-zinc-500">No institutions yet.</p> : null}
         </div>
       </section>
 
@@ -110,9 +110,9 @@ function RoleSection({
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-zinc-700">{title}</h2>
-      <p className="mb-3 text-xs text-zinc-400">{hint}</p>
+      <p className="mb-3 text-xs text-zinc-500">{hint}</p>
       {candidates.length === 0 ? (
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-500">
           No {title.toLowerCase()} with a working login found in this institution yet.
         </p>
       ) : (
@@ -121,7 +121,7 @@ function RoleSection({
             <li key={c.userId} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-zinc-900">{c.fullName}</div>
-                <div className="truncate text-xs text-zinc-400">{c.detail ?? c.email ?? "—"}</div>
+                <div className="truncate text-xs text-zinc-500">{c.detail ?? c.email ?? "—"}</div>
               </div>
               <form action={viewAsSamplePortalAction}>
                 <input type="hidden" name="institutionId" value={institutionId} />
@@ -147,19 +147,19 @@ function StudentParentSection({ institutionId, students }: { institutionId: stri
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-zinc-700">Parent &amp; Student</h2>
-      <p className="mb-3 text-xs text-zinc-400">
+      <p className="mb-3 text-xs text-zinc-500">
         In section (stage) → GRADE → division → roll number order. &quot;View as Parent&quot; is only offered when
         that student&apos;s primary contact parent also has a working login.
       </p>
       {students.length === 0 ? (
-        <p className="text-sm text-zinc-400">No student with a working login found in this institution yet.</p>
+        <p className="text-sm text-zinc-500">No student with a working login found in this institution yet.</p>
       ) : (
         <ul className="divide-y divide-zinc-100">
           {students.map((s) => (
             <li key={s.userId} className="flex flex-wrap items-center justify-between gap-3 py-2">
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-zinc-900">{s.fullName}</div>
-                <div className="truncate text-xs text-zinc-400">
+                <div className="truncate text-xs text-zinc-500">
                   {[s.className, s.sectionName].filter(Boolean).join(" ") || "No current class"}
                   {s.rollNumber != null ? ` · Roll ${s.rollNumber}` : ""}
                   {s.parent ? ` · Parent: ${s.parent.fullName}` : " · No linked parent login"}

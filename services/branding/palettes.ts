@@ -34,6 +34,8 @@ export interface ThemePalette {
   vars: {
     background: string;
     foreground: string;
+    /** Page/section heading colour. Optional — falls back to `foreground`. */
+    heading?: string;
     surface: string;
     surfaceMuted: string;
     borderSubtle: string;
@@ -151,8 +153,28 @@ export const THEME_PALETTES: ThemePalette[] = [
       sidebarText: "#fdece0", sidebarTextMuted: "#e0a789", sidebarIcon: "#ecc0a4",
     },
   },
+  {
+    // Prompt Innovations UI standard: deep navy primary, gold accent, warm
+    // sand ground (the brand scales live in globals.css's @theme block).
+    // Gold 500 is too light for white text, so the accent slot — which is
+    // used under white text — takes the readable gold 700/800 steps.
+    id: "navy-gold",
+    label: "Navy & Gold",
+    swatch: ["#0b1f3a", "#c8a84b", "#f7f4ee"],
+    vars: {
+      background: "#f7f4ee", foreground: "#1d2430", heading: "#0b1f3a", surface: "#ffffff", surfaceMuted: "#fbf9f5", borderSubtle: "#e2dbcc",
+      brand: "#0b1f3a", brandHover: "#183c6d", brandFrom: "#0b1f3a", brandVia: "#183c6d", brandTo: "#234f8b",
+      accentTeal: "#896f24", accentTealHover: "#66521a",
+      sidebarBg: "#0b1f3a", sidebarBg2: "#102c50", sidebarActive: "#183c6d", sidebarBorder: "#183c6d",
+      sidebarText: "#f4f7fa", sidebarTextMuted: "#99b5db", sidebarIcon: "#c8d6ea",
+    },
+  },
 ];
 
+// Mirrors the platform default seeded by migration 0040
+// (platform_settings.default_theme_palette) — it's only the fallback when
+// that row is missing. To roll a palette out to institutions that never
+// chose one, change the platform default in the Super Admin console.
 export const DEFAULT_PALETTE_ID = "navy-teal";
 export const PALETTE_IDS = THEME_PALETTES.map((p) => p.id);
 
@@ -169,7 +191,7 @@ export function getPalette(id: string | null | undefined): ThemePalette {
 export function paletteCssVars(palette: ThemePalette): string {
   const v = palette.vars;
   return (
-    `--background:${v.background};--foreground:${v.foreground};--surface:${v.surface};` +
+    `--background:${v.background};--foreground:${v.foreground};--heading:${v.heading ?? v.foreground};--surface:${v.surface};` +
     `--surface-muted:${v.surfaceMuted};--border-subtle:${v.borderSubtle};` +
     `--brand:${v.brand};--brand-hover:${v.brandHover};--brand-from:${v.brandFrom};` +
     `--brand-via:${v.brandVia};--brand-to:${v.brandTo};` +

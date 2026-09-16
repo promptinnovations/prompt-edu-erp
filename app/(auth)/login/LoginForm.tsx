@@ -47,7 +47,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
   const [showPassword, setShowPassword] = useState(false);
 
   const inputClass =
-    "mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-zinc-400 focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]";
+    "mt-1 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-zinc-500 focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]";
 
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[var(--background)] px-4 py-10">
@@ -86,7 +86,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
         {/* Right: the actual sign-in form */}
         <div className="flex flex-col justify-center p-8 sm:p-10">
           <div className="mb-6">
-            <div className="text-xs font-medium uppercase tracking-wide text-zinc-400 md:hidden">{credit}</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 md:hidden">{credit}</div>
             <h1 className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{institutionName ?? t("title")}</h1>
             <p className="mt-1 text-sm text-zinc-500">{t("subtitle")}</p>
           </div>
@@ -155,7 +155,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
               >
                 {t("signIn")}
               </button>
-              <p className="text-center text-xs text-zinc-400">{t("studentTabNotice")}</p>
+              <p className="text-center text-xs text-zinc-500">{t("studentTabNotice")}</p>
             </form>
           ) : (
             <form action={formAction} className="space-y-4">
@@ -207,7 +207,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
               </div>
             </form>
           )}
-          <p className="mt-6 text-center text-xs text-zinc-400">{t("firstTimeNotice")}</p>
+          <p className="mt-6 text-center text-xs text-zinc-500">{t("firstTimeNotice")}</p>
         </div>
       </div>
     </div>
@@ -224,7 +224,7 @@ function PasswordVisibilityToggle({ visible, onToggle }: { visible: boolean; onT
       onClick={onToggle}
       tabIndex={-1}
       aria-label={visible ? "Hide password" : "Show password"}
-      className="absolute inset-y-0 right-0 flex items-center px-3 text-zinc-400 hover:text-zinc-600"
+      className="absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 hover:text-zinc-600"
     >
       {visible ? (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
