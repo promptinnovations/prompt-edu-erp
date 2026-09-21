@@ -65,7 +65,7 @@ export default async function ParentPortalPage({
   // every student's.
   const sections = await getParentPortalSections(institutionId, authUserId);
 
-  const [summary, childLeaves, achievements, skillSubmissions, readingRecords, characterAssessments, ratingLabels, mentoringNotes, pendingInvoices, staffDirectory] = await Promise.all([
+  const [summary, childLeaves, achievements, skillSubmissions, readingRecords, characterAssessments, ratingLabels, mentoringNotes, allInvoices, staffDirectory] = await Promise.all([
     getStudent360(institutionId, authUserId, selectedChildId, 10, { canViewDiscipline: sections.discipline }),
     can(ctx.permissions, "attendance.leave.apply")
       ? listLeaveApplicationsForStudent(institutionId, authUserId, selectedChildId)
@@ -77,13 +77,20 @@ export default async function ParentPortalPage({
     sections.character ? listCharacterRatingLabels(institutionId, authUserId) : Promise.resolve([]),
     sections.mentoring ? listMentoringRecordsForPortal(institutionId, authUserId, selectedChildId) : Promise.resolve([]),
     can(ctx.permissions, "fees.pay_own")
-      ? listStudentFeeInvoices(institutionId, authUserId, { studentId: selectedChildId }).then((rows) => rows.filter((r) => r.status === "pending" || r.status === "partial"))
+      ? listStudentFeeInvoices(institutionId, authUserId, { studentId: selectedChildId })
       : Promise.resolve([]),
     can(ctx.permissions, "messages.send_to_staff") || can(ctx.permissions, "kudos.send")
       ? listStaff(institutionId, authUserId)
       : Promise.resolve([]),
   ]);
   const ratingLabelByValue = new Map(ratingLabels.map((r) => [r.rating, r.label]));
+  const pendingInvoices = allInvoices.filter((i) => i.status === "pending" || i.status === "partial");
+  const invoiceStatusBadge: Record<string, string> = {
+    paid: "bg-emerald-100 text-emerald-700",
+    partial: "bg-amber-100 text-amber-700",
+    pending: "bg-zinc-100 text-zinc-600",
+    waived: "bg-sky-100 text-sky-700",
+  };
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
 
@@ -287,7 +294,42 @@ export default async function ParentPortalPage({
 
       {can(ctx.permissions, "fees.pay_own") ? (
         <div className="rounded-card border bg-white p-6">
-          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Pay fees</h2>
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Fees</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs text-zinc-500">
+                  <th className="py-1.5 pr-3">Category</th>
+                  <th className="py-1.5 pr-3">Due date</th>
+                  <th className="py-1.5 pr-3">Amount due</th>
+                  <th className="py-1.5 pr-3">Paid</th>
+                  <th className="py-1.5 pr-3">Status</th>
+                  <th className="py-1.5 pr-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {allInvoices.map((i) => (
+                  <tr key={i.id} className="border-t">
+                    <td className="py-1.5 pr-3">{i.category_name}</td>
+                    <td className="py-1.5 pr-3">{i.due_date ?? "—"}</td>
+                    <td className="py-1.5 pr-3">₹{i.amount_due}</td>
+                    <td className="py-1.5 pr-3">₹{i.amount_paid}</td>
+                    <td className="py-1.5 pr-3">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${invoiceStatusBadge[i.status] ?? ""}`}>{i.status}</span>
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <Link href={`/portal/parent/invoice/${i.id}?childId=${selectedChildId}`} className="text-xs text-[var(--brand)] hover:underline">
+                        View / print invoice
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+                {allInvoices.length === 0 ? <tr><td colSpan={6} className="py-3 text-center text-zinc-500">No fee invoices yet.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="mb-3 mt-6 text-sm font-semibold text-[var(--heading)]">Pay a pending fee</h3>
           <PayFeeForm
             invoices={pendingInvoices.map((i) => ({
               id: i.id,
