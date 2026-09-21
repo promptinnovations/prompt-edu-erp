@@ -13,11 +13,15 @@ function ToggleForm({ todo }: { todo: Todo }) {
       <button
         type="submit"
         aria-label={todo.is_done ? "Mark as not done" : "Mark as done"}
-        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-          todo.is_done ? "border-[var(--brand)] bg-[var(--brand)] text-white" : ""
-        }`}
+        className="-m-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
       >
-        {todo.is_done ? "✓" : ""}
+        <span
+          className={`flex h-4 w-4 items-center justify-center rounded-full border text-[10px] ${
+            todo.is_done ? "border-[var(--brand)] bg-[var(--brand)] text-white" : ""
+          }`}
+        >
+          {todo.is_done ? "✓" : ""}
+        </span>
       </button>
     </form>
   );
@@ -28,7 +32,7 @@ function DeleteForm({ todoId }: { todoId: string }) {
   return (
     <form action={formAction}>
       <input type="hidden" name="todoId" value={todoId} />
-      <button type="submit" className="text-xs text-zinc-500 hover:text-red-600">✕</button>
+      <button type="submit" aria-label="Delete task" className="-m-1.5 rounded-full p-1.5 text-xs text-zinc-500 hover:bg-red-50 hover:text-red-600">✕</button>
     </form>
   );
 }

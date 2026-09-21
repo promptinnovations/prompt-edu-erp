@@ -40,7 +40,7 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-lg px-2 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100"
+        className="relative flex h-11 w-11 items-center justify-center rounded-lg text-sm text-zinc-600 hover:bg-zinc-100"
         aria-label="Notifications"
       >
         🔔

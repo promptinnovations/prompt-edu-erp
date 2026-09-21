@@ -38,7 +38,7 @@ export function ExamScopeSection({
                 <form action={removeAction} className="inline">
                   <input type="hidden" name="examinationId" value={examinationId} />
                   <input type="hidden" name="examClassId" value={l.examClassId} />
-                  <button type="submit" className="text-zinc-500 hover:text-red-600" aria-label={`Remove ${l.label}`}>×</button>
+                  <button type="submit" className="-m-1.5 rounded-full p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600" aria-label={`Remove ${l.label}`}>×</button>
                 </form>
               </li>
             ))}

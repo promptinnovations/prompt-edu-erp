@@ -45,7 +45,7 @@ export default function ClassSubjectsForm({
                 <form action={removeAction} className="inline">
                   <input type="hidden" name="classId" value={classId} />
                   <input type="hidden" name="subjectId" value={a.subjectId} />
-                  <button type="submit" className="text-zinc-500 hover:text-red-600" aria-label={`Remove ${a.subjectName}`}>
+                  <button type="submit" className="-m-1.5 rounded-full p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600" aria-label={`Remove ${a.subjectName}`}>
                     ×
                   </button>
                 </form>
