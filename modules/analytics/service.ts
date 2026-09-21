@@ -18,9 +18,38 @@
  * institution's rule up from the database.
  */
 import { z } from "zod";
+import { unstable_cache } from "next/cache";
 import { getDbClient } from "../../services/db/client";
 import type { AttendanceScope } from "../attendance/service";
 import { isPass, PASS_COLOR, FAIL_COLOR } from "../examination/service";
+import { resultAnalysisTag, classificationTag, ANALYTICS_VIEWS_TAG, safeRevalidateTag } from "../../services/cache/tags";
+
+/**
+ * Result Analysis caching (per Muhsin's cost-minimization rule — Vercel/
+ * Supabase egress must stay minimal): every report below is wrapped in
+ * Next's Data Cache, cached indefinitely (revalidate: false) and reused
+ * until one of its tags (services/cache/tags.ts) is explicitly revalidated
+ * — never on a timer. A tab click, filter change, or page reload that
+ * doesn't touch a write path (mark approval/lock/correction, a
+ * classification threshold edit, or a matview refresh) now reuses the
+ * cached rows instead of re-querying Supabase.
+ */
+function cached<R>(keyParts: (string | number)[], tags: string[], compute: () => Promise<R>): Promise<R> {
+  // Outside a Next.js request/render scope — a Vitest integration test
+  // calling a service function directly, or any other script that imports
+  // this module — there's no incremental Data Cache to read/write, and
+  // unstable_cache() throws a synchronous "incrementalCache missing"
+  // invariant rather than degrading gracefully. Every real production
+  // caller (Server Components/Actions) always has that cache available, so
+  // this fallback only ever fires outside Next's runtime; when it does, we
+  // just run the query directly (uncached) rather than fail the request.
+  try {
+    return Promise.resolve(unstable_cache(compute, keyParts.map(String), { tags, revalidate: false })())
+      .catch(() => compute());
+  } catch {
+    return compute();
+  }
+}
 
 export interface SubjectStatRow {
   subject_id: string; subject_name: string; class_id: string; section_id: string | null;
@@ -42,12 +71,13 @@ export type AchieverBand = "high_achiever" | "middle_achiever" | "low_achiever";
 export async function refreshAnalyticsViews(): Promise<void> {
   const db = await getDbClient();
   await db.execRaw("select refresh_analytics_views();");
+  safeRevalidateTag(ANALYTICS_VIEWS_TAG);
 }
 
 // ---------------------------------------------------------------------------
 // Examination analytics (§N.3 mv_exam_subject_stats)
 // ---------------------------------------------------------------------------
-export async function getExamSubjectStats(
+async function getExamSubjectStatsImpl(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<SubjectStatRow[]> {
   const db = await getDbClient();
@@ -71,10 +101,18 @@ export async function getExamSubjectStats(
   });
 }
 
+export async function getExamSubjectStats(institutionId: string, authUserId: string, examinationId: string): Promise<SubjectStatRow[]> {
+  return cached(
+    ["exam-subject-stats", institutionId, examinationId],
+    [ANALYTICS_VIEWS_TAG],
+    () => getExamSubjectStatsImpl(institutionId, authUserId, examinationId),
+  );
+}
+
 /** Subject comparison across an examination — the same rows as
  *  getExamSubjectStats(), aggregated across sections per subject (§N.1
  *  getSubjectComparison()). */
-export async function getSubjectComparison(
+async function getSubjectComparisonImpl(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<SubjectStatRow[]> {
   const db = await getDbClient();
@@ -99,6 +137,14 @@ export async function getSubjectComparison(
     );
     return rows;
   });
+}
+
+export async function getSubjectComparison(institutionId: string, authUserId: string, examinationId: string): Promise<SubjectStatRow[]> {
+  return cached(
+    ["subject-comparison", institutionId, examinationId],
+    [ANALYTICS_VIEWS_TAG],
+    () => getSubjectComparisonImpl(institutionId, authUserId, examinationId),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +281,9 @@ export async function upsertClassificationRule(
       [institutionId, data.basedOn, data.highThreshold, data.lowThreshold]
     );
     return { id: rows[0].id, based_on: rows[0].based_on, high_threshold: Number(rows[0].high_threshold), low_threshold: Number(rows[0].low_threshold) };
+  }).then((rule) => {
+    safeRevalidateTag(classificationTag(institutionId));
+    return rule;
   });
 }
 
@@ -273,7 +322,7 @@ export interface StudentClassificationRow {
 /** Bulk version of classifyStudentResult() for an entire examination — one
  *  query instead of one-per-student (§N.4). Falls back to "middle_achiever"
  *  for every student if no 'percentage' rule is configured yet. */
-export async function getExaminationClassification(
+async function getExaminationClassificationImpl(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<StudentClassificationRow[]> {
   const db = await getDbClient();
@@ -302,6 +351,14 @@ export async function getExaminationClassification(
       return { student_id: r.student_id, student_name: r.student_name, percentage, band };
     });
   });
+}
+
+export async function getExaminationClassification(institutionId: string, authUserId: string, examinationId: string): Promise<StudentClassificationRow[]> {
+  return cached(
+    ["result-classification", institutionId, examinationId],
+    [resultAnalysisTag(institutionId, examinationId), classificationTag(institutionId)],
+    () => getExaminationClassificationImpl(institutionId, authUserId, examinationId),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -391,7 +448,7 @@ async function getGradeDistribution(
  *  examination, regardless of class/section. Pass/fail counts read
  *  results.is_pass directly (computeResults() already resolved it via
  *  isPass()) — never re-derived from percentage here. */
-export async function getResultSchoolSummary(
+async function getResultSchoolSummaryImpl(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<ResultSchoolSummary> {
   const db = await getDbClient();
@@ -418,6 +475,14 @@ export async function getResultSchoolSummary(
     pass_count: passCount, fail_count: failCount,
     pass_percent: totalStudents > 0 ? Math.round((passCount / totalStudents) * 10000) / 100 : null,
   };
+}
+
+export async function getResultSchoolSummary(institutionId: string, authUserId: string, examinationId: string): Promise<ResultSchoolSummary> {
+  return cached(
+    ["result-school-summary", institutionId, examinationId],
+    [resultAnalysisTag(institutionId, examinationId)],
+    () => getResultSchoolSummaryImpl(institutionId, authUserId, examinationId),
+  );
 }
 
 export interface TrackResultSummary {
@@ -447,7 +512,7 @@ export interface TrackResultSummary {
  *  this is a separate, additive per-track total computed straight from
  *  marks/exam_subjects/subjects, using the same pass-mark/pass-pct rules
  *  computeResults() itself uses (§366 isPass()). */
-export async function getTrackWiseSummary(
+async function getTrackWiseSummaryImpl(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<TrackResultSummary[]> {
   const db = await getDbClient();
@@ -525,6 +590,14 @@ export async function getTrackWiseSummary(
   });
 }
 
+export async function getTrackWiseSummary(institutionId: string, authUserId: string, examinationId: string): Promise<TrackResultSummary[]> {
+  return cached(
+    ["result-track-summary", institutionId, examinationId],
+    [resultAnalysisTag(institutionId, examinationId)],
+    () => getTrackWiseSummaryImpl(institutionId, authUserId, examinationId),
+  );
+}
+
 export interface ResultGroupRow {
   id: string; name: string; parent_name: string | null;
   // The underlying classes.id this row's students belong to — same value
@@ -555,7 +628,7 @@ export interface ResultGroupRow {
  *  text column, grouped here under the literal label "Unassigned" for
  *  classes an admin hasn't tagged with a stage yet, so those students still
  *  show up somewhere rather than silently vanishing from the report. */
-async function getResultGroups(
+async function getResultGroupsImpl(
   institutionId: string, authUserId: string, examinationId: string, groupBy: "section" | "class" | "stage"
 ): Promise<ResultGroupRow[]> {
   const db = await getDbClient();
@@ -616,6 +689,14 @@ async function getResultGroups(
       })
       .sort((a, b) => (b.average_percent ?? -1) - (a.average_percent ?? -1));
   });
+}
+
+async function getResultGroups(institutionId: string, authUserId: string, examinationId: string, groupBy: "section" | "class" | "stage"): Promise<ResultGroupRow[]> {
+  return cached(
+    ["result-groups", institutionId, examinationId, groupBy],
+    [resultAnalysisTag(institutionId, examinationId)],
+    () => getResultGroupsImpl(institutionId, authUserId, examinationId, groupBy),
+  );
 }
 
 export async function getResultsBySection(institutionId: string, authUserId: string, examinationId: string): Promise<ResultGroupRow[]> {
@@ -711,7 +792,7 @@ export interface TeacherResultRow {
  *  pass_marks (never a literal comparison here); grade bands always
  *  through the exam's own grade_scale_id lookup. Institutions that haven't
  *  set up teacher assignments simply get an empty list — not an error. */
-export async function getResultsByTeacher(
+async function getResultsByTeacherImpl(
   institutionId: string, authUserId: string, examinationId: string
 ): Promise<TeacherResultRow[]> {
   const db = await getDbClient();
@@ -800,6 +881,14 @@ export async function getResultsByTeacher(
       })
       .sort((a, b) => (b.average_marks ?? -1) - (a.average_marks ?? -1));
   });
+}
+
+export async function getResultsByTeacher(institutionId: string, authUserId: string, examinationId: string): Promise<TeacherResultRow[]> {
+  return cached(
+    ["result-by-teacher", institutionId, examinationId],
+    [resultAnalysisTag(institutionId, examinationId)],
+    () => getResultsByTeacherImpl(institutionId, authUserId, examinationId),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1027,7 +1116,7 @@ export interface SubjectGradeGroupRow {
  *  fail always goes through isPass() against this subject's own
  *  pass_marks; grade bands always through the exam's own grade_scale_id —
  *  never a literal threshold or label here. */
-export async function getSubjectWiseByGrade(
+async function getSubjectWiseByGradeImpl(
   institutionId: string, authUserId: string, examinationId: string, belowThresholdLimit = 15
 ): Promise<SubjectGradeGroupRow[]> {
   const db = await getDbClient();
@@ -1132,6 +1221,14 @@ export async function getSubjectWiseByGrade(
   });
 }
 
+export async function getSubjectWiseByGrade(institutionId: string, authUserId: string, examinationId: string, belowThresholdLimit = 15): Promise<SubjectGradeGroupRow[]> {
+  return cached(
+    ["subject-wise-by-grade", institutionId, examinationId, belowThresholdLimit],
+    [resultAnalysisTag(institutionId, examinationId)],
+    () => getSubjectWiseByGradeImpl(institutionId, authUserId, examinationId, belowThresholdLimit),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Class-wise marks-distribution histogram — bucket edges built dynamically
 // from the tenant's own GradeBand rows (never hardcoded cutoffs), plus a
@@ -1139,7 +1236,7 @@ export async function getSubjectWiseByGrade(
 // ---------------------------------------------------------------------------
 export interface HistogramBucket { label: string; count: number; color: string }
 
-export async function getClassMarksHistogram(
+async function getClassMarksHistogramImpl(
   institutionId: string, authUserId: string, examinationId: string, classId: string
 ): Promise<HistogramBucket[]> {
   const db = await getDbClient();
@@ -1191,4 +1288,12 @@ export async function getClassMarksHistogram(
 
     return buckets;
   });
+}
+
+export async function getClassMarksHistogram(institutionId: string, authUserId: string, examinationId: string, classId: string): Promise<HistogramBucket[]> {
+  return cached(
+    ["result-marks-histogram", institutionId, examinationId, classId],
+    [resultAnalysisTag(institutionId, examinationId)],
+    () => getClassMarksHistogramImpl(institutionId, authUserId, examinationId, classId),
+  );
 }

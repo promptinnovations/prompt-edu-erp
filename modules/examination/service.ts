@@ -18,6 +18,7 @@ import { z } from "zod";
 import { getDbClient, type DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { sortRoster, sortClasses } from "../../services/academic/roster-order";
+import { resultAnalysisTag, safeRevalidateTag } from "../../services/cache/tags";
 
 export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null; periodicity: string | null; is_daily_assessment: boolean }
 export interface ExaminationRecord {
@@ -931,6 +932,11 @@ export async function computeResults(institutionId: string, authUserId: string, 
       );
       computed++;
     }
+    // Result Analysis reads (modules/analytics/service.ts) are cached
+    // indefinitely and reused across tab clicks/filter changes until this
+    // exact tag is revalidated — this is that "until there's a change"
+    // moment, the instant marks are (re)approved/locked for this exam.
+    safeRevalidateTag(resultAnalysisTag(institutionId, examinationId));
     return { computed, skippedIncomplete };
   });
 }
