@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateClassAction, deleteClassAction } from "./actions";
+import ConfirmSubmitButton from "../../components/ui/ConfirmSubmitButton";
 
 /** §137 follow-up ("should be able edit, delete, search") — inline
  *  edit/delete for one class row on the Academic Setup page. Delete is a
@@ -61,16 +62,15 @@ export default function ClassRow({
             <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">
               Edit
             </button>
-            <form
-              action={deleteAction}
-              onSubmit={(e) => {
-                if (!confirm(`Delete class "${name}"? This can't be undone.`)) e.preventDefault();
-              }}
-            >
+            <form action={deleteAction}>
               <input type="hidden" name="classId" value={classId} />
-              <button type="submit" disabled={deletePending} className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50">
+              <ConfirmSubmitButton
+                message={`Delete class "${name}"? This can't be undone.`}
+                disabled={deletePending}
+                className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50"
+              >
                 Delete
-              </button>
+              </ConfirmSubmitButton>
             </form>
           </>
         ) : null}

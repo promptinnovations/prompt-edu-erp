@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateSectionAction, deleteSectionAction } from "./actions";
+import ConfirmSubmitButton from "../../components/ui/ConfirmSubmitButton";
 
 export default function SectionRow({
   sectionId, classLabel, name, canManage,
@@ -44,16 +45,15 @@ export default function SectionRow({
           <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">
             Edit
           </button>
-          <form
-            action={deleteAction}
-            onSubmit={(e) => {
-              if (!confirm(`Delete division "${classLabel} — ${name}"? This can't be undone.`)) e.preventDefault();
-            }}
-          >
+          <form action={deleteAction}>
             <input type="hidden" name="sectionId" value={sectionId} />
-            <button type="submit" disabled={deletePending} className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50">
+            <ConfirmSubmitButton
+              message={`Delete division "${classLabel} — ${name}"? This can't be undone.`}
+              disabled={deletePending}
+              className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50"
+            >
               Delete
-            </button>
+            </ConfirmSubmitButton>
           </form>
         </span>
       ) : null}

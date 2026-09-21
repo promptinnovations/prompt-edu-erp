@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { promoteClassAction, type PromoteFormResult } from "../actions";
+import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
 
 interface PreviewRow {
   student_id: string;
@@ -171,27 +172,20 @@ export default function PromotionForm({
         </table>
       </div>
 
-      <form
-        action={formAction}
-        className="mt-4"
-        onSubmit={(e) => {
-          if (!confirm(`Confirm promotion for ${students.length} students? This can't be undone (though it can be re-run for corrections).`)) {
-            e.preventDefault();
-            return;
-          }
-        }}
-      >
+      <form action={formAction} className="mt-4">
         <input type="hidden" name="fromClassId" value={fromClassId} />
         <input type="hidden" name="fromSectionId" value={fromSectionId ?? ""} />
         <input type="hidden" name="toAcademicYearId" value={toAcademicYearId} />
         <input type="hidden" name="decisions" value={JSON.stringify(decisions)} />
-        <button
-          type="submit"
+        <ConfirmSubmitButton
+          message={`Confirm promotion for ${students.length} students? This can't be undone (though it can be re-run for corrections).`}
+          tone="default"
+          confirmLabel="Confirm promotion"
           disabled={pending || !toAcademicYearId}
           className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
         >
           Confirm promotion
-        </button>
+        </ConfirmSubmitButton>
         {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
         {state.result ? (
           <p className="mt-2 text-sm text-emerald-700">

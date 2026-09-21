@@ -5,6 +5,7 @@ import {
   createExamTypeAction, updateExamTypeAction, deleteExamTypeAction,
   type GradingActionState,
 } from "./actions";
+import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
 
 interface ExamType { id: string; code: string; name: string; category: string | null; periodicity: string | null }
 
@@ -61,9 +62,9 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
       {canManage ? (
         <span className="flex items-center gap-2">
           <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Edit</button>
-          <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete exam type "${examType.name}"?`)) e.preventDefault(); }}>
+          <form action={deleteAction}>
             <input type="hidden" name="examTypeId" value={examType.id} />
-            <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+            <ConfirmSubmitButton message={`Delete exam type "${examType.name}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
           </form>
         </span>
       ) : null}

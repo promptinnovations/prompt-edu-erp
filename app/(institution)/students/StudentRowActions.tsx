@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { deleteStudentAction, restoreStudentAction } from "./actions";
+import ConfirmSubmitButton from "../../components/ui/ConfirmSubmitButton";
 
 /** §137 follow-up ("should be able ... delete") — Delete/Restore for one
  *  row on the students list. Delete is a soft-delete (status set to
@@ -32,16 +33,15 @@ export default function StudentRowActions({
 
   if (!canDelete) return null;
   return (
-    <form
-      action={deleteAction}
-      onSubmit={(e) => {
-        if (!confirm(`Remove ${fullName} from the active students list? This can be undone from "Show removed students".`)) e.preventDefault();
-      }}
-    >
+    <form action={deleteAction}>
       <input type="hidden" name="studentId" value={studentId} />
-      <button type="submit" disabled={deletePending} className="text-sm text-red-600 underline hover:text-red-800 disabled:opacity-50">
+      <ConfirmSubmitButton
+        message={`Remove ${fullName} from the active students list? This can be undone from "Show removed students".`}
+        disabled={deletePending}
+        className="text-sm text-red-600 underline hover:text-red-800 disabled:opacity-50"
+      >
         Delete
-      </button>
+      </ConfirmSubmitButton>
       {deleteState.error ? <span className="ml-2 text-xs text-red-600">{deleteState.error}</span> : null}
     </form>
   );

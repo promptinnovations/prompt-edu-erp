@@ -6,6 +6,7 @@ import {
   createGradeBandAction, updateGradeBandAction, deleteGradeBandAction,
   type GradingActionState,
 } from "./actions";
+import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
 
 interface GradeBand { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null }
 interface GradeScale { id: string; name: string; is_default: boolean }
@@ -47,9 +48,9 @@ function GradeBandRow({ band, canManage }: { band: GradeBand; canManage: boolean
       {canManage ? (
         <span className="flex items-center gap-2">
           <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Edit</button>
-          <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete grade band "${band.grade_label}"?`)) e.preventDefault(); }}>
+          <form action={deleteAction}>
             <input type="hidden" name="gradeBandId" value={band.id} />
-            <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+            <ConfirmSubmitButton message={`Delete grade band "${band.grade_label}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
           </form>
         </span>
       ) : null}
@@ -91,9 +92,9 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
               </form>
             ) : null}
             <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Rename</button>
-            <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete grade scale "${scale.name}"?`)) e.preventDefault(); }}>
+            <form action={deleteAction}>
               <input type="hidden" name="gradeScaleId" value={scale.id} />
-              <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+              <ConfirmSubmitButton message={`Delete grade scale "${scale.name}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
             </form>
           </span>
         ) : null}

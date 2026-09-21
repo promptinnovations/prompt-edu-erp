@@ -6,6 +6,7 @@ import {
   createAchievementLevelAction, updateAchievementLevelAction, deleteAchievementLevelAction,
   type GradingActionState,
 } from "./actions";
+import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
 
 interface Category { id: string; name: string }
 interface Level { id: string; name: string; sort_order: number }
@@ -36,9 +37,9 @@ function CategoryRow({ category, canManage }: { category: Category; canManage: b
       {canManage ? (
         <span className="flex items-center gap-2">
           <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Edit</button>
-          <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete category "${category.name}"?`)) e.preventDefault(); }}>
+          <form action={deleteAction}>
             <input type="hidden" name="categoryId" value={category.id} />
-            <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+            <ConfirmSubmitButton message={`Delete category "${category.name}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
           </form>
         </span>
       ) : null}
@@ -71,9 +72,9 @@ function LevelRow({ level, canManage }: { level: Level; canManage: boolean }) {
       {canManage ? (
         <span className="flex items-center gap-2">
           <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Edit</button>
-          <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete level "${level.name}"?`)) e.preventDefault(); }}>
+          <form action={deleteAction}>
             <input type="hidden" name="levelId" value={level.id} />
-            <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+            <ConfirmSubmitButton message={`Delete level "${level.name}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
           </form>
         </span>
       ) : null}

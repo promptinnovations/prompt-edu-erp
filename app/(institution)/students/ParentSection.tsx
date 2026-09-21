@@ -6,6 +6,7 @@ import {
   updateParentAction, removeParentFromStudentAction,
   linkExistingParentAccountToStudentAction, linkExistingStudentAccountToParentAction,
 } from "./actions";
+import ConfirmSubmitButton from "../../components/ui/ConfirmSubmitButton";
 
 export interface ParentLinkRow {
   id: string; full_name: string; phone: string | null; email: string | null;
@@ -49,17 +50,16 @@ function EditParentForm({ studentId, parent, onDone }: { studentId: string; pare
 function RemoveParentButton({ studentId, parentId, name }: { studentId: string; parentId: string; name: string }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(removeParentFromStudentAction, { error: null });
   return (
-    <form
-      action={formAction}
-      onSubmit={(e) => {
-        if (!confirm(`Remove ${name} as a parent/guardian for this student?`)) e.preventDefault();
-      }}
-    >
+    <form action={formAction}>
       <input type="hidden" name="studentId" value={studentId} />
       <input type="hidden" name="parentId" value={parentId} />
-      <button type="submit" disabled={pending} className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50">
+      <ConfirmSubmitButton
+        message={`Remove ${name} as a parent/guardian for this student?`}
+        disabled={pending}
+        className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50"
+      >
         Remove
-      </button>
+      </ConfirmSubmitButton>
       {state.error ? <span className="ml-1 text-xs text-red-600">{state.error}</span> : null}
     </form>
   );

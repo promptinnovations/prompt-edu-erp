@@ -6,6 +6,7 @@ import {
   createSkillActivityAction, updateSkillActivityAction, deleteSkillActivityAction,
   type GradingActionState,
 } from "./actions";
+import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
 
 interface SkillType { id: string; code: string; name: string }
 interface SkillActivity { id: string; skill_type_id: string; name: string; is_active: boolean }
@@ -42,9 +43,9 @@ function ActivityRow({ activity, canManage }: { activity: SkillActivity; canMana
       {canManage ? (
         <span className="flex items-center gap-2">
           <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Edit</button>
-          <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete activity "${activity.name}"?`)) e.preventDefault(); }}>
+          <form action={deleteAction}>
             <input type="hidden" name="skillActivityId" value={activity.id} />
-            <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+            <ConfirmSubmitButton message={`Delete activity "${activity.name}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
           </form>
         </span>
       ) : null}
@@ -77,9 +78,9 @@ function SkillTypeCard({
         {canManage && !editing ? (
           <span className="flex items-center gap-2">
             <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Rename</button>
-            <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete skill type "${type.name}"?`)) e.preventDefault(); }}>
+            <form action={deleteAction}>
               <input type="hidden" name="skillTypeId" value={type.id} />
-              <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+              <ConfirmSubmitButton message={`Delete skill type "${type.name}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
             </form>
           </span>
         ) : null}

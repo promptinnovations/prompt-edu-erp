@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createScoringRuleAction, updateScoringRuleAction, deleteScoringRuleAction, type GradingActionState } from "./actions";
+import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
 
 interface ScoringRule {
   id: string; module: string; activity_code: string; points: string; max_points: string | null; is_active: boolean;
@@ -54,9 +55,9 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
       <td className="py-2 text-right">
         <span className="flex items-center justify-end gap-2">
           <button type="button" onClick={() => setEditing(true)} className="text-xs text-zinc-500 underline hover:text-zinc-800">Edit</button>
-          <form action={deleteAction} onSubmit={(e) => { if (!confirm(`Delete scoring rule "${rule.module} / ${rule.activity_code}"?`)) e.preventDefault(); }}>
+          <form action={deleteAction}>
             <input type="hidden" name="scoringRuleId" value={rule.id} />
-            <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Delete</button>
+            <ConfirmSubmitButton message={`Delete scoring rule "${rule.module} / ${rule.activity_code}"?`} className="text-xs text-red-600 underline hover:text-red-800">Delete</ConfirmSubmitButton>
           </form>
         </span>
       </td>

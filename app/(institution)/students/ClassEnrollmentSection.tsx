@@ -9,6 +9,7 @@
  */
 import { useActionState } from "react";
 import { moveStudentAction, removeFromClassAction, restoreEnrollmentAction } from "./actions";
+import ConfirmSubmitButton from "../../components/ui/ConfirmSubmitButton";
 
 interface SectionOption { id: string; classId: string; label: string }
 interface HistoryRow {
@@ -80,14 +81,13 @@ export default function ClassEnrollmentSection({
 
               <form action={removeAction}>
                 <input type="hidden" name="studentId" value={studentId} />
-                <button
-                  type="submit"
+                <ConfirmSubmitButton
+                  message="Remove this student from their current class? Their record is kept and can be restored."
                   disabled={removing}
-                  onClick={(e) => { if (!confirm("Remove this student from their current class? Their record is kept and can be restored.")) e.preventDefault(); }}
                   className="rounded-lg border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
                 >
                   {removing ? "Removing…" : "Remove from class"}
-                </button>
+                </ConfirmSubmitButton>
               </form>
             </div>
           ) : null}
