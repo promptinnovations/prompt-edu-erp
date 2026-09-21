@@ -88,11 +88,20 @@ export async function resetStaffLoginPasswordAction(_prevState: { error: string 
   }
 }
 
+/** Marks/approves attendance for OTHER staff — gated on "attendance.edit",
+ *  the same "unrestricted" permission /attendance's own institution-wide
+ *  sections already use (hasUnrestrictedEdit there), NOT "attendance.enter"
+ *  (which teachers hold so they can mark their own class's STUDENT
+ *  attendance and must not double as staff-wide access here). Regular
+ *  staff mark only their own day via markOwnAttendanceAction instead —
+ *  see app/(institution)/attendance/actions.ts's markOwnAttendanceAction
+ *  and MyAttendanceSection. §"attendance must not be seen to all staff...
+ *  only admin and principal" follow-up. */
 export async function markStaffAttendanceAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
-    requirePermission(ctx.permissions, "attendance.enter");
+    requirePermission(ctx.permissions, "attendance.edit");
     const date = String(formData.get("date") ?? "");
     const staffIds = formData.getAll("staffId").map(String);
     const entries = staffIds

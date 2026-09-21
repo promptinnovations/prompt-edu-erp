@@ -31,6 +31,15 @@ export default async function StaffPage({
   const today = todayIST();
   const effectiveDate = date || today;
 
+  // §"attendance must not be seen to all staff ... only admin and
+  // principal, for all institutions" — the whole staff-wide attendance
+  // grid (everyone's status, editable) is for whoever can approve staff
+  // attendance institution-wide, same "attendance.edit" gate /attendance's
+  // own Staff leave section already uses. A regular staff member never
+  // even fetches this data; they mark their own day on /attendance
+  // instead (MyAttendanceSection there).
+  const canManageStaffAttendance = can(ctx.permissions, "attendance.edit");
+
   const [staff, statuses, classes, sections, subjects, academicYear, portionPlans, observations, assignments, sectionHeadAssignments, distinctStages] = await Promise.all([
     listStaff(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
@@ -44,7 +53,9 @@ export default async function StaffPage({
     listSectionHeadAssignments(institutionId, authUserId),
     listDistinctStages(institutionId, authUserId),
   ]);
-  const attendanceGrid = await getStaffAttendanceGrid(institutionId, authUserId, effectiveDate);
+  const attendanceGrid = canManageStaffAttendance
+    ? await getStaffAttendanceGrid(institutionId, authUserId, effectiveDate)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -93,13 +104,23 @@ export default async function StaffPage({
       </section>
 
       <section id="staff-attendance" className="rounded-card border bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Staff attendance</h2>
-        <StaffAttendanceGrid
-          rows={attendanceGrid}
-          statuses={statuses}
-          date={effectiveDate}
-          canEnter={can(ctx.permissions, "attendance.enter")}
-        />
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Staff attendance</h2>
+        {canManageStaffAttendance ? (
+          <StaffAttendanceGrid
+            rows={attendanceGrid}
+            statuses={statuses}
+            date={effectiveDate}
+            canEnter={canManageStaffAttendance}
+          />
+        ) : (
+          <p className="text-sm text-zinc-500">
+            Mark your own attendance on the{" "}
+            <Link href="/attendance#my-attendance" className="text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
+              Attendance page
+            </Link>{" "}
+            — the principal (Institution Admin/Management) approves it there.
+          </p>
+        )}
       </section>
 
       <section id="staff-leave" className="rounded-card border bg-white p-5">
