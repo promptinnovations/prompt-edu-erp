@@ -11,6 +11,7 @@ import { listCharacterAssessments, listCharacterRatingLabels } from "../../../..
 import { listMentoringRecordsForPortal } from "../../../../modules/mentoring/service";
 import { listStudentFeeInvoices } from "../../../../modules/fees/service";
 import { listStaff } from "../../../../modules/staff/service";
+import Link from "next/link";
 import ChildPicker from "./ChildPicker";
 import ApplyLeaveForm from "./ApplyLeaveForm";
 import PayFeeForm from "./PayFeeForm";
@@ -84,42 +85,79 @@ export default async function ParentPortalPage({
   ]);
   const ratingLabelByValue = new Map(ratingLabels.map((r) => [r.rating, r.label]));
 
+  const selectedChild = children.find((c) => c.id === selectedChildId);
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-[var(--heading)]">My children</h1>
-      <ChildPicker options={children} selectedChildId={selectedChildId} />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {summary.student?.photo_file_id ? (
+            // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
+            <img
+              src={`/api/files/${summary.student.photo_file_id}`}
+              alt=""
+              className="h-14 w-14 rounded-full object-cover ring-2 ring-zinc-100"
+            />
+          ) : (
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-lg font-medium text-zinc-500 ring-2 ring-zinc-100">
+              {(selectedChild?.full_name ?? "?").charAt(0).toUpperCase()}
+            </span>
+          )}
+          <div>
+            <h1 className="text-2xl font-semibold text-[var(--heading)]">{selectedChild?.full_name ?? "My children"}</h1>
+            {summary.student?.admission_number ? (
+              <p className="mt-0.5 text-sm text-zinc-500">
+                {summary.student.admission_number}{selectedChild?.relationship ? ` · ${selectedChild.relationship}` : ""}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <ChildPicker options={children} selectedChildId={selectedChildId} />
+      </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {sections.attendance ? (
-          <div className="rounded-card border bg-white p-5">
+          <Link
+            href={`/portal/parent/attendance?childId=${selectedChildId}`}
+            className="rounded-card border bg-white p-5 text-left transition-colors hover:border-[var(--brand)] hover:shadow-raised"
+          >
             <div className="text-2xl font-semibold text-zinc-900">
               {summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—"}
             </div>
             <div className="mt-1 text-sm text-zinc-500">Attendance (this year)</div>
-          </div>
+          </Link>
         ) : null}
         {sections.results ? (
-          <div className="rounded-card border bg-white p-5">
+          <Link
+            href={`/portal/parent/results?childId=${selectedChildId}`}
+            className="rounded-card border bg-white p-5 text-left transition-colors hover:border-[var(--brand)] hover:shadow-raised"
+          >
             <div className="text-2xl font-semibold text-zinc-900">
               {summary.latestResult ? `${summary.latestResult.percentage}%` : "—"}
             </div>
             <div className="mt-1 text-sm text-zinc-500">
               {summary.latestResult ? `Latest: ${summary.latestResult.examination_name}` : "No results yet"}
             </div>
-          </div>
+          </Link>
         ) : null}
         {sections.portfolio ? (
           <>
-            <div className="rounded-card border bg-white p-5">
+            <Link
+              href={`/portal/parent/results?childId=${selectedChildId}`}
+              className="rounded-card border bg-white p-5 text-left transition-colors hover:border-[var(--brand)] hover:shadow-raised"
+            >
               <div className="text-2xl font-semibold text-zinc-900">
                 {summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—"}
               </div>
               <div className="mt-1 text-sm text-zinc-500">Consolidated score</div>
-            </div>
-            <div className="rounded-card border bg-white p-5">
+            </Link>
+            <Link
+              href={`/portal/parent/portfolio?childId=${selectedChildId}`}
+              className="rounded-card border bg-white p-5 text-left transition-colors hover:border-[var(--brand)] hover:shadow-raised"
+            >
               <div className="text-2xl font-semibold text-zinc-900">{summary.recentPortfolioEvents.length}</div>
               <div className="mt-1 text-sm text-zinc-500">Recent portfolio events</div>
-            </div>
+            </Link>
           </>
         ) : null}
       </div>

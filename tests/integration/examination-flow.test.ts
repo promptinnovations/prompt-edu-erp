@@ -18,7 +18,7 @@ import {
   listExamTypes, createExamination, updateExamination, deleteExamination, getExamination,
   addExamClass, addExamSubject,
   getMarksGrid, enterMarks, deleteMark, submitMarks, verifyMarks, approveMarks, lockMarks,
-  correctMark, computeResults, getResults,
+  correctMark, computeResults, getResults, listStudentResultHistory,
 } from "../../modules/examination/service";
 
 let institutionA: string;
@@ -296,5 +296,27 @@ describe("Edit & remove buttons follow-up — exam CRUD and mark removal (§'add
 
   it("deleteExamination() refuses once results have been computed for the exam (guarded by the marks check first, since results always imply marks exist)", async () => {
     await expect(deleteExamination(institutionA, adminAuth, adminUserId, examinationId)).rejects.toThrow(/Marks have already been entered|Results have already been computed/);
+  });
+});
+
+describe("listStudentResultHistory() — parent/student portal 'Results' detail view follow-up", () => {
+  it("returns every computed result for a student, newest first, not just the latest", async () => {
+    const history = await listStudentResultHistory(institutionA, adminAuth, student1);
+    expect(history.length).toBeGreaterThanOrEqual(1);
+    const row = history.find((r) => r.examination_id === examinationId)!;
+    expect(row).toBeTruthy();
+    // Recomputed as 175/200 = 87.5% by the "skips a student" test above,
+    // which adds a second exam_subject and re-runs computeResults() —
+    // still the 80-89.99 grade band, just no longer exactly 85.
+    expect(Number(row.percentage)).toBeCloseTo(87.5, 5);
+    expect(row.grade_label).toBe("A");
+  });
+
+  it("returns an empty array for a student with no computed results", async () => {
+    const emptyStudent = await createStudent(institutionA, adminAuth, adminUserId, {
+      fullName: "No Results Student", admissionNumber: "NR-001", dateOfBirth: "2010-01-01", gender: "male",
+    });
+    const history = await listStudentResultHistory(institutionA, adminAuth, emptyStudent.id);
+    expect(history).toEqual([]);
   });
 });

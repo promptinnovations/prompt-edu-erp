@@ -1125,6 +1125,37 @@ export async function getResults(institutionId: string, authUserId: string, exam
   });
 }
 
+export interface StudentResultHistoryRow {
+  examination_id: string;
+  examination_name: string;
+  percentage: string;
+  grade_label: string | null;
+  computed_at: string;
+}
+
+/** Every computed result for one student across ALL examinations, newest
+ *  first — the parent/student portal "Results" detail view behind
+ *  getStudent360()'s latestResult (portfolio/service.ts), which only ever
+ *  returns the single most recent one. Same results/examinations/
+ *  grade_bands join, just not narrowed to the latest row. */
+export async function listStudentResultHistory(
+  institutionId: string, authUserId: string, studentId: string
+): Promise<StudentResultHistoryRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<StudentResultHistoryRow>(
+      `select e.id as examination_id, e.name as examination_name, r.percentage, gb.grade_label, r.computed_at
+         from results r
+         join examinations e on e.id = r.examination_id
+         left join grade_bands gb on gb.id = r.grade_band_id
+        where r.student_id = $1
+        order by r.computed_at desc`,
+      [studentId]
+    );
+    return rows;
+  });
+}
+
 // ---------------------------------------------------------------------------
 // §Student Profile feature ("Academics" tab / exam-report pie chart) — the
 // one per-student-per-SUBJECT marks getter this module was missing;
