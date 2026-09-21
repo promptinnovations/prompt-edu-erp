@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
-  createExamination, addExamSubject, addExamClass, removeExamClass, removeExamSubject,
-  enterMarks, submitMarks, verifyMarks, approveMarks, lockMarks, computeResults,
+  createExamination, updateExamination, deleteExamination,
+  addExamSubject, addExamClass, removeExamClass, removeExamSubject,
+  enterMarks, deleteMark, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks, computeResults,
   createDailyAssessment, enterDailyAssessmentMarks,
 } from "../../../modules/examination/service";
 
@@ -23,6 +24,40 @@ export async function createExaminationAction(_prevState: { error: string | null
     return { error: null, examinationId: exam.id };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to create examination." };
+  }
+}
+
+export async function updateExaminationAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const name = formData.get("name");
+    const academicYearId = formData.get("academicYearId");
+    await updateExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId, {
+      name: name ? String(name) : undefined,
+      academicYearId: academicYearId ? String(academicYearId) : undefined,
+    });
+    revalidatePath("/examinations");
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update examination." };
+  }
+}
+
+export async function deleteExaminationAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await deleteExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
+    revalidatePath("/examinations");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to delete examination." };
   }
 }
 
@@ -168,6 +203,45 @@ export async function saveMarksAction(_prevState: { error: string | null }, form
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to save marks." };
+  }
+}
+
+export async function deleteMarkAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  const examSubjectId = String(formData.get("examSubjectId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "marks.enter");
+    await deleteMark(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("markId") ?? ""));
+    revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove mark." };
+  }
+}
+
+/** Edits an already approved/locked mark, via correctMark() — deliberately
+ *  gated on "marks.lock" (not "marks.enter"), matching that function's own
+ *  doc comment: a correction bypasses the normal draft-only edit path, so
+ *  only whoever can lock marks in the first place may reopen one. */
+export async function correctMarkAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  const examSubjectId = String(formData.get("examSubjectId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "marks.lock");
+    const raw = formData.get("newValue");
+    const isAbsent = formData.get("isAbsent") === "on";
+    const reason = String(formData.get("reason") ?? "").trim();
+    if (!reason) return { error: "A reason is required for a correction." };
+    const newValue = isAbsent || raw === "" || raw === null ? null : Number(raw);
+    await correctMark(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("markId") ?? ""), newValue, reason);
+    revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to correct mark." };
   }
 }
 

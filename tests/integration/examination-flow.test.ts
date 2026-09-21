@@ -15,8 +15,9 @@ import { getPermissionsForUser, requirePermission } from "../../services/permiss
 import { createClass, createSection, createSubject, getCurrentAcademicYear } from "../../modules/academic/service";
 import { createStudent } from "../../modules/students/service";
 import {
-  listExamTypes, createExamination, addExamClass, addExamSubject,
-  getMarksGrid, enterMarks, submitMarks, verifyMarks, approveMarks, lockMarks,
+  listExamTypes, createExamination, updateExamination, deleteExamination, getExamination,
+  addExamClass, addExamSubject,
+  getMarksGrid, enterMarks, deleteMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   correctMark, computeResults, getResults,
 } from "../../modules/examination/service";
 
@@ -233,5 +234,67 @@ describe("Examination tenant isolation (§E, extended to migration 0005 tables)"
       const resultsRows = await scoped.query("select id from results where examination_id = $1", [examinationId]);
       expect(resultsRows.rows).toHaveLength(0);
     });
+  });
+});
+
+describe("Edit & remove buttons follow-up — exam CRUD and mark removal (§'add edit & remove button ... created exam, marks entered')", () => {
+  it("updateExamination() renames a created exam", async () => {
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const temp = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: year!.id, name: "Draft Exam Name",
+    });
+
+    const updated = await updateExamination(institutionA, adminAuth, adminUserId, temp.id, { name: "Renamed Exam" });
+    expect(updated.name).toBe("Renamed Exam");
+    const fetched = await getExamination(institutionA, adminAuth, temp.id);
+    expect(fetched?.name).toBe("Renamed Exam");
+
+    // Cleanup for the deleteExamination test below to have a clean slate —
+    // not strictly required, but avoids an unused row lingering.
+    await deleteExamination(institutionA, adminAuth, adminUserId, temp.id);
+    expect(await getExamination(institutionA, adminAuth, temp.id)).toBeNull();
+  });
+
+  it("deleteExamination() refuses once marks exist underneath it, and succeeds once they're removed", async () => {
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const temp = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: year!.id, name: "To Be Deleted Exam",
+    });
+    await addExamClass(institutionA, adminAuth, temp.id, classId, sectionId);
+    const tempSubject = await addExamSubject(institutionA, adminAuth, adminUserId, {
+      examinationId: temp.id, subjectId, maxMarks: 100, passMarks: 35,
+    });
+    await enterMarks(institutionA, teacherAuth, teacherUserId, tempSubject.id, [
+      { studentId: student1, marksObtained: 70, isAbsent: false },
+    ]);
+
+    await expect(deleteExamination(institutionA, adminAuth, adminUserId, temp.id)).rejects.toThrow(/Marks have already been entered/);
+
+    const grid = await getMarksGrid(institutionA, adminAuth, tempSubject.id);
+    const markId = grid.find((r) => r.student_id === student1)?.mark_id;
+    expect(markId).toBeTruthy();
+    await deleteMark(institutionA, adminAuth, adminUserId, markId!);
+
+    const gridAfter = await getMarksGrid(institutionA, adminAuth, tempSubject.id);
+    expect(gridAfter.find((r) => r.student_id === student1)?.mark_id).toBeNull();
+
+    await deleteExamination(institutionA, adminAuth, adminUserId, temp.id);
+    expect(await getExamination(institutionA, adminAuth, temp.id)).toBeNull();
+  });
+
+  it("deleteMark() refuses once a mark has moved past draft (already approved/locked) — must use correctMark instead", async () => {
+    const grid = await getMarksGrid(institutionA, adminAuth, examSubjectId);
+    const lockedMarkId = grid.find((r) => r.student_id === student1)?.mark_id;
+    expect(lockedMarkId).toBeTruthy(); // approved + locked by the earlier workflow describe block
+
+    await expect(deleteMark(institutionA, adminAuth, adminUserId, lockedMarkId!)).rejects.toThrow(/use Correct instead/);
+  });
+
+  it("deleteExamination() refuses once results have been computed for the exam (guarded by the marks check first, since results always imply marks exist)", async () => {
+    await expect(deleteExamination(institutionA, adminAuth, adminUserId, examinationId)).rejects.toThrow(/Marks have already been entered|Results have already been computed/);
   });
 });

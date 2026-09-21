@@ -29,6 +29,7 @@ import { createStaffMember, listStaff } from "../staff/service";
 import { createBook } from "../library/service";
 import { submitAchievement, listAchievementCategories, listAchievementLevels } from "../achievements/service";
 import { createStudentLoginAccount } from "../portal/service";
+import { createExamination, listExamTypes, listExaminations } from "../examination/service";
 import { createCalendarEvent, CALENDAR_EVENT_TYPES } from "../calendar/service";
 import { upsertTimetablePeriod } from "../substitution/service";
 
@@ -753,6 +754,69 @@ const timetablePeriodsDefinition: EntityImportDefinition = {
   },
 };
 
+const examinationsDefinition: EntityImportDefinition = {
+  entityType: "examinations",
+  label: "Examinations",
+  columns: [
+    { key: "examTypeName", label: "Exam type (must already exist under Settings → Grading)", required: true },
+    { key: "name", label: "Examination name", required: true },
+    { key: "academicYear", label: "Academic year (leave blank for the current one)", required: false },
+  ],
+  sampleRow: { examTypeName: "Term 1 Main Exam", name: "Term 1 Main Exam 2026", academicYear: "" },
+  async prepareContext(institutionId, authUserId) {
+    const [examTypes, academicYears, currentYear, examinations] = await Promise.all([
+      listExamTypes(institutionId, authUserId),
+      listAcademicYears(institutionId, authUserId),
+      getCurrentAcademicYear(institutionId, authUserId),
+      listExaminations(institutionId, authUserId),
+    ]);
+    return {
+      examTypesByName: new Map(examTypes.map((t) => [normKey(t.name), t.id])),
+      academicYearsByName: new Map(academicYears.map((y) => [normKey(y.name), y.id])),
+      currentAcademicYearId: currentYear?.id ?? null,
+      // Same-name-under-the-same-exam-type-and-year dedupe, so re-importing
+      // the same file twice doesn't create duplicate examinations —
+      // examinations has no unique constraint of its own to lean on the way
+      // enrollments/exam_subjects do, so this has to be checked here.
+      existingKeys: new Set(examinations.map((e) => `${e.exam_type_id}:${e.academic_year_id}:${normKey(e.name)}`)),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const examTypeName = req(raw, "examTypeName", errors);
+    const name = req(raw, "name", errors);
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    const examTypesByName = context.examTypesByName as Map<string, string>;
+    const examTypeId = examTypesByName.get(normKey(examTypeName));
+    if (!examTypeId) errors.push(`Exam type "${examTypeName}" was not found — add it under Settings → Grading first.`);
+
+    const academicYearRaw = (raw.academicYear ?? "").trim();
+    const academicYearsByName = context.academicYearsByName as Map<string, string>;
+    const currentAcademicYearId = context.currentAcademicYearId as string | null;
+    let academicYearId: string | null = null;
+    if (academicYearRaw) {
+      academicYearId = academicYearsByName.get(normKey(academicYearRaw)) ?? null;
+      if (!academicYearId) errors.push(`Academic year "${academicYearRaw}" was not found.`);
+    } else {
+      academicYearId = currentAcademicYearId;
+      if (!academicYearId) errors.push(`No current academic year is set for this institution, and no "academicYear" was given — set one under Academic Setup, or add it to this row.`);
+    }
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    const key = `${examTypeId}:${academicYearId}:${normKey(name)}`;
+    const existingKeys = context.existingKeys as Set<string>;
+    if (existingKeys.has(key)) return { status: "invalid", errors: [`An examination named "${name}" already exists for that exam type and academic year.`] };
+
+    return { status: "valid", dedupeKey: key, data: { examTypeId, academicYearId, name } };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await createExamination(institutionId, authUserId, userId, {
+      examTypeId: data.examTypeId as string, academicYearId: data.academicYearId as string, name: data.name as string,
+    }, scoped);
+  },
+};
+
 const registry: Record<string, EntityImportDefinition> = {
   classes: classesDefinition,
   sections: sectionsDefinition,
@@ -766,6 +830,7 @@ const registry: Record<string, EntityImportDefinition> = {
   achievements: achievementsDefinition,
   calendar_events: calendarEventsDefinition,
   timetable_periods: timetablePeriodsDefinition,
+  examinations: examinationsDefinition,
 };
 
 export function listImportEntityTypes(): { entityType: string; label: string; columns: ImportColumn[] }[] {

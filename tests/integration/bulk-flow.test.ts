@@ -16,6 +16,7 @@ import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../dat
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
 import { createClass, createSection, listClasses, listSections, getCurrentAcademicYear } from "../../modules/academic/service";
 import { createStudent, listStudents, enrollStudent, getCurrentEnrollment } from "../../modules/students/service";
+import { listExamTypes, listExaminations } from "../../modules/examination/service";
 import {
   generateImportTemplate, stageImport, confirmImport, listRecentImportBatches,
   exportRows, exportDefinitions, listImportEntityTypes,
@@ -65,7 +66,7 @@ describe("Import entity catalogue + templates (§Q.1, §Q.3)", () => {
   it("listImportEntityTypes() exposes the v1 target entities", () => {
     const types = listImportEntityTypes().map((t) => t.entityType).sort();
     expect(types).toEqual(
-      ["achievements", "calendar_events", "classes", "enrollments", "library_books", "parents", "sections", "staff",
+      ["achievements", "calendar_events", "classes", "enrollments", "examinations", "library_books", "parents", "sections", "staff",
         "student_logins", "students", "subjects", "timetable_periods"].sort()
     );
   });
@@ -278,6 +279,50 @@ describe("Enrollments + Student logins bulk import (§137 follow-up — self-ser
     });
     expect(again.rows[0].status).toBe("invalid");
     expect(again.rows[0].errors[0]).toMatch(/already has a login/);
+  });
+});
+
+describe("Examinations bulk import (§'bulk upload - add exam' follow-up)", () => {
+  it("referential checks (exam type) + defaults to the current academic year + flags a duplicate name under the same type/year", async () => {
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+
+    const file = xlsxToCsvLikeRows(
+      ["Exam type (must already exist under Settings \u2192 Grading)", "Examination name", "Academic year (leave blank for the current one)"],
+      [
+        [examType.name, "Bulk Term 1 Exam", ""], // valid, defaults to current year
+        ["Not A Real Exam Type", "Bulk Bad Exam", ""], // invalid: exam type not found
+        [examType.name, "", ""], // invalid: name required
+      ]
+    );
+    const result = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "examinations", filename: "examinations.csv", fileBuffer: file, format: "csv",
+    });
+    expect(result.rows[0].status).toBe("valid");
+    expect(result.rows[1].status).toBe("invalid");
+    expect(result.rows[1].errors[0]).toMatch(/Exam type .* was not found/);
+    expect(result.rows[2].status).toBe("invalid");
+
+    const confirmed = await confirmImport(institutionA, adminAuth, adminUserId, result.batchId);
+    expect(confirmed.importedRows).toBe(1);
+
+    const created = (await listExaminations(institutionA, adminAuth)).find((e) => e.name === "Bulk Term 1 Exam");
+    expect(created).toBeTruthy();
+    expect(created?.exam_type_id).toBe(examType.id);
+
+    // Re-importing the exact same row is now a flagged duplicate, not a
+    // second insert — examinations has no DB-level unique constraint of
+    // its own to lean on, so this dedupe has to be enforced in parseRow().
+    const again = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "examinations", filename: "examinations-again.csv",
+      fileBuffer: xlsxToCsvLikeRows(
+        ["Exam type (must already exist under Settings \u2192 Grading)", "Examination name", "Academic year (leave blank for the current one)"],
+        [[examType.name, "Bulk Term 1 Exam", ""]]
+      ),
+      format: "csv",
+    });
+    expect(again.rows[0].status).toBe("invalid");
+    expect(again.rows[0].errors[0]).toMatch(/already exists/);
   });
 });
 

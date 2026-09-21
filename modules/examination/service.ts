@@ -437,11 +437,13 @@ export async function getExamination(institutionId: string, authUserId: string, 
 }
 
 export async function createExamination(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createExaminationSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createExaminationSchema>,
+  scopedClient?: DbClient // §Q.1, see modules/academic/service.ts's createClass() for why — needed so
+                           // the "Examinations" bulk import entity type (modules/bulk/service.ts) can
+                           // commit every row of a batch inside one transaction.
 ): Promise<ExaminationRecord> {
   const data = createExaminationSchema.parse(input);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     let gradeScaleId = data.gradeScaleId ?? null;
     if (!gradeScaleId) {
       const { rows: def } = await scoped.query<{ id: string }>("select id from grade_scales where is_default = true limit 1");
@@ -491,6 +493,83 @@ export async function createExamination(
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "examinations", entityId: rows[0].id, after: rows[0] });
     return rows[0];
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+const updateExaminationSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  academicYearId: z.string().uuid().optional(),
+});
+
+/** Edit a created examination's name and/or academic year — the only two
+ *  fields the Create form itself lets an admin set (exam type is left
+ *  alone once created: changing it could silently flip an ordinary exam
+ *  into/out of the Daily Assessment special-case createExamination()
+ *  handles above, which assumes its exam_type never changes after
+ *  insert). §"add edit & remove button where they are required ... a
+ *  created exam" follow-up. */
+export async function updateExamination(
+  institutionId: string, authUserId: string, userId: string, examinationId: string, input: z.infer<typeof updateExaminationSchema>
+): Promise<ExaminationRecord> {
+  const data = updateExaminationSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<ExaminationRecord>(
+      `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id
+         from examinations where id = $1`,
+      [examinationId]
+    );
+    if (before.length === 0) throw new Error("Examination not found.");
+    const { rows } = await scoped.query<ExaminationRecord>(
+      `update examinations set
+         name = coalesce($1, name),
+         academic_year_id = coalesce($2, academic_year_id),
+         updated_at = now()
+       where id = $3
+       returning id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id`,
+      [data.name ?? null, data.academicYearId ?? null, examinationId]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "examination", entityType: "examinations",
+      entityId: examinationId, before: before[0], after: rows[0],
+    });
+    return rows[0];
+  });
+}
+
+/** Deletes a whole examination (and, via ON DELETE CASCADE, its exam_classes/
+ *  exam_subjects/daily_assessments scope links) — refused once real data
+ *  (any mark, any daily assessment mark, or any computed result) exists
+ *  underneath it, the same "remove the data first" guard removeExamSubject()
+ *  already uses, so a delete can never silently destroy marks a teacher
+ *  already entered. */
+export async function deleteExamination(institutionId: string, authUserId: string, userId: string, examinationId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: markCount } = await scoped.query<{ count: string }>(
+      `select count(*)::text as count from marks m
+         join exam_subjects es on es.id = m.exam_subject_id
+        where es.examination_id = $1`,
+      [examinationId]
+    );
+    if (Number(markCount[0]?.count ?? 0) > 0) throw new Error("Marks have already been entered for this exam — remove those first.");
+    const { rows: dailyMarkCount } = await scoped.query<{ count: string }>(
+      `select count(*)::text as count from daily_assessment_marks dam
+         join daily_assessments da on da.id = dam.daily_assessment_id
+        where da.examination_id = $1`,
+      [examinationId]
+    );
+    if (Number(dailyMarkCount[0]?.count ?? 0) > 0) throw new Error("This register already has marks entered — remove those first.");
+    const { rows: resultCount } = await scoped.query<{ count: string }>(
+      "select count(*)::text as count from results where examination_id = $1", [examinationId]
+    );
+    if (Number(resultCount[0]?.count ?? 0) > 0) throw new Error("Results have already been computed for this exam — remove those first.");
+    const { rows } = await scoped.query("delete from examinations where id = $1 returning id", [examinationId]);
+    if (rows.length === 0) throw new Error("Examination not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "examinations", entityId: examinationId });
   });
 }
 
@@ -733,6 +812,25 @@ export async function enterMarks(
       updated++;
     }
     return { updated, skippedLocked };
+  });
+}
+
+/** Removes one student's mark entry entirely (as opposed to correctMark(),
+ *  which changes its value but keeps it as a row + history) — only while
+ *  it's still 'draft', the same boundary enterMarks() itself enforces, so
+ *  a submitted/verified/approved/locked mark can't be silently erased
+ *  outside the correction-history path. §"add edit & remove button ...
+ *  student added mark entered" follow-up. */
+export async function deleteMark(institutionId: string, authUserId: string, userId: string, markId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; entry_status: string }>(
+      "select id, entry_status from marks where id = $1", [markId]
+    );
+    if (rows.length === 0) throw new Error("Mark not found.");
+    if (rows[0].entry_status !== "draft") throw new Error("This mark has already been submitted — use Correct instead of Remove.");
+    await scoped.query("delete from marks where id = $1", [markId]);
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "marks", entityId: markId });
   });
 }
 
