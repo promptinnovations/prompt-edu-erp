@@ -4,6 +4,7 @@ import { listKudosForStudent } from "../../../../modules/communication/service";
 import { listApprovedReviews } from "../../../../modules/library/service";
 import { listClasses, listSections } from "../../../../modules/academic/service";
 import { requireOwnStudentId, NotLinkedNotice, Card } from "./_lib";
+import StarOfTheWeekBanner from "../../../components/StarOfTheWeekBanner";
 
 /** Dashboard — the student portal's landing page (§ student-portal redesign:
  *  "what should be seen primarily is the portfolio, dashboard, exam
@@ -50,6 +51,8 @@ export default async function StudentDashboardPage() {
 
   return (
     <div className="space-y-6">
+      <StarOfTheWeekBanner institutionId={institutionId} authUserId={authUserId} />
+
       <div className="flex flex-wrap items-center gap-4 rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card">
         {summary.student?.photo_file_id ? (
           // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route

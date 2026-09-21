@@ -3,8 +3,10 @@ import { can } from "../../../services/permissions/permission-service";
 import { listStudents } from "../../../modules/students/service";
 import {
   listScoringRules, listScoreEvents, listConsolidatedScores, getDefaultPerformanceProfile, listPerformanceComponents,
+  listStarOfTheWeekHistory,
 } from "../../../modules/scoring/service";
 import ComputeScoreForm from "./ComputeScoreForm";
+import ComputeStarOfTheWeekButton from "./ComputeStarOfTheWeekButton";
 import { formatDateIST } from "../../../services/datetime/ist";
 
 export default async function ScoringPage() {
@@ -14,13 +16,15 @@ export default async function ScoringPage() {
   const canManage = can(ctx.permissions, "settings.manage");
   const canView = can(ctx.permissions, "reports.view");
 
-  const [students, rules, events, scores, profile] = await Promise.all([
+  const [students, rules, events, scores, profile, starHistory] = await Promise.all([
     listStudents(institutionId, authUserId),
     listScoringRules(institutionId, authUserId),
     listScoreEvents(institutionId, authUserId),
     listConsolidatedScores(institutionId, authUserId),
     getDefaultPerformanceProfile(institutionId, authUserId),
+    listStarOfTheWeekHistory(institutionId, authUserId),
   ]);
+  const canManageForStar = can(ctx.permissions, "settings.manage");
   const components = profile ? await listPerformanceComponents(institutionId, authUserId, profile.id) : [];
   const studentNameById = new Map(students.map((s) => [s.id, s.full_name]));
 
@@ -92,6 +96,43 @@ export default async function ScoringPage() {
               ))}
             </tbody>
           </table>
+          </div>
+        </section>
+      ) : null}
+
+      {canView || canManageForStar ? (
+        <section className="rounded-card border bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Star of the Week</h2>
+          <p className="mb-3 text-xs text-zinc-500">
+            One winner per stage, based on the last 30 days&apos; Consolidated Score (academic, attendance,
+            skills, achievements, reading and discipline/character combined). Run this weekly -- re-running
+            for the same week recomputes that week&apos;s winners rather than adding duplicates.
+          </p>
+          {canManageForStar ? <ComputeStarOfTheWeekButton /> : null}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
+                <tr>
+                  <th className="py-1.5">Week of</th>
+                  <th className="py-1.5">Stage</th>
+                  <th className="py-1.5">Winner</th>
+                  <th className="py-1.5">Score</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {starHistory.map((w) => (
+                  <tr key={w.id}>
+                    <td className="py-1.5">{w.week_start}</td>
+                    <td className="py-1.5">{w.stage || "Whole institution"}</td>
+                    <td className="py-1.5">{w.student_name} <span className="text-zinc-500">({w.admission_number})</span></td>
+                    <td className="py-1.5">{w.score}</td>
+                  </tr>
+                ))}
+                {starHistory.length === 0 ? (
+                  <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No Star of the Week winners computed yet.</td></tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
         </section>
       ) : null}

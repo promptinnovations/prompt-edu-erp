@@ -17,6 +17,7 @@ import ApplyLeaveForm from "./ApplyLeaveForm";
 import PayFeeForm from "./PayFeeForm";
 import SendMessageForm from "./SendMessageForm";
 import SendKudosForm from "./SendKudosForm";
+import StarOfTheWeekBanner from "../../../components/StarOfTheWeekBanner";
 
 export default async function ParentPortalPage({
   searchParams,
@@ -96,6 +97,8 @@ export default async function ParentPortalPage({
 
   return (
     <div className="space-y-6">
+      <StarOfTheWeekBanner institutionId={institutionId} authUserId={authUserId} />
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           {summary.student?.photo_file_id ? (
