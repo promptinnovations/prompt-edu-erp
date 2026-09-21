@@ -28,67 +28,10 @@
  * correct manifest and the next paint fires a correctly-scoped
  * `beforeinstallprompt`.
  */
-import { useEffect, useState } from "react";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { useInstallPrompt } from "../../components/useInstallPrompt";
 
 export default function InstallAppButton({ appName, logoUrl }: { appName: string; logoUrl: string | null }) {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
-  const [isIos, setIsIos] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [outcome, setOutcome] = useState<"accepted" | "dismissed" | null>(null);
-  const [manifestMismatch, setManifestMismatch] = useState(false);
-
-  useEffect(() => {
-    const standalone =
-      window.matchMedia?.("(display-mode: standalone)").matches ||
-      // iOS Safari's own (non-standard) flag for "already added to home screen".
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    setInstalled(standalone);
-    setIsIos(/iphone|ipad|ipod/i.test(window.navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream);
-
-    // Is the manifest <link> actually scoped to the institution this page
-    // is currently under? A mismatch means beforeinstallprompt (if it ever
-    // fires in this tab) was or will be captured against the wrong app.
-    const manifestHref = document.querySelector('link[rel="manifest"]')?.getAttribute("href") ?? "";
-    const institutionSegment = window.location.pathname.split("/").filter(Boolean)[0] ?? "";
-    if (institutionSegment && manifestHref) {
-      setManifestMismatch(!manifestHref.startsWith(`/${institutionSegment}/`));
-    }
-
-    function onBeforeInstall(e: Event) {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    }
-    function onInstalled() {
-      setInstalled(true);
-      setDeferredPrompt(null);
-    }
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
-
-  async function handleInstall() {
-    if (!deferredPrompt) return;
-    setBusy(true);
-    try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      setOutcome(choice.outcome);
-      if (choice.outcome === "accepted") setInstalled(true);
-      setDeferredPrompt(null);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { deferredPrompt, installed, isIos, busy, outcome, manifestMismatch, handleInstall } = useInstallPrompt();
 
   if (installed) {
     return (

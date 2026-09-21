@@ -38,13 +38,14 @@ export default async function StudentDashboardPage() {
   }
 
   const stats = [
-    { label: "Attendance (this year)", value: summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—" },
+    { label: "Attendance (this year)", value: summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—", href: "/portal/student/exams" },
     {
       label: summary.latestResult ? `Latest: ${summary.latestResult.examination_name}` : "No results yet",
       value: summary.latestResult ? `${summary.latestResult.percentage}%` : "—",
+      href: "/portal/student/exams",
     },
-    { label: "Consolidated score", value: summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—" },
-    { label: "Recent portfolio events", value: String(summary.recentPortfolioEvents.length) },
+    { label: "Consolidated score", value: summary.latestConsolidatedScore ? summary.latestConsolidatedScore.score : "—", href: "/portal/student/exams" },
+    { label: "Recent portfolio events", value: String(summary.recentPortfolioEvents.length), href: "/portal/student/portfolio" },
   ];
 
   return (
@@ -72,10 +73,14 @@ export default async function StudentDashboardPage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-5 shadow-card">
+          <Link
+            key={s.label}
+            href={s.href}
+            className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-5 text-left shadow-card transition-colors hover:border-[var(--brand)] hover:shadow-raised"
+          >
             <div className="text-2xl font-semibold text-[var(--foreground)]">{s.value}</div>
             <div className="mt-1 text-sm text-zinc-500">{s.label}</div>
-          </div>
+          </Link>
         ))}
       </div>
 

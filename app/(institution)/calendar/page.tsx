@@ -6,6 +6,7 @@ import { can } from "../../../services/permissions/permission-service";
 import { listCalendarEvents } from "../../../modules/calendar/service";
 import AddEventForm from "./AddEventForm";
 import DeleteEventButton from "./DeleteEventButton";
+import ToggleConductedButton from "./ToggleConductedButton";
 import { todayIST, formatDateIST } from "../../../services/datetime/ist";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
@@ -78,10 +79,18 @@ export default async function CalendarPage() {
                       </span>
                       <span>{formatDate(e.start_date)}{e.end_date ? ` – ${formatDate(e.end_date)}` : ""}</span>
                       {e.club_in_charge ? <span>· {e.club_in_charge}</span> : null}
+                      {e.conducted_at ? (
+                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Conducted</span>
+                      ) : null}
                     </p>
                   </div>
                 </div>
-                {canManage ? <DeleteEventButton eventId={e.id} /> : null}
+                {canManage ? (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <ToggleConductedButton eventId={e.id} conducted={Boolean(e.conducted_at)} />
+                    <DeleteEventButton eventId={e.id} />
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -106,10 +115,18 @@ export default async function CalendarPage() {
                       </span>
                       <span>{formatDate(e.start_date)}{e.end_date ? ` – ${formatDate(e.end_date)}` : ""}</span>
                       {e.club_in_charge ? <span>· {e.club_in_charge}</span> : null}
+                      {e.conducted_at ? (
+                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Conducted</span>
+                      ) : null}
                     </p>
                   </div>
                 </div>
-                {canManage ? <DeleteEventButton eventId={e.id} /> : null}
+                {canManage ? (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <ToggleConductedButton eventId={e.id} conducted={Boolean(e.conducted_at)} />
+                    <DeleteEventButton eventId={e.id} />
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

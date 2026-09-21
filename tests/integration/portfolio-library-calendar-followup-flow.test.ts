@@ -22,7 +22,7 @@ import { createClass, createSection, getCurrentAcademicYear } from "../../module
 import {
   createBook, listAvailableCopies, issueBook, returnBook, listReadingRecords, submitReadingReview, reviewReadingRecord,
 } from "../../modules/library/service";
-import { createCalendarEvent, updateCalendarEvent, listCalendarEvents, CALENDAR_EVENT_TYPES } from "../../modules/calendar/service";
+import { createCalendarEvent, updateCalendarEvent, listCalendarEvents, toggleCalendarEventConducted, CALENDAR_EVENT_TYPES } from "../../modules/calendar/service";
 
 let institutionA: string;
 let adminAuth: string, adminUserId: string;
@@ -129,5 +129,26 @@ describe("Academic Calendar club_in_charge (§425, migration 0044)", () => {
     // so a future new event type doesn't silently render uncoloured.
     expect(new Set(CALENDAR_EVENT_TYPES).size).toBe(CALENDAR_EVENT_TYPES.length);
     expect(CALENDAR_EVENT_TYPES).toContain("holiday");
+  });
+});
+
+describe("Academic Calendar 'tick events conducted' follow-up (§10, migration 0050)", () => {
+  it("a new event starts with conducted_at null, and toggling sets then clears it", async () => {
+    const event = await createCalendarEvent(institutionA, adminAuth, adminUserId, {
+      title: "Sports Day", eventType: "other", startDate: "2026-11-20",
+    });
+    expect(event.conducted_at).toBeNull();
+
+    const marked = await toggleCalendarEventConducted(institutionA, adminAuth, adminUserId, event.id);
+    expect(marked.conducted_at).not.toBeNull();
+
+    const unmarked = await toggleCalendarEventConducted(institutionA, adminAuth, adminUserId, event.id);
+    expect(unmarked.conducted_at).toBeNull();
+  });
+
+  it("throws for an event that doesn't exist", async () => {
+    await expect(
+      toggleCalendarEventConducted(institutionA, adminAuth, adminUserId, "00000000-0000-0000-0000-000000000000")
+    ).rejects.toThrow(/not found/);
   });
 });

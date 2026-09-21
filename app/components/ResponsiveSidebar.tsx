@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import SidebarInstallButton from "./SidebarInstallButton";
 
 /**
  * Off-canvas sidebar shell shared by (institution)/layout.tsx and
@@ -111,7 +112,11 @@ export default function ResponsiveSidebar({
 
         {children}
 
-        <div className="mt-4 truncate border-t border-[var(--sidebar-border)] pt-4 text-center text-[10px] uppercase tracking-[0.08em] text-[var(--sidebar-text-muted)]">
+        <div className="mt-4 border-t border-[var(--sidebar-border)] pt-3">
+          <SidebarInstallButton />
+        </div>
+
+        <div className="mt-3 truncate text-center text-[10px] uppercase tracking-[0.08em] text-[var(--sidebar-text-muted)]">
           PROMPT EDU ERP · Prompt Innovations
         </div>
       </aside>

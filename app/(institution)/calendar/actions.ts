@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
-import { createCalendarEvent, deleteCalendarEvent, CALENDAR_EVENT_TYPES } from "../../../modules/calendar/service";
+import { createCalendarEvent, deleteCalendarEvent, toggleCalendarEventConducted, CALENDAR_EVENT_TYPES } from "../../../modules/calendar/service";
 
 const EVENT_TYPE_SET = new Set<string>(CALENDAR_EVENT_TYPES);
 
@@ -29,6 +29,20 @@ export async function createCalendarEventAction(_prevState: { error: string | nu
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to add calendar event." };
+  }
+}
+
+export async function toggleCalendarEventConductedAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "calendar.manage");
+    const eventId = String(formData.get("eventId") ?? "");
+    await toggleCalendarEventConducted(ctx.institutionId, ctx.session.authUserId, ctx.userId, eventId);
+    revalidatePath("/calendar");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update." };
   }
 }
 

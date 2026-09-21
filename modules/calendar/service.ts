@@ -26,6 +26,7 @@ export interface CalendarEventRecord {
   start_date: string;
   end_date: string | null;
   club_in_charge: string | null;
+  conducted_at: string | null;
 }
 
 export async function listCalendarEvents(
@@ -40,7 +41,7 @@ export async function listCalendarEvents(
     if (opts?.to) { params.push(opts.to); conditions.push(`start_date <= $${params.length}`); }
     const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
     const { rows } = await scoped.query<CalendarEventRecord>(
-      `select id, title, description, event_type, start_date, end_date, club_in_charge
+      `select id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at
          from calendar_events ${where}
         order by start_date asc`,
       params
@@ -58,7 +59,7 @@ export async function listUpcomingCalendarEvents(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<CalendarEventRecord>(
-      `select id, title, description, event_type, start_date, end_date, club_in_charge
+      `select id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at
          from calendar_events
         where coalesce(end_date, start_date) >= current_date
         order by start_date asc
@@ -99,7 +100,7 @@ export async function createCalendarEvent(
     const { rows } = await scoped.query<CalendarEventRecord>(
       `insert into calendar_events (institution_id, title, description, event_type, start_date, end_date, club_in_charge, created_by)
        values ($1, $2, $3, $4, $5, $6, $7, $8)
-       returning id, title, description, event_type, start_date, end_date, club_in_charge`,
+       returning id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at`,
       [
         institutionId, data.title, data.description ?? null, data.eventType, data.startDate, data.endDate ?? null,
         data.clubInCharge ?? null, userId,
@@ -126,7 +127,7 @@ export async function updateCalendarEvent(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows: before } = await scoped.query<CalendarEventRecord>(
-      "select id, title, description, event_type, start_date, end_date, club_in_charge from calendar_events where id = $1",
+      "select id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at from calendar_events where id = $1",
       [data.id]
     );
     if (!before[0]) throw new Error("Calendar event not found.");
@@ -144,7 +145,7 @@ export async function updateCalendarEvent(
     const { rows } = await scoped.query<CalendarEventRecord>(
       `update calendar_events set title = $2, description = $3, event_type = $4, start_date = $5, end_date = $6, club_in_charge = $7, updated_at = now()
         where id = $1
-        returning id, title, description, event_type, start_date, end_date, club_in_charge`,
+        returning id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at`,
       [data.id, merged.title, merged.description, merged.eventType, merged.startDate, merged.endDate, merged.clubInCharge]
     );
     await recordAudit(scoped, {
@@ -155,11 +156,40 @@ export async function updateCalendarEvent(
   });
 }
 
+/** §10 follow-up "Academic calendar: tick events conducted" — a simple
+ *  toggle rather than a one-way "mark done", since an admin ticking it by
+ *  mistake (or an event getting postponed after being ticked) needs an
+ *  undo, not a support ticket. conducted_at (migration 0050) is null when
+ *  not conducted, a timestamp once ticked; toggling clears it back to null. */
+export async function toggleCalendarEventConducted(
+  institutionId: string, authUserId: string, userId: string, eventId: string
+): Promise<CalendarEventRecord> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<CalendarEventRecord>(
+      "select id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at from calendar_events where id = $1",
+      [eventId]
+    );
+    if (!before[0]) throw new Error("Calendar event not found.");
+    const { rows } = await scoped.query<CalendarEventRecord>(
+      `update calendar_events set conducted_at = case when conducted_at is null then now() else null end, updated_at = now()
+        where id = $1
+        returning id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at`,
+      [eventId]
+    );
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "calendar",
+      entityType: "calendar_events", entityId: eventId, before: before[0], after: rows[0],
+    });
+    return rows[0];
+  });
+}
+
 export async function deleteCalendarEvent(institutionId: string, authUserId: string, userId: string, eventId: string): Promise<void> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows: before } = await scoped.query<CalendarEventRecord>(
-      "select id, title, description, event_type, start_date, end_date, club_in_charge from calendar_events where id = $1",
+      "select id, title, description, event_type, start_date, end_date, club_in_charge, conducted_at from calendar_events where id = $1",
       [eventId]
     );
     if (!before[0]) return;
