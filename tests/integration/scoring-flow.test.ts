@@ -27,7 +27,7 @@ import {
 } from "../../modules/achievements/service";
 import {
   createScoringRule, evaluateScoring, listScoreEvents, computeConsolidatedScore, getNormalizedScore,
-  computeStarOfTheWeek, getCurrentStarOfTheWeek, listStarOfTheWeekHistory,
+  computeStarOfTheMonth, getCurrentStarOfTheMonth, listStarOfTheMonthHistory,
 } from "../../modules/scoring/service";
 
 let institutionA: string;
@@ -224,8 +224,8 @@ describe("Normalized per-component scores + consolidated roll-up (§K.5)", () =>
   });
 });
 
-describe("Star of the Week (§9 follow-up)", () => {
-  it("picks the top scorer for the stage, persists it, and re-running the same week upserts rather than duplicates", async () => {
+describe("Star of the Month (§9 follow-up)", () => {
+  it("picks the top scorer for the stage, persists it, and re-running the same month upserts rather than duplicates", async () => {
     const s2 = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "SC-2", fullName: "Score Student Two" });
     const year = await getCurrentAcademicYear(institutionA, adminAuth);
     const db = await getDbClient();
@@ -237,34 +237,34 @@ describe("Star of the Week (§9 follow-up)", () => {
       );
     });
 
-    // weekStart chosen so the 30-day lookback covers student1's seeded
+    // monthStart chosen so the 30-day lookback covers student1's seeded
     // attendance dates (2026-03-02..06, 80% present) -- student2 has no
     // attendance rows in that window at all, so student1 must win even if
     // the academic/skills/achievements components (which key off
     // computed_at, i.e. real test-run time, not these fixture dates) land
     // outside the window for both students.
-    const weekStart = "2026-03-15";
-    const winners = await computeStarOfTheWeek(institutionA, adminAuth, adminUserId, weekStart);
+    const monthStart = "2026-03-15";
+    const winners = await computeStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
     expect(winners.length).toBeGreaterThan(0);
-    const winner = winners.find((w) => w.week_start === weekStart)!;
+    const winner = winners.find((w) => w.month_start === monthStart)!;
     expect(winner.student_id).toBe(student1);
     expect(winner.student_name).toBe("Score Student");
 
-    const current = await getCurrentStarOfTheWeek(institutionA, adminAuth);
-    expect(current.find((w) => w.week_start === weekStart)?.student_id).toBe(student1);
+    const current = await getCurrentStarOfTheMonth(institutionA, adminAuth);
+    expect(current.find((w) => w.month_start === monthStart)?.student_id).toBe(student1);
 
-    // Re-running the same week upserts (same row id), doesn't duplicate.
-    const rerun = await computeStarOfTheWeek(institutionA, adminAuth, adminUserId, weekStart);
-    const rerunWinner = rerun.find((w) => w.week_start === weekStart)!;
+    // Re-running the same month upserts (same row id), doesn't duplicate.
+    const rerun = await computeStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
+    const rerunWinner = rerun.find((w) => w.month_start === monthStart)!;
     expect(rerunWinner.id).toBe(winner.id);
 
-    const history = await listStarOfTheWeekHistory(institutionA, adminAuth);
-    expect(history.filter((h) => h.week_start === weekStart)).toHaveLength(1);
+    const history = await listStarOfTheMonthHistory(institutionA, adminAuth);
+    expect(history.filter((h) => h.month_start === monthStart)).toHaveLength(1);
   });
 
   it("Institution B sees no winners (tenant isolation)", async () => {
     const adminB = await seedDemoUser(await getDbClient(), institutionB, "star@score-b.example", "Star B Admin");
-    const currentB = await getCurrentStarOfTheWeek(institutionB, adminB.authUserId);
+    const currentB = await getCurrentStarOfTheMonth(institutionB, adminB.authUserId);
     expect(currentB).toHaveLength(0);
   });
 });

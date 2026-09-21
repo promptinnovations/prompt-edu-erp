@@ -410,40 +410,41 @@ export async function listConsolidatedScores(institutionId: string, authUserId: 
 }
 
 // ---------------------------------------------------------------------------
-// "Star of the Week" (§9 follow-up: "based on overall performance in a
-// month, a module for selecting star of the week — Academic both madrasa,
+// "Star of the Month" (§9 follow-up: "based on overall performance in a
+// month, a module for selecting star of the month — Academic both madrasa,
 // school, skill, achievements, reading, discipline — evaluate everything
-// and find the best everyweek... shown in everyone's login with an
+// and find the best every month... shown in everyone's login with an
 // attractive banner"). Scoring basis and winner scope were both confirmed
 // by the user ahead of building this: reuse the existing Consolidated
 // Score engine (computeConsolidatedScore() already blends every component
-// named above), one winner per stage per week.
+// named above), one winner per stage per month.
 // ---------------------------------------------------------------------------
-const STAR_OF_THE_WEEK_LOOKBACK_DAYS = 30;
+const STAR_OF_THE_MONTH_LOOKBACK_DAYS = 30;
 
-export interface StarOfTheWeekWinner {
-  id: string; stage: string; week_start: string; student_id: string; student_name: string;
+export interface StarOfTheMonthWinner {
+  id: string; stage: string; month_start: string; student_id: string; student_name: string;
   admission_number: string; photo_file_id: string | null; score: string; computed_at: string;
 }
 
-/** Computes and persists this week's Star of the Week, one winner per
+/** Computes and persists this month's Star of the Month, one winner per
  *  stage (an empty-string stage bucket covers students whose class has no
  *  stage set, so an institution that hasn't configured stages yet still
  *  gets a single institution-wide winner instead of none). Scores every
  *  currently-enrolled student (current academic year, active enrolment)
  *  via computeConsolidatedScore() over the trailing
- *  STAR_OF_THE_WEEK_LOOKBACK_DAYS days ending at weekStart, then keeps the
- *  top scorer in each stage. Re-running for a week that already has a
+ *  STAR_OF_THE_MONTH_LOOKBACK_DAYS days ending at monthStart, then keeps
+ *  the top scorer in each stage. Re-running for a month that already has a
  *  winner overwrites rather than duplicates (ON CONFLICT on the table's
- *  (institution_id, stage, week_start) unique constraint), so this is safe
- *  to run more than once for the same week (e.g. a retried scheduled job,
- *  or an admin re-running it after adding late marks). Returns [] rather
- *  than throwing when there's no default performance profile configured
- *  or no enrolled students — same "quietly does nothing" precedent as
- *  computeConsolidatedScore() itself returning null in that case. */
-export async function computeStarOfTheWeek(
-  institutionId: string, authUserId: string, userId: string, weekStart: string
-): Promise<StarOfTheWeekWinner[]> {
+ *  (institution_id, stage, month_start) unique constraint), so this is
+ *  safe to run more than once for the same month (e.g. a retried
+ *  scheduled job, or an admin re-running it after adding late marks).
+ *  Returns [] rather than throwing when there's no default performance
+ *  profile configured or no enrolled students — same "quietly does
+ *  nothing" precedent as computeConsolidatedScore() itself returning null
+ *  in that case. */
+export async function computeStarOfTheMonth(
+  institutionId: string, authUserId: string, userId: string, monthStart: string
+): Promise<StarOfTheMonthWinner[]> {
   const db = await getDbClient();
   const year = await getCurrentAcademicYear(institutionId, authUserId);
   if (!year) return [];
@@ -459,15 +460,15 @@ export async function computeStarOfTheWeek(
     );
     if (roster.length === 0) return [];
 
-    const toDate = weekStart;
-    // Relative to weekStart itself, not "today" -- computeStarOfTheWeek()
-    // must give the same window whenever it's run for a given week
-    // (including a scheduled job catching up on a past week), not one
+    const toDate = monthStart;
+    // Relative to monthStart itself, not "today" -- computeStarOfTheMonth()
+    // must give the same window whenever it's run for a given month
+    // (including a scheduled job catching up on a past month), not one
     // that silently drifts with the calling date.
-    const fromDateObj = new Date(`${weekStart}T00:00:00Z`);
-    fromDateObj.setUTCDate(fromDateObj.getUTCDate() - STAR_OF_THE_WEEK_LOOKBACK_DAYS);
+    const fromDateObj = new Date(`${monthStart}T00:00:00Z`);
+    fromDateObj.setUTCDate(fromDateObj.getUTCDate() - STAR_OF_THE_MONTH_LOOKBACK_DAYS);
     const fromDate = fromDateObj.toISOString().slice(0, 10);
-    const period = `Star of the Week ${weekStart}`;
+    const period = `Star of the Month ${monthStart}`;
 
     const scored: Array<{ student_id: string; stage: string; score: number }> = [];
     for (const r of roster) {
@@ -483,66 +484,66 @@ export async function computeStarOfTheWeek(
       byStage.set(s.stage, list);
     }
 
-    const winners: StarOfTheWeekWinner[] = [];
+    const winners: StarOfTheMonthWinner[] = [];
     for (const [stage, list] of byStage) {
       const best = list.reduce((a, b) => (b.score > a.score ? b : a));
       const { rows } = await scoped.query<{ id: string; computed_at: string }>(
-        `insert into star_of_the_week (institution_id, stage, week_start, student_id, score)
+        `insert into star_of_the_month (institution_id, stage, month_start, student_id, score)
          values ($1, $2, $3, $4, $5)
-         on conflict (institution_id, stage, week_start)
+         on conflict (institution_id, stage, month_start)
          do update set student_id = excluded.student_id, score = excluded.score, computed_at = now()
          returning id, computed_at::text as computed_at`,
-        [institutionId, stage, weekStart, best.student_id, best.score]
+        [institutionId, stage, monthStart, best.student_id, best.score]
       );
       const { rows: studentRows } = await scoped.query<{ full_name: string; admission_number: string; photo_file_id: string | null }>(
         "select full_name, admission_number, photo_file_id from students where id = $1",
         [best.student_id]
       );
       winners.push({
-        id: rows[0].id, stage, week_start: weekStart, student_id: best.student_id,
+        id: rows[0].id, stage, month_start: monthStart, student_id: best.student_id,
         student_name: studentRows[0]?.full_name ?? "Student", admission_number: studentRows[0]?.admission_number ?? "",
         photo_file_id: studentRows[0]?.photo_file_id ?? null, score: String(best.score), computed_at: rows[0].computed_at,
       });
     }
     await recordAudit(scoped, {
       institutionId, userId, action: "compute", module: "scoring",
-      entityType: "star_of_the_week", entityId: null, after: { weekStart, winners },
+      entityType: "star_of_the_month", entityId: null, after: { monthStart, winners },
     });
     return winners;
   });
 }
 
-/** This week's (or, once the week rolls over without a fresh compute, the
- *  most recently computed week's) winners — one per stage — for the
+/** This month's (or, once the month rolls over without a fresh compute,
+ *  the most recently computed month's) winners — one per stage — for the
  *  everyone's-login banner. */
-export async function getCurrentStarOfTheWeek(institutionId: string, authUserId: string): Promise<StarOfTheWeekWinner[]> {
+export async function getCurrentStarOfTheMonth(institutionId: string, authUserId: string): Promise<StarOfTheMonthWinner[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<StarOfTheWeekWinner>(
-      `select sw.id, sw.stage, sw.week_start::text as week_start, sw.student_id, s.full_name as student_name,
-              s.admission_number, s.photo_file_id, sw.score::text as score, sw.computed_at::text as computed_at
-         from star_of_the_week sw
-         join students s on s.id = sw.student_id
-        where sw.institution_id = $1
-          and sw.week_start = (select max(week_start) from star_of_the_week where institution_id = $1)
-        order by sw.stage`,
+    const { rows } = await scoped.query<StarOfTheMonthWinner>(
+      `select sm.id, sm.stage, sm.month_start::text as month_start, sm.student_id, s.full_name as student_name,
+              s.admission_number, s.photo_file_id, sm.score::text as score, sm.computed_at::text as computed_at
+         from star_of_the_month sm
+         join students s on s.id = sm.student_id
+        where sm.institution_id = $1
+          and sm.month_start = (select max(month_start) from star_of_the_month where institution_id = $1)
+        order by sm.stage`,
       [institutionId]
     );
     return rows;
   });
 }
 
-/** Past winners, most recent week first, for a simple history view. */
-export async function listStarOfTheWeekHistory(institutionId: string, authUserId: string, limit = 20): Promise<StarOfTheWeekWinner[]> {
+/** Past winners, most recent month first, for a simple history view. */
+export async function listStarOfTheMonthHistory(institutionId: string, authUserId: string, limit = 20): Promise<StarOfTheMonthWinner[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<StarOfTheWeekWinner>(
-      `select sw.id, sw.stage, sw.week_start::text as week_start, sw.student_id, s.full_name as student_name,
-              s.admission_number, s.photo_file_id, sw.score::text as score, sw.computed_at::text as computed_at
-         from star_of_the_week sw
-         join students s on s.id = sw.student_id
-        where sw.institution_id = $1
-        order by sw.week_start desc, sw.stage
+    const { rows } = await scoped.query<StarOfTheMonthWinner>(
+      `select sm.id, sm.stage, sm.month_start::text as month_start, sm.student_id, s.full_name as student_name,
+              s.admission_number, s.photo_file_id, sm.score::text as score, sm.computed_at::text as computed_at
+         from star_of_the_month sm
+         join students s on s.id = sm.student_id
+        where sm.institution_id = $1
+        order by sm.month_start desc, sm.stage
         limit $2`,
       [institutionId, limit]
     );

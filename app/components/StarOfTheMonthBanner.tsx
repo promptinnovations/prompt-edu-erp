@@ -1,25 +1,25 @@
-import { getCurrentStarOfTheWeek } from "../../modules/scoring/service";
+import { getCurrentStarOfTheMonth } from "../../modules/scoring/service";
 
 /** §9 "the one wins this award must be shown in everyones log in with an
- *  attractive banner of Star of the week- with name and photo." Server
+ *  attractive banner of Star of the month- with name and photo." Server
  *  component, rendered once at the top of each role's landing page
  *  (institution Dashboard, student portal, parent portal) -- renders
  *  nothing when no winner has been computed yet, so institutions that
- *  haven't set up a performance profile (or haven't run the weekly
+ *  haven't set up a performance profile (or haven't run the monthly
  *  compute) see no gap. Multiple stage winners are shown side by side. */
-export default async function StarOfTheWeekBanner({
+export default async function StarOfTheMonthBanner({
   institutionId, authUserId,
 }: {
   institutionId: string; authUserId: string;
 }) {
-  const winners = await getCurrentStarOfTheWeek(institutionId, authUserId);
+  const winners = await getCurrentStarOfTheMonth(institutionId, authUserId);
   if (winners.length === 0) return null;
 
   return (
     <div className="rounded-card border border-amber-200 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 p-5">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-xl" aria-hidden="true">🌟</span>
-        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-amber-800">Star of the Week</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-amber-800">Star of the Month</h2>
       </div>
       <div className="flex flex-wrap gap-4">
         {winners.map((w) => (

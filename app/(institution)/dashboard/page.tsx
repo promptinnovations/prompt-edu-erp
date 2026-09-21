@@ -25,7 +25,7 @@ import AttendanceStageTrendChart from "../../components/AttendanceStageTrendChar
 import ConsecutiveAbsenteesList from "../../components/ConsecutiveAbsenteesList";
 import PassRateStageTrendChart from "../../components/PassRateStageTrendChart";
 import { todayIST, formatDateIST } from "../../../services/datetime/ist";
-import StarOfTheWeekBanner from "../../components/StarOfTheWeekBanner";
+import StarOfTheMonthBanner from "../../components/StarOfTheMonthBanner";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <StarOfTheWeekBanner institutionId={institutionId} authUserId={authUserId} />
+      <StarOfTheMonthBanner institutionId={institutionId} authUserId={authUserId} />
 
       {quickButtons.length > 0 ? (
         // Grid, not a horizontally-scrolling row (§ follow-up: "instead of
