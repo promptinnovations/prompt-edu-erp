@@ -194,3 +194,29 @@ describe("middleware() — end to end against the real rule table", () => {
     expect(overLimit.status).toBe(429);
   });
 });
+
+describe("resolveInstitutionRouting() via middleware() -- real app-page segments must be reserved", () => {
+  // Regression test for the "Message button bounces to log in" bug: a bare
+  // /messages request (the sidebar link's exact href, same pattern as
+  // every other nav item) was mistaken for an institution-code-prefixed
+  // URL like /<code>/... because "messages" was missing from
+  // RESERVED_INSTITUTION_CODES, and got redirected to /messages/login
+  // instead of rendering the real app/(institution)/messages page -- the
+  // exact same bug class the code comments already document for /fees and
+  // /accounts. Every entry in this list is a real top-level route folder
+  // under app/(institution)/ and must never be redirected to
+  // "/<itself>/login".
+  const realAppPages = [
+    "dashboard", "messages", "fees", "accounts", "scoring", "settings",
+    "print", "analysis", "results", "calendar", "substitution",
+  ];
+
+  it.each(realAppPages)("does not treat bare /%s as an institution code (no redirect to /%s/login)", async (page) => {
+    const res = await middleware(
+      new NextRequest(`http://localhost/${page}`, { method: "GET", headers: { "x-forwarded-for": "5.5.5.5" } })
+    );
+    if (res.status >= 300 && res.status < 400) {
+      expect(res.headers.get("location")).not.toBe(`http://localhost/${page}/login`);
+    }
+  });
+});

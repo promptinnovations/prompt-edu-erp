@@ -27,4 +27,13 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   // has that code). Reserving them here is what makes /fees and /accounts
   // resolve as real app pages instead.
   "fees", "accounts",
+  // Same exact bug class as the Fee/Accounts fix directly above ("Message
+  // button ... bounces to log in button again") — app/(institution)/
+  // messages/ is a real top-level route folder that was never added here.
+  // A bare /messages sidebar link (same href pattern as every other nav
+  // item, e.g. /dashboard) was mistaken by middleware.ts's
+  // resolveInstitutionRouting() for an institution-code-prefixed URL
+  // (since "messages" matched no reserved name), redirecting to
+  // /messages/login instead of rendering the Messages page.
+  "messages",
 ]);
