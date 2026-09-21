@@ -7,9 +7,10 @@ import { listStaff } from "../../../modules/staff/service";
 import { generateSubstitutionSuggestions, listSubstitutions } from "../../../modules/substitution/service";
 import ConfirmSubstitutionsForm from "./ConfirmSubstitutionsForm";
 import DeleteSubstitutionButton from "./DeleteSubstitutionButton";
+import { todayIST, daysAgoIST, formatDateIST } from "../../../services/datetime/ist";
 
 function formatDate(d: string) {
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return formatDateIST(d);
 }
 
 export default async function SubstitutionPage({
@@ -27,8 +28,8 @@ export default async function SubstitutionPage({
   const canManage = can(ctx.permissions, "substitution.manage");
   const canManageTimetable = can(ctx.permissions, "substitution.timetable.manage");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+  const today = todayIST();
+  const fourteenDaysAgo = daysAgoIST(14);
 
   const [staff, recent] = await Promise.all([
     listStaff(institutionId, authUserId),

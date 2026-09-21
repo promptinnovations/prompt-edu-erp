@@ -5,6 +5,7 @@ import type {
   DailyAssessmentRow, DailyConsolidatedRow, DailyAssessmentSubjectAnalysisRow,
   DailyAssessmentClassAnalysisRow, DailyAssessmentStudentAnalysisRow,
 } from "../../../../modules/examination/service";
+import { formatDateIST } from "../../../../services/datetime/ist";
 
 function fmt(n: string | number | null) {
   if (n === null) return "—";
@@ -63,7 +64,7 @@ export default function DailyAssessmentSection({
             <tbody className="divide-y">
               {entries.map((e) => (
                 <tr key={e.id}>
-                  <td className="py-1.5 pr-4">{new Date(e.assessment_date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</td>
+                  <td className="py-1.5 pr-4">{formatDateIST(e.assessment_date)}</td>
                   <td className="py-1.5 pr-4">{e.class_name}</td>
                   <td className="py-1.5 pr-4">{e.subject_name}</td>
                   <td className="py-1.5 pr-4 max-w-xs truncate" title={e.portion}>{e.portion}</td>

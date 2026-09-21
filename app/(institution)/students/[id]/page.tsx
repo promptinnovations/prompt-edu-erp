@@ -26,10 +26,11 @@ import PhotoForm from "../PhotoForm";
 import StudentProfileForm from "../StudentProfileForm";
 import ProfileTabs from "./ProfileTabs";
 import { MonthlyAttendanceBarChart, ExamSubjectPieChart } from "./ProfileCharts";
+import { formatDateIST } from "../../../../services/datetime/ist";
 
 function formatDate(d: string | Date | null) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return formatDateIST(d);
 }
 
 /**

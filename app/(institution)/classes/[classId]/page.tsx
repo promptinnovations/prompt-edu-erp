@@ -11,6 +11,7 @@ import { listAchievements } from "../../../../modules/achievements/service";
 import { listSkillSubmissions } from "../../../../modules/skills/service";
 import { listReadingRecords } from "../../../../modules/library/service";
 import RecomputeRollNumbersButton from "../RecomputeRollNumbersButton";
+import { todayIST } from "../../../../services/datetime/ist";
 
 /**
  * §137 follow-up — the per-class drill-down: every division ("A, B, C, D
@@ -26,7 +27,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ cl
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
 
   const [classes, sections, students, teacherAssignments, classSubjects, academicYear, strength, exams] = await Promise.all([
     listClasses(institutionId, authUserId),

@@ -8,6 +8,7 @@ import { can } from "../../../../services/permissions/permission-service";
 import RegisterPicker from "./RegisterPicker";
 import PrintButton from "../../../components/PrintButton";
 import PrintLetterhead from "../../../components/PrintLetterhead";
+import { currentMonthIST } from "../../../../services/datetime/ist";
 
 /** "Attendance > Monthly register" — a class/section's whole-month
  *  attendance in one printable grid (rows = students, columns = days),
@@ -26,8 +27,7 @@ export default async function MonthlyRegisterPage({
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "attendance");
 
-  const now = new Date();
-  const effectiveMonth = /^\d{4}-\d{2}$/.test(month) ? month : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const effectiveMonth = /^\d{4}-\d{2}$/.test(month) ? month : currentMonthIST();
   const [yearStr, monthStr] = effectiveMonth.split("-");
   const year = Number(yearStr);
   const monthNum = Number(monthStr);

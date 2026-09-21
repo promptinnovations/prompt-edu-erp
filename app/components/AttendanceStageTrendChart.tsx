@@ -1,3 +1,4 @@
+import { formatDateIST } from "../../services/datetime/ist";
 /**
  * PROMPT EDU ERP — Dashboard's attendance trend widget for Section Head /
  * Principal / Management (§Dashboard follow-up: "instead of [plain bars]
@@ -22,7 +23,7 @@ import { seriesColor } from "./charts/series";
 // colour across both Dashboard charts.
 
 function formatDate(d: string) {
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return formatDateIST(d, { day: "numeric", month: "short" });
 }
 
 export default function AttendanceStageTrendChart({ points }: { points: AttendanceTrendByStagePoint[] }) {

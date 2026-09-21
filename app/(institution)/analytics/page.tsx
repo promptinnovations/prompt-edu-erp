@@ -19,11 +19,10 @@ import AttendanceTrendPicker from "./AttendanceTrendPicker";
 import ClassificationRuleForm from "./ClassificationRuleForm";
 import RefreshButton from "./RefreshButton";
 import { CHART_SERIES, CHART_OVERFLOW, seriesColor } from "../../components/charts/series";
+import { monthsAgoIST } from "../../../services/datetime/ist";
 
 function monthsAgo(n: number): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() - n);
-  return d.toISOString().slice(0, 7);
+  return monthsAgoIST(n);
 }
 
 const RESULT_TABS = [

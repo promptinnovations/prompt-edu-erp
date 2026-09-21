@@ -2,6 +2,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { listImportEntityTypes, listRecentImportBatches, exportDefinitions } from "../../../modules/bulk/service";
 import ImportWizard from "./ImportWizard";
+import { formatDateTimeIST } from "../../../services/datetime/ist";
 
 export default async function ImportExportPage() {
   const ctx = await requireRequestContext();
@@ -55,7 +56,7 @@ export default async function ImportExportPage() {
                     <td className="py-2 text-zinc-500">{b.status}</td>
                     <td className="py-2 text-zinc-500">{b.valid_rows} / {b.invalid_rows} / {b.duplicate_rows}</td>
                     <td className="py-2 text-zinc-500">{b.imported_rows}</td>
-                    <td className="py-2 text-zinc-500">{new Date(b.created_at).toLocaleString()}</td>
+                    <td className="py-2 text-zinc-500">{formatDateTimeIST(b.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

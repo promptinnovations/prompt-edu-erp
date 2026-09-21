@@ -1,3 +1,4 @@
+import { formatDateIST } from "../../services/datetime/ist";
 /** §Attendance-follow-up-3 "can be a curve last 30 days, monthly also
  *  should be available" — the monthly companion to AttendanceTrendChart.tsx,
  *  same plain-CSS-bar convention, adapted for mv_attendance_monthly's
@@ -10,7 +11,7 @@
 import type { AttendanceTrendRow } from "../../modules/analytics/service";
 
 function formatMonth(m: string) {
-  return new Date(`${m}T00:00:00`).toLocaleDateString(undefined, { month: "short", year: "numeric" });
+  return formatDateIST(m, { month: "short", year: "numeric" });
 }
 
 export default function MonthlyAttendanceTrendChart({ points }: { points: AttendanceTrendRow[] }) {

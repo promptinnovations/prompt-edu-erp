@@ -1,3 +1,4 @@
+import { formatDateIST } from "../../services/datetime/ist";
 /**
  * PROMPT EDU ERP — Dashboard follow-up ("children absent for more than 3
  * consecutive days also should be shown"). Renders
@@ -9,7 +10,7 @@
 import type { ConsecutiveAbsenteeRow } from "../../modules/attendance/service";
 
 function formatDate(d: string) {
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return formatDateIST(d, { day: "numeric", month: "short" });
 }
 
 export default function ConsecutiveAbsenteesList({ rows }: { rows: ConsecutiveAbsenteeRow[] }) {

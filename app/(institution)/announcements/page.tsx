@@ -2,6 +2,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { listAnnouncements, listInstitutionRoles } from "../../../modules/announcements/service";
 import PublishAnnouncementForm from "./PublishAnnouncementForm";
+import { formatDateTimeIST } from "../../../services/datetime/ist";
 
 export default async function AnnouncementsPage() {
   const ctx = await requireRequestContext();
@@ -35,7 +36,7 @@ export default async function AnnouncementsPage() {
               <li key={a.id} className="border-b pb-4 last:border-0 last:pb-0">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-[var(--heading)]">{a.title}</h3>
-                  <span className="text-xs text-zinc-500">{new Date(a.published_at).toLocaleString()}</span>
+                  <span className="text-xs text-zinc-500">{formatDateTimeIST(a.published_at)}</span>
                 </div>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">{a.body}</p>
                 <p className="mt-1 text-xs text-zinc-500">

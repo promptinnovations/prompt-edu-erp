@@ -1,4 +1,5 @@
 "use client";
+import { todayIST } from "../../../../services/datetime/ist";
 
 import { useActionState, useMemo, useState } from "react";
 import { createDailyAssessmentAction } from "../actions";
@@ -22,7 +23,7 @@ export default function AddDailyAssessmentForm({
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(createDailyAssessmentAction, { error: null });
   const [classId, setClassId] = useState(classes[0]?.id ?? "");
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(() => todayIST(), []);
 
   const subjectOptions = (subjectsByClass[classId]?.length ? subjectsByClass[classId] : allSubjects);
 

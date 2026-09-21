@@ -22,6 +22,7 @@ import LeaveApplications from "./LeaveApplications";
 import MyLeaveSection from "./MyLeaveSection";
 import MyAttendanceSection from "./MyAttendanceSection";
 import StaffLeaveReviewTable from "./StaffLeaveReviewTable";
+import { todayIST, monthsAgoIST } from "../../../services/datetime/ist";
 
 export default async function AttendancePage({
   searchParams,
@@ -33,7 +34,7 @@ export default async function AttendancePage({
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "attendance");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
   const effectiveDate = date || today;
 
   const hasUnrestrictedEdit = can(ctx.permissions, "attendance.edit");
@@ -70,8 +71,7 @@ export default async function AttendancePage({
   // §Attendance-follow-up-3 "monthly also should be available" — last 6
   // full months, computed once here since both the fetch below and the
   // "Refresh analytics" hint in the chart need the same range.
-  const monthAgo6 = new Date(); monthAgo6.setMonth(monthAgo6.getMonth() - 5);
-  const fromMonth = monthAgo6.toISOString().slice(0, 7);
+  const fromMonth = monthsAgoIST(5);
   const toMonth = today.slice(0, 7);
 
   const [allClasses, allSections, statuses, students, leaves, dailyOverview, myLeaves, attendanceTrend, monthlyTrend, staffList, staffLeaves, ownAttendanceToday] = await Promise.all([

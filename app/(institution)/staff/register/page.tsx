@@ -7,6 +7,7 @@ import { listAttendanceStatuses } from "../../../../modules/attendance/service";
 import { getMonthlyStaffAttendanceRegister } from "../../../../modules/staff/service";
 import PrintButton from "../../../components/PrintButton";
 import PrintLetterhead from "../../../components/PrintLetterhead";
+import { currentMonthIST } from "../../../../services/datetime/ist";
 
 /** "Staff > Staff attendance > Monthly register" — every active staff
  *  member's whole-month attendance in one printable grid, mirroring
@@ -25,8 +26,7 @@ export default async function StaffMonthlyRegisterPage({
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "staff");
   if (!can(ctx.permissions, "staff.view")) redirect("/dashboard");
 
-  const now = new Date();
-  const effectiveMonth = /^\d{4}-\d{2}$/.test(month) ? month : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const effectiveMonth = /^\d{4}-\d{2}$/.test(month) ? month : currentMonthIST();
   const [yearStr, monthStr] = effectiveMonth.split("-");
   const year = Number(yearStr);
   const monthNum = Number(monthStr);

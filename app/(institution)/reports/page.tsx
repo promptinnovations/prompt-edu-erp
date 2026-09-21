@@ -4,6 +4,7 @@ import { listReportDefinitions, listRecentReports } from "../../../modules/repor
 import { listClasses, listSections } from "../../../modules/academic/service";
 import { listExaminations } from "../../../modules/examination/service";
 import ReportGeneratorForm from "./ReportGeneratorForm";
+import { formatDateTimeIST } from "../../../services/datetime/ist";
 
 export default async function ReportsPage() {
   const ctx = await requireRequestContext();
@@ -90,7 +91,7 @@ export default async function ReportsPage() {
                 <tr key={r.id} className="border-b">
                   <td className="py-2 text-zinc-900">{r.report_type}</td>
                   <td className="py-2 text-zinc-500 uppercase">{r.format}</td>
-                  <td className="py-2 text-zinc-500">{new Date(r.generated_at).toLocaleString()}</td>
+                  <td className="py-2 text-zinc-500">{formatDateTimeIST(r.generated_at)}</td>
                 </tr>
               ))}
             </tbody>

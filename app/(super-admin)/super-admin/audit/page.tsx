@@ -1,5 +1,6 @@
 import { requireSuperAdminContext } from "../../../../services/request-context";
 import { listPlatformAuditLogs } from "../../../../services/super-admin/super-admin-service";
+import { formatDateTimeIST } from "../../../../services/datetime/ist";
 
 export default async function PlatformAuditPage() {
   const ctx = await requireSuperAdminContext();
@@ -29,7 +30,7 @@ export default async function PlatformAuditPage() {
           <tbody className="divide-y">
             {logs.map((log) => (
               <tr key={log.id}>
-                <td className="py-1.5 text-zinc-500">{new Date(log.created_at).toLocaleString()}</td>
+                <td className="py-1.5 text-zinc-500">{formatDateTimeIST(log.created_at)}</td>
                 <td className="py-1.5">{log.actor_name ?? "—"}</td>
                 <td className="py-1.5 text-zinc-500">{log.institution_name ?? "—"}</td>
                 <td className="py-1.5 capitalize">{log.action}</td>

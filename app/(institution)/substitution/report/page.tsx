@@ -4,19 +4,8 @@ import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
 import { can } from "../../../../services/permissions/permission-service";
 import { getSubstitutionReport } from "../../../../modules/substitution/service";
+import { todayIST, startOfWeekIST, startOfMonthIST } from "../../../../services/datetime/ist";
 
-function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-function startOfWeek(d: Date) {
-  const day = d.getDay() === 0 ? 7 : d.getDay(); // ISO: Monday=1
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - (day - 1));
-  return monday;
-}
-function startOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
 
 export default async function SubstitutionReportPage({
   searchParams,
@@ -30,9 +19,8 @@ export default async function SubstitutionReportPage({
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "substitution");
   if (!can(ctx.permissions, "substitution.view")) redirect("/dashboard");
 
-  const now = new Date();
-  const effectiveFrom = from || isoDate(startOfWeek(now));
-  const effectiveTo = to || isoDate(now);
+  const effectiveFrom = from || startOfWeekIST();
+  const effectiveTo = to || todayIST();
 
   const report = await getSubstitutionReport(institutionId, authUserId, effectiveFrom, effectiveTo);
   const totalGiven = report.reduce((sum, r) => sum + r.subsGiven, 0);
@@ -58,8 +46,8 @@ export default async function SubstitutionReportPage({
             <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">Load</button>
           </form>
           <div className="flex gap-2 text-sm">
-            <Link href={`/substitution/report?from=${isoDate(startOfWeek(now))}&to=${isoDate(now)}`} className="rounded-full border px-2.5 py-1 hover:bg-zinc-50">This week</Link>
-            <Link href={`/substitution/report?from=${isoDate(startOfMonth(now))}&to=${isoDate(now)}`} className="rounded-full border px-2.5 py-1 hover:bg-zinc-50">This month</Link>
+            <Link href={`/substitution/report?from=${startOfWeekIST()}&to=${todayIST()}`} className="rounded-full border px-2.5 py-1 hover:bg-zinc-50">This week</Link>
+            <Link href={`/substitution/report?from=${startOfMonthIST()}&to=${todayIST()}`} className="rounded-full border px-2.5 py-1 hover:bg-zinc-50">This month</Link>
           </div>
         </div>
 

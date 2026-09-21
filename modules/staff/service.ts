@@ -1,3 +1,4 @@
+import { todayIST } from "../../services/datetime/ist";
 /**
  * PROMPT EDU ERP — Staff module service.
  * ARCHITECTURE.md §D.4 (People — staff), §D.3 (teacher_assignments),
@@ -677,7 +678,7 @@ export async function markOwnStaffAttendance(
   input: z.infer<typeof markOwnStaffAttendanceSchema>
 ): Promise<{ ok: true }> {
   const data = markOwnStaffAttendanceSchema.parse(input);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
   if (data.date !== today) {
     throw new Error("You can only mark today's attendance from this form.");
   }
@@ -709,7 +710,7 @@ export interface OwnStaffAttendanceToday {
 export async function getOwnStaffAttendanceToday(
   institutionId: string, authUserId: string, staffId: string
 ): Promise<OwnStaffAttendanceToday | null> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<OwnStaffAttendanceToday>(

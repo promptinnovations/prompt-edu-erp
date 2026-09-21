@@ -1,3 +1,4 @@
+import { formatDateIST } from "../../services/datetime/ist";
 /** Shared "growth and fall" attendance trend bar chart (§Page-4 follow-up
  *  "Attendance analytics — growth and fall diagram, recent days"). Server
  *  component (no client hooks, just CSS bars) so it drops into the
@@ -9,7 +10,7 @@
 import type { AttendanceTrendPoint } from "../../modules/attendance/service";
 
 function formatDate(d: string) {
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return formatDateIST(d, { day: "numeric", month: "short" });
 }
 
 export default function AttendanceTrendChart({

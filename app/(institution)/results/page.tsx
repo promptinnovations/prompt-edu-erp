@@ -2,10 +2,11 @@ import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { listExaminations } from "../../../modules/examination/service";
+import { formatDateIST } from "../../../services/datetime/ist";
 
 function formatDate(d: string | null): string {
   if (!d) return "—";
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return formatDateIST(d);
 }
 
 /** "Result" group landing — a distinct top-level section from "Examination"

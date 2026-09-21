@@ -16,6 +16,7 @@ import PortionPlanSection from "./PortionPlanSection";
 import TeacherObservationForm from "./TeacherObservationForm";
 import TeacherAssignmentForm from "./TeacherAssignmentForm";
 import SectionHeadAssignmentForm from "./SectionHeadAssignmentForm";
+import { todayIST } from "../../../services/datetime/ist";
 
 export default async function StaffPage({
   searchParams,
@@ -27,7 +28,7 @@ export default async function StaffPage({
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "staff");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
   const effectiveDate = date || today;
 
   const [staff, statuses, classes, sections, subjects, academicYear, portionPlans, observations, assignments, sectionHeadAssignments, distinctStages] = await Promise.all([

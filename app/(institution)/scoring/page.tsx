@@ -5,6 +5,7 @@ import {
   listScoringRules, listScoreEvents, listConsolidatedScores, getDefaultPerformanceProfile, listPerformanceComponents,
 } from "../../../modules/scoring/service";
 import ComputeScoreForm from "./ComputeScoreForm";
+import { formatDateIST } from "../../../services/datetime/ist";
 
 export default async function ScoringPage() {
   const ctx = await requireRequestContext();
@@ -148,7 +149,7 @@ export default async function ScoringPage() {
                   <td className="py-1.5">{studentNameById.get(e.student_id) ?? "—"}</td>
                   <td className="py-1.5">{e.source_module}</td>
                   <td className="py-1.5">{e.points}</td>
-                  <td className="py-1.5 text-xs text-zinc-500">{new Date(e.computed_at).toLocaleDateString()}</td>
+                  <td className="py-1.5 text-xs text-zinc-500">{formatDateIST(e.computed_at)}</td>
                 </tr>
               ))}
               {events.length === 0 ? (

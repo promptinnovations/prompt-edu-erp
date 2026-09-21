@@ -24,11 +24,12 @@ import AttendanceTrendChart from "../../components/AttendanceTrendChart";
 import AttendanceStageTrendChart from "../../components/AttendanceStageTrendChart";
 import ConsecutiveAbsenteesList from "../../components/ConsecutiveAbsenteesList";
 import PassRateStageTrendChart from "../../components/PassRateStageTrendChart";
+import { todayIST, formatDateIST } from "../../../services/datetime/ist";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
 function formatDate(d: string) {
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return formatDateIST(d, { day: "numeric", month: "short" });
 }
 
 export default async function DashboardPage() {
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
   const authUserId = ctx.session.authUserId;
   const t = await getTranslations("dashboard");
   const canSeeChecklist = can(ctx.permissions, "settings.manage");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
 
   const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
   const hasExaminationAccess = enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"));

@@ -3,6 +3,7 @@ import { can } from "../../../services/permissions/permission-service";
 import { getStorageProvider } from "../../../services/storage/storage-provider";
 import { listFiles } from "../../../services/storage/file-service";
 import MigrateStorageForm from "./MigrateStorageForm";
+import { formatDateIST } from "../../../services/datetime/ist";
 
 export default async function StoragePage() {
   const ctx = await requireRequestContext();
@@ -61,7 +62,7 @@ export default async function StoragePage() {
                       <td className="py-1.5 text-zinc-500">{f.entity_type ?? "—"}</td>
                       <td className="py-1.5 capitalize">{f.storage_provider}</td>
                       <td className="py-1.5 text-zinc-500">{Math.max(1, Math.round(Number(f.size_bytes) / 1024))} KB</td>
-                      <td className="py-1.5 text-zinc-500">{new Date(f.created_at).toLocaleDateString()}</td>
+                      <td className="py-1.5 text-zinc-500">{formatDateIST(f.created_at)}</td>
                       <td className="py-1.5">
                         <a href={`/api/files/${f.id}`} target="_blank" rel="noreferrer" className="text-zinc-600 underline hover:text-zinc-900">
                           View

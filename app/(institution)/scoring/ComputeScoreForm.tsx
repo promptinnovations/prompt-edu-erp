@@ -1,4 +1,5 @@
 "use client";
+import { nowISTYear } from "../../../services/datetime/ist";
 
 import { useActionState } from "react";
 import { computeConsolidatedScoreAction } from "./actions";
@@ -9,7 +10,7 @@ export default function ComputeScoreForm({
   students: Array<{ id: string; full_name: string }>;
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(computeConsolidatedScoreAction, { error: null });
-  const currentYear = new Date().getFullYear();
+  const currentYear = nowISTYear();
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">

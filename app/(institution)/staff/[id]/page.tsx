@@ -15,10 +15,11 @@ import TeacherProfileForm from "../TeacherProfileForm";
 import ProfileTabs from "./ProfileTabs";
 import ExamResultsSection from "./ExamResultsSection";
 import ObservationsSection from "./ObservationsSection";
+import { formatDateIST } from "../../../../services/datetime/ist";
 
 function formatDate(d: string | Date | null) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return formatDateIST(d);
 }
 
 /**

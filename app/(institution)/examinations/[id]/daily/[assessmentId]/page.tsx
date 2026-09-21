@@ -5,6 +5,7 @@ import { can } from "../../../../../../services/permissions/permission-service";
 import { getExamination, getDailyAssessment, getDailyAssessmentMarksGrid } from "../../../../../../modules/examination/service";
 import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../../../services/scope/teacher-scope-service";
 import DailyMarksGridForm from "./DailyMarksGridForm";
+import { todayIST, formatDateIST } from "../../../../../../services/datetime/ist";
 
 export default async function DailyAssessmentMarksPage({
   params,
@@ -32,7 +33,7 @@ export default async function DailyAssessmentMarksPage({
   }
 
   const grid = await getDailyAssessmentMarksGrid(institutionId, authUserId, assessmentId);
-  const isToday = entry.assessment_date === new Date().toISOString().slice(0, 10);
+  const isToday = entry.assessment_date === todayIST();
 
   return (
     <div className="space-y-4">
@@ -40,7 +41,7 @@ export default async function DailyAssessmentMarksPage({
         ← Back to {examination.name}
       </Link>
       <h1 className="text-2xl font-semibold text-[var(--heading)]">
-        {entry.subject_name} — {entry.class_name} — {new Date(entry.assessment_date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+        {entry.subject_name} — {entry.class_name} — {formatDateIST(entry.assessment_date)}
       </h1>
       <p className="text-sm text-zinc-500">Portion: {entry.portion}</p>
 

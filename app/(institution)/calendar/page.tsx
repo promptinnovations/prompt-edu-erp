@@ -6,6 +6,7 @@ import { can } from "../../../services/permissions/permission-service";
 import { listCalendarEvents } from "../../../modules/calendar/service";
 import AddEventForm from "./AddEventForm";
 import DeleteEventButton from "./DeleteEventButton";
+import { todayIST, formatDateIST } from "../../../services/datetime/ist";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   holiday: "Holiday", exam: "Exam", meeting: "Meeting", ptm: "PTM", other: "Other",
@@ -25,7 +26,7 @@ const EVENT_TYPE_BADGE: Record<string, string> = {
 };
 
 function formatDate(d: string) {
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return formatDateIST(d);
 }
 
 export default async function CalendarPage() {
@@ -36,7 +37,7 @@ export default async function CalendarPage() {
   if (!can(ctx.permissions, "calendar.view")) redirect("/dashboard");
 
   const canManage = can(ctx.permissions, "calendar.manage");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIST();
   const allEvents = await listCalendarEvents(institutionId, authUserId);
   const upcoming = allEvents.filter((e) => (e.end_date ?? e.start_date) >= today);
   const past = allEvents.filter((e) => (e.end_date ?? e.start_date) < today).reverse();
