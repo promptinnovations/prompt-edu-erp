@@ -13,7 +13,7 @@ import { createClass, createSection, getCurrentAcademicYear } from "../../module
 import {
   createFeeCategory, createFeeStructure, assignFeeStructureToClass, listStudentFeeInvoices,
   recordFeePayment, submitParentFeePayment, listPendingConfirmationPayments, confirmPendingFeePayment,
-  getFeeSummary,
+  getFeeSummary, updateFeePayment, listFeePaymentsForInvoice, listFeePaymentsForInvoices,
 } from "../../modules/fees/service";
 import { listAccountCategories, createAccountCategory, recordTransaction, listTransactions, getAccountsSummary } from "../../modules/accounts/service";
 
@@ -125,6 +125,74 @@ describe("Fee module (§1)", () => {
     expect(Number(summary.totalDue)).toBe(10000); // 2 invoices x 5000
     expect(Number(summary.totalCollected)).toBe(6000); // 5000 + 1000 confirmed
     expect(Number(summary.totalPending)).toBe(4000);
+  });
+});
+
+describe("Fee payment editing (§8 follow-up: admin/accounts can edit a recorded payment)", () => {
+  it("editing a confirmed payment's amount updates the invoice status and the linked Accounts transaction in place (no duplicate)", async () => {
+    const invoices = await listStudentFeeInvoices(institutionA, adminAuth, { studentId });
+    const invoice = invoices[0];
+    const payments = await listFeePaymentsForInvoice(institutionA, adminAuth, invoice.id);
+    const upiPayment = payments.find((p) => p.reference_no === "UPI123")!;
+    expect(upiPayment.status).toBe("confirmed");
+
+    const before = (await listTransactions(institutionA, adminAuth, { type: "income" })).filter((t) => t.source_entity_id === upiPayment.id);
+    expect(before).toHaveLength(1);
+
+    // Was 3000 (invoice was fully paid at 2000+3000=5000/5000); dropping it
+    // to 2500 should demote the invoice from paid back to partial.
+    const updated = await updateFeePayment(institutionA, adminAuth, adminUserId, { id: upiPayment.id, amount: 2500 });
+    expect(updated.amount).toBe("2500.00");
+
+    const [afterEdit] = await listStudentFeeInvoices(institutionA, adminAuth, { studentId, status: "partial" });
+    expect(afterEdit.amount_paid).toBe("4500.00");
+
+    // Still exactly one Accounts transaction for this payment -- updated in
+    // place, not duplicated -- and its amount now matches the edit.
+    const after = (await listTransactions(institutionA, adminAuth, { type: "income" })).filter((t) => t.source_entity_id === upiPayment.id);
+    expect(after).toHaveLength(1);
+    expect(Number(after[0].amount)).toBe(2500);
+
+    // Restore so later assertions in this file aren't affected.
+    await updateFeePayment(institutionA, adminAuth, adminUserId, { id: upiPayment.id, amount: 3000 });
+    const [restored] = await listStudentFeeInvoices(institutionA, adminAuth, { studentId, status: "paid" });
+    expect(restored.amount_paid).toBe("5000.00");
+  });
+
+  it("editing a payment still awaiting confirmation updates the row but never touches Accounts", async () => {
+    const invoices = await listStudentFeeInvoices(institutionA, adminAuth, { studentId: student2Id });
+    const invoice = invoices[0];
+    const submitted = await submitParentFeePayment(institutionA, adminAuth, adminUserId, {
+      invoiceId: invoice.id, amount: 500, paymentMethod: "upi", referenceNo: "PARENT-UPI-EDIT",
+    });
+
+    const updated = await updateFeePayment(institutionA, adminAuth, adminUserId, { id: submitted.id, amount: 600, notes: "Corrected amount before confirming" });
+    expect(updated.amount).toBe("600.00");
+    expect(updated.status).toBe("pending_confirmation");
+
+    const txns = (await listTransactions(institutionA, adminAuth, { type: "income" })).filter((t) => t.source_entity_id === submitted.id);
+    expect(txns).toHaveLength(0);
+  });
+
+  it("a rejected payment can't be edited", async () => {
+    const invoices = await listStudentFeeInvoices(institutionA, adminAuth, { studentId: student2Id });
+    const invoice = invoices[0];
+    const submitted = await submitParentFeePayment(institutionA, adminAuth, adminUserId, {
+      invoiceId: invoice.id, amount: 200, paymentMethod: "cash",
+    });
+    await confirmPendingFeePayment(institutionA, adminAuth, adminUserId, submitted.id, "rejected");
+
+    await expect(updateFeePayment(institutionA, adminAuth, adminUserId, { id: submitted.id, amount: 300 }))
+      .rejects.toThrow(/rejected payment/i);
+  });
+
+  it("listFeePaymentsForInvoices groups payments for multiple invoices in one query", async () => {
+    const invoices = await listStudentFeeInvoices(institutionA, adminAuth, {});
+    const grouped = await listFeePaymentsForInvoices(institutionA, adminAuth, invoices.map((i) => i.id));
+    const invoiceIds = new Set(invoices.map((i) => i.id));
+    expect(grouped.length).toBeGreaterThan(0);
+    expect(grouped.every((p) => invoiceIds.has(p.invoice_id))).toBe(true);
+    expect(await listFeePaymentsForInvoices(institutionA, adminAuth, [])).toEqual([]);
   });
 });
 

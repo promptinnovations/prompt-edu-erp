@@ -486,6 +486,73 @@ export async function confirmPendingFeePayment(
   });
 }
 
+const updatePaymentSchema = z.object({
+  id: z.string().uuid(),
+  amount: z.number().positive().optional(),
+  paymentDate: z.string().nullable().optional(),
+  paymentMethod: z.enum(["cash", "upi", "bank_transfer", "cheque", "card", "other"]).optional(),
+  referenceNo: z.string().max(200).nullable().optional(),
+  notes: z.string().max(500).nullable().optional(),
+});
+
+/** Admin/account staff (fees.collect) correcting an already-recorded
+ *  payment ("Recorded fee editing should be available in case of
+ *  necessity" follow-up) — a typo'd amount or wrong date shouldn't need
+ *  deleting and re-entering (there is deliberately no delete path either:
+ *  fee_payments is a financial ledger). Editable while 'confirmed' or
+ *  'pending_confirmation'; a 'rejected' payment is a closed record.
+ *  Re-runs the same invoice-status recalculation recordFeePayment() does,
+ *  and — since postToAccountsIfActive() posts one account_transactions row
+ *  per confirmed payment, keyed by source_entity_id — updates that same
+ *  row in place so the two ledgers don't drift out of sync. */
+export async function updateFeePayment(
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof updatePaymentSchema>
+): Promise<FeePaymentRow> {
+  const data = updatePaymentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<FeePaymentRow>(
+      `select id, invoice_id, amount::text as amount, payment_date::text as payment_date, payment_method,
+              reference_no, notes, status, recorded_by, created_at::text as created_at
+         from fee_payments where id = $1`,
+      [data.id]
+    );
+    if (!before[0]) throw new Error("Payment not found.");
+    if (before[0].status === "rejected") throw new Error("A rejected payment can't be edited.");
+
+    const merged = {
+      amount: data.amount ?? Number(before[0].amount),
+      paymentDate: data.paymentDate !== undefined && data.paymentDate ? data.paymentDate : before[0].payment_date,
+      paymentMethod: data.paymentMethod ?? before[0].payment_method,
+      referenceNo: data.referenceNo !== undefined ? data.referenceNo : before[0].reference_no,
+      notes: data.notes !== undefined ? data.notes : before[0].notes,
+    };
+
+    const { rows } = await scoped.query<FeePaymentRow>(
+      `update fee_payments set amount = $2, payment_date = $3, payment_method = $4, reference_no = $5, notes = $6
+        where id = $1
+        returning id, invoice_id, amount::text as amount, payment_date::text as payment_date, payment_method, reference_no, notes, status, recorded_by, created_at::text as created_at`,
+      [data.id, merged.amount, merged.paymentDate, merged.paymentMethod, merged.referenceNo, merged.notes]
+    );
+    const payment = rows[0];
+
+    if (payment.status === "confirmed") {
+      await recalculateInvoiceStatus(scoped, payment.invoice_id);
+      await scoped.query(
+        `update account_transactions set amount = $2, transaction_date = $3, payment_method = $4, reference_no = $5
+          where source_module = 'fees' and source_entity_id = $1`,
+        [payment.id, payment.amount, payment.payment_date, payment.payment_method, payment.reference_no]
+      );
+    }
+
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "fees",
+      entityType: "fee_payments", entityId: payment.id, before: before[0], after: payment,
+    });
+    return payment;
+  });
+}
+
 export async function listFeePaymentsForInvoice(institutionId: string, authUserId: string, invoiceId: string): Promise<FeePaymentRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -494,6 +561,25 @@ export async function listFeePaymentsForInvoice(institutionId: string, authUserI
               reference_no, notes, status, recorded_by, created_at::text as created_at
          from fee_payments where invoice_id = $1 order by created_at`,
       [invoiceId]
+    );
+    return rows;
+  });
+}
+
+/** All payments across a set of invoices in one query, for admin/accounts
+ *  views that list payments per invoice (e.g. edit-payment UI on /fees).
+ *  Group the result by invoice_id in the caller. */
+export async function listFeePaymentsForInvoices(
+  institutionId: string, authUserId: string, invoiceIds: string[]
+): Promise<FeePaymentRow[]> {
+  if (invoiceIds.length === 0) return [];
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<FeePaymentRow>(
+      `select id, invoice_id, amount::text as amount, payment_date::text as payment_date, payment_method,
+              reference_no, notes, status, recorded_by, created_at::text as created_at
+         from fee_payments where invoice_id = any($1) order by created_at`,
+      [invoiceIds]
     );
     return rows;
   });

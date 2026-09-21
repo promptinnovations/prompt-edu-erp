@@ -4,12 +4,13 @@ import { can } from "../../../services/permissions/permission-service";
 import { listClasses, listAcademicYears } from "../../../modules/academic/service";
 import {
   listFeeCategories, listFeeStructures, listStudentFeeInvoices, getFeeSummary, getFeeSummaryByClass,
-  listPendingConfirmationPayments,
+  listPendingConfirmationPayments, listFeePaymentsForInvoices,
 } from "../../../modules/fees/service";
 import FeeCategoryForm from "./FeeCategoryForm";
 import { FeeStructureForm, AssignFeeStructureButton } from "./FeeStructureForm";
 import RecordPaymentForm from "./RecordPaymentForm";
 import PendingConfirmations from "./PendingConfirmations";
+import InvoicePayments from "./InvoicePayments";
 
 const STATUS_BADGE: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700",
@@ -42,6 +43,14 @@ export default async function FeesPage({
     getFeeSummaryByClass(institutionId, authUserId),
     canCollect ? listPendingConfirmationPayments(institutionId, authUserId) : Promise.resolve([]),
   ]);
+
+  const invoicePayments = canCollect ? await listFeePaymentsForInvoices(institutionId, authUserId, invoices.map((i) => i.id)) : [];
+  const paymentsByInvoice = new Map<string, typeof invoicePayments>();
+  for (const p of invoicePayments) {
+    const list = paymentsByInvoice.get(p.invoice_id) ?? [];
+    list.push(p);
+    paymentsByInvoice.set(p.invoice_id, list);
+  }
 
   const outstandingInvoices = invoices.filter((i) => i.status === "pending" || i.status === "partial");
   const invoiceOptions = outstandingInvoices.map((i) => ({
@@ -228,7 +237,7 @@ export default async function FeesPage({
             </thead>
             <tbody>
               {invoices.map((i) => (
-                <tr key={i.id} className="border-t">
+                <tr key={i.id} className="border-t align-top">
                   <td className="py-1.5 pr-3">{i.student_name} <span className="text-zinc-500">({i.admission_number})</span></td>
                   <td className="py-1.5 pr-3">
                     {i.class_name ? `${i.class_name} ${i.section_name ?? ""}`.trim() : "—"}
@@ -239,6 +248,14 @@ export default async function FeesPage({
                   <td className="py-1.5 pr-3">₹{i.amount_paid}</td>
                   <td className="py-1.5 pr-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[i.status] ?? ""}`}>{i.status}</span>
+                    {canCollect && (paymentsByInvoice.get(i.id)?.length ?? 0) > 0 ? (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-xs text-[var(--brand)] hover:underline">
+                          {paymentsByInvoice.get(i.id)!.length} payment(s)
+                        </summary>
+                        <InvoicePayments payments={paymentsByInvoice.get(i.id)!} />
+                      </details>
+                    ) : null}
                   </td>
                 </tr>
               ))}

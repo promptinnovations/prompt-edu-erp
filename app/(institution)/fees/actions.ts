@@ -5,7 +5,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
   createFeeCategory, createFeeStructure, assignFeeStructureToClass, assignAdHocFee,
-  recordFeePayment, confirmPendingFeePayment,
+  recordFeePayment, confirmPendingFeePayment, updateFeePayment,
 } from "../../../modules/fees/service";
 
 export async function createFeeCategoryAction(_prevState: { error: string | null }, formData: FormData) {
@@ -106,6 +106,30 @@ export async function confirmPendingFeePaymentAction(_prevState: { error: string
     const paymentId = String(formData.get("paymentId") ?? "");
     const decision = String(formData.get("decision") ?? "confirmed") as "confirmed" | "rejected";
     await confirmPendingFeePayment(ctx.institutionId, ctx.session.authUserId, ctx.userId, paymentId, decision);
+    revalidatePath("/fees");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update payment." };
+  }
+}
+
+export async function updateFeePaymentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "fees.collect");
+    const amountRaw = String(formData.get("amount") ?? "");
+    const referenceNo = String(formData.get("referenceNo") ?? "") || null;
+    const notes = String(formData.get("notes") ?? "") || null;
+    await updateFeePayment(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      id: String(formData.get("id") ?? ""),
+      amount: amountRaw ? Number(amountRaw) : undefined,
+      paymentDate: String(formData.get("paymentDate") ?? "") || null,
+      paymentMethod: (String(formData.get("paymentMethod") ?? "") || undefined) as
+        | "cash" | "upi" | "bank_transfer" | "cheque" | "card" | "other" | undefined,
+      referenceNo,
+      notes,
+    });
     revalidatePath("/fees");
     return { error: null };
   } catch (err) {
