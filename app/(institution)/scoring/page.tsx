@@ -7,6 +7,7 @@ import {
 } from "../../../modules/scoring/service";
 import ComputeScoreForm from "./ComputeScoreForm";
 import ComputeStarOfTheMonthButton from "./ComputeStarOfTheMonthButton";
+import AnnounceStarOfTheMonthButton from "./AnnounceStarOfTheMonthButton";
 import { formatDateIST } from "../../../services/datetime/ist";
 
 export default async function ScoringPage() {
@@ -106,7 +107,9 @@ export default async function ScoringPage() {
           <p className="mb-3 text-xs text-zinc-500">
             One winner per stage, based on the last 30 days&apos; Consolidated Score (academic, attendance,
             skills, achievements, reading and discipline/character combined). Run this monthly -- re-running
-            for the same month recomputes that month&apos;s winners rather than adding duplicates.
+            for the same month recomputes that month&apos;s winners rather than adding duplicates. Computing
+            only creates a draft -- winners stay invisible to everyone else until you review and announce
+            them below.
           </p>
           {canManageForStar ? <ComputeStarOfTheMonthButton /> : null}
           <div className="mt-4 overflow-x-auto">
@@ -117,19 +120,38 @@ export default async function ScoringPage() {
                   <th className="py-1.5">Stage</th>
                   <th className="py-1.5">Winner</th>
                   <th className="py-1.5">Score</th>
+                  <th className="py-1.5">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {starHistory.map((w) => (
-                  <tr key={w.id}>
-                    <td className="py-1.5">{w.month_start}</td>
-                    <td className="py-1.5">{w.stage || "Whole institution"}</td>
-                    <td className="py-1.5">{w.student_name} <span className="text-zinc-500">({w.admission_number})</span></td>
-                    <td className="py-1.5">{w.score}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  const announcedDraftMonths = new Set<string>();
+                  return starHistory.map((w) => {
+                    const isDraft = !w.announced_at;
+                    const showAnnounceButton = isDraft && canManageForStar && !announcedDraftMonths.has(w.month_start);
+                    if (showAnnounceButton) announcedDraftMonths.add(w.month_start);
+                    return (
+                      <tr key={w.id}>
+                        <td className="py-1.5">{w.month_start}</td>
+                        <td className="py-1.5">{w.stage || "Whole institution"}</td>
+                        <td className="py-1.5">{w.student_name} <span className="text-zinc-500">({w.admission_number})</span></td>
+                        <td className="py-1.5">{w.score}</td>
+                        <td className="py-1.5">
+                          {isDraft ? (
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Draft</span>
+                              {showAnnounceButton ? <AnnounceStarOfTheMonthButton monthStart={w.month_start} /> : null}
+                            </div>
+                          ) : (
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">Announced</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
                 {starHistory.length === 0 ? (
-                  <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No Star of the Month winners computed yet.</td></tr>
+                  <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No Star of the Month winners computed yet.</td></tr>
                 ) : null}
               </tbody>
             </table>

@@ -27,7 +27,7 @@ import {
 } from "../../modules/achievements/service";
 import {
   createScoringRule, evaluateScoring, listScoreEvents, computeConsolidatedScore, getNormalizedScore,
-  computeStarOfTheMonth, getCurrentStarOfTheMonth, listStarOfTheMonthHistory,
+  computeStarOfTheMonth, getCurrentStarOfTheMonth, listStarOfTheMonthHistory, announceStarOfTheMonth,
 } from "../../modules/scoring/service";
 
 let institutionA: string;
@@ -225,7 +225,7 @@ describe("Normalized per-component scores + consolidated roll-up (§K.5)", () =>
 });
 
 describe("Star of the Month (§9 follow-up)", () => {
-  it("picks the top scorer for the stage, persists it, and re-running the same month upserts rather than duplicates", async () => {
+  it("picks the top scorer for the stage, persists it as a draft, and re-running the same month upserts rather than duplicates", async () => {
     const s2 = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "SC-2", fullName: "Score Student Two" });
     const year = await getCurrentAcademicYear(institutionA, adminAuth);
     const db = await getDbClient();
@@ -249,17 +249,46 @@ describe("Star of the Month (§9 follow-up)", () => {
     const winner = winners.find((w) => w.month_start === monthStart)!;
     expect(winner.student_id).toBe(student1);
     expect(winner.student_name).toBe("Score Student");
+    expect(winner.announced_at).toBeNull();
 
-    const current = await getCurrentStarOfTheMonth(institutionA, adminAuth);
-    expect(current.find((w) => w.month_start === monthStart)?.student_id).toBe(student1);
+    // A freshly computed month is a draft -- it must not appear in the
+    // everyone's-login banner until an admin explicitly announces it
+    // (§9 follow-up: "do not do it automatically").
+    const currentBeforeAnnounce = await getCurrentStarOfTheMonth(institutionA, adminAuth);
+    expect(currentBeforeAnnounce.find((w) => w.month_start === monthStart)).toBeUndefined();
 
-    // Re-running the same month upserts (same row id), doesn't duplicate.
+    // Re-running the same month upserts (same row id), doesn't duplicate,
+    // and stays a draft.
     const rerun = await computeStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
     const rerunWinner = rerun.find((w) => w.month_start === monthStart)!;
     expect(rerunWinner.id).toBe(winner.id);
+    expect(rerunWinner.announced_at).toBeNull();
 
     const history = await listStarOfTheMonthHistory(institutionA, adminAuth);
     expect(history.filter((h) => h.month_start === monthStart)).toHaveLength(1);
+  });
+
+  it("announceStarOfTheMonth publishes a draft to the banner; re-announcing the same month is a no-op", async () => {
+    const monthStart = "2026-04-15";
+    await computeStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
+    expect((await getCurrentStarOfTheMonth(institutionA, adminAuth)).find((w) => w.month_start === monthStart)).toBeUndefined();
+
+    const announcedCount = await announceStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
+    expect(announcedCount).toBeGreaterThan(0);
+
+    const current = await getCurrentStarOfTheMonth(institutionA, adminAuth);
+    const announced = current.find((w) => w.month_start === monthStart);
+    expect(announced?.student_id).toBe(student1);
+    expect(announced?.announced_at).not.toBeNull();
+
+    // Re-announcing (nothing left in draft state) is a no-op, not an error.
+    const secondAnnounceCount = await announceStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
+    expect(secondAnnounceCount).toBe(0);
+
+    // Recomputing after announcing resets to a fresh, unannounced draft --
+    // an admin must re-verify and re-announce, the winner isn't grandfathered.
+    await computeStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
+    expect((await getCurrentStarOfTheMonth(institutionA, adminAuth)).find((w) => w.month_start === monthStart)).toBeUndefined();
   });
 
   it("Institution B sees no winners (tenant isolation)", async () => {

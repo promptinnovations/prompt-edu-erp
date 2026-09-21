@@ -424,6 +424,7 @@ const STAR_OF_THE_MONTH_LOOKBACK_DAYS = 30;
 export interface StarOfTheMonthWinner {
   id: string; stage: string; month_start: string; student_id: string; student_name: string;
   admission_number: string; photo_file_id: string | null; score: string; computed_at: string;
+  announced_at: string | null;
 }
 
 /** Computes and persists this month's Star of the Month, one winner per
@@ -436,12 +437,16 @@ export interface StarOfTheMonthWinner {
  *  the top scorer in each stage. Re-running for a month that already has a
  *  winner overwrites rather than duplicates (ON CONFLICT on the table's
  *  (institution_id, stage, month_start) unique constraint), so this is
- *  safe to run more than once for the same month (e.g. a retried
- *  scheduled job, or an admin re-running it after adding late marks).
- *  Returns [] rather than throwing when there's no default performance
- *  profile configured or no enrolled students — same "quietly does
- *  nothing" precedent as computeConsolidatedScore() itself returning null
- *  in that case. */
+ *  safe to run more than once for the same month (e.g. an admin
+ *  re-running it after adding late marks) -- and resets announced_at to
+ *  null on every (re)compute, because a fresh compute is a fresh draft:
+ *  it must go through announceStarOfTheMonth() again before anyone but
+ *  the admin sees it (§9 follow-up: "will be announced by the
+ *  institution admin after verification once it is ready -- do not do it
+ *  automatically"). Returns [] rather than throwing when there's no
+ *  default performance profile configured or no enrolled students --
+ *  same "quietly does nothing" precedent as computeConsolidatedScore()
+ *  itself returning null in that case. */
 export async function computeStarOfTheMonth(
   institutionId: string, authUserId: string, userId: string, monthStart: string
 ): Promise<StarOfTheMonthWinner[]> {
@@ -488,10 +493,10 @@ export async function computeStarOfTheMonth(
     for (const [stage, list] of byStage) {
       const best = list.reduce((a, b) => (b.score > a.score ? b : a));
       const { rows } = await scoped.query<{ id: string; computed_at: string }>(
-        `insert into star_of_the_month (institution_id, stage, month_start, student_id, score)
-         values ($1, $2, $3, $4, $5)
+        `insert into star_of_the_month (institution_id, stage, month_start, student_id, score, announced_at)
+         values ($1, $2, $3, $4, $5, null)
          on conflict (institution_id, stage, month_start)
-         do update set student_id = excluded.student_id, score = excluded.score, computed_at = now()
+         do update set student_id = excluded.student_id, score = excluded.score, computed_at = now(), announced_at = null
          returning id, computed_at::text as computed_at`,
         [institutionId, stage, monthStart, best.student_id, best.score]
       );
@@ -503,6 +508,7 @@ export async function computeStarOfTheMonth(
         id: rows[0].id, stage, month_start: monthStart, student_id: best.student_id,
         student_name: studentRows[0]?.full_name ?? "Student", admission_number: studentRows[0]?.admission_number ?? "",
         photo_file_id: studentRows[0]?.photo_file_id ?? null, score: String(best.score), computed_at: rows[0].computed_at,
+        announced_at: null,
       });
     }
     await recordAudit(scoped, {
@@ -513,19 +519,49 @@ export async function computeStarOfTheMonth(
   });
 }
 
-/** This month's (or, once the month rolls over without a fresh compute,
- *  the most recently computed month's) winners — one per stage — for the
- *  everyone's-login banner. */
+/** Publishes a computed month's winners to everyone's-login banner (§9
+ *  follow-up: computing a month is a draft an admin can verify; nothing
+ *  else reads this table until the admin explicitly announces it).
+ *  Announces every stage's winner for the given month at once -- an
+ *  institution reviews the whole month's picks together, not stage by
+ *  stage. No-op (returns 0) if the month hasn't been computed yet. */
+export async function announceStarOfTheMonth(
+  institutionId: string, authUserId: string, userId: string, monthStart: string
+): Promise<number> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string }>(
+      `update star_of_the_month set announced_at = now()
+        where institution_id = $1 and month_start = $2 and announced_at is null
+        returning id`,
+      [institutionId, monthStart]
+    );
+    if (rows.length > 0) {
+      await recordAudit(scoped, {
+        institutionId, userId, action: "announce", module: "scoring",
+        entityType: "star_of_the_month", entityId: null, after: { monthStart, announcedCount: rows.length },
+      });
+    }
+    return rows.length;
+  });
+}
+
+/** The most recently *announced* month's winners -- one per stage -- for
+ *  the everyone's-login banner. A computed-but-not-yet-announced draft
+ *  never appears here (§9 follow-up: announcing is a deliberate admin
+ *  action, not automatic on compute). */
 export async function getCurrentStarOfTheMonth(institutionId: string, authUserId: string): Promise<StarOfTheMonthWinner[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StarOfTheMonthWinner>(
       `select sm.id, sm.stage, sm.month_start::text as month_start, sm.student_id, s.full_name as student_name,
-              s.admission_number, s.photo_file_id, sm.score::text as score, sm.computed_at::text as computed_at
+              s.admission_number, s.photo_file_id, sm.score::text as score, sm.computed_at::text as computed_at,
+              sm.announced_at::text as announced_at
          from star_of_the_month sm
          join students s on s.id = sm.student_id
         where sm.institution_id = $1
-          and sm.month_start = (select max(month_start) from star_of_the_month where institution_id = $1)
+          and sm.announced_at is not null
+          and sm.month_start = (select max(month_start) from star_of_the_month where institution_id = $1 and announced_at is not null)
         order by sm.stage`,
       [institutionId]
     );
@@ -533,13 +569,16 @@ export async function getCurrentStarOfTheMonth(institutionId: string, authUserId
   });
 }
 
-/** Past winners, most recent month first, for a simple history view. */
+/** Past winners, most recent month first, for a simple history/review
+ *  view -- includes drafts (announced_at null) so the admin can see and
+ *  announce what's pending. */
 export async function listStarOfTheMonthHistory(institutionId: string, authUserId: string, limit = 20): Promise<StarOfTheMonthWinner[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StarOfTheMonthWinner>(
       `select sm.id, sm.stage, sm.month_start::text as month_start, sm.student_id, s.full_name as student_name,
-              s.admission_number, s.photo_file_id, sm.score::text as score, sm.computed_at::text as computed_at
+              s.admission_number, s.photo_file_id, sm.score::text as score, sm.computed_at::text as computed_at,
+              sm.announced_at::text as announced_at
          from star_of_the_month sm
          join students s on s.id = sm.student_id
         where sm.institution_id = $1
