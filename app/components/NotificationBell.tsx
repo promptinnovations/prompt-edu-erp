@@ -9,7 +9,7 @@
  * server layout re-fetches fresh counts/rows rather than the client trying
  * to keep its own copy in sync.
  */
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markNotificationReadAction, markAllNotificationsReadAction } from "./notification-actions";
 
@@ -17,10 +17,52 @@ export interface NotificationItem {
   id: string; title: string; body: string; read_at: string | null; created_at: string;
 }
 
+// §493 mobile follow-up ("Notifications ... mobile visibility / scrolling")
+// -- the mobile panel used to be pinned at a hardcoded `top-16` (4rem) from
+// the viewport top, on the assumption that's always just below the header.
+// That assumption breaks the moment anything else occupies vertical space
+// above the header -- the Super Admin "viewing as" banner, the Sample
+// Portal banner, or any future banner -- reproduced live: with the Super
+// Admin banner showing, the panel rendered UNDER the header/banner instead
+// of below the bell button, effectively invisible/unreachable on a phone
+// screen. Fixed by measuring the button's own actual position instead of
+// guessing a fixed offset, so the panel always lands directly below
+// whatever is actually above it. Only used below the `sm` breakpoint (640px,
+// matching Tailwind's own `sm:` prefix already used for every other
+// desktop/mobile split below) -- the sm+ layout already anchors correctly
+// via `sm:absolute` relative to this component's own wrapper, which was
+// never affected by this bug.
+const MOBILE_BREAKPOINT_PX = 640;
+
 export default function NotificationBell({ initialItems, initialUnreadCount }: { initialItems: NotificationItem[]; initialUnreadCount: number }) {
   const [open, setOpen] = useState(false);
+  const [mobileTop, setMobileTop] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+
+  const toggleOpen = () => {
+    setOpen((wasOpen) => {
+      const willOpen = !wasOpen;
+      if (willOpen && buttonRef.current && window.innerWidth < MOBILE_BREAKPOINT_PX) {
+        setMobileTop(buttonRef.current.getBoundingClientRect().bottom + 8);
+      }
+      return willOpen;
+    });
+  };
+
+  // A device rotation or on-screen-keyboard resize while the panel is open
+  // would otherwise leave it pointing at the button's stale position.
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      if (buttonRef.current && window.innerWidth < MOBILE_BREAKPOINT_PX) {
+        setMobileTop(buttonRef.current.getBoundingClientRect().bottom + 8);
+      }
+    };
+    window.addEventListener("resize", reposition);
+    return () => window.removeEventListener("resize", reposition);
+  }, [open]);
 
   const handleMarkRead = (id: string) => {
     startTransition(async () => {
@@ -38,8 +80,9 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="relative flex h-11 w-11 items-center justify-center rounded-lg text-sm text-zinc-600 hover:bg-zinc-100"
         aria-label="Notifications"
       >
@@ -54,7 +97,10 @@ export default function NotificationBell({ initialItems, initialUnreadCount }: {
       {open ? (
         <>
           <div className="fixed inset-0 z-10 sm:hidden" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="fixed inset-x-3 top-16 z-20 max-h-[70vh] overflow-hidden rounded-lg border bg-white shadow-float sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:z-10 sm:mt-1 sm:w-80 sm:max-h-none">
+          <div
+            className="fixed inset-x-3 z-20 max-h-[70vh] overflow-hidden rounded-lg border bg-white shadow-float sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:z-10 sm:mt-1 sm:w-80 sm:max-h-none"
+            style={mobileTop != null ? { top: mobileTop } : undefined}
+          >
             <div className="flex items-center justify-between border-b px-3 py-2">
               <span className="text-xs font-semibold text-zinc-500">Notifications</span>
               {initialUnreadCount > 0 ? (
