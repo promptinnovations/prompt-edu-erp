@@ -12,7 +12,7 @@ import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../dat
 import { createStudent, createParent, linkParentToStudent } from "../../modules/students/service";
 import { provisionParentPortalAccount } from "../../modules/portal/service";
 import {
-  sendParentMessage, listMessagesForStaff, replyToParentMessage,
+  sendParentMessage, listMessagesForStaff, replyToParentMessage, markMessageRead,
   sendKudos, listKudosForStaff, listKudosForStudent,
 } from "../../modules/communication/service";
 import { getUnreadNotificationCount } from "../../services/notification/notification-service";
@@ -20,6 +20,7 @@ import { getUnreadNotificationCount } from "../../services/notification/notifica
 let institutionA: string;
 let adminAuth: string, adminUserId: string;
 let teacherStaffId: string, teacherUserId: string, teacherAuth: string;
+let teacher2UserId: string, teacher2Auth: string;
 let studentId: string, parentId: string, parentUserId: string;
 
 beforeAll(async () => {
@@ -47,6 +48,9 @@ beforeAll(async () => {
     );
     teacherStaffId = rows[0].id;
   });
+
+  const teacher2 = await seedDemoUser(db, institutionA, "teacher2@comm-a.example", "Comm Teacher Two", "teacher");
+  teacher2Auth = teacher2.authUserId; teacher2UserId = teacher2.userId;
 
   const student = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "COMM-1", fullName: "Comm Student" });
   studentId = student.id;
@@ -84,6 +88,18 @@ describe("Parent -> staff messaging (§3)", () => {
     expect(unreadAfter).toBe(unreadBefore + 1);
   });
 
+  it("replyToParentMessage() and markMessageRead() are scoped to the message's own to_user_id (§495 'check if there is any bug in Message button' fix) -- a colleague can't reply to or mark-read someone else's message just by knowing its id", async () => {
+    const inbox = await listMessagesForStaff(institutionA, teacherAuth, teacherUserId);
+    const targetMessageId = inbox[0].id;
+
+    await expect(
+      replyToParentMessage(institutionA, teacher2Auth, teacher2UserId, { messageId: targetMessageId, replyText: "Not my message." })
+    ).rejects.toThrow(/not found/i);
+    await markMessageRead(institutionA, teacher2Auth, teacher2UserId, targetMessageId);
+    const stillUnread = await listMessagesForStaff(institutionA, teacherAuth, teacherUserId);
+    expect(stillUnread[0].read_at).toBeNull();
+  });
+
   it("replyToParentMessage() notifies the parent", async () => {
     const inbox = await listMessagesForStaff(institutionA, teacherAuth, teacherUserId);
     const unreadBefore = await getUnreadNotificationCount(institutionA, adminAuth, parentUserId);
@@ -97,6 +113,19 @@ describe("Parent -> staff messaging (§3)", () => {
 
     const unreadAfter = await getUnreadNotificationCount(institutionA, adminAuth, parentUserId);
     expect(unreadAfter).toBe(unreadBefore + 1);
+  });
+
+  it("markMessageRead() marks the caller's own message read", async () => {
+    await sendParentMessage(institutionA, adminAuth, adminUserId, {
+      parentId, studentId, toUserId: teacherUserId, subject: "Second question", body: "Another one.",
+    });
+    const inbox = await listMessagesForStaff(institutionA, teacherAuth, teacherUserId);
+    const unread = inbox.find((m) => m.subject === "Second question")!;
+    expect(unread.read_at).toBeNull();
+
+    await markMessageRead(institutionA, teacherAuth, teacherUserId, unread.id);
+    const inboxAfter = await listMessagesForStaff(institutionA, teacherAuth, teacherUserId);
+    expect(inboxAfter.find((m) => m.id === unread.id)!.read_at).not.toBeNull();
   });
 });
 

@@ -73,10 +73,19 @@ export async function listMessagesForStaff(institutionId: string, authUserId: st
   });
 }
 
-export async function markMessageRead(institutionId: string, authUserId: string, messageId: string): Promise<void> {
+/** §495 "check if there is any bug in Message button" follow-up: scoped to
+ *  `to_user_id = userId` so one staff member can't mark (or, in
+ *  replyToParentMessage() below, reply to) a message addressed to a
+ *  colleague just by knowing its id -- listMessagesForStaff() already only
+ *  ever shows a staff member their own messages, but the mutations
+ *  themselves weren't enforcing that same boundary server-side. */
+export async function markMessageRead(institutionId: string, authUserId: string, userId: string, messageId: string): Promise<void> {
   const db = await getDbClient();
   await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    await scoped.query("update parent_messages set read_at = now() where id = $1 and read_at is null", [messageId]);
+    await scoped.query(
+      "update parent_messages set read_at = now() where id = $1 and to_user_id = $2 and read_at is null",
+      [messageId, userId]
+    );
   });
 }
 
@@ -88,8 +97,10 @@ export async function replyToParentMessage(
   const db = await getDbClient();
   await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{ from_parent_id: string; subject: string }>(
-      "update parent_messages set reply_text = $2, replied_at = now(), read_at = coalesce(read_at, now()) where id = $1 returning from_parent_id, subject",
-      [data.messageId, data.replyText]
+      `update parent_messages set reply_text = $2, replied_at = now(), read_at = coalesce(read_at, now())
+        where id = $1 and to_user_id = $3
+        returning from_parent_id, subject`,
+      [data.messageId, data.replyText, userId]
     );
     if (!rows[0]) throw new Error("Message not found.");
     const { rows: parentUser } = await scoped.query<{ user_id: string | null }>("select user_id from parents where id = $1", [rows[0].from_parent_id]);

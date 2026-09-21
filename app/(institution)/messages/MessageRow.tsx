@@ -1,13 +1,22 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { replyToParentMessageAction, markMessageReadAction } from "./actions";
 import type { ParentMessageRow } from "../../../modules/communication/service";
 
+/** §495 "check if there is any bug in Message button" -- the reply box
+ *  used to close itself the instant the form was submitted (onSubmit
+ *  fired synchronously, before the server action even ran), so a failed
+ *  reply's error message was unmounted along with the form before anyone
+ *  could see it. Now it only closes once `okAt` proves the action actually
+ *  succeeded. */
 function ReplyForm({ messageId, onDone }: { messageId: string; onDone: () => void }) {
-  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(replyToParentMessageAction, { error: null });
+  const [state, formAction, pending] = useActionState<{ error: string | null; okAt?: number }, FormData>(replyToParentMessageAction, { error: null });
+  useEffect(() => {
+    if (state.okAt) onDone();
+  }, [state.okAt, onDone]);
   return (
-    <form action={formAction} className="mt-2 flex flex-wrap items-end gap-2" onSubmit={() => onDone()}>
+    <form action={formAction} className="mt-2 flex flex-wrap items-end gap-2">
       <input type="hidden" name="messageId" value={messageId} />
       <textarea name="replyText" required rows={2} placeholder="Write a reply…" className="min-w-[240px] flex-1 rounded-lg border px-3 py-1.5 text-sm" />
       <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

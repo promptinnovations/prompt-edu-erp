@@ -1,14 +1,20 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { sendKudosAction } from "./actions";
 
 export default function SendKudosForm({ staffOptions, studentId, studentName }: { staffOptions: Array<{ id: string; full_name: string }>; studentId: string; studentName: string }) {
-  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(sendKudosAction, { error: null });
+  const [state, formAction, pending] = useActionState<{ error: string | null; okAt?: number }, FormData>(sendKudosAction, { error: null });
   const [target, setTarget] = useState<"teacher" | "student">("teacher");
+  const formRef = useRef<HTMLFormElement>(null);
+  // Same missing-feedback bug as the Message button (§495) -- clear the
+  // fields and confirm once okAt proves the kudos actually sent.
+  useEffect(() => {
+    if (state.okAt) formRef.current?.reset();
+  }, [state.okAt]);
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form ref={formRef} action={formAction} className="space-y-3">
       <div className="flex gap-2 text-xs">
         <button type="button" onClick={() => setTarget("teacher")} className={`rounded-full px-3 py-1 ${target === "teacher" ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600"}`}>
           To a teacher
@@ -44,6 +50,7 @@ export default function SendKudosForm({ staffOptions, studentId, studentName }: 
           Send
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
+        {!state.error && state.okAt ? <span className="text-sm text-emerald-600">Sent.</span> : null}
       </div>
     </form>
   );

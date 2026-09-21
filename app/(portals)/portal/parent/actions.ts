@@ -66,8 +66,13 @@ export async function payChildFeeAction(_prevState: { error: string | null }, fo
   }
 }
 
-/** §3 "send a communication to teachers, principals". */
-export async function sendParentMessageAction(_prevState: { error: string | null }, formData: FormData) {
+/** §3 "send a communication to teachers, principals". okAt: a fresh
+ *  Date.now() on every successful send -- SendMessageForm watches this to
+ *  clear the fields and show "Message sent" (§495 "check if there is any
+ *  bug in Message button" fix: previously a successful send left the
+ *  filled-in form sitting there with no feedback at all, indistinguishable
+ *  from a silent failure). */
+export async function sendParentMessageAction(_prevState: { error: string | null; okAt?: number }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   const studentId = String(formData.get("studentId") ?? "") || null;
@@ -87,7 +92,7 @@ export async function sendParentMessageAction(_prevState: { error: string | null
       body: String(formData.get("body") ?? ""),
     });
     revalidatePath("/portal/parent");
-    return { error: null };
+    return { error: null, okAt: Date.now() };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to send message." };
   }
@@ -97,7 +102,7 @@ export async function sendParentMessageAction(_prevState: { error: string | null
  *  students for performance". Student kudos are restricted to the
  *  parent's OWN children (isOwnChild()); teacher kudos may go to any
  *  staff member at the institution. */
-export async function sendKudosAction(_prevState: { error: string | null }, formData: FormData) {
+export async function sendKudosAction(_prevState: { error: string | null; okAt?: number }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   const toStudentId = String(formData.get("toStudentId") ?? "") || null;
@@ -118,7 +123,7 @@ export async function sendKudosAction(_prevState: { error: string | null }, form
       message: String(formData.get("message") ?? "") || null,
     });
     revalidatePath("/portal/parent");
-    return { error: null };
+    return { error: null, okAt: Date.now() };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to send kudos." };
   }
