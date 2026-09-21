@@ -39,7 +39,10 @@
   --color-sand-400: #c7bda9; /* heavy dividers */
   --color-ink: #1d2430;      /* headings and primary text */
   --color-body: #4a5464;     /* running text */
-  --color-muted: #79839a;    /* captions, labels, axis text */
+  --color-muted: #657087;    /* captions, labels, axis text — darkened from the
+     spec's literal #79839a (3.8:1 on white, below WCAG AA) to match/exceed the
+     old zinc-500's 4.83:1; same hue, same role, ~1,100 call sites unaffected
+     beyond the darker shade. */
 
   /* Brand primary — 11 steps, anchored at 900 = #0B1F3A exactly. The spec
      names the step count but not the values; the other steps are derived
@@ -71,7 +74,8 @@
   /* Semantic pairs — text colour on soft fill. */
   --color-success: #1f7a4d;
   --color-success-soft: #e6f4ec;
-  --color-warning: #a8710f;
+  --color-warning: #8a5b0c; /* darkened from the spec's literal #a8710f (3.7:1 on
+     its own soft fill, below WCAG AA) to ~5.2:1, same amber/brown hue. */
   --color-warning-soft: #fdf1dc;
   --color-danger: #a72f3a;
   --color-danger-soft: #fbeaec;
@@ -109,8 +113,8 @@
   --color-zinc-200: #efeae0;
   --color-zinc-300: #e2dbcc;
   --color-zinc-400: #c7bda9;
-  --color-zinc-500: #79839a;
-  --color-zinc-600: #79839a;
+  --color-zinc-500: #657087;
+  --color-zinc-600: #657087;
   --color-zinc-700: #4a5464;
   --color-zinc-800: #4a5464;
   --color-zinc-900: #1d2430;
@@ -140,8 +144,8 @@
   --color-red-500: #a72f3a;
   --color-red-600: #a72f3a;
   --color-red-700: #a72f3a;
-  --color-red-800: #a72f3a;
-  --color-red-900: #a72f3a;
+  --color-red-800: #7a2530; /* hover step -- darker than --color-danger, same hue */
+  --color-red-900: #7a2530;
   --color-rose-100: #fbeaec;
   --color-rose-500: #a72f3a;
   --color-rose-700: #a72f3a;
@@ -154,8 +158,8 @@
   --color-emerald-500: #1f7a4d;
   --color-emerald-600: #1f7a4d;
   --color-emerald-700: #1f7a4d;
-  --color-emerald-800: #1f7a4d;
-  --color-emerald-900: #1f7a4d;
+  --color-emerald-800: #165a3c; /* hover step -- darker than --color-success, same hue */
+  --color-emerald-900: #165a3c;
   --color-emerald-950: #1f7a4d;
   --color-green-50: #e6f4ec;
   --color-green-100: #e6f4ec;
@@ -166,12 +170,12 @@
   --color-amber-50: #fdf1dc;
   --color-amber-100: #fdf1dc;
   --color-amber-200: #e2dbcc;
-  --color-amber-400: #a8710f;
-  --color-amber-500: #a8710f;
-  --color-amber-600: #a8710f;
-  --color-amber-700: #a8710f;
-  --color-amber-800: #a8710f;
-  --color-amber-900: #a8710f;
+  --color-amber-400: #8a5b0c;
+  --color-amber-500: #8a5b0c;
+  --color-amber-600: #8a5b0c;
+  --color-amber-700: #8a5b0c;
+  --color-amber-800: #8a5b0c;
+  --color-amber-900: #8a5b0c;
 
   --color-sky-100: #e4f1f6;
   --color-sky-500: #1f6f8c;
