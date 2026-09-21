@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
 import { getInstitution } from "../../../../../services/institution/institution-service";
-import { getExamination, getExaminationMarksMatrix, listClassesForExamination } from "../../../../../modules/examination/service";
+import {
+  getExamination, getExaminationMarksMatrix, getResults, listClassesForExamination, isPass, PASS_COLOR, FAIL_COLOR,
+} from "../../../../../modules/examination/service";
 import PrintButton from "../../../../components/PrintButton";
 import PrintLetterhead from "../../../../components/PrintLetterhead";
 import ClassFilterForm from "./ClassFilterForm";
@@ -13,7 +15,11 @@ import ClassFilterForm from "./ClassFilterForm";
  *  rows since the column set is dynamic per examination. §Page-6 follow-up
  *  "select exam, class from dropdown" — the exam is already selected by
  *  being on this page (reached via the Results table); `classId` narrows
- *  the matrix to one of the exam's covered classes. */
+ *  the matrix to one of the exam's covered classes. §491 "executive
+ *  design" follow-up — Grade and pass/fail Result columns added, both
+ *  pulled straight from getResults() (the same computed row every other
+ *  results view reads) rather than re-derived here, so this sheet never
+ *  disagrees with Report Cards/Results about a student's outcome. */
 export default async function ConsolidatedMarksPage({
   params, searchParams,
 }: {
@@ -29,11 +35,14 @@ export default async function ConsolidatedMarksPage({
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound();
 
-  const [institution, rows, classOptions] = await Promise.all([
+  const [institution, rows, classOptions, results] = await Promise.all([
     getInstitution(institutionId, authUserId),
     getExaminationMarksMatrix(institutionId, authUserId, id, classId || null),
     listClassesForExamination(institutionId, authUserId, id),
+    getResults(institutionId, authUserId, id),
   ]);
+  const passPct = institution?.passPct != null ? Number(institution.passPct) : 35;
+  const resultsByStudent = new Map(results.map((r) => [r.student_id, r]));
 
   const subjects = new Map<string, { name: string; maxMarks: string }>();
   const studentOrder: string[] = [];
@@ -78,11 +87,17 @@ export default async function ConsolidatedMarksPage({
                   <th key={s.id} className="px-3 py-2 text-center">{s.name}<div className="normal-case font-normal">/{s.maxMarks}</div></th>
                 ))}
                 <th className="px-3 py-2 text-center">Total</th>
+                <th className="px-3 py-2 text-center">Grade</th>
+                <th className="px-3 py-2 text-center">Result</th>
+                <th className="px-3 py-2 text-center">Rank</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {studentOrder.map((studentId) => {
                 const student = students.get(studentId)!;
+                const overall = resultsByStudent.get(studentId);
+                const overallPct = overall ? Number(overall.percentage) : null;
+                const overallPassed = overallPct != null ? isPass(overallPct, passPct) : null;
                 let total = 0;
                 return (
                   <tr key={studentId}>
@@ -95,12 +110,28 @@ export default async function ConsolidatedMarksPage({
                       if (c && !c.isAbsent && c.marks) total += Number(c.marks);
                       return <td key={s.id} className="px-3 py-2 text-center">{marks}</td>;
                     })}
-                    <td className="px-3 py-2 text-center font-medium">{total}</td>
+                    <td className="px-3 py-2 text-center font-medium">
+                      {overall ? `${overall.total_marks}/${overall.max_total_marks}` : total}
+                    </td>
+                    <td className="px-3 py-2 text-center">{overall?.grade_label ?? "—"}</td>
+                    <td className="px-3 py-2 text-center">
+                      {overallPassed == null ? (
+                        "—"
+                      ) : (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
+                          style={{ backgroundColor: overallPassed ? PASS_COLOR : FAIL_COLOR }}
+                        >
+                          {overallPassed ? "Pass" : "Fail"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">{overall?.rank ?? "—"}</td>
                   </tr>
                 );
               })}
               {studentOrder.length === 0 ? (
-                <tr><td colSpan={subjectList.length + 2} className="px-4 py-6 text-center text-zinc-500">
+                <tr><td colSpan={subjectList.length + 5} className="px-4 py-6 text-center text-zinc-500">
                   No students/subjects configured for this examination yet.
                 </td></tr>
               ) : null}

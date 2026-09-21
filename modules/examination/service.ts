@@ -1052,6 +1052,7 @@ export async function computeResults(institutionId: string, authUserId: string, 
 export interface ExaminationMarksMatrixRow {
   student_id: string; student_name: string; admission_number: string;
   roll_number: number | null; gender: string | null; section_name: string | null;
+  class_name: string | null;
   exam_subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
   marks_obtained: string | null; is_absent: boolean;
 }
@@ -1066,7 +1067,7 @@ export async function getExaminationMarksMatrix(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExaminationMarksMatrixRow>(
       `select distinct se.student_id, s.full_name as student_name, s.admission_number,
-              se.roll_number, s.gender, sec.name as section_name,
+              se.roll_number, s.gender, sec.name as section_name, c.name as class_name,
               es.id as exam_subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
               m.marks_obtained, coalesce(m.is_absent, false) as is_absent
          from exam_subjects es
@@ -1076,6 +1077,7 @@ export async function getExaminationMarksMatrix(
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
          join students s on s.id = se.student_id
          left join sections sec on sec.id = se.section_id
+         left join classes c on c.id = se.class_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
         where es.examination_id = $1 and ($2::uuid is null or se.class_id = $2)
         order by sub.name`,
@@ -1153,6 +1155,113 @@ export async function listStudentResultHistory(
       [studentId]
     );
     return rows;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// §491 Print Center follow-up ("Consolidated Mark Sheet ... cumulative") --
+// one row per student, one column per examination held in an academic
+// year, so an institution can see a student's trajectory across Term 1 /
+// Term 2 / Final etc. at a glance instead of opening each exam's own
+// Consolidated Marks separately. Built on the same results/grade_bands
+// join as getResults()/listStudentResultHistory() above -- one source of
+// truth for "this student's computed outcome for this exam" -- just
+// pivoted across examinations instead of across students. A student's
+// CURRENT class/division (student_enrollments where status = 'active') is
+// used for the class filter and roll-number ordering, same convention as
+// getExaminationMarksMatrix() above -- a student who has since moved
+// class still shows their historical exam scores, just filtered/sorted by
+// where they are today.
+// ---------------------------------------------------------------------------
+export interface CumulativeExamScore {
+  examination_id: string;
+  examination_name: string;
+  percentage: string | null;
+  grade_label: string | null;
+}
+export interface CumulativeMarksheetRow {
+  student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null; section_name: string | null; class_name: string | null;
+  exams: CumulativeExamScore[];
+  /** Simple mean of this student's available per-examination percentages
+   *  -- null when the student has no computed result for any examination
+   *  in the year yet. Deliberately NOT a re-weighted "grand total" (exams
+   *  can have different max marks/subject counts), matching how a plain
+   *  cumulative average is described everywhere else the word is used in
+   *  this codebase (Daily Assessment's own cumulative_marks_obtained is
+   *  the one exception, and that's a same-max-marks running sum, a
+   *  different shape of "cumulative" entirely -- see that section's own
+   *  doc comment). */
+  average_percentage: number | null;
+}
+export interface CumulativeMarksheetResult {
+  /** Column headers, in chronological order (undated examinations last). */
+  examinations: Array<{ id: string; name: string }>;
+  rows: CumulativeMarksheetRow[];
+}
+
+export async function getCumulativeMarksheet(
+  institutionId: string, authUserId: string, academicYearId: string, classId?: string | null
+): Promise<CumulativeMarksheetResult> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      student_id: string; student_name: string; admission_number: string;
+      roll_number: number | null; gender: string | null; section_name: string | null; class_name: string | null;
+      examination_id: string; examination_name: string; start_date: string | null;
+      percentage: string; grade_label: string | null;
+    }>(
+      `select r.student_id, s.full_name as student_name, s.admission_number,
+              se.roll_number, s.gender, sec.name as section_name, c.name as class_name,
+              e.id as examination_id, e.name as examination_name, e.start_date,
+              r.percentage, gb.grade_label
+         from results r
+         join examinations e on e.id = r.examination_id
+         join students s on s.id = r.student_id
+         left join grade_bands gb on gb.id = r.grade_band_id
+         left join student_enrollments se on se.student_id = r.student_id and se.status = 'active'
+         left join sections sec on sec.id = se.section_id
+         left join classes c on c.id = se.class_id
+        where e.academic_year_id = $1 and ($2::uuid is null or se.class_id = $2)
+        order by e.start_date nulls last, e.created_at`,
+      [academicYearId, classId || null]
+    );
+
+    const examOrder: Array<{ id: string; name: string }> = [];
+    const examSeen = new Set<string>();
+    const studentMap = new Map<string, CumulativeMarksheetRow>();
+
+    for (const r of rows) {
+      if (!examSeen.has(r.examination_id)) {
+        examSeen.add(r.examination_id);
+        examOrder.push({ id: r.examination_id, name: r.examination_name });
+      }
+      let student = studentMap.get(r.student_id);
+      if (!student) {
+        student = {
+          student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
+          roll_number: r.roll_number, gender: r.gender, section_name: r.section_name, class_name: r.class_name,
+          exams: [], average_percentage: null,
+        };
+        studentMap.set(r.student_id, student);
+      }
+      student.exams.push({
+        examination_id: r.examination_id, examination_name: r.examination_name,
+        percentage: r.percentage, grade_label: r.grade_label,
+      });
+    }
+
+    for (const student of studentMap.values()) {
+      const pcts = student.exams.map((e) => Number(e.percentage)).filter((n) => Number.isFinite(n));
+      student.average_percentage = pcts.length > 0
+        ? Math.round((pcts.reduce((a, b) => a + b, 0) / pcts.length) * 100) / 100
+        : null;
+    }
+
+    return {
+      examinations: examOrder,
+      rows: sortRoster(Array.from(studentMap.values()).map((s) => ({ ...s, full_name: s.student_name }))),
+    };
   });
 }
 

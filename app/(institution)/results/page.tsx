@@ -33,9 +33,13 @@ export default async function ResultsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-[var(--heading)]">Results</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Results</h1>
+        <Link href="/results/cumulative" className="text-sm text-zinc-600 underline">Cumulative Mark Sheet →</Link>
+      </div>
       <p className="text-sm text-zinc-500">
-        Pick an examination to view its computed results, consolidated marksheet, or print report cards.
+        Pick an examination to view its computed results, consolidated marksheet, or print report cards — or see every
+        exam side by side in the <Link href="/results/cumulative" className="underline">Cumulative Mark Sheet</Link>.
       </p>
 
       <section className="overflow-hidden rounded-2xl border bg-white">

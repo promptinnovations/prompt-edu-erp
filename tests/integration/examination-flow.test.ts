@@ -19,6 +19,7 @@ import {
   addExamClass, addExamSubject,
   getMarksGrid, enterMarks, deleteMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   correctMark, computeResults, getResults, listStudentResultHistory,
+  getExaminationMarksMatrix, getCumulativeMarksheet,
 } from "../../modules/examination/service";
 
 let institutionA: string;
@@ -318,5 +319,59 @@ describe("listStudentResultHistory() — parent/student portal 'Results' detail 
     });
     const history = await listStudentResultHistory(institutionA, adminAuth, emptyStudent.id);
     expect(history).toEqual([]);
+  });
+});
+
+// §491 Print Center follow-up ("executive-design Progress Report + Consolidated
+// Mark Sheet ... exam-wise + cumulative") — class_name on the shared marks
+// matrix (Report Card header) and the new cross-examination cumulative
+// marksheet, both built directly on this file's existing exam/results
+// fixtures rather than a separate setup.
+describe("getExaminationMarksMatrix() class_name (§491 Report Card header follow-up)", () => {
+  it("includes the student's current class name on every matrix row", async () => {
+    const matrix = await getExaminationMarksMatrix(institutionA, adminAuth, examinationId);
+    expect(matrix.length).toBeGreaterThan(0);
+    for (const row of matrix) {
+      expect(row.class_name).toBe("Grade 6");
+    }
+  });
+});
+
+describe("getCumulativeMarksheet() (§491 'Consolidated Mark Sheet ... cumulative')", () => {
+  it("pivots every computed result for the academic year into one row per student with an average", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const sheet = await getCumulativeMarksheet(institutionA, adminAuth, year!.id);
+
+    expect(sheet.examinations.some((e) => e.id === examinationId)).toBe(true);
+
+    const student1Row = sheet.rows.find((r) => r.student_id === student1)!;
+    expect(student1Row).toBeTruthy();
+    const student1Score = student1Row.exams.find((e) => e.examination_id === examinationId)!;
+    expect(Number(student1Score.percentage)).toBeCloseTo(87.5, 5);
+    expect(student1Score.grade_label).toBe("A");
+    // Only one examination has a computed result for student1 in this
+    // file's fixtures, so the average equals that single percentage.
+    expect(student1Row.average_percentage).toBeCloseTo(87.5, 1);
+
+    // student2 became incomplete once the second exam_subject was added
+    // with no marks for them -- computeResults() skips (never deletes)
+    // an incomplete student's row, so their STALE result from the first
+    // (single-subject) compute is what the cumulative sheet still shows:
+    // 30/100 -> corrected to 38/100 before submission, still 38%.
+    const student2Row = sheet.rows.find((r) => r.student_id === student2)!;
+    expect(student2Row).toBeTruthy();
+    const student2Score = student2Row.exams.find((e) => e.examination_id === examinationId)!;
+    expect(Number(student2Score.percentage)).toBeCloseTo(38, 5);
+  });
+
+  it("classId narrows to one class, and Institution B sees no rows for Institution A's academic year", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const scoped = await getCumulativeMarksheet(institutionA, adminAuth, year!.id, classId);
+    expect(scoped.rows.some((r) => r.student_id === student1)).toBe(true);
+
+    const adminB = await seedDemoUser(await getDbClient(), institutionB, "admin4@exam-b.example", "Exam B Admin 4");
+    const crossTenant = await getCumulativeMarksheet(institutionB, adminB.authUserId, year!.id);
+    expect(crossTenant.rows).toEqual([]);
+    expect(crossTenant.examinations).toEqual([]);
   });
 });

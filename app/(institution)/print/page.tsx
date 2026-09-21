@@ -36,6 +36,13 @@ export default async function PrintCenterPage() {
     },
     {
       icon: ExamIcon,
+      title: "Cumulative Mark Sheet",
+      body: "Every examination in an academic year, side by side, with an average and overall pass/fail per student.",
+      href: "/results/cumulative",
+      visible: enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.approve")),
+    },
+    {
+      icon: ExamIcon,
       title: "Exam Seating & Bench Stickers",
       body: "Room-wise seating chart and printable bench stickers (name, class + division, roll number) for an examination.",
       href: latestExam ? `/examinations/seating?examinationId=${latestExam.id}` : "/examinations/seating",
