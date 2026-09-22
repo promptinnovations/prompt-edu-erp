@@ -11,32 +11,26 @@ export interface DailyGridStudent {
 /** Simpler than the standard exam module's MarksGridForm -- no
  *  submit/verify/approve/lock chain, since the spec calls for a plain
  *  Status field rather than a formal multi-stage approval workflow.
- *  Saving is disabled entirely once the assessment date has passed
- *  (isToday=false) -- same "same-day" rule enterDailyAssessmentMarks()
- *  itself enforces server-side; this just avoids letting anyone fill the
- *  form out only to have the save rejected. */
+ *  §506 "Daily assessment marks shall be entered late also by choosing
+ *  date — should be accepted": marks entry is no longer locked to the
+ *  session's own date (server-side in enterDailyAssessmentMarks() too) --
+ *  editable is now just "does this person have the permission". */
 export default function DailyMarksGridForm({
-  students, examinationId, dailyAssessmentId, canEnter, isToday, maxMarks,
+  students, examinationId, dailyAssessmentId, canEnter, maxMarks,
 }: {
   students: DailyGridStudent[];
   examinationId: string;
   dailyAssessmentId: string;
   canEnter: boolean;
-  isToday: boolean;
   maxMarks: string;
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(saveDailyAssessmentMarksAction, { error: null });
-  const editable = canEnter && isToday;
+  const editable = canEnter;
 
   return (
     <form action={formAction}>
       <input type="hidden" name="examinationId" value={examinationId} />
       <input type="hidden" name="dailyAssessmentId" value={dailyAssessmentId} />
-      {!isToday ? (
-        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          This assessment&apos;s date has passed — marks can only be entered on the same day it was conducted.
-        </p>
-      ) : null}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">

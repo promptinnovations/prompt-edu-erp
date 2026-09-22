@@ -411,6 +411,14 @@ const createExaminationSchema = z.object({
   termId: z.string().uuid().nullable().optional(),
   name: z.string().min(1).max(200),
   gradeScaleId: z.string().uuid().nullable().optional(),
+  // Only meaningful for a Daily Assessment exam type: which calendar
+  // month's register to find-or-create, in place of the server's own
+  // current_date. Never exposed on the manual Create Examination form —
+  // set only by getOrCreateDailyAssessmentSession() below, so a bulk
+  // import of a BACKDATED daily assessment mark (§506 "marks shall be
+  // entered late also by choosing date") resolves to that date's own
+  // month's register instead of always landing in the current month's.
+  forDate: z.string().optional(),
 });
 
 export async function listExaminations(institutionId: string, authUserId: string): Promise<ExaminationRecord[]> {
@@ -465,21 +473,27 @@ export async function createExamination(
       "select is_daily_assessment from exam_types where id = $1", [data.examTypeId]
     );
     if (etRows[0]?.is_daily_assessment) {
+      // forDate (only ever set by getOrCreateDailyAssessmentSession() below,
+      // for a bulk-imported backdated mark) resolves month math against
+      // THAT date instead of the server's current_date, so a mark for the
+      // 25th of a past month lands in that month's register rather than
+      // always the current one.
       const { rows: existing } = await scoped.query<ExaminationRecord>(
         `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id
            from examinations
           where exam_type_id = $1 and academic_year_id = $2
-            and date_trunc('month', start_date) = date_trunc('month', current_date)`,
-        [data.examTypeId, data.academicYearId]
+            and date_trunc('month', start_date) = date_trunc('month', coalesce($3::date, current_date))`,
+        [data.examTypeId, data.academicYearId, data.forDate ?? null]
       );
       if (existing[0]) return existing[0];
 
       const { rows: created } = await scoped.query<ExaminationRecord>(
         `insert into examinations (institution_id, exam_type_id, academic_year_id, term_id, name, grade_scale_id, start_date, end_date)
-         values ($1, $2, $3, $4, 'Daily Assessment — ' || to_char(current_date, 'FMMonth YYYY'), $5,
-                 date_trunc('month', current_date)::date, (date_trunc('month', current_date) + interval '1 month - 1 day')::date)
+         values ($1, $2, $3, $4, 'Daily Assessment — ' || to_char(coalesce($6::date, current_date), 'FMMonth YYYY'), $5,
+                 date_trunc('month', coalesce($6::date, current_date))::date,
+                 (date_trunc('month', coalesce($6::date, current_date)) + interval '1 month - 1 day')::date)
          returning id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id`,
-        [institutionId, data.examTypeId, data.academicYearId, data.termId ?? null, gradeScaleId]
+        [institutionId, data.examTypeId, data.academicYearId, data.termId ?? null, gradeScaleId, data.forDate ?? null]
       );
       await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "examinations", entityId: created[0].id, after: created[0] });
       return created[0];
@@ -1507,11 +1521,13 @@ const createDailyAssessmentSchema = z.object({
  *  (e.g. a make-up session), since nothing in the request forbids that
  *  either. */
 export async function createDailyAssessment(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createDailyAssessmentSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createDailyAssessmentSchema>,
+  scopedClient?: DbClient // §Q.1 — lets getOrCreateDailyAssessmentSession() (the "Daily Assessment
+                           // Marks" bulk import entity type, modules/bulk/service.ts) commit a whole
+                           // batch's session-creates + mark-upserts inside one transaction.
 ): Promise<DailyAssessmentRow> {
   const data = createDailyAssessmentSchema.parse(input);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<{ id: string; examination_id: string; class_id: string; subject_id: string; assessment_date: string; portion: string; max_marks: string; status: string }>(
       `insert into daily_assessments (institution_id, examination_id, class_id, subject_id, assessment_date, portion, max_marks, created_by)
        values ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -1524,6 +1540,71 @@ export async function createDailyAssessment(
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "daily_assessments", entityId: rows[0].id, after: rows[0] });
     return { ...rows[0], class_name: names[0]?.class_name ?? "—", subject_name: names[0]?.subject_name ?? "—" };
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+const updateDailyAssessmentSchema = z.object({
+  classId: z.string().uuid().optional(),
+  subjectId: z.string().uuid().optional(),
+  assessmentDate: z.string().min(1).optional(),
+  portion: z.string().min(1).max(500).optional(),
+  maxMarks: z.number().positive().optional(),
+});
+
+/** §505 "entered daily assessment should be editable and removable" — same
+ *  inline-edit shape as updateExamination()/ExaminationsTable above, and
+ *  intentionally unrestricted by status: a typo in the portion text (or the
+ *  wrong max mark) is just as likely to be noticed AFTER marks have already
+ *  been entered for the day as before, and nothing about correcting those
+ *  fields invalidates marks already saved against this row (they're keyed
+ *  on daily_assessment_id, not on the values being corrected). */
+export async function updateDailyAssessment(
+  institutionId: string, authUserId: string, userId: string, dailyAssessmentId: string, input: z.infer<typeof updateDailyAssessmentSchema>
+): Promise<DailyAssessmentRow> {
+  const data = updateDailyAssessmentSchema.parse(input);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<{ id: string; class_id: string; subject_id: string; assessment_date: string; portion: string; max_marks: string }>(
+      "select id, class_id, subject_id, assessment_date::text, portion, max_marks from daily_assessments where id = $1", [dailyAssessmentId]
+    );
+    if (!before[0]) throw new Error("Daily assessment entry not found.");
+    const { rows } = await scoped.query<{ id: string; examination_id: string; class_id: string; subject_id: string; assessment_date: string; portion: string; max_marks: string; status: string }>(
+      `update daily_assessments set
+         class_id = coalesce($1, class_id),
+         subject_id = coalesce($2, subject_id),
+         assessment_date = coalesce($3, assessment_date),
+         portion = coalesce($4, portion),
+         max_marks = coalesce($5, max_marks),
+         updated_at = now()
+       where id = $6
+       returning id, examination_id, class_id, subject_id, assessment_date::text, portion, max_marks, status`,
+      [data.classId ?? null, data.subjectId ?? null, data.assessmentDate ?? null, data.portion ?? null, data.maxMarks ?? null, dailyAssessmentId]
+    );
+    const { rows: names } = await scoped.query<{ class_name: string; subject_name: string }>(
+      `select (select name from classes where id = $1) as class_name, (select name from subjects where id = $2) as subject_name`,
+      [rows[0].class_id, rows[0].subject_id]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "daily_assessments", entityId: dailyAssessmentId, before: before[0], after: rows[0] });
+    return { ...rows[0], class_name: names[0]?.class_name ?? "—", subject_name: names[0]?.subject_name ?? "—" };
+  });
+}
+
+/** §505 "removable" — a plain delete; ON DELETE CASCADE (migration 0048)
+ *  takes any daily_assessment_marks already saved under it with it. Unlike
+ *  deleteExamination() (which refuses once real marks exist, because a
+ *  whole exam register represents a lot of entered work), one daily
+ *  session's marks are cheap to re-enter if this was truly a mistake, and
+ *  the explicit ask here is specifically to fix bad rows — including ones
+ *  that already have marks against them — not to protect them from that. */
+export async function deleteDailyAssessment(institutionId: string, authUserId: string, userId: string, dailyAssessmentId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query("delete from daily_assessments where id = $1 returning id", [dailyAssessmentId]);
+    if (rows.length === 0) throw new Error("Daily assessment entry not found.");
+    await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "daily_assessments", entityId: dailyAssessmentId });
   });
 }
 
@@ -1598,41 +1679,84 @@ const dailyMarkEntrySchema = z.array(
   })
 );
 
-/** "Mark entry must be completed on the same day after the assessment" —
- *  enforced here (not just as a UI hint) against current_date, the same
- *  DB-side clock createExamination()'s month math uses above, rather than
- *  any client-supplied date. Marks may be saved and re-saved any number of
- *  times while assessment_date is still today; once the day has passed
- *  this throws for everyone (no admin override — the spec states this as
- *  a firm same-day rule, not a default). Saving flips daily_assessments
- *  .status to 'completed', which is what the monthly consolidated result
- *  and analysis queries below key off of. */
+/** §506 follow-up ("Daily assessment marks shall be entered late also by
+ *  choosing date — should be accepted"): this used to throw for any
+ *  assessment_date other than current_date, a firm same-day rule from the
+ *  original spec. That's been dropped — marks for any Daily Assessment
+ *  session, however long ago it was conducted, can now be entered or
+ *  re-entered at any time, the same as every other exam type's mark entry
+ *  already works. Single-student upsert factored out as
+ *  upsertDailyAssessmentMark() below so the bulk import entity type
+ *  (§504, modules/bulk/service.ts) can save one row at a time against the
+ *  same transaction confirmImport() is already running, without going
+ *  through this array-shaped, one-dailyAssessmentId-at-a-time function. */
 export async function enterDailyAssessmentMarks(
   institutionId: string, authUserId: string, userId: string, dailyAssessmentId: string, entries: z.infer<typeof dailyMarkEntrySchema>
 ): Promise<{ updated: number }> {
   const data = dailyMarkEntrySchema.parse(entries);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: daRows } = await scoped.query<{ is_today: boolean }>(
-      "select (assessment_date = current_date) as is_today from daily_assessments where id = $1", [dailyAssessmentId]
-    );
+    const { rows: daRows } = await scoped.query("select id from daily_assessments where id = $1", [dailyAssessmentId]);
     if (!daRows[0]) throw new Error("Daily assessment entry not found.");
-    if (!daRows[0].is_today) throw new Error("Marks for a Daily Assessment can only be entered on the same day it was conducted.");
 
     for (const e of data) {
-      await scoped.query(
-        `insert into daily_assessment_marks (institution_id, daily_assessment_id, student_id, marks_obtained, is_absent, entered_by)
-         values ($1, $2, $3, $4, $5, $6)
-         on conflict (institution_id, daily_assessment_id, student_id)
-         do update set marks_obtained = excluded.marks_obtained, is_absent = excluded.is_absent,
-                        entered_by = excluded.entered_by, updated_at = now()`,
-        [institutionId, dailyAssessmentId, e.studentId, e.isAbsent ? null : e.marksObtained, e.isAbsent, userId]
-      );
+      await upsertDailyAssessmentMark(institutionId, userId, dailyAssessmentId, e.studentId, e.isAbsent ? null : e.marksObtained, e.isAbsent, scoped);
     }
-    await scoped.query("update daily_assessments set status = 'completed', updated_at = now() where id = $1", [dailyAssessmentId]);
     await recordAudit(scoped, { institutionId, userId, action: "enter_marks", module: "examination", entityType: "daily_assessments", entityId: dailyAssessmentId, after: { count: data.length } });
     return { updated: data.length };
   });
+}
+
+export async function upsertDailyAssessmentMark(
+  institutionId: string, userId: string, dailyAssessmentId: string, studentId: string,
+  marksObtained: number | null, isAbsent: boolean, scoped: DbClient
+): Promise<void> {
+  await scoped.query(
+    `insert into daily_assessment_marks (institution_id, daily_assessment_id, student_id, marks_obtained, is_absent, entered_by)
+     values ($1, $2, $3, $4, $5, $6)
+     on conflict (institution_id, daily_assessment_id, student_id)
+     do update set marks_obtained = excluded.marks_obtained, is_absent = excluded.is_absent,
+                    entered_by = excluded.entered_by, updated_at = now()`,
+    [institutionId, dailyAssessmentId, studentId, isAbsent ? null : marksObtained, isAbsent, userId]
+  );
+  await scoped.query("update daily_assessments set status = 'completed', updated_at = now() where id = $1", [dailyAssessmentId]);
+}
+
+/** §504 "Add mark entry in bulk import/export" for Daily Assessment —
+ *  resolves (and creates if needed) the specific session a bulk-imported
+ *  mark row belongs to, so the file doesn't have to reference an
+ *  examination_id the importer would have no way to know. Finds-or-creates
+ *  the monthly register for the ROW'S OWN date (via createExamination's
+ *  forDate override above, not current_date) under the institution's one
+ *  Daily Assessment exam type, then finds-or-creates the (class, subject,
+ *  date) session itself — reusing the earliest-created match if one
+ *  already exists (e.g. a prior row in the same file, or a session an
+ *  admin already added by hand) rather than creating a duplicate, same
+ *  "reuse rather than duplicate" intent as the monthly register lookup
+ *  itself. Portion/maxMarks from the row are used only when a NEW session
+ *  is created; an existing session's own values are left alone. */
+export async function getOrCreateDailyAssessmentSession(
+  institutionId: string, authUserId: string, userId: string,
+  input: { examTypeId: string; academicYearId: string; classId: string; subjectId: string; assessmentDate: string; portion: string; maxMarks: number },
+  scoped: DbClient
+): Promise<string> {
+  const register = await createExamination(institutionId, authUserId, userId, {
+    examTypeId: input.examTypeId, academicYearId: input.academicYearId, name: "Daily Assessment", forDate: input.assessmentDate,
+  }, scoped);
+
+  const { rows: existing } = await scoped.query<{ id: string }>(
+    `select id from daily_assessments
+      where examination_id = $1 and class_id = $2 and subject_id = $3 and assessment_date = $4
+      order by created_at asc limit 1`,
+    [register.id, input.classId, input.subjectId, input.assessmentDate]
+  );
+  if (existing[0]) return existing[0].id;
+
+  const created = await createDailyAssessment(institutionId, authUserId, userId, {
+    examinationId: register.id, classId: input.classId, subjectId: input.subjectId,
+    assessmentDate: input.assessmentDate, portion: input.portion, maxMarks: input.maxMarks,
+  }, scoped);
+  return created.id;
 }
 
 export interface DailyConsolidatedRow {

@@ -1,11 +1,10 @@
-import Link from "next/link";
 import AddDailyAssessmentForm, { type ClassOption, type SubjectOption } from "./AddDailyAssessmentForm";
+import DailyAssessmentRegisterTable from "./DailyAssessmentRegisterTable";
 import DailyAssessmentFilters from "./DailyAssessmentFilters";
 import type {
   DailyAssessmentRow, DailyConsolidatedRow, DailyAssessmentSubjectAnalysisRow,
   DailyAssessmentClassAnalysisRow, DailyAssessmentStudentAnalysisRow,
 } from "../../../../modules/examination/service";
-import { formatDateIST } from "../../../../services/datetime/ist";
 
 function fmt(n: string | number | null) {
   if (n === null) return "—";
@@ -49,43 +48,10 @@ export default function DailyAssessmentSection({
       <section className="overflow-hidden rounded-2xl border bg-white">
         <h2 className="px-5 pt-5 text-sm font-semibold text-[var(--heading)]">Register</h2>
         <div className="overflow-x-auto p-5 pt-3">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-              <tr>
-                <th className="py-1.5 pr-4">Date</th>
-                <th className="py-1.5 pr-4">Class</th>
-                <th className="py-1.5 pr-4">Subject</th>
-                <th className="py-1.5 pr-4">Portion</th>
-                <th className="py-1.5 pr-4">Max mark</th>
-                <th className="py-1.5 pr-4">Status</th>
-                <th className="py-1.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {entries.map((e) => (
-                <tr key={e.id}>
-                  <td className="py-1.5 pr-4">{formatDateIST(e.assessment_date)}</td>
-                  <td className="py-1.5 pr-4">{e.class_name}</td>
-                  <td className="py-1.5 pr-4">{e.subject_name}</td>
-                  <td className="py-1.5 pr-4 max-w-xs truncate" title={e.portion}>{e.portion}</td>
-                  <td className="py-1.5 pr-4">{fmt(e.max_marks)}</td>
-                  <td className="py-1.5 pr-4">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${e.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                      {e.status === "completed" ? "Completed" : "Pending"}
-                    </span>
-                  </td>
-                  <td className="py-1.5 text-right">
-                    <Link href={`/examinations/${examinationId}/daily/${e.id}`} className="text-sm text-zinc-600 underline">
-                      {e.status === "completed" ? "View marks" : "Enter marks"}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {entries.length === 0 ? (
-                <tr><td colSpan={7} className="py-4 text-center text-zinc-500">No assessments recorded yet this month.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
+          <DailyAssessmentRegisterTable
+            entries={entries} examinationId={examinationId}
+            classes={classes} subjectsByClass={subjectsByClass} allSubjects={allSubjects} canManage={canManage}
+          />
         </div>
       </section>
 

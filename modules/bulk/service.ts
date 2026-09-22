@@ -29,7 +29,7 @@ import { createStaffMember, listStaff } from "../staff/service";
 import { createBook } from "../library/service";
 import { submitAchievement, listAchievementCategories, listAchievementLevels } from "../achievements/service";
 import { createStudentLoginAccount } from "../portal/service";
-import { createExamination, listExamTypes, listExaminations } from "../examination/service";
+import { createExamination, listExamTypes, listExaminations, getOrCreateDailyAssessmentSession, upsertDailyAssessmentMark } from "../examination/service";
 import { createCalendarEvent, CALENDAR_EVENT_TYPES } from "../calendar/service";
 import { upsertTimetablePeriod } from "../substitution/service";
 
@@ -817,6 +817,127 @@ const examinationsDefinition: EntityImportDefinition = {
   },
 };
 
+/** §504 "Add mark entry in bulk import/export" for Daily Assessment — the
+ *  gap the comment at the top of this file originally flagged ("marks...
+ *  import is a documented follow-up... needs an extra selection parameter
+ *  ... beyond the generic one-file-one-entity-type shape"). Solved here by
+ *  making the row itself carry that extra parameter (date/class/subject)
+ *  instead of a separate selection step: one row = one student's mark for
+ *  one session, with the session (Register examination + daily_assessments
+ *  row) found-or-created on the fly via getOrCreateDailyAssessmentSession()
+ *  — see that function's own comment in modules/examination/service.ts.
+ *  Portion/Maximum mark only matter for a session that doesn't exist yet;
+ *  re-importing rows against an already-existing session (e.g. to correct
+ *  a mark, or add a late-arriving student) reuses that session as-is. No
+ *  same-day restriction (§506) — a Date far in the past is exactly the
+ *  "entered late" case this and the same-day removal above both exist for. */
+const dailyAssessmentMarksDefinition: EntityImportDefinition = {
+  entityType: "daily_assessment_marks",
+  label: "Daily Assessment Marks",
+  columns: [
+    { key: "assessmentDate", label: "Date (YYYY-MM-DD)", required: true },
+    { key: "className", label: "Class", required: true },
+    { key: "subjectName", label: "Subject", required: true },
+    { key: "portion", label: "Portion (only used if this session doesn't already exist)", required: true },
+    { key: "maxMarks", label: "Maximum mark (only used if this session doesn't already exist)", required: true },
+    { key: "admissionNumber", label: "Student admission number", required: true },
+    { key: "marksObtained", label: "Marks obtained (leave blank if absent)", required: false },
+    { key: "absent", label: "Absent? (yes/no)", required: false },
+  ],
+  sampleRow: {
+    assessmentDate: "2026-09-15", className: "11", subjectName: "Botany", portion: "Cell, the unit of life",
+    maxMarks: "10", admissionNumber: "2026-001", marksObtained: "8", absent: "",
+  },
+  async prepareContext(institutionId, authUserId) {
+    const [examTypes, classes, subjects, students, currentYear, academicYears] = await Promise.all([
+      listExamTypes(institutionId, authUserId),
+      listClasses(institutionId, authUserId),
+      listSubjects(institutionId, authUserId),
+      listStudents(institutionId, authUserId),
+      getCurrentAcademicYear(institutionId, authUserId),
+      listAcademicYears(institutionId, authUserId),
+    ]);
+    return {
+      dailyAssessmentExamTypeId: examTypes.find((t) => t.is_daily_assessment)?.id ?? null,
+      classesByName: new Map(classes.map((c) => [normKey(c.name), c.id])),
+      subjectsByName: new Map(subjects.map((s) => [normKey(s.name), s.id])),
+      studentsByAdmissionNumber: new Map(students.map((s) => [normKey(s.admission_number), s.id])),
+      currentAcademicYearId: currentYear?.id ?? null,
+      academicYears: academicYears as { id: string; start_date: string; end_date: string }[],
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const assessmentDate = req(raw, "assessmentDate", errors);
+    const className = req(raw, "className", errors);
+    const subjectName = req(raw, "subjectName", errors);
+    const portion = req(raw, "portion", errors);
+    const maxMarksRaw = req(raw, "maxMarks", errors);
+    const admissionNumber = req(raw, "admissionNumber", errors);
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    if (!DATE_RE.test(assessmentDate)) errors.push(`"Date" must be YYYY-MM-DD.`);
+    const maxMarks = Number(maxMarksRaw);
+    if (!Number.isFinite(maxMarks) || maxMarks <= 0) errors.push(`"Maximum mark" must be a positive number.`);
+
+    const dailyAssessmentExamTypeId = context.dailyAssessmentExamTypeId as string | null;
+    if (!dailyAssessmentExamTypeId) errors.push(`This institution has no Daily Assessment exam type — open Examinations → Create Examination once to set it up.`);
+
+    const classesByName = context.classesByName as Map<string, string>;
+    const classId = classesByName.get(normKey(className));
+    if (!classId) errors.push(`Class "${className}" was not found.`);
+
+    const subjectsByName = context.subjectsByName as Map<string, string>;
+    const subjectId = subjectsByName.get(normKey(subjectName));
+    if (!subjectId) errors.push(`Subject "${subjectName}" was not found.`);
+
+    const studentsByAdmissionNumber = context.studentsByAdmissionNumber as Map<string, string>;
+    const studentId = studentsByAdmissionNumber.get(normKey(admissionNumber));
+    if (!studentId) errors.push(`Student admission number "${admissionNumber}" was not found.`);
+
+    const absentRaw = normKey(raw.absent);
+    const isAbsent = absentRaw === "yes" || absentRaw === "y" || absentRaw === "true" || absentRaw === "1";
+    const marksObtainedRaw = (raw.marksObtained ?? "").trim();
+    let marksObtained: number | null = null;
+    if (!isAbsent) {
+      if (!marksObtainedRaw) {
+        errors.push(`"Marks obtained" is required unless "Absent" is yes.`);
+      } else {
+        marksObtained = Number(marksObtainedRaw);
+        if (!Number.isFinite(marksObtained)) errors.push(`"Marks obtained" must be a number.`);
+        else if (marksObtained < 0) errors.push(`"Marks obtained" can't be negative.`);
+        else if (Number.isFinite(maxMarks) && marksObtained > maxMarks) errors.push(`"Marks obtained" (${marksObtained}) can't exceed "Maximum mark" (${maxMarks}).`);
+      }
+    }
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    const academicYears = context.academicYears as { id: string; start_date: string; end_date: string }[];
+    const currentAcademicYearId = context.currentAcademicYearId as string | null;
+    const matchingYear = academicYears.find((y) => assessmentDate >= y.start_date && assessmentDate <= y.end_date);
+    const academicYearId = matchingYear?.id ?? currentAcademicYearId;
+    if (!academicYearId) return { status: "invalid", errors: [`No academic year covers ${assessmentDate}, and no current academic year is set — set one under Academic Setup first.`] };
+
+    return {
+      status: "valid", dedupeKey: `${assessmentDate}:${classId}:${subjectId}:${studentId}`,
+      data: {
+        examTypeId: dailyAssessmentExamTypeId, academicYearId, classId, subjectId, assessmentDate,
+        portion, maxMarks, studentId, marksObtained, isAbsent,
+      },
+    };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    const dailyAssessmentId = await getOrCreateDailyAssessmentSession(institutionId, authUserId, userId, {
+      examTypeId: data.examTypeId as string, academicYearId: data.academicYearId as string,
+      classId: data.classId as string, subjectId: data.subjectId as string,
+      assessmentDate: data.assessmentDate as string, portion: data.portion as string, maxMarks: data.maxMarks as number,
+    }, scoped);
+    await upsertDailyAssessmentMark(
+      institutionId, userId, dailyAssessmentId, data.studentId as string,
+      data.marksObtained as number | null, data.isAbsent as boolean, scoped
+    );
+  },
+};
+
 const registry: Record<string, EntityImportDefinition> = {
   classes: classesDefinition,
   sections: sectionsDefinition,
@@ -831,6 +952,7 @@ const registry: Record<string, EntityImportDefinition> = {
   calendar_events: calendarEventsDefinition,
   timetable_periods: timetablePeriodsDefinition,
   examinations: examinationsDefinition,
+  daily_assessment_marks: dailyAssessmentMarksDefinition,
 };
 
 export function listImportEntityTypes(): { entityType: string; label: string; columns: ImportColumn[] }[] {

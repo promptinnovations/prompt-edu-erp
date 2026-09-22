@@ -21,9 +21,11 @@ import { createClass, createSection, createSubject, getCurrentAcademicYear } fro
 import {
   listExamTypes, createExamination,
   createDailyAssessment, listDailyAssessments, getDailyAssessment, getDailyAssessmentMarksGrid, enterDailyAssessmentMarks,
+  updateDailyAssessment, deleteDailyAssessment, getOrCreateDailyAssessmentSession,
   getDailyAssessmentConsolidatedResult, getStudentDailyAssessmentHistory,
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
 } from "../../modules/examination/service";
+import { getDbClient as getRawDbClient } from "../../services/db/client";
 
 let institutionA: string;
 let adminAuth: string, adminUserId: string;
@@ -128,7 +130,7 @@ describe("Daily register entries (§'Date, Class, Subject, Portion, Maximum Mark
   });
 });
 
-describe("Same-day mark entry (§'Mark entry must be completed on the same day')", () => {
+describe("Mark entry, including late/backdated entry (§506 'Daily assessment marks shall be entered late also by choosing date — should be accepted')", () => {
   it("entering marks the same day flips status to completed", async () => {
     const today = new Date().toISOString().slice(0, 10);
     const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
@@ -147,16 +149,59 @@ describe("Same-day mark entry (§'Mark entry must be completed on the same day')
     expect(after?.status).toBe("completed");
   });
 
-  it("rejects mark entry once the assessment date has passed", async () => {
+  it("accepts mark entry once the assessment date has passed — the old same-day restriction is gone", async () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
       examinationId, classId, subjectId, assessmentDate: yesterday, portion: "Backfill attempt", maxMarks: 20,
     });
-    await expect(
-      enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [
-        { studentId: student1, marksObtained: 10, isAbsent: false },
-      ])
-    ).rejects.toThrow(/same day/);
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [
+      { studentId: student1, marksObtained: 10, isAbsent: false },
+    ]);
+    const after = await getDailyAssessment(institutionA, adminAuth, entry.id);
+    expect(after?.status).toBe("completed");
+    const grid = await getDailyAssessmentMarksGrid(institutionA, adminAuth, entry.id);
+    expect(grid.find((g) => g.student_id === student1)?.marks_obtained).toBe("10.00");
+  });
+});
+
+describe("getOrCreateDailyAssessmentSession() (§504 bulk import support — resolves/creates the register + session for a row's own date)", () => {
+  it("creates a new session (and, if needed, a new monthly register) for a backdated date, reusing it on a second call", async () => {
+    const db = await getRawDbClient();
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const dailyType = examTypes.find((t) => t.is_daily_assessment)!;
+    // A date in a past month relative to "today" in this test run, so this
+    // exercises forDate's month math rather than reusing the beforeAll
+    // examination fixture (which is always "this" month).
+    const pastMonthDate = "2020-03-15";
+
+    const sessionId = await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, async (scoped) => {
+      return getOrCreateDailyAssessmentSession(institutionA, adminAuth, adminUserId, {
+        examTypeId: dailyType.id, academicYearId: year!.id, classId, subjectId,
+        assessmentDate: pastMonthDate, portion: "Imported portion", maxMarks: 10,
+      }, scoped);
+    });
+    expect(sessionId).toBeTruthy();
+
+    const first = await getDailyAssessment(institutionA, adminAuth, sessionId);
+    expect(first?.assessment_date).toBe(pastMonthDate);
+    expect(first?.portion).toBe("Imported portion");
+    // Its register is its OWN month's, not the current month's fixture examination.
+    expect(first?.examination_id).not.toBe(examinationId);
+
+    // A second call for the exact same (class, subject, date) reuses the
+    // same session rather than creating a duplicate — this is what lets
+    // multiple bulk-import rows (one per student) for the same day share
+    // one session.
+    const sessionId2 = await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, async (scoped) => {
+      return getOrCreateDailyAssessmentSession(institutionA, adminAuth, adminUserId, {
+        examTypeId: dailyType.id, academicYearId: year!.id, classId, subjectId,
+        assessmentDate: pastMonthDate, portion: "Ignored — session already exists", maxMarks: 999,
+      }, scoped);
+    });
+    expect(sessionId2).toBe(sessionId);
+    const second = await getDailyAssessment(institutionA, adminAuth, sessionId);
+    expect(second?.portion).toBe("Imported portion"); // unchanged — existing session's own values win
   });
 });
 
@@ -212,3 +257,69 @@ describe("Monthly analysis (§'student-wise, subject-wise and class-wise... port
     expect(row.avg_percent).toBeGreaterThan(0);
   });
 });
+
+describe("Re-entering marks (§506 follow-up)", () => {
+  it("re-entering (correcting) marks any number of times keeps upserting rather than duplicating", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId, classId, subjectId, assessmentDate: today, portion: "Correction check", maxMarks: 20,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [{ studentId: student1, marksObtained: 12, isAbsent: false }]);
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [{ studentId: student1, marksObtained: 17, isAbsent: false }]);
+    const grid = await getDailyAssessmentMarksGrid(institutionA, adminAuth, entry.id);
+    const rows = grid.filter((g) => g.student_id === student1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].marks_obtained).toBe("17.00");
+  });
+});
+
+describe("§505 'entered daily assessment should be editable and removable'", () => {
+  it("updateDailyAssessment() edits portion, max marks and date without touching other fields", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId, classId, subjectId, assessmentDate: today, portion: "sell the unit of life", maxMarks: 10,
+    });
+    const updated = await updateDailyAssessment(institutionA, adminAuth, adminUserId, entry.id, { portion: "Cell, the unit of life", maxMarks: 15 });
+    expect(updated.portion).toBe("Cell, the unit of life");
+    expect(updated.max_marks).toBe("15.00");
+    expect(updated.class_id).toBe(classId); // untouched fields stay as they were
+    expect(updated.subject_id).toBe(subjectId);
+  });
+
+  it("updateDailyAssessment() still works on a session that already has marks entered", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId, classId, subjectId, assessmentDate: today, portion: "Typo portion", maxMarks: 20,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [{ studentId: student1, marksObtained: 18, isAbsent: false }]);
+    const updated = await updateDailyAssessment(institutionA, adminAuth, adminUserId, entry.id, { portion: "Fixed portion" });
+    expect(updated.portion).toBe("Fixed portion");
+    expect(updated.status).toBe("completed"); // editing the row doesn't reset marks already entered
+  });
+
+  it("updateDailyAssessment() throws for an entry that doesn't exist", async () => {
+    await expect(
+      updateDailyAssessment(institutionA, adminAuth, adminUserId, "00000000-0000-0000-0000-000000000000", { portion: "x" })
+    ).rejects.toThrow(/not found/);
+  });
+
+  it("deleteDailyAssessment() removes the row, cascading any marks already entered for it", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId, classId, subjectId, assessmentDate: today, portion: "To be deleted", maxMarks: 20,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [{ studentId: student1, marksObtained: 5, isAbsent: false }]);
+
+    await deleteDailyAssessment(institutionA, adminAuth, adminUserId, entry.id);
+    expect(await getDailyAssessment(institutionA, adminAuth, entry.id)).toBeNull();
+    const list = await listDailyAssessments(institutionA, adminAuth, examinationId);
+    expect(list.find((e) => e.id === entry.id)).toBeUndefined();
+  });
+
+  it("deleteDailyAssessment() throws for an entry that doesn't exist", async () => {
+    await expect(
+      deleteDailyAssessment(institutionA, adminAuth, adminUserId, "00000000-0000-0000-0000-000000000000")
+    ).rejects.toThrow(/not found/);
+  });
+});
+

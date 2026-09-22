@@ -7,7 +7,7 @@ import {
   createExamination, updateExamination, deleteExamination,
   addExamSubject, addExamClass, removeExamClass, removeExamSubject,
   enterMarks, deleteMark, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks, computeResults,
-  createDailyAssessment, enterDailyAssessmentMarks,
+  createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment,
 } from "../../../modules/examination/service";
 
 export async function createExaminationAction(_prevState: { error: string | null }, formData: FormData) {
@@ -319,6 +319,47 @@ export async function createDailyAssessmentAction(_prevState: { error: string | 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to add the day's assessment." };
+  }
+}
+
+export async function updateDailyAssessmentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const dailyAssessmentId = String(formData.get("dailyAssessmentId") ?? "");
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "marks.enter");
+    const classId = String(formData.get("classId") ?? "");
+    const subjectId = String(formData.get("subjectId") ?? "");
+    const assessmentDate = String(formData.get("assessmentDate") ?? "");
+    const portion = String(formData.get("portion") ?? "");
+    const maxMarksRaw = formData.get("maxMarks");
+    await updateDailyAssessment(ctx.institutionId, ctx.session.authUserId, ctx.userId, dailyAssessmentId, {
+      classId: classId || undefined,
+      subjectId: subjectId || undefined,
+      assessmentDate: assessmentDate || undefined,
+      portion: portion || undefined,
+      maxMarks: maxMarksRaw ? Number(maxMarksRaw) : undefined,
+    });
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update this entry." };
+  }
+}
+
+export async function deleteDailyAssessmentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const dailyAssessmentId = String(formData.get("dailyAssessmentId") ?? "");
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "marks.enter");
+    await deleteDailyAssessment(ctx.institutionId, ctx.session.authUserId, ctx.userId, dailyAssessmentId);
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to delete this entry." };
   }
 }
 

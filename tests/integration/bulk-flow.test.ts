@@ -14,9 +14,9 @@ import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
-import { createClass, createSection, listClasses, listSections, getCurrentAcademicYear } from "../../modules/academic/service";
+import { createClass, createSection, createSubject, listClasses, listSections, getCurrentAcademicYear } from "../../modules/academic/service";
 import { createStudent, listStudents, enrollStudent, getCurrentEnrollment } from "../../modules/students/service";
-import { listExamTypes, listExaminations } from "../../modules/examination/service";
+import { listExamTypes, listExaminations, listDailyAssessments } from "../../modules/examination/service";
 import {
   generateImportTemplate, stageImport, confirmImport, listRecentImportBatches,
   exportRows, exportDefinitions, listImportEntityTypes,
@@ -51,6 +51,13 @@ beforeAll(async () => {
   await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 7", sortOrder: 7 });
   await createSection(institutionA, adminAuth, adminUserId, { classId: grade6.id, name: "A" });
   await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "EXIST-1", fullName: "Existing Student" });
+  await createSubject(institutionA, adminAuth, adminUserId, { name: "Botany" });
+  const bulkYear = await getCurrentAcademicYear(institutionA, adminAuth);
+  await enrollStudent(institutionA, adminAuth, adminUserId, {
+    studentId: (await listStudents(institutionA, adminAuth)).find((s) => s.admission_number === "EXIST-1")!.id,
+    classId: grade6.id, sectionId: (await listSections(institutionA, adminAuth)).find((s) => s.class_id === grade6.id)!.id,
+    academicYearId: bulkYear!.id,
+  });
   // "Sports Meet" / "District" are already seeded by seedDemoInstitution()
   // (database/scripts/seed.ts) -- reuse them rather than colliding with the
   // seed's own unique-name constraints.
@@ -66,8 +73,8 @@ describe("Import entity catalogue + templates (§Q.1, §Q.3)", () => {
   it("listImportEntityTypes() exposes the v1 target entities", () => {
     const types = listImportEntityTypes().map((t) => t.entityType).sort();
     expect(types).toEqual(
-      ["achievements", "calendar_events", "classes", "enrollments", "examinations", "library_books", "parents", "sections", "staff",
-        "student_logins", "students", "subjects", "timetable_periods"].sort()
+      ["achievements", "calendar_events", "classes", "daily_assessment_marks", "enrollments", "examinations", "library_books", "parents",
+        "sections", "staff", "student_logins", "students", "subjects", "timetable_periods"].sort()
     );
   });
 
@@ -323,6 +330,59 @@ describe("Examinations bulk import (§'bulk upload - add exam' follow-up)", () =
     });
     expect(again.rows[0].status).toBe("invalid");
     expect(again.rows[0].errors[0]).toMatch(/already exists/);
+  });
+});
+
+describe("Daily Assessment Marks bulk import (§504 'Add mark entry in bulk import/export')", () => {
+  it("creates a new session from the first row, reuses it for a second student, resolves a backdated date's own month, and rejects a bad admission number", async () => {
+    const file = xlsxToCsvLikeRows(
+      ["Date (YYYY-MM-DD)", "Class", "Subject", "Portion (only used if this session doesn't already exist)",
+       "Maximum mark (only used if this session doesn't already exist)", "Student admission number",
+       "Marks obtained (leave blank if absent)", "Absent? (yes/no)"],
+      [
+        ["2021-02-10", "Grade 6", "Botany", "Cell, the unit of life", "10", "EXIST-1", "8", ""], // valid, creates the session
+        ["2021-02-10", "Grade 6", "Botany", "ignored — session already exists", "999", "NOT-A-REAL-ADM", "5", ""], // invalid: bad admission number
+        ["2021-02-10", "Grade 6", "Botany", "ignored", "10", "EXIST-1", "", "yes"], // valid, absent (dedupe key collides w/ row 1 — flagged duplicate)
+      ]
+    );
+    const result = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "daily_assessment_marks", filename: "daily-marks.csv", fileBuffer: file, format: "csv",
+    });
+    expect(result.rows[0].status).toBe("valid");
+    expect(result.rows[1].status).toBe("invalid");
+    expect(result.rows[1].errors[0]).toMatch(/admission number .* was not found/);
+    expect(result.rows[2].status).toBe("duplicate");
+
+    const confirmed = await confirmImport(institutionA, adminAuth, adminUserId, result.batchId);
+    expect(confirmed.importedRows).toBe(1);
+
+    const student = (await listStudents(institutionA, adminAuth)).find((s) => s.admission_number === "EXIST-1")!;
+    const grade6 = (await listClasses(institutionA, adminAuth)).find((c) => c.name === "Grade 6")!;
+    // The session landed in FEBRUARY 2021's register (the row's own date), not the
+    // current month's — see getOrCreateDailyAssessmentSession()'s own comment.
+    const created = await listExaminations(institutionA, adminAuth);
+    const feb2021Register = created.find((e) => e.name === "Daily Assessment — February 2021");
+    expect(feb2021Register).toBeTruthy();
+
+    const sessions = await listDailyAssessments(institutionA, adminAuth, feb2021Register!.id, grade6.id);
+    expect(sessions).toHaveLength(1); // exactly one session, not two — row 1 created it
+    expect(sessions[0].portion).toBe("Cell, the unit of life");
+    expect(sessions[0].status).toBe("completed");
+    void student;
+  });
+
+  it("marks obtained above the row's own max marks is invalid", async () => {
+    const file = xlsxToCsvLikeRows(
+      ["Date (YYYY-MM-DD)", "Class", "Subject", "Portion (only used if this session doesn't already exist)",
+       "Maximum mark (only used if this session doesn't already exist)", "Student admission number",
+       "Marks obtained (leave blank if absent)", "Absent? (yes/no)"],
+      [["2021-05-01", "Grade 6", "Botany", "Over-limit check", "10", "EXIST-1", "50", ""]]
+    );
+    const result = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "daily_assessment_marks", filename: "daily-marks-overlimit.csv", fileBuffer: file, format: "csv",
+    });
+    expect(result.rows[0].status).toBe("invalid");
+    expect(result.rows[0].errors[0]).toMatch(/can't exceed/);
   });
 });
 
