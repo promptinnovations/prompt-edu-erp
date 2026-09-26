@@ -12,14 +12,14 @@ import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
-import { createClass, createSection, createSubject, getCurrentAcademicYear } from "../../modules/academic/service";
+import { createClass, createSection, createSubject, getCurrentAcademicYear, assignSubjectToClass } from "../../modules/academic/service";
 import { createStudent } from "../../modules/students/service";
 import {
   listExamTypes, createExamination, updateExamination, deleteExamination, getExamination,
   addExamClass, addExamSubject,
   getMarksGrid, enterMarks, deleteMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   correctMark, computeResults, getResults, listStudentResultHistory,
-  getExaminationMarksMatrix, getCumulativeMarksheet,
+  getExaminationMarksMatrix, getCumulativeMarksheet, getMarkEntryStatus,
 } from "../../modules/examination/service";
 
 let institutionA: string;
@@ -373,5 +373,75 @@ describe("getCumulativeMarksheet() (§491 'Consolidated Mark Sheet ... cumulativ
     const crossTenant = await getCumulativeMarksheet(institutionB, adminB.authUserId, year!.id);
     expect(crossTenant.rows).toEqual([]);
     expect(crossTenant.examinations).toEqual([]);
+  });
+});
+
+
+describe("§CS.1 \"are the subjects allocated class wise?\" -- class_subjects gates the marks-entry roster", () => {
+  it("a subject only assigned to one class's class_subjects excludes students from a sibling class in the same exam scope, while a class with no class_subjects configured at all still gets every subject (back-compat fallback)", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+
+    // Two sibling classes: Grade 7 gets an explicit class_subjects row for
+    // "Science" (so it's "configured" and therefore gated); Grade 8 gets
+    // no class_subjects rows at all (so it stays ungated, matching every
+    // institution that hasn't set up class_subjects yet).
+    const grade7 = await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 7 (CS.1)", sortOrder: 90 });
+    const grade8 = await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 8 (CS.1)", sortOrder: 91 });
+    const grade7Section = await createSection(institutionA, adminAuth, adminUserId, { classId: grade7.id, name: "A" });
+    const grade8Section = await createSection(institutionA, adminAuth, adminUserId, { classId: grade8.id, name: "A" });
+    const science = await createSubject(institutionA, adminAuth, adminUserId, { name: "Science (CS.1)" });
+    const art = await createSubject(institutionA, adminAuth, adminUserId, { name: "Art (CS.1)" });
+
+    // Grade 7 explicitly teaches Science only (no class_subjects row for Art).
+    await assignSubjectToClass(institutionA, adminAuth, adminUserId, { classId: grade7.id, subjectId: science.id, isCore: true });
+
+    const g7Student = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "CS1-1", fullName: "Grade7 Student" });
+    const g8Student = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "CS1-2", fullName: "Grade8 Student" });
+
+    const db = await getDbClient();
+    await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, async (scoped) => {
+      await scoped.query(
+        `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id) values ($1, $2, $3, $4, $5)`,
+        [institutionA, g7Student.id, year!.id, grade7.id, grade7Section.id]
+      );
+      await scoped.query(
+        `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id) values ($1, $2, $3, $4, $5)`,
+        [institutionA, g8Student.id, year!.id, grade8.id, grade8Section.id]
+      );
+    });
+
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+    const exam = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: year!.id, name: "CS.1 Half Yearly",
+    });
+    await addExamClass(institutionA, adminAuth, exam.id, grade7.id);
+    await addExamClass(institutionA, adminAuth, exam.id, grade8.id);
+    const scienceExamSubject = await addExamSubject(institutionA, adminAuth, adminUserId, {
+      examinationId: exam.id, subjectId: science.id, maxMarks: 100, passMarks: 35,
+    });
+    const artExamSubject = await addExamSubject(institutionA, adminAuth, adminUserId, {
+      examinationId: exam.id, subjectId: art.id, maxMarks: 100, passMarks: 35,
+    });
+
+    // Science: Grade 7 has an explicit class_subjects row for it, so its
+    // student appears. Grade 8 has zero class_subjects rows at all, so it
+    // falls back to "ungated" and its student appears too.
+    const scienceGrid = await getMarksGrid(institutionA, adminAuth, scienceExamSubject.id);
+    expect(scienceGrid.map((r) => r.student_id).sort()).toEqual([g7Student.id, g8Student.id].sort());
+
+    // Art: Grade 7 IS configured (has a class_subjects row for Science) but
+    // has no row for Art specifically -> excluded. Grade 8 is still
+    // unconfigured -> still falls back to included.
+    const artGrid = await getMarksGrid(institutionA, adminAuth, artExamSubject.id);
+    expect(artGrid.map((r) => r.student_id)).toEqual([g8Student.id]);
+    expect(artGrid.some((r) => r.student_id === g7Student.id)).toBe(false);
+
+    // getMarkEntryStatus()'s "expected" counts must reflect the same gate.
+    const status = await getMarkEntryStatus(institutionA, adminAuth, exam.id);
+    const scienceStatus = status.find((s) => s.exam_subject_id === scienceExamSubject.id)!;
+    const artStatus = status.find((s) => s.exam_subject_id === artExamSubject.id)!;
+    expect(scienceStatus.expected).toBe(2);
+    expect(artStatus.expected).toBe(1);
   });
 });

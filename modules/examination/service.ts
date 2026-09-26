@@ -749,6 +749,15 @@ export async function getMarkEntryStatus(institutionId: string, authUserId: stri
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
         where es.examination_id = $1
+          -- §CS.1 "are the subjects allocated class wise?" -- a class only counts
+          -- toward a subject's expected roster if class_subjects actually links
+          -- that class to that subject. A class with NO class_subjects rows at
+          -- all (never configured) falls back to "counts for every subject" so
+          -- institutions that haven't set up class_subjects keep prior behavior.
+          and (
+            not exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id)
+            or exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id and cs2.subject_id = es.subject_id)
+          )
         group by es.id, sub.name, es.max_marks, es.pass_marks
         order by sub.name`,
       [examinationId]
@@ -777,6 +786,14 @@ export async function getMarksGrid(institutionId: string, authUserId: string, ex
          left join sections sec on sec.id = se.section_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = s.id
         where es.id = $1
+          -- §CS.1 same class_subjects gate as getMarkEntryStatus() above -- a
+          -- student's class must actually teach this subject (per class_subjects)
+          -- to appear on the marks-entry grid, unless that class has no
+          -- class_subjects rows configured at all (then it's ungated, same as before).
+          and (
+            not exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id)
+            or exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id and cs2.subject_id = es.subject_id)
+          )
         group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name, m.id, m.marks_obtained, m.is_absent, m.entry_status`,
       [examSubjectId]
     );

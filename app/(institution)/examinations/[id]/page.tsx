@@ -86,17 +86,40 @@ export default async function ExaminationDetailPage({
     );
   }
 
-  const [examSubjects, examClasses, subjects, classes, sections, results] = await Promise.all([
+  const [examSubjects, examClasses, subjects, classes, sections, results, classSubjects] = await Promise.all([
     listExamSubjects(institutionId, authUserId, id),
     listExamClasses(institutionId, authUserId, id),
     listSubjects(institutionId, authUserId),
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     getResults(institutionId, authUserId, id),
+    listClassSubjects(institutionId, authUserId),
   ]);
 
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
   const examTypeName = examType?.name ?? "—";
+
+  // §CS.1 "are the subjects allocated class wise?" -- the add-subject
+  // checklist below used to offer every subject in the institution
+  // regardless of the exam's confirmed classes, which is how a Class 1
+  // exam ended up offering Class 11-only subjects like Fiqh. Narrow it to
+  // subjects actually taught (per class_subjects) by at least one of this
+  // exam's scoped classes -- same class_subjects gate getMarksGrid() and
+  // getMarkEntryStatus() apply server-side, and same fallback: a class with
+  // zero class_subjects rows configured at all doesn't narrow anything (so
+  // institutions that haven't set up class_subjects keep seeing every
+  // subject, same as before this fix).
+  const subjectIdsByClass = new Map<string, Set<string>>();
+  for (const cs of classSubjects) {
+    const set = subjectIdsByClass.get(cs.class_id) ?? new Set<string>();
+    set.add(cs.subject_id);
+    subjectIdsByClass.set(cs.class_id, set);
+  }
+  const scopedClassIds = [...new Set(examClasses.map((ec) => ec.class_id))];
+  const hasUnconfiguredScopedClass = scopedClassIds.some((cid) => !subjectIdsByClass.has(cid));
+  const eligibleSubjects = scopedClassIds.length === 0 || hasUnconfiguredScopedClass
+    ? subjects
+    : subjects.filter((s) => scopedClassIds.some((cid) => subjectIdsByClass.get(cid)?.has(s.id)));
 
   // §418 "confirm scope of exam, section, grade, division — make user
   // friendly": classes grouped with their own divisions, for the
@@ -149,7 +172,7 @@ export default async function ExaminationDetailPage({
       <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">2. Subjects &amp; total marks</h2>
         <p className="mb-3 text-xs text-zinc-500">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
-        <ExamSubjectsSection examinationId={id} subjects={subjects} linked={linkedSubjects} />
+        <ExamSubjectsSection examinationId={id} subjects={eligibleSubjects} linked={linkedSubjects} />
       </section>
 
       <section className="rounded-card border bg-white p-5">
