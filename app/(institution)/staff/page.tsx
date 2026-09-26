@@ -40,6 +40,18 @@ export default async function StaffPage({
   // instead (MyAttendanceSection there).
   const canManageStaffAttendance = can(ctx.permissions, "attendance.edit");
 
+  // §"restrict staff detail visibility": "most of the data should be
+  // visible for principal and management like attendance, portion plans
+  // and its compliance, personal profile etc [but a plain teacher should
+  // see NEITHER other staff members' personal/attendance/leave data]".
+  // staff.edit is the existing "management-tier, sees/manages every staff
+  // member" signal (held by institution_admin + the management role,
+  // per database/scripts/seed.ts's roleGrants — a plain teacher/section_head/
+  // support-staff role only ever holds staff.view). Reused here rather than
+  // adding a new permission, matching the app's existing convention of one
+  // "unrestricted" signal per module (marks.approve, attendance.edit, etc.).
+  const canViewAllStaff = can(ctx.permissions, "staff.edit") || ctx.isSuperAdmin;
+
   const [staff, statuses, classes, sections, subjects, academicYear, portionPlans, observations, assignments, sectionHeadAssignments, distinctStages] = await Promise.all([
     listStaff(institutionId, authUserId),
     listAttendanceStatuses(institutionId, authUserId),
@@ -57,6 +69,15 @@ export default async function StaffPage({
     ? await getStaffAttendanceGrid(institutionId, authUserId, effectiveDate)
     : [];
 
+  // A plain staff member only ever sees their OWN directory row, portion
+  // plans, and observations -- never a colleague's personal profile,
+  // portion-plan compliance, or observation notes. Principal/management
+  // (canViewAllStaff) see everyone's, unrestricted, exactly as before.
+  const myStaffId = staff.find((s) => s.user_id === ctx.userId)?.id;
+  const visibleStaff = canViewAllStaff ? staff : staff.filter((s) => s.user_id === ctx.userId);
+  const visiblePortionPlans = canViewAllStaff ? portionPlans : portionPlans.filter((p) => p.teacher_id === myStaffId);
+  const visibleObservations = canViewAllStaff ? observations : observations.filter((o) => o.teacher_id === myStaffId);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Staff</h1>
@@ -67,6 +88,11 @@ export default async function StaffPage({
           <div className="mb-4">
             <AddStaffForm roleOptions={["teacher", "management", "librarian", "staff"]} />
           </div>
+        ) : null}
+        {!canViewAllStaff ? (
+          <p className="mb-3 text-xs text-zinc-500">
+            Showing your own record only — colleagues&apos; personal/profile details are visible to the principal and management.
+          </p>
         ) : null}
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -82,7 +108,7 @@ export default async function StaffPage({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {staff.map((s) => (
+            {visibleStaff.map((s) => (
               <tr key={s.id}>
                 <td className="py-1.5">{s.staff_code}</td>
                 <td className="py-1.5">{s.full_name}</td>
@@ -95,7 +121,7 @@ export default async function StaffPage({
                 </td>
               </tr>
             ))}
-            {staff.length === 0 ? (
+            {visibleStaff.length === 0 ? (
               <tr><td colSpan={7} className="py-4 text-center text-zinc-500">No staff members yet.</td></tr>
             ) : null}
           </tbody>
@@ -135,9 +161,12 @@ export default async function StaffPage({
 
       <section id="portion-plans" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Portion plans (§D.12)</h2>
+        {!canViewAllStaff ? (
+          <p className="mb-3 text-xs text-zinc-500">Showing your own portion plans only.</p>
+        ) : null}
         {academicYear ? (
           <PortionPlanSection
-            plans={portionPlans}
+            plans={visiblePortionPlans}
             classes={classes}
             subjects={subjects}
             teachers={staff.map((s) => ({ id: s.id, full_name: s.full_name }))}
@@ -151,9 +180,12 @@ export default async function StaffPage({
 
       <section id="teacher-observations" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Teacher observations</h2>
+        {!canViewAllStaff ? (
+          <p className="mb-3 text-xs text-zinc-500">Showing observations recorded about you only.</p>
+        ) : null}
         <TeacherObservationForm
           teachers={staff.map((s) => ({ id: s.id, full_name: s.full_name }))}
-          observations={observations}
+          observations={visibleObservations}
           canManage={can(ctx.permissions, "staff.observation.manage")}
         />
       </section>

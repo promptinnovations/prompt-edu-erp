@@ -61,6 +61,17 @@ export default async function StaffDetailPage({
   // staff.edit-only regardless of ownership -- see EditStaffForm below.
   const isOwnProfile = profile.user_id === ctx.userId;
   const canEditSelfFields = canManage || isOwnProfile;
+  // §"restrict staff detail visibility": personal profile fields (email,
+  // joining date, employment status, ...) and the teacher-only exam-
+  // analysis/observations history are for the principal/management
+  // (staff.edit) or the person themselves -- a plain teacher opening a
+  // colleague's profile shouldn't see any of it, just the name/designation
+  // already shown in the header above. Section Heads keep the scoped
+  // exam-analysis/observations visibility they already had (§Teacher-
+  // Profile follow-up "Principal + Section Heads, scoped") since that's a
+  // narrower, job-specific view, not a general personal-profile leak.
+  const canViewFullProfile = canManage || isOwnProfile;
+  const canViewTeacherDetail = canViewFullProfile || can(ctx.permissions, "staff.observation.manage_section");
   const photoUrl = profile.photo_file_id ? `/api/files/${profile.photo_file_id}` : null;
 
   const header = (
@@ -109,51 +120,57 @@ export default async function StaffDetailPage({
       ) : null}
 
         <div className="space-y-6">
-          <div className="rounded-card border bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
-            <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-zinc-500">Staff ID</dt>
-                <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
-              </div>
-              <div>
-                <dt className="text-zinc-500">Designation</dt>
-                <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-zinc-500">Department</dt>
-                <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-zinc-500">Joining date</dt>
-                <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
-              </div>
-              <div>
-                <dt className="text-zinc-500">Employment status</dt>
-                <dd className="mt-0.5 capitalize text-zinc-900">{profile.employment_status.replace("_", " ")}</dd>
-              </div>
-              <div>
-                <dt className="text-zinc-500">Email</dt>
-                <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
-              </div>
-            </dl>
-            {canManage ? (
-              <div className="mt-3">
-                <EditStaffForm
-                  staffId={profile.id}
-                  staffCode={profile.staff_code}
-                  fullName={profile.full_name}
-                  designation={profile.designation}
-                  department={profile.department}
-                  employmentStatus={profile.employment_status}
-                />
-              </div>
-            ) : null}
-            <p className="mt-4 text-xs text-zinc-500">
-              Exam analysis and observation tracking apply only to teaching staff — assign this person a subject via Staff &gt; Teacher
-              assignments to enable those.
+          {canViewFullProfile ? (
+            <div className="rounded-card border bg-white p-5">
+              <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
+              <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+                <div>
+                  <dt className="text-zinc-500">Staff ID</dt>
+                  <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-500">Designation</dt>
+                  <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-500">Department</dt>
+                  <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-500">Joining date</dt>
+                  <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-500">Employment status</dt>
+                  <dd className="mt-0.5 capitalize text-zinc-900">{profile.employment_status.replace("_", " ")}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-500">Email</dt>
+                  <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
+                </div>
+              </dl>
+              {canManage ? (
+                <div className="mt-3">
+                  <EditStaffForm
+                    staffId={profile.id}
+                    staffCode={profile.staff_code}
+                    fullName={profile.full_name}
+                    designation={profile.designation}
+                    department={profile.department}
+                    employmentStatus={profile.employment_status}
+                  />
+                </div>
+              ) : null}
+              <p className="mt-4 text-xs text-zinc-500">
+                Exam analysis and observation tracking apply only to teaching staff — assign this person a subject via Staff &gt; Teacher
+                assignments to enable those.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-500">
+              Full profile details are visible to the principal and management.
             </p>
-          </div>
+          )}
 
           {canEditSelfFields ? (
             <div className="rounded-card border bg-white p-5">
@@ -168,16 +185,20 @@ export default async function StaffDetailPage({
     );
   }
 
-  const [criteria, observations, examinations] = await Promise.all([
-    listObservationCriteria(institutionId, authUserId),
-    listTeacherObservations(institutionId, authUserId, profile.id),
-    listExaminations(institutionId, authUserId),
-  ]);
+  const [criteria, observations, examinations] = canViewTeacherDetail
+    ? await Promise.all([
+        listObservationCriteria(institutionId, authUserId),
+        listTeacherObservations(institutionId, authUserId, profile.id),
+        listExaminations(institutionId, authUserId),
+      ])
+    : [[], [], []];
   const selectedExamId = examId || examinations[0]?.id || null;
-  const [report, trend] = await Promise.all([
-    selectedExamId ? getTeacherExamReport(institutionId, authUserId, profile.user_id, selectedExamId) : Promise.resolve(null),
-    getTeacherPerformanceTrend(institutionId, authUserId, profile.user_id),
-  ]);
+  const [report, trend] = canViewTeacherDetail
+    ? await Promise.all([
+        selectedExamId ? getTeacherExamReport(institutionId, authUserId, profile.user_id, selectedExamId) : Promise.resolve(null),
+        getTeacherPerformanceTrend(institutionId, authUserId, profile.user_id),
+      ])
+    : [null, []];
 
   const canRecordObservation = can(ctx.permissions, "staff.observation.manage") || can(ctx.permissions, "staff.observation.manage_section");
   const canManageRubric = can(ctx.permissions, "staff.observation.manage");
@@ -188,47 +209,53 @@ export default async function StaffDetailPage({
 
   const profileTab = (
     <div className="space-y-6">
-      <div className="rounded-card border bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
-        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-          <div>
-            <dt className="text-zinc-500">Staff ID</dt>
-            <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Joining date</dt>
-            <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Designation</dt>
-            <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Department / section</dt>
-            <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
-          </div>
-          <div className="col-span-2 sm:col-span-4">
-            <dt className="text-zinc-500">Classes &amp; subjects handled</dt>
-            <dd className="mt-0.5 text-zinc-900">{classesSubjectsHandled || "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Email</dt>
-            <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
-          </div>
-        </dl>
-        {canManage ? (
-          <div className="mt-3">
-            <EditStaffForm
-              staffId={profile.id}
-              staffCode={profile.staff_code}
-              fullName={profile.full_name}
-              designation={profile.designation}
-              department={profile.department}
-              employmentStatus={profile.employment_status}
-            />
-          </div>
-        ) : null}
-      </div>
+      {canViewFullProfile ? (
+        <div className="rounded-card border bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Core identity &amp; employment</h2>
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+            <div>
+              <dt className="text-zinc-500">Staff ID</dt>
+              <dd className="mt-0.5 text-zinc-900">{profile.staff_code}</dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">Joining date</dt>
+              <dd className="mt-0.5 text-zinc-900">{formatDate(profile.joining_date)}</dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">Designation</dt>
+              <dd className="mt-0.5 text-zinc-900">{profile.designation ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">Department / section</dt>
+              <dd className="mt-0.5 text-zinc-900">{profile.department ?? "—"}</dd>
+            </div>
+            <div className="col-span-2 sm:col-span-4">
+              <dt className="text-zinc-500">Classes &amp; subjects handled</dt>
+              <dd className="mt-0.5 text-zinc-900">{classesSubjectsHandled || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">Email</dt>
+              <dd className="mt-0.5 text-zinc-900">{profile.email ?? "—"}</dd>
+            </div>
+          </dl>
+          {canManage ? (
+            <div className="mt-3">
+              <EditStaffForm
+                staffId={profile.id}
+                staffCode={profile.staff_code}
+                fullName={profile.full_name}
+                designation={profile.designation}
+                department={profile.department}
+                employmentStatus={profile.employment_status}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className="text-sm text-zinc-500">
+          Full profile details are visible to the principal and management.
+        </p>
+      )}
 
       {canEditSelfFields ? (
         <div className="rounded-card border bg-white p-5">
@@ -265,22 +292,31 @@ export default async function StaffDetailPage({
       ) : null}
 
       <ProfileTabs
-        tabs={[
-          { id: "profile", label: "Profile" },
-          { id: "results", label: "Exam Results" },
-          { id: "observations", label: "Observations" },
-        ]}
+        tabs={
+          canViewTeacherDetail
+            ? [
+                { id: "profile", label: "Profile" },
+                { id: "results", label: "Exam Results" },
+                { id: "observations", label: "Observations" },
+              ]
+            : [{ id: "profile", label: "Profile" }]
+        }
         initialTab={tab}
       >
-        {profileTab}
-        <ExamResultsSection examinations={examinations} selectedExamId={selectedExamId} report={report} trend={trend} />
-        <ObservationsSection
-          teacherId={profile.id}
-          criteria={criteria}
-          observations={observations}
-          canRecord={canRecordObservation}
-          canManageRubric={canManageRubric}
-        />
+        {canViewTeacherDetail
+          ? [
+              profileTab,
+              <ExamResultsSection key="results" examinations={examinations} selectedExamId={selectedExamId} report={report} trend={trend} />,
+              <ObservationsSection
+                key="observations"
+                teacherId={profile.id}
+                criteria={criteria}
+                observations={observations}
+                canRecord={canRecordObservation}
+                canManageRubric={canManageRubric}
+              />,
+            ]
+          : [profileTab]}
       </ProfileTabs>
     </div>
   );
