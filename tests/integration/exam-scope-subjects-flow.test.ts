@@ -78,8 +78,8 @@ beforeAll(async () => {
   science = (await createSubject(inst, adminAuth, adminUserId, { name: "SC Science" })).id;
   hindi = (await createSubject(inst, adminAuth, adminUserId, { name: "SC Hindi" })).id;
   // Grade 1 is taught Malayalam + Maths; Grade 5 is taught Maths + Science + Hindi.
-  for (const s of [malayalam, maths]) await assignSubjectToClass(inst, adminAuth, adminUserId, { classId: lp1, subjectId: s });
-  for (const s of [maths, science, hindi]) await assignSubjectToClass(inst, adminAuth, adminUserId, { classId: up5, subjectId: s });
+  for (const s of [malayalam, maths]) await assignSubjectToClass(inst, adminAuth, adminUserId, { classId: lp1, subjectId: s, isCore: true });
+  for (const s of [maths, science, hindi]) await assignSubjectToClass(inst, adminAuth, adminUserId, { classId: up5, subjectId: s, isCore: true });
 
   for (let i = 0; i < 2; i++) {
     const s = (await createStudent(inst, adminAuth, adminUserId, { admissionNumber: `SC1-${i}`, fullName: `SC One ${i}` })).id;

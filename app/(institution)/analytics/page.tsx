@@ -196,73 +196,20 @@ export default async function AnalyticsPage({
           toMonth={toMonth}
         />
 
-        {examinationId ? (
-          <div className="mt-4 space-y-6">
-            <div>
-              <h3 className="mb-2 section-label">Subject comparison</h3>
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-                  <tr><th className="py-1.5">Rank</th><th className="py-1.5">Subject</th><th className="py-1.5">Marked</th><th className="py-1.5">Average</th><th className="py-1.5">Pass %</th></tr>
-                </thead>
-                <tbody className="divide-y">
-                  {[...subjectComparison].sort((a, b) => (b.avg_marks ?? -1) - (a.avg_marks ?? -1)).map((s, idx) => (
-                    <tr key={s.subject_id}>
-                      <td className="py-1.5 text-zinc-500">#{idx + 1}</td>
-                      <td className="py-1.5">{s.subject_name}</td>
-                      <td className="py-1.5">{s.marked_count}</td>
-                      <td className="py-1.5">{s.avg_marks !== null ? Number(s.avg_marks).toFixed(2) : "—"}</td>
-                      <td className="py-1.5">{fmtPct(s.pass_percentage)}</td>
-                    </tr>
-                  ))}
-                  {subjectComparison.length === 0 ? (
-                    <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No approved marks yet for this examination.</td></tr>
-                  ) : null}
-                </tbody>
-              </table>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-2 section-label">Subject-level performance indicators</h3>
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-                  <tr><th className="py-1.5">Subject</th><th className="py-1.5">Division avg</th><th className="py-1.5">Division pass %</th></tr>
-                </thead>
-                <tbody className="divide-y">
-                  {indicators.map((i, idx) => (
-                    <tr key={`${i.subject_id}-${i.class_id}-${i.section_id}-${idx}`}>
-                      <td className="py-1.5">{i.subject_name}</td>
-                      <td className="py-1.5">{i.average_performance !== null ? Number(i.average_performance).toFixed(2) : "—"}</td>
-                      <td className="py-1.5">{fmtPct(i.pass_percentage)}</td>
-                    </tr>
-                  ))}
-                  {indicators.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-500">—</td></tr>) : null}
-                </tbody>
-              </table>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-2 section-label">
-                Student classification {rule ? `(≥${rule.high_threshold}% high, <${rule.low_threshold}% low)` : "(no rule configured)"}
-              </h3>
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-                  <tr><th className="py-1.5">Student</th><th className="py-1.5">Percentage</th><th className="py-1.5">Band</th></tr>
-                </thead>
-                <tbody className="divide-y">
-                  {classification.map((c) => (
-                    <tr key={c.student_id}><td className="py-1.5">{c.student_name}</td><td className="py-1.5">{c.percentage}%</td><td className="py-1.5 capitalize">{c.band.replace("_", " ")}</td></tr>
-                  ))}
-                  {classification.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-500">No computed results for this examination yet.</td></tr>) : null}
-                </tbody>
-              </table>
-              </div>
-            </div>
+        {examinationId && schoolSummary ? (
+          // §Analytics-layout-audit: the school-wide headline numbers now
+          // sit right under the exam picker, unconditional on which Result
+          // Analysis tab is open below — previously they only appeared
+          // inside the "School-wide" tab, so switching to Subject-wise/
+          // Class-wise/etc. hid them entirely even though they're the
+          // single most useful "how did this exam go" glance.
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatCard label="Students with a result" value={String(schoolSummary.total_students)} />
+            <StatCard label="School average %" value={fmtPct(schoolSummary.average_percent)} />
+            <StatCard label="School pass %" value={fmtPct(schoolSummary.pass_percent)} accent={PASS_COLOR} />
           </div>
+        ) : examinationId ? (
+          <p className="mt-4 text-sm text-zinc-500">No computed results for this examination yet.</p>
         ) : (
           <p className="mt-4 text-sm text-zinc-500">Select an examination to see subject and student analytics.</p>
         )}
@@ -294,12 +241,6 @@ export default async function AnalyticsPage({
 
           {tab === "school" && schoolSummary ? (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <StatCard label="Students with a result" value={String(schoolSummary.total_students)} />
-                <StatCard label="School average %" value={fmtPct(schoolSummary.average_percent)} />
-                <StatCard label="School pass %" value={fmtPct(schoolSummary.pass_percent)} accent={PASS_COLOR} />
-              </div>
-
               {trackSummaries.length > 0 ? (
                 <div>
                   <h3 className="mb-2 section-label">
@@ -405,11 +346,82 @@ export default async function AnalyticsPage({
                 </div>
                 {histogram.length > 0 ? <Histogram buckets={histogram.map((h) => ({ label: h.label, value: h.count, color: h.color }))} /> : <p className="text-sm text-zinc-500">Select a division above.</p>}
               </div>
+
+              {/* §Analytics-layout-audit: student classification moved here
+                  (class-wise) from the always-open "Examination performance"
+                  block above, and behind a <details> disclosure so it's
+                  opt-in rather than always taking up page space. */}
+              <details className="no-print rounded-card border">
+                <summary className="cursor-pointer select-none rounded-card px-4 py-2.5 text-sm font-medium text-[var(--heading)] hover:bg-zinc-50">
+                  Student classification {rule ? `(≥${rule.high_threshold}% high, <${rule.low_threshold}% low)` : "(no rule configured)"}
+                </summary>
+                <div className="overflow-x-auto border-t px-4 py-3">
+                  <table className="w-full text-sm">
+                    <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
+                      <tr><th className="py-1.5">Student</th><th className="py-1.5">Percentage</th><th className="py-1.5">Band</th></tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {classification.map((c) => (
+                        <tr key={c.student_id}><td className="py-1.5">{c.student_name}</td><td className="py-1.5">{c.percentage}%</td><td className="py-1.5 capitalize">{c.band.replace("_", " ")}</td></tr>
+                      ))}
+                      {classification.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-500">No computed results for this examination yet.</td></tr>) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
             </div>
           ) : null}
 
           {tab === "subject" ? (
-            <SubjectWiseSection rows={scopedBySubject} />
+            <div className="space-y-8">
+              <div>
+                <h3 className="mb-2 section-label">Subject comparison</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
+                      <tr><th className="py-1.5">Rank</th><th className="py-1.5">Subject</th><th className="py-1.5">Marked</th><th className="py-1.5">Average</th><th className="py-1.5">Pass %</th></tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {[...subjectComparison].sort((a, b) => (b.avg_marks ?? -1) - (a.avg_marks ?? -1)).map((s, idx) => (
+                        <tr key={s.subject_id}>
+                          <td className="py-1.5 text-zinc-500">#{idx + 1}</td>
+                          <td className="py-1.5">{s.subject_name}</td>
+                          <td className="py-1.5">{s.marked_count}</td>
+                          <td className="py-1.5">{s.avg_marks !== null ? Number(s.avg_marks).toFixed(2) : "—"}</td>
+                          <td className="py-1.5">{fmtPct(s.pass_percentage)}</td>
+                        </tr>
+                      ))}
+                      {subjectComparison.length === 0 ? (
+                        <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No approved marks yet for this examination.</td></tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2 section-label">Subject-level performance indicators</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
+                      <tr><th className="py-1.5">Subject</th><th className="py-1.5">Division avg</th><th className="py-1.5">Division pass %</th></tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {indicators.map((i, idx) => (
+                        <tr key={`${i.subject_id}-${i.class_id}-${i.section_id}-${idx}`}>
+                          <td className="py-1.5">{i.subject_name}</td>
+                          <td className="py-1.5">{i.average_performance !== null ? Number(i.average_performance).toFixed(2) : "—"}</td>
+                          <td className="py-1.5">{fmtPct(i.pass_percentage)}</td>
+                        </tr>
+                      ))}
+                      {indicators.length === 0 ? (<tr><td colSpan={3} className="py-4 text-center text-zinc-500">—</td></tr>) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <SubjectWiseSection rows={scopedBySubject} />
+            </div>
           ) : null}
 
           {tab === "teacher" ? (
