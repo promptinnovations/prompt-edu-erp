@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { can } from "../../../../services/permissions/permission-service";
-import { listGradeScales, getGradeBands, listExamTypes } from "../../../../modules/examination/service";
+import { listGradeScales, getGradeBands, listExamTypes, getInstitutionCeDefaults } from "../../../../modules/examination/service";
 import { getInstitution } from "../../../../services/institution/institution-service";
 import PassPctForm from "./PassPctForm";
+import CeDefaultsForm from "./CeDefaultsForm";
 import TrackOrderForm from "./TrackOrderForm";
 import { listScoringRules } from "../../../../modules/scoring/service";
 import { listAchievementCategories, listAchievementLevels } from "../../../../modules/achievements/service";
@@ -35,7 +36,7 @@ export default async function GradingSettingsPage() {
   if (!can(ctx.permissions, "settings.manage")) redirect("/dashboard");
   const canManage = true; // gated above — kept as an explicit prop for the section components' own conditional rendering
 
-  const [gradeScales, scoringRules, achievementCategories, achievementLevels, skillTypes, skillActivities, examTypes, institution] = await Promise.all([
+  const [gradeScales, scoringRules, achievementCategories, achievementLevels, skillTypes, skillActivities, examTypes, institution, ceDefaults] = await Promise.all([
     listGradeScales(institutionId, authUserId),
     listScoringRules(institutionId, authUserId),
     listAchievementCategories(institutionId, authUserId),
@@ -44,6 +45,7 @@ export default async function GradingSettingsPage() {
     listSkillActivitiesForAdmin(institutionId, authUserId),
     listExamTypes(institutionId, authUserId),
     getInstitution(institutionId, authUserId),
+    getInstitutionCeDefaults(institutionId, authUserId),
   ]);
 
   const bandsByScale: Record<string, Awaited<ReturnType<typeof getGradeBands>>> = {};
@@ -83,6 +85,15 @@ export default async function GradingSettingsPage() {
           descriptive only). A subject can still override this via its own pass marks when added to an exam.
         </p>
         <PassPctForm passPct={institution?.passPct ?? 35} canManage={canManage} />
+      </section>
+
+      <section className="rounded-card border bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Continuous Evaluation (CE)</h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          Default for new examinations: CE off, or on as one CE mark (Total) or several CE parts (Components) per subject.
+          Each exam can override this on its own page. Daily Assessment is unaffected.
+        </p>
+        <CeDefaultsForm enabled={ceDefaults.enabled} mode={ceDefaults.mode} canManage={canManage} />
       </section>
 
       {institution?.educationMode === "both" ? (

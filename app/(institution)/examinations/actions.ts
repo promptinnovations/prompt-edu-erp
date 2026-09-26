@@ -8,6 +8,7 @@ import {
   addExamSubject, addExamClass, removeExamClass, removeExamSubject,
   enterMarksAndRecompute, deleteMarkAndRecompute, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment, getDailyAssessment,
+  enterCeMarksAndRecompute, setCeComponents, finalizeExamination, setInstitutionCeDefaults,
 } from "../../../modules/examination/service";
 import { assertMarkEntryScope, assertDailyAssessmentScope } from "../../../services/scope/teacher-scope-service";
 
@@ -201,10 +202,107 @@ export async function saveMarksAction(_prevState: { error: string | null }, form
       };
     });
     await enterMarksAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, entries);
+    // §CE: the same grid carries one column per CE component
+    // (ce_<componentId>_<studentId> / ceabsent_<componentId>_<studentId>),
+    // saved through the same blank/absent rules as the written mark.
+    const ceComponentIds = formData.getAll("ceComponentId").map(String);
+    if (ceComponentIds.length > 0) {
+      const ceEntries = ceComponentIds.flatMap((componentId) => studentIds.map((studentId) => {
+        const raw = formData.get(`ce_${componentId}_${studentId}`);
+        const isAbsent = formData.get(`ceabsent_${componentId}_${studentId}`) === "on";
+        return {
+          studentId, componentId,
+          marksObtained: isAbsent || raw === "" || raw === null ? null : Number(raw),
+          isAbsent,
+        };
+      }));
+      await enterCeMarksAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, ceEntries);
+    }
     revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to save marks." };
+  }
+}
+
+/** §8 overall pass threshold + §CE on/off/mode for one exam (admin-only,
+ *  same settings.manage gate as every other exam-config action). */
+export async function updateExamResultSettingsAction(_prevState: { error: string | null; saved?: boolean }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const rawPct = String(formData.get("overallPassPct") ?? "").trim();
+    const ceMode = String(formData.get("ceMode") ?? "total");
+    await updateExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId, {
+      overallPassPct: rawPct === "" ? null : Number(rawPct),
+      ceEnabled: formData.get("ceEnabled") === "on",
+      ceMode: ceMode === "components" ? "components" : "total",
+    });
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null, saved: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save result settings." };
+  }
+}
+
+/** §CE components for one exam subject. Form fields: repeated
+ *  `ceName`/`ceMax` pairs (Total mode sends a single `ceMax`). */
+export async function setCeComponentsAction(_prevState: { error: string | null; saved?: boolean }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  const examSubjectId = String(formData.get("examSubjectId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const names = formData.getAll("ceName").map(String);
+    const maxes = formData.getAll("ceMax").map(String);
+    const components = maxes
+      .map((m, i) => ({ name: (names[i] ?? "CE").trim() || "CE", maxMarks: Number(m) }))
+      .filter((c) => c.maxMarks > 0);
+    await setCeComponents(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, components);
+    revalidatePath(`/examinations/${examinationId}`);
+    return { error: null, saved: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save CE components." };
+  }
+}
+
+/** §1.6 explicit, irreversible "Finalize results" — freezes every result
+ *  row of the exam. Gated on marks.lock (whoever can lock marks can lock
+ *  the results built from them) plus settings.manage. */
+export async function finalizeExaminationAction(_prevState: { error: string | null; frozen?: number }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    requirePermission(ctx.permissions, "marks.lock");
+    const { frozen } = await finalizeExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
+    revalidatePath(`/examinations/${examinationId}`);
+    revalidatePath("/examinations");
+    revalidatePath("/results");
+    return { error: null, frozen };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to finalize results." };
+  }
+}
+
+/** Institution-wide §CE defaults applied to newly created exams. */
+export async function setInstitutionCeDefaultsAction(_prevState: { error: string | null; saved?: boolean }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    await setInstitutionCeDefaults(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      enabled: formData.get("ceEnabled") === "on",
+      mode: formData.get("ceMode") === "components" ? "components" : "total",
+    });
+    revalidatePath("/settings/grading");
+    return { error: null, saved: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save CE defaults." };
   }
 }
 

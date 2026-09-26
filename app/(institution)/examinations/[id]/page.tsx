@@ -7,8 +7,10 @@ import {
   getExamination, listExamSubjects, listExamClasses, getResults, listExamTypes,
   listDailyAssessments, getDailyAssessmentConsolidatedResult,
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
+  listCeComponents, DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR,
 } from "../../../../modules/examination/service";
 import { ExamScopeSection, ExamSubjectsSection } from "./ExamDetailForms";
+import { ExamResultSettingsForm, CeComponentsForm, FinalizeResultsButton } from "./ExamResultSettings";
 import DailyAssessmentSection from "./DailyAssessmentSection";
 
 export default async function ExaminationDetailPage({
@@ -86,7 +88,7 @@ export default async function ExaminationDetailPage({
     );
   }
 
-  const [examSubjects, examClasses, subjects, classes, sections, results, classSubjects] = await Promise.all([
+  const [examSubjects, examClasses, subjects, classes, sections, results, classSubjects, ceComponents] = await Promise.all([
     listExamSubjects(institutionId, authUserId, id),
     listExamClasses(institutionId, authUserId, id),
     listSubjects(institutionId, authUserId),
@@ -94,7 +96,10 @@ export default async function ExaminationDetailPage({
     listSections(institutionId, authUserId),
     getResults(institutionId, authUserId, id),
     listClassSubjects(institutionId, authUserId),
+    listCeComponents(institutionId, authUserId, id),
   ]);
+  const isFinalized = Boolean(examination.finalized_at);
+  const ceMode = examination.ce_mode ?? "total";
 
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
   const examTypeName = examType?.name ?? "—";
@@ -192,9 +197,47 @@ export default async function ExaminationDetailPage({
         <ExamSubjectsSection examinationId={id} subjects={eligibleSubjects} linked={linkedSubjects} canManage={canManage} />
       </section>
 
+      {canManage ? (
+        <section className="rounded-card border bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">3. Result rules &amp; Continuous Evaluation</h2>
+          <p className="mb-3 text-xs text-zinc-500">
+            Overall pass = no failed subject and overall % at or above the threshold. CE marks count toward each subject exactly like the written paper.
+          </p>
+          <ExamResultSettingsForm
+            examinationId={id}
+            overallPassPct={examination.overall_pass_pct ?? null}
+            defaultPassPct={DEFAULT_OVERALL_PASS_PCT}
+            ceEnabled={Boolean(examination.ce_enabled)}
+            ceMode={ceMode}
+            disabled={isFinalized}
+          />
+          {examination.ce_enabled && linkedSubjects.length > 0 ? (
+            <div className="mt-4 space-y-2 border-t pt-4">
+              <p className="text-xs text-zinc-500">
+                {ceMode === "total" ? "CE maximum per subject." : "CE parts per subject — their maxima add up to the subject's CE maximum."}
+              </p>
+              {linkedSubjects.map((l) => (
+                <CeComponentsForm
+                  key={`${l.examSubjectId}:${ceMode}`}
+                  examinationId={id}
+                  examSubjectId={l.examSubjectId}
+                  subjectName={l.name}
+                  mode={ceMode}
+                  components={ceComponents.filter((c) => c.exam_subject_id === l.examSubjectId).map((c) => ({ name: c.name, maxMarks: c.max_marks }))}
+                  disabled={isFinalized}
+                />
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="rounded-card border bg-white p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[var(--heading)]">Results</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-[var(--heading)]">
+            Results{isFinalized ? " — finalized (frozen)" : ""}
+          </h2>
+          {canManage && can(ctx.permissions, "marks.lock") && !isFinalized ? <FinalizeResultsButton examinationId={id} /> : null}
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -204,6 +247,7 @@ export default async function ExaminationDetailPage({
               <th className="py-1.5">Total</th>
               <th className="py-1.5">%</th>
               <th className="py-1.5">Grade</th>
+              <th className="py-1.5">Result</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -213,10 +257,18 @@ export default async function ExaminationDetailPage({
                 <td className="py-1.5">{r.total_marks} / {r.max_total_marks}</td>
                 <td className="py-1.5">{Number(r.percentage).toFixed(2)}%</td>
                 <td className="py-1.5">{r.grade_label ?? "—"}</td>
+                <td className="py-1.5">
+                  {r.is_pass == null ? "—" : (
+                    <span className="rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: r.is_pass ? PASS_COLOR : FAIL_COLOR }}>
+                      {r.is_pass ? "Pass" : "Fail"}
+                    </span>
+                  )}
+                  {r.absent_subject_count > 0 ? <span className="ml-1 text-xs text-zinc-500">({r.absent_subject_count} absent)</span> : null}
+                </td>
               </tr>
             ))}
             {results.length === 0 ? (
-              <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No results computed yet.</td></tr>
+              <tr><td colSpan={5} className="py-4 text-center text-zinc-500">No results computed yet.</td></tr>
             ) : null}
           </tbody>
         </table>

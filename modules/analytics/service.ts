@@ -21,7 +21,7 @@ import { z } from "zod";
 import { unstable_cache } from "next/cache";
 import { getDbClient } from "../../services/db/client";
 import type { AttendanceScope } from "../attendance/service";
-import { isPass, PASS_COLOR, FAIL_COLOR } from "../examination/service";
+import { isPass, PASS_COLOR, FAIL_COLOR, resolveGradeBand, computeStudentResult, loadResultSubjectDefs, DEFAULT_OVERALL_PASS_PCT, type ResultUnitEntry } from "../examination/service";
 import { resultAnalysisTag, classificationTag, ANALYTICS_VIEWS_TAG, safeRevalidateTag } from "../../services/cache/tags";
 
 /**
@@ -520,64 +520,56 @@ async function getTrackWiseSummaryImpl(
     const { rows: instRow } = await scoped.query<{ pass_pct: string }>(
       "select pass_pct from institutions where id = $1", [institutionId]
     );
-    const passPct = Number(instRow[0]?.pass_pct ?? 35);
+    const subjectPassPct = Number(instRow[0]?.pass_pct ?? 35);
+    const { rows: examRow } = await scoped.query<{ overall_pass_pct: string | null }>(
+      "select overall_pass_pct from examinations where id = $1", [examinationId]
+    );
+    const overallPassPct = examRow[0]?.overall_pass_pct == null ? DEFAULT_OVERALL_PASS_PCT : Number(examRow[0].overall_pass_pct);
 
-    const { rows: examSubjects } = await scoped.query<{
-      id: string; max_marks: string; pass_marks: string | null; track: "academic" | "islamic" | null;
-    }>(
-      `select es.id, es.max_marks, es.pass_marks, sub.track
+    const { rows: tracked } = await scoped.query<{ id: string; track: "academic" | "islamic" }>(
+      `select es.id, sub.track
          from exam_subjects es join subjects sub on sub.id = es.subject_id
         where es.examination_id = $1 and sub.track is not null`,
       [examinationId]
     );
-    const tracks = Array.from(new Set(examSubjects.map((s) => s.track))) as ("academic" | "islamic")[];
+    const tracks = Array.from(new Set(tracked.map((s) => s.track)));
     if (tracks.length === 0) return [];
 
-    const examSubjectIds = examSubjects.map((s) => s.id);
-    const { rows: marksRows } = await scoped.query<{
-      student_id: string; exam_subject_id: string; marks_obtained: string | null; is_absent: boolean;
-    }>(
-      `select student_id, exam_subject_id, marks_obtained, is_absent
-         from marks where exam_subject_id = any($1) and entry_status in ('approved','locked')`,
-      [examSubjectIds]
+    // EXAMINATION_SPEC §1.5: same unit definitions + the same pure
+    // computeStudentResult() computeResults() persists with — only the
+    // subject subset (one track) and the approved/locked-only input differ.
+    const { subjects: allDefs } = await loadResultSubjectDefs(scoped, examinationId);
+    const { rows: unitRows } = await scoped.query<{ student_id: string; unit_key: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }>(
+      `select student_id, 'm:' || exam_subject_id as unit_key, marks_obtained, is_absent, entry_status
+         from marks where exam_subject_id = any($1) and entry_status in ('approved','locked')
+       union all
+       select student_id, 'ce:' || ce_component_id as unit_key, marks_obtained, is_absent, entry_status
+         from ce_marks where ce_component_id = any($2::uuid[]) and entry_status in ('approved','locked')`,
+      [allDefs.map((d) => d.id), allDefs.flatMap((d) => d.ceComponentIds)]
     );
+    const byStudent = new Map<string, Map<string, ResultUnitEntry>>();
+    for (const m of unitRows) {
+      if (!byStudent.has(m.student_id)) byStudent.set(m.student_id, new Map());
+      byStudent.get(m.student_id)!.set(m.unit_key, {
+        key: m.unit_key, marksObtained: m.marks_obtained == null ? null : Number(m.marks_obtained),
+        isAbsent: m.is_absent, entryStatus: m.entry_status,
+      });
+    }
 
     const summaries: TrackResultSummary[] = [];
     for (const track of tracks) {
-      const trackSubjects = examSubjects.filter((s) => s.track === track);
-      const trackSubjectIds = new Set(trackSubjects.map((s) => s.id));
-      const maxTotal = trackSubjects.reduce((sum, s) => sum + Number(s.max_marks), 0);
-      const passMarksBySubject = new Map(trackSubjects.map((s) => [s.id, s.pass_marks == null ? null : Number(s.pass_marks)]));
-
-      const byStudent = new Map<string, typeof marksRows>();
-      for (const m of marksRows) {
-        if (!trackSubjectIds.has(m.exam_subject_id)) continue;
-        if (!byStudent.has(m.student_id)) byStudent.set(m.student_id, []);
-        byStudent.get(m.student_id)!.push(m);
-      }
-
+      const trackIds = new Set(tracked.filter((t) => t.track === track).map((t) => t.id));
+      const subjects = allDefs.filter((d) => trackIds.has(d.id));
       let totalStudents = 0, passCount = 0, failCount = 0, percentSum = 0;
-      for (const [, rows] of byStudent) {
-        if (rows.length !== trackSubjects.length) continue; // incomplete for this track — skip, same rule computeResults() uses
-        let total = 0;
-        let anyFailedSubject = false;
-        for (const r of rows) {
-          if (r.is_absent || r.marks_obtained == null) { anyFailedSubject = true; continue; }
-          const obtained = Number(r.marks_obtained);
-          total += obtained;
-          const subjectMax = Number(trackSubjects.find((s) => s.id === r.exam_subject_id)!.max_marks);
-          const subjectPassMarks = passMarksBySubject.get(r.exam_subject_id);
-          const subjectPct = subjectMax > 0 ? (obtained / subjectMax) * 100 : 0;
-          const subjectPassed = subjectPassMarks != null ? obtained >= subjectPassMarks : isPass(subjectPct, passPct);
-          if (!subjectPassed) anyFailedSubject = true;
-        }
-        const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
-        const overallPass = !anyFailedSubject && isPass(percentage, passPct);
+      for (const [, entries] of byStudent) {
+        const r = computeStudentResult({ subjects, entries, subjectPassPct, overallPassPct });
+        // Complete-for-this-track only (every unit of every track subject
+        // entered and approved/locked) — same rule as before.
+        if (r.subjectsEntered !== subjects.length || r.isProvisional) continue;
         totalStudents++;
-        percentSum += percentage;
-        if (overallPass) passCount++; else failCount++;
+        percentSum += r.percentage;
+        if (r.isPass) passCount++; else failCount++;
       }
-
       summaries.push({
         track,
         total_students: totalStudents,
@@ -810,7 +802,8 @@ async function getResultsByTeacherImpl(
         )
       : { rows: [] as { min_percent: string; max_percent: string; grade_label: string }[] };
     const bands = bandRows.map((b) => ({ min: Number(b.min_percent), max: Number(b.max_percent), label: b.grade_label }));
-    const bandFor = (pct: number) => bands.find((b) => pct >= b.min && pct <= b.max)?.label ?? null;
+    // §8 half-open band resolution — same resolver computeResults() uses.
+    const bandFor = (pct: number) => resolveGradeBand(bands.map((b) => ({ ...b, min_percent: b.min, max_percent: b.max })), pct)?.label ?? null;
 
     const { rows } = await scoped.query<{
       teacher_user_id: string; teacher_name: string; subject_id: string; subject_name: string;
@@ -952,7 +945,8 @@ export async function getTeacherExamReport(
         )
       : { rows: [] as { min_percent: string; max_percent: string; grade_label: string }[] };
     const bands = bandRows.map((b) => ({ min: Number(b.min_percent), max: Number(b.max_percent), label: b.grade_label }));
-    const bandFor = (pct: number) => bands.find((b) => pct >= b.min && pct <= b.max)?.label ?? null;
+    // §8 half-open band resolution — same resolver computeResults() uses.
+    const bandFor = (pct: number) => resolveGradeBand(bands.map((b) => ({ ...b, min_percent: b.min, max_percent: b.max })), pct)?.label ?? null;
 
     const { rows: assignments } = await scoped.query<{
       class_id: string; class_name: string; section_id: string | null; section_name: string | null;
@@ -1134,7 +1128,8 @@ async function getSubjectWiseByGradeImpl(
         )
       : { rows: [] as { min_percent: string; max_percent: string; grade_label: string; color: string | null }[] };
     const bands = bandRows.map((b) => ({ min: Number(b.min_percent), max: Number(b.max_percent), label: b.grade_label, color: b.color }));
-    const bandFor = (pct: number) => bands.find((b) => pct >= b.min && pct <= b.max) ?? null;
+    // §8 half-open band resolution — same resolver computeResults() uses.
+    const bandFor = (pct: number) => resolveGradeBand(bands.map((b) => ({ ...b, min_percent: b.min, max_percent: b.max })), pct);
 
     const { rows } = await scoped.query<{
       class_id: string; class_name: string; sort_order: number;

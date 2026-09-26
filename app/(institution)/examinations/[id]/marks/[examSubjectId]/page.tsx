@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../../services/request-context";
 import { can } from "../../../../../../services/permissions/permission-service";
-import { getExamination, listExamSubjects, getMarksGrid } from "../../../../../../modules/examination/service";
+import { getExamination, listExamSubjects, getMarksGrid, getCeMarksGrid } from "../../../../../../modules/examination/service";
 import { listSubjects } from "../../../../../../modules/academic/service";
 import { assertMarkEntryScope } from "../../../../../../services/scope/teacher-scope-service";
 import MarksGridForm from "./MarksGridForm";
@@ -38,7 +38,11 @@ export default async function MarksEntryPage({
     notFound();
   }
 
-  const grid = await getMarksGrid(institutionId, authUserId, examSubjectId);
+  const [grid, ce] = await Promise.all([
+    getMarksGrid(institutionId, authUserId, examSubjectId),
+    getCeMarksGrid(institutionId, authUserId, examSubjectId),
+  ]);
+  const ceMax = ce.components.reduce((a, c) => a + Number(c.max_marks), 0);
 
   return (
     <div className="space-y-4">
@@ -48,14 +52,20 @@ export default async function MarksEntryPage({
       <h1 className="text-2xl font-semibold text-[var(--heading)]">
         {subjectName} — marks entry
       </h1>
-      <p className="text-sm text-zinc-500">Max {examSubject.max_marks}, pass {examSubject.pass_marks}</p>
+      <p className="text-sm text-zinc-500">
+        Max {examSubject.max_marks}, pass {examSubject.pass_marks}
+        {ce.components.length > 0 ? ` · CE max ${ceMax} (${ce.components.map((c) => `${c.name} /${c.max_marks}`).join(", ")})` : ""}
+        {examination.finalized_at ? " · Results finalized — marks are read-only" : ""}
+      </p>
 
       <section className="rounded-card border bg-white p-5">
         <MarksGridForm
           students={grid}
           examinationId={id}
           examSubjectId={examSubjectId}
-          canEnter={can(ctx.permissions, "marks.enter")}
+          ceComponents={ce.components.map((c) => ({ id: c.id, name: c.name, maxMarks: c.max_marks }))}
+          ceMarks={ce.marks}
+          canEnter={can(ctx.permissions, "marks.enter") && !examination.finalized_at}
           canVerify={can(ctx.permissions, "marks.verify")}
           canApprove={can(ctx.permissions, "marks.approve")}
           canLock={can(ctx.permissions, "marks.lock")}

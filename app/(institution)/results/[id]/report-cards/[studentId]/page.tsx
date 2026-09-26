@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../../services/request-context";
 import { getInstitution } from "../../../../../../services/institution/institution-service";
 import {
-  getExamination, getExaminationMarksMatrix, getResults, isPass, PASS_COLOR, FAIL_COLOR,
+  getExamination, getExaminationMarksMatrix, getResults, PASS_COLOR, FAIL_COLOR,
 } from "../../../../../../modules/examination/service";
 import { getStudent } from "../../../../../../modules/students/service";
 import { listAcademicYears } from "../../../../../../modules/academic/service";
@@ -22,9 +22,10 @@ import PrintLetterhead from "../../../../../components/PrintLetterhead";
  *  printing. §491 "executive design" follow-up — the user explicitly
  *  authorized building this from good design judgment against the data
  *  actually in the schema rather than matching a specific unseen
- *  reference image (no TE/CE mark-component split exists anywhere in
- *  this codebase, so this report only ever shows the one mark this
- *  schema actually records per subject). */
+ *  reference image. §CE (migration 0055): when the exam has Continuous
+ *  Evaluation enabled, CE is shown as extra columns (with a per-component
+ *  breakdown under the subject name in Components mode) from the same
+ *  getExaminationMarksMatrix() rows — no parallel CE renderer. */
 export default async function ReportCardPage({ params }: { params: Promise<{ id: string; studentId: string }> }) {
   const { id, studentId } = await params;
   const ctx = await requireRequestContext();
@@ -45,9 +46,11 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
   if (studentRows.length === 0) notFound();
   const overall = results.find((r) => r.student_id === studentId);
   const first = studentRows[0];
-  const passPct = institution?.passPct != null ? Number(institution.passPct) : 35;
-  const overallPct = overall ? Number(overall.percentage) : null;
-  const overallPassed = overallPct != null ? isPass(overallPct, passPct) : null;
+  // EXAMINATION_SPEC §1.5/§8: the overall verdict is the STORED results.is_pass
+  // (no failed subject AND overall % >= the exam's threshold) — never
+  // re-derived here from percentage alone.
+  const overallPassed = overall ? overall.is_pass : null;
+  const hasCe = studentRows.some((r) => r.ce_components.length > 0);
 
   const academicYear = academicYears.find((y) => y.id === examination.academic_year_id) ?? null;
   const attendance = academicYear
@@ -131,20 +134,48 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
               <th className="py-1.5">Subject</th>
               <th className="py-1.5 text-right">Max Marks</th>
               <th className="py-1.5 text-right">Pass Marks</th>
-              <th className="py-1.5 text-right">Marks Obtained</th>
+              <th className="py-1.5 text-right">{hasCe ? "Written" : "Marks Obtained"}</th>
+              {hasCe ? <th className="py-1.5 text-right">CE</th> : null}
+              {hasCe ? <th className="py-1.5 text-right">Total</th> : null}
               <th className="py-1.5 text-right">Result</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {studentRows.map((r) => {
-              const obtained = r.is_absent ? null : r.marks_obtained != null ? Number(r.marks_obtained) : null;
-              const subjectPassed = obtained != null ? obtained >= Number(r.pass_marks) : null;
+              // Per-subject display applies the same unit rules as
+              // computeStudentResult(): absent units drop out of numerator
+              // and denominator; pass is judged as a percentage of pass_marks/max.
+              const units = [
+                { max: Number(r.max_marks), obtained: r.marks_obtained, absent: r.is_absent },
+                ...r.ce_components.map((c) => ({ max: Number(c.max_marks), obtained: c.marks_obtained, absent: c.is_absent })),
+              ];
+              const sat = units.filter((u) => !u.absent && u.obtained != null);
+              const satObtained = sat.reduce((a, u) => a + Number(u.obtained), 0);
+              const satMax = units.filter((u) => !u.absent).reduce((a, u) => a + u.max, 0);
+              const subjectPassed = sat.length > 0 && satMax > 0 && Number(r.max_marks) > 0
+                ? (satObtained / satMax) * 100 >= (Number(r.pass_marks) / Number(r.max_marks)) * 100
+                : null;
+              const ceMax = r.ce_components.reduce((a, c) => a + Number(c.max_marks), 0);
+              const ceSat = r.ce_components.filter((c) => !c.is_absent && c.marks_obtained != null);
+              const ceText = r.ce_components.length === 0 ? "—"
+                : r.ce_components.every((c) => c.is_absent) ? "Absent"
+                : ceSat.length === 0 ? "—"
+                : `${ceSat.reduce((a, c) => a + Number(c.marks_obtained), 0)}/${ceMax}`;
               return (
                 <tr key={r.exam_subject_id}>
-                  <td className="py-1.5">{r.subject_name}</td>
-                  <td className="py-1.5 text-right">{r.max_marks}</td>
+                  <td className="py-1.5">
+                    {r.subject_name}
+                    {r.ce_components.length > 1 ? (
+                      <div className="text-[11px] text-zinc-500">
+                        CE: {r.ce_components.map((c) => `${c.name} ${c.is_absent ? "AB" : c.marks_obtained ?? "—"}/${c.max_marks}`).join(" · ")}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td className="py-1.5 text-right">{hasCe ? Number(r.max_marks) + ceMax : r.max_marks}</td>
                   <td className="py-1.5 text-right">{r.pass_marks}</td>
                   <td className="py-1.5 text-right">{r.is_absent ? "Absent" : r.marks_obtained ?? "—"}</td>
+                  {hasCe ? <td className="py-1.5 text-right">{ceText}</td> : null}
+                  {hasCe ? <td className="py-1.5 text-right">{sat.length > 0 ? `${satObtained}/${satMax}` : "—"}</td> : null}
                   <td className="py-1.5 text-right">
                     {subjectPassed == null ? (
                       "—"

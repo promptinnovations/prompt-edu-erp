@@ -66,14 +66,23 @@ function CorrectMarkRow({
   );
 }
 
+export interface GridCeComponent { id: string; name: string; maxMarks: string }
+export interface GridCeMark { student_id: string; ce_component_id: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }
+
 export default function MarksGridForm({
   students, examinationId, examSubjectId, canEnter, canVerify, canApprove, canLock,
+  ceComponents = [], ceMarks = [],
 }: {
   students: GridStudent[];
   examinationId: string;
   examSubjectId: string;
   canEnter: boolean; canVerify: boolean; canApprove: boolean; canLock: boolean;
+  /** §CE — one extra marks + absent column pair per CE component, saved by
+   *  the same Save marks submit and the same workflow buttons. */
+  ceComponents?: GridCeComponent[];
+  ceMarks?: GridCeMark[];
 }) {
+  const ceByKey = new Map(ceMarks.map((m) => [`${m.ce_component_id}:${m.student_id}`, m]));
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(saveMarksAction, { error: null });
   const [, deleteAction] = useActionState<{ error: string | null }, FormData>(deleteMarkAction, { error: null });
 
@@ -82,6 +91,7 @@ export default function MarksGridForm({
       <form action={formAction}>
         <input type="hidden" name="examinationId" value={examinationId} />
         <input type="hidden" name="examSubjectId" value={examSubjectId} />
+        {ceComponents.map((c) => <input key={c.id} type="hidden" name="ceComponentId" value={c.id} />)}
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -90,6 +100,9 @@ export default function MarksGridForm({
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Marks</th>
               <th className="py-1.5">Absent</th>
+              {ceComponents.map((c) => (
+                <th key={c.id} className="py-1.5">{c.name} <span className="normal-case">/{c.maxMarks}</span></th>
+              ))}
               <th className="py-1.5">Status</th>
               <th className="py-1.5" />
             </tr>
@@ -122,6 +135,25 @@ export default function MarksGridForm({
                     disabled={!canEnter || !isDraftOrUnset}
                   />
                 </td>
+                {ceComponents.map((c) => {
+                  const m = ceByKey.get(`${c.id}:${s.student_id}`);
+                  const ceEditable = canEnter && (!m || m.entry_status === "draft");
+                  return (
+                    <td key={c.id} className="py-1.5 whitespace-nowrap">
+                      <input autoComplete="off"
+                        name={`ce_${c.id}_${s.student_id}`}
+                        type="number" step="0.01" min={0} max={Number(c.maxMarks)}
+                        defaultValue={m?.marks_obtained ?? ""}
+                        disabled={!ceEditable}
+                        aria-label={`${c.name} for ${s.student_name}`}
+                        className="w-16 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                      />
+                      <label className="ml-1 text-[11px] text-zinc-500">
+                        <input autoComplete="off" type="checkbox" name={`ceabsent_${c.id}_${s.student_id}`} defaultChecked={m?.is_absent ?? false} disabled={!ceEditable} /> AB
+                      </label>
+                    </td>
+                  );
+                })}
                 <td className="py-1.5 text-xs text-zinc-500">{s.entry_status ?? "—"}</td>
                 <td className="py-1.5 text-right whitespace-nowrap">
                   {canEnter && isDraftOrUnset && s.mark_id ? (

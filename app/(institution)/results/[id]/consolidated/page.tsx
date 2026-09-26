@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
 import { getInstitution } from "../../../../../services/institution/institution-service";
 import {
-  getExamination, getExaminationMarksMatrix, getResults, listClassesForExamination, isPass, PASS_COLOR, FAIL_COLOR,
+  getExamination, getExaminationMarksMatrix, getResults, listClassesForExamination, PASS_COLOR, FAIL_COLOR,
 } from "../../../../../modules/examination/service";
+import type { MatrixCeCell } from "../../../../../modules/examination/service";
 import PrintButton from "../../../../components/PrintButton";
 import PrintLetterhead from "../../../../components/PrintLetterhead";
 import ClassFilterForm from "./ClassFilterForm";
@@ -41,7 +42,6 @@ export default async function ConsolidatedMarksPage({
     listClassesForExamination(institutionId, authUserId, id),
     getResults(institutionId, authUserId, id),
   ]);
-  const passPct = institution?.passPct != null ? Number(institution.passPct) : 35;
   const resultsByStudent = new Map(results.map((r) => [r.student_id, r]));
 
   const subjects = new Map<string, { name: string; maxMarks: string }>();
@@ -55,7 +55,7 @@ export default async function ConsolidatedMarksPage({
       students.set(r.student_id, { name: r.student_name, admissionNumber: r.admission_number });
       studentOrder.push(r.student_id);
     }
-    cell.set(`${r.student_id}:${r.exam_subject_id}`, { marks: r.marks_obtained, isAbsent: r.is_absent });
+    cell.set(`${r.student_id}:${r.exam_subject_id}`, { marks: r.marks_obtained, isAbsent: r.is_absent, ce: r.ce_components });
   }
   const subjectList = Array.from(subjects.entries()).map(([id, v]) => ({ id, ...v }));
 
@@ -96,8 +96,8 @@ export default async function ConsolidatedMarksPage({
               {studentOrder.map((studentId) => {
                 const student = students.get(studentId)!;
                 const overall = resultsByStudent.get(studentId);
-                const overallPct = overall ? Number(overall.percentage) : null;
-                const overallPassed = overallPct != null ? isPass(overallPct, passPct) : null;
+                // Stored §8 overall verdict (results.is_pass) — never re-derived here.
+                const overallPassed = overall ? overall.is_pass : null;
                 let total = 0;
                 return (
                   <tr key={studentId}>
@@ -108,7 +108,19 @@ export default async function ConsolidatedMarksPage({
                       const c = cell.get(`${studentId}:${s.id}`);
                       const marks = c?.isAbsent ? "AB" : c?.marks ?? "—";
                       if (c && !c.isAbsent && c.marks) total += Number(c.marks);
-                      return <td key={s.id} className="px-3 py-2 text-center">{marks}</td>;
+                      // §CE: CE shown under the written mark in the same cell.
+                      const ce = c?.ce ?? [];
+                      for (const x of ce) if (!x.is_absent && x.marks_obtained) total += Number(x.marks_obtained);
+                      return (
+                        <td key={s.id} className="px-3 py-2 text-center">
+                          {marks}
+                          {ce.length > 0 ? (
+                            <div className="text-[11px] text-zinc-500">
+                              CE {ce.map((x) => (x.is_absent ? "AB" : x.marks_obtained ?? "—")).join("+")}
+                            </div>
+                          ) : null}
+                        </td>
+                      );
                     })}
                     <td className="px-3 py-2 text-center font-medium">
                       {overall ? `${overall.total_marks}/${overall.max_total_marks}` : total}
@@ -143,4 +155,4 @@ export default async function ConsolidatedMarksPage({
   );
 }
 
-interface ExaminationMarksMatrixCell { marks: string | null; isAbsent: boolean }
+interface ExaminationMarksMatrixCell { marks: string | null; isAbsent: boolean; ce: MatrixCeCell[] }

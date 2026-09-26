@@ -25,6 +25,12 @@ export interface ExaminationRecord {
   id: string; name: string; status: string; exam_type_id: string;
   academic_year_id: string; term_id: string | null; start_date: string | null; end_date: string | null;
   grade_scale_id: string | null;
+  // Migration 0055 — only populated by getExamination() (every other
+  // examinations select is left untouched, incl. the Daily Assessment path).
+  overall_pass_pct?: string | null;
+  finalized_at?: string | null;
+  ce_enabled?: boolean;
+  ce_mode?: "total" | "components";
 }
 export interface ExamSubjectRecord { id: string; examination_id: string; subject_id: string; max_marks: string; pass_marks: string }
 export interface MarkRow {
@@ -36,6 +42,12 @@ export interface GradeBandRecord { id: string; min_percent: string; max_percent:
 export interface ResultRow {
   student_id: string; student_name: string; total_marks: string; max_total_marks: string;
   percentage: string; grade_label: string | null; rank: number | null;
+  /** Stored §8 overall pass (computeStudentResult()) — readers must use this,
+   *  never re-derive pass/fail from percentage. */
+  is_pass: boolean | null;
+  failed_subject_count: number; absent_subject_count: number;
+  pass_threshold_pct: string | null;
+  is_frozen: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -403,6 +415,123 @@ export const PASS_COLOR = "#059669";
 export const FAIL_COLOR = "#dc2626";
 
 // ---------------------------------------------------------------------------
+// Pure result computation (EXAMINATION_SPEC §1.1, §1.5, §8, §CE) — regular
+// examinations ONLY. Daily Assessment keeps its own, unchanged math
+// (getDailyAssessmentConsolidatedResult() below still calls the original
+// lookupGrade() exactly as before); nothing in this block is reachable
+// from any Daily Assessment function.
+//
+// computeStudentResult() is THE single definition of a student's overall
+// outcome for an examination. computeResults() persists it; every other
+// reader (pass-rate trends, Result Analysis, report cards, consolidated
+// sheet) reads the stored results row (is_pass etc.) instead of
+// re-deriving pass/fail, and the per-track analytics summary calls this
+// same function on a subset of subjects. No DB access here — unit-testable.
+// ---------------------------------------------------------------------------
+
+/** Platform default for examinations.overall_pass_pct when unset. */
+export const DEFAULT_OVERALL_PASS_PCT = 50;
+
+export interface GradeBandLike { min_percent: string | number; max_percent: string | number }
+
+/** Resolves a percentage to a band, treating bands as half-open intervals
+ *  [min_percent, next band's min_percent): the band with the greatest
+ *  min_percent <= pct wins. This closes the gap an inclusive
+ *  `pct between min and max` match leaves between stored boundaries like
+ *  [80, 89.99] and [90, 100] (89.995 matched nothing). pct is first rounded
+ *  to 2dp — the precision results.percentage is stored at — so the grade
+ *  always agrees with the percentage printed next to it. Returns null only
+ *  when pct is below every band's minimum (or there are no bands). */
+export function resolveGradeBand<T extends GradeBandLike>(bands: readonly T[], pct: number): T | null {
+  const p = Math.round(pct * 100) / 100;
+  let best: T | null = null;
+  for (const b of bands) {
+    if (p >= Number(b.min_percent) && (best == null || Number(b.min_percent) > Number(best.min_percent))) best = b;
+  }
+  return best;
+}
+
+/** One gradable unit of a subject: the written/main paper (a `marks` row)
+ *  or one CE component (a `ce_marks` row). §CE: a CE component is just
+ *  another unit — the rules below never ask which kind it is. */
+export interface ResultUnitDef { key: string; maxMarks: number }
+export interface ResultSubjectDef {
+  id: string;
+  /** Pass marks relative to maxMarks of the main paper (exam_subjects.pass_marks);
+   *  applied as a percentage (passMarks / mainMax) of whatever units were sat,
+   *  so it scales correctly when CE is added or a unit is absent. null = use
+   *  the institution's per-subject pass_pct. */
+  passMarks: number | null;
+  mainMaxMarks: number;
+  units: ResultUnitDef[];
+}
+export interface ResultUnitEntry { key: string; marksObtained: number | null; isAbsent: boolean; entryStatus: string }
+export interface StudentResultInput {
+  subjects: ResultSubjectDef[];
+  /** Keyed by ResultUnitDef.key; a missing key = blank (not yet entered). */
+  entries: Map<string, ResultUnitEntry>;
+  subjectPassPct: number;
+  overallPassPct: number;
+}
+export interface StudentResultComputation {
+  total: number; maxTotal: number; percentage: number;
+  failedSubjectCount: number; absentSubjectCount: number;
+  subjectsEntered: number; subjectsExpected: number;
+  isPass: boolean; isProvisional: boolean;
+}
+
+/** §1.1 absence: an absent unit is excluded from BOTH the obtained total
+ *  and the denominator — the student is judged only on what they sat. A
+ *  subject whose every entered unit is absent (and nothing sat) is an
+ *  absent subject: counted in absentSubjectCount, not in failedSubjectCount.
+ *  §1.2 blanks: a unit with no row stays in the denominator (the result is
+ *  provisional and reads as progress toward the final total, the §CS.4
+ *  live-result convention) but contributes nothing and doesn't make its
+ *  subject judgeable on its own. A subject is judged pass/fail only once at
+ *  least one of its units was actually sat. If nothing was sat at all the
+ *  denominator is 0 → percentage 0 (no division by zero) and isPass false.
+ *  §8 overall: isPass = failedSubjects == 0 AND percentage >= overallPassPct
+ *  (and at least one subject sat). */
+export function computeStudentResult(input: StudentResultInput): StudentResultComputation {
+  let total = 0, maxTotal = 0, failed = 0, absentSubjects = 0, entered = 0, satSubjects = 0;
+  let provisional = false;
+  for (const s of input.subjects) {
+    let sObtained = 0, sMax = 0, sat = 0, absent = 0, rowsPresent = 0;
+    for (const u of s.units) {
+      const e = input.entries.get(u.key);
+      // No row, or a legacy empty row (null value, not absent) = blank.
+      if (!e || (!e.isAbsent && e.marksObtained == null)) { sMax += u.maxMarks; provisional = true; continue; }
+      rowsPresent++;
+      if (e.entryStatus !== "approved" && e.entryStatus !== "locked") provisional = true;
+      if (e.isAbsent) { absent++; continue; }
+      sObtained += e.marksObtained!; sMax += u.maxMarks; sat++;
+    }
+    total += sObtained; maxTotal += sMax;
+    if (rowsPresent === s.units.length) entered++;
+    if (sat > 0) {
+      satSubjects++;
+      const subjectPct = sMax > 0 ? (sObtained / sMax) * 100 : 0;
+      const threshold = s.passMarks != null && s.mainMaxMarks > 0
+        ? (s.passMarks / s.mainMaxMarks) * 100
+        : input.subjectPassPct;
+      if (!isPass(subjectPct, threshold)) failed++;
+    } else if (absent > 0) {
+      absentSubjects++;
+    }
+  }
+  // Rounded to the 2dp results.percentage is stored at, so the stored
+  // percentage, its grade (resolveGradeBand) and pass/fail all agree.
+  const percentage = maxTotal > 0 ? Math.round((total / maxTotal) * 10000) / 100 : 0;
+  return {
+    total, maxTotal, percentage,
+    failedSubjectCount: failed, absentSubjectCount: absentSubjects,
+    subjectsEntered: entered, subjectsExpected: input.subjects.length,
+    isPass: satSubjects > 0 && failed === 0 && isPass(percentage, input.overallPassPct),
+    isProvisional: provisional,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Examinations
 // ---------------------------------------------------------------------------
 const createExaminationSchema = z.object({
@@ -419,6 +548,9 @@ const createExaminationSchema = z.object({
   // entered late also by choosing date") resolves to that date's own
   // month's register instead of always landing in the current month's.
   forDate: z.string().optional(),
+  // §8 per-exam overall pass threshold (examinations.overall_pass_pct);
+  // omitted/null = DEFAULT_OVERALL_PASS_PCT. Ignored for Daily Assessment.
+  overallPassPct: z.number().min(0).max(100).nullable().optional(),
 });
 
 export async function listExaminations(institutionId: string, authUserId: string): Promise<ExaminationRecord[]> {
@@ -436,7 +568,8 @@ export async function getExamination(institutionId: string, authUserId: string, 
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExaminationRecord>(
-      `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id
+      `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id,
+              overall_pass_pct, finalized_at::text as finalized_at, ce_enabled, ce_mode
          from examinations where id = $1`,
       [examinationId]
     );
@@ -499,12 +632,18 @@ export async function createExamination(
       return created[0];
     }
 
+    // §CE: a regular exam inherits the institution's CE defaults
+    // (institutions.ce_enabled_default/ce_mode_default, migration 0055);
+    // editable per exam afterwards via updateExamination().
     const { rows } = await scoped.query<ExaminationRecord>(
-      `insert into examinations (institution_id, exam_type_id, academic_year_id, term_id, name, grade_scale_id)
-       values ($1, $2, $3, $4, $5, $6)
+      `insert into examinations (institution_id, exam_type_id, academic_year_id, term_id, name, grade_scale_id,
+                                 overall_pass_pct, ce_enabled, ce_mode)
+       select $1, $2, $3, $4, $5, $6, $7, i.ce_enabled_default, i.ce_mode_default
+         from institutions i where i.id = $1
        returning id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id`,
-      [institutionId, data.examTypeId, data.academicYearId, data.termId ?? null, data.name, gradeScaleId]
+      [institutionId, data.examTypeId, data.academicYearId, data.termId ?? null, data.name, gradeScaleId, data.overallPassPct ?? null]
     );
+    if (!rows[0]) throw new Error("Institution not found.");
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "examinations", entityId: rows[0].id, after: rows[0] });
     return rows[0];
   };
@@ -516,6 +655,11 @@ export async function createExamination(
 const updateExaminationSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   academicYearId: z.string().uuid().optional(),
+  /** §8 — null clears back to DEFAULT_OVERALL_PASS_PCT; undefined = unchanged. */
+  overallPassPct: z.number().min(0).max(100).nullable().optional(),
+  /** §CE on/off + mode for this exam; undefined = unchanged. */
+  ceEnabled: z.boolean().optional(),
+  ceMode: z.enum(["total", "components"]).optional(),
 });
 
 /** Edit a created examination's name and/or academic year — the only two
@@ -541,11 +685,21 @@ export async function updateExamination(
       `update examinations set
          name = coalesce($1, name),
          academic_year_id = coalesce($2, academic_year_id),
+         overall_pass_pct = case when $4::boolean then $5::numeric else overall_pass_pct end,
+         ce_enabled = coalesce($6, ce_enabled),
+         ce_mode = coalesce($7, ce_mode),
          updated_at = now()
        where id = $3
        returning id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id`,
-      [data.name ?? null, data.academicYearId ?? null, examinationId]
+      [data.name ?? null, data.academicYearId ?? null, examinationId,
+       data.overallPassPct !== undefined, data.overallPassPct ?? null, data.ceEnabled ?? null, data.ceMode ?? null]
     );
+    // Threshold/CE changes alter results — recompute live (a finalized exam
+    // is skipped inside computeResults(), so its snapshot is untouched).
+    if (data.overallPassPct !== undefined || data.ceEnabled !== undefined || data.ceMode !== undefined) {
+      await computeResultsScoped(scoped, institutionId, examinationId);
+      safeRevalidateTag(resultAnalysisTag(institutionId, examinationId));
+    }
     await recordAudit(scoped, {
       institutionId, userId, action: "update", module: "examination", entityType: "examinations",
       entityId: examinationId, before: before[0], after: rows[0],
@@ -771,11 +925,17 @@ export async function getMarkEntryStatus(institutionId: string, authUserId: stri
               count(distinct se.student_id) as expected,
               count(distinct m.student_id) as entered
          from exam_subjects es
+         join examinations e on e.id = es.examination_id
          join subjects sub on sub.id = es.subject_id
          join exam_classes ec on ec.examination_id = es.examination_id
          join classes cl on cl.id = ec.class_id
+         -- §1.4 roster: the exam's OWN academic year only (a promoted
+         -- student keeps last year's enrollment row active as history) and
+         -- never a withdrawn (deleted) student.
          join student_enrollments se on se.class_id = ec.class_id
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
+              and se.academic_year_id = e.academic_year_id
+         join students st on st.id = se.student_id and st.status <> 'withdrawn'
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
         where es.examination_id = $1
           -- §CS.1 "are the subjects allocated class wise?" -- a class only counts
@@ -808,10 +968,13 @@ export async function getMarksGrid(institutionId: string, authUserId: string, ex
               se.roll_number, s.gender, sec.name as section_name,
               m.id as mark_id, m.marks_obtained, coalesce(m.is_absent, false) as is_absent, m.entry_status
          from exam_subjects es
+         join examinations e on e.id = es.examination_id
          join exam_classes ec on ec.examination_id = es.examination_id
+         -- §1.4 roster: exam's own academic year, active enrollment, not withdrawn.
          join student_enrollments se on se.class_id = ec.class_id
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
-         join students s on s.id = se.student_id
+              and se.academic_year_id = e.academic_year_id
+         join students s on s.id = se.student_id and s.status <> 'withdrawn'
          left join sections sec on sec.id = se.section_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = s.id
         where es.id = $1
@@ -841,6 +1004,20 @@ const markEntrySchema = z.array(
   })
 );
 
+/** §1.6 — once an examination is finalized its results are an immutable
+ *  snapshot; refuse ordinary mark writes against it so the marks grid can't
+ *  drift from the frozen report card. (computeResults() independently
+ *  refuses to touch a finalized exam, so even a write that bypasses this —
+ *  a direct SQL fix, a bulk import — can't change the snapshot.) */
+async function assertExamSubjectNotFinalized(scoped: DbClient, examSubjectId: string): Promise<void> {
+  const { rows } = await scoped.query<{ finalized: boolean }>(
+    `select e.finalized_at is not null as finalized
+       from exam_subjects es join examinations e on e.id = es.examination_id where es.id = $1`,
+    [examSubjectId]
+  );
+  if (rows[0]?.finalized) throw new Error("This examination has been finalized — its results are locked.");
+}
+
 /** Bulk mark entry — only touches marks still in 'draft' (or not yet created). Editing
  *  an already-submitted/verified/approved/locked mark must go through correctMark(). */
 export async function enterMarks(
@@ -849,6 +1026,7 @@ export async function enterMarks(
   const data = markEntrySchema.parse(entries);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await assertExamSubjectNotFinalized(scoped, examSubjectId);
     let updated = 0;
     let skippedLocked = 0;
     for (const e of data) {
@@ -858,6 +1036,16 @@ export async function enterMarks(
       );
       if (existing.length > 0 && existing[0].entry_status !== "draft") {
         skippedLocked++;
+        continue;
+      }
+      // §1.2: a blank, Present cell is "not entered yet" — never a row.
+      // Blanking a previously saved draft value clears it (row removed), so
+      // Mark Entry Status and the live result both see it as not entered.
+      if (!e.isAbsent && e.marksObtained == null) {
+        if (existing.length > 0) {
+          await scoped.query("delete from marks where id = $1 and entry_status = 'draft'", [existing[0].id]);
+          updated++;
+        }
         continue;
       }
       await scoped.query(
@@ -946,7 +1134,16 @@ async function transitionMarks(
          returning id`,
       params
     );
-    return rows.length;
+    // §CE: a subject's CE component marks move through the SAME workflow
+    // as its written marks (one Submit/Verify/Approve/Lock per subject).
+    const { rows: ceRows } = await scoped.query(
+      `update ce_marks set entry_status = $1, updated_at = now()
+         where entry_status = $3
+           and ce_component_id in (select id from exam_ce_components where exam_subject_id = $2)
+         returning id`,
+      [to, examSubjectId, from]
+    );
+    return rows.length + ceRows.length;
   });
 }
 
@@ -1015,6 +1212,7 @@ export async function correctMark(
       "select marks_obtained, exam_subject_id from marks where id = $1", [markId]
     );
     if (rows.length === 0) throw new Error("Mark not found");
+    await assertExamSubjectNotFinalized(scoped, rows[0].exam_subject_id);
     const oldValue = rows[0].marks_obtained === null ? null : Number(rows[0].marks_obtained);
 
     await scoped.query("update marks set marks_obtained = $1, updated_at = now() where id = $2", [newValue, markId]);
@@ -1036,123 +1234,405 @@ export async function correctMark(
 }
 
 // ---------------------------------------------------------------------------
+// Continuous Evaluation (EXAMINATION_SPEC §2 / §CE) — regular exams only,
+// entirely separate from Daily Assessment (no shared tables or functions).
+// Schema: migration 0055 (exam_ce_components + ce_marks; see its header for
+// why CE doesn't live in `marks`). Config: examinations.ce_enabled/ce_mode,
+// defaulted from institutions.ce_enabled_default/ce_mode_default.
+//   TOTAL mode      — one component named "CE" per exam_subject; its
+//                     max_marks IS the subject's CE max.
+//   COMPONENTS mode — several named components; CE max = their sum.
+// CE marks feed computeResults() as ordinary units of their subject (same
+// absent/blank/denominator rules as the written paper).
+// ---------------------------------------------------------------------------
+export interface CeComponentRecord { id: string; exam_subject_id: string; name: string; max_marks: string; sort_order: number }
+export interface CeMarkRecord { student_id: string; ce_component_id: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }
+
+export const TOTAL_MODE_CE_COMPONENT_NAME = "CE";
+
+/** Institution-level CE defaults (copied onto each new regular exam). */
+export async function setInstitutionCeDefaults(
+  institutionId: string, authUserId: string, userId: string, input: { enabled: boolean; mode: "total" | "components" }
+): Promise<void> {
+  const data = z.object({ enabled: z.boolean(), mode: z.enum(["total", "components"]) }).parse(input);
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query(
+      "update institutions set ce_enabled_default = $1, ce_mode_default = $2 where id = $3",
+      [data.enabled, data.mode, institutionId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "institutions", entityId: institutionId, after: { ce_enabled_default: data.enabled, ce_mode_default: data.mode } });
+  });
+}
+
+export async function getInstitutionCeDefaults(institutionId: string, authUserId: string): Promise<{ enabled: boolean; mode: "total" | "components" }> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ ce_enabled_default: boolean; ce_mode_default: "total" | "components" }>(
+      "select ce_enabled_default, ce_mode_default from institutions where id = $1", [institutionId]
+    );
+    return { enabled: rows[0]?.ce_enabled_default ?? false, mode: rows[0]?.ce_mode_default ?? "total" };
+  });
+}
+
+/** Every CE component of every subject of one examination. */
+export async function listCeComponents(institutionId: string, authUserId: string, examinationId: string): Promise<CeComponentRecord[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<CeComponentRecord>(
+      `select c.id, c.exam_subject_id, c.name, c.max_marks, c.sort_order
+         from exam_ce_components c join exam_subjects es on es.id = c.exam_subject_id
+        where es.examination_id = $1 order by c.sort_order, c.name`,
+      [examinationId]
+    );
+    return rows;
+  });
+}
+
+const ceComponentsSchema = z.array(z.object({ name: z.string().trim().min(1).max(100), maxMarks: z.number().positive() })).min(1);
+
+/** Replaces one exam_subject's CE components. TOTAL mode accepts exactly
+ *  one component (always stored under the name "CE"); COMPONENTS mode
+ *  accepts one or more uniquely-named ones. A component that already has
+ *  CE marks can't be dropped (remove the marks first — same guard
+ *  removeExamSubject() uses); an existing one is updated in place by name. */
+export async function setCeComponents(
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string,
+  components: Array<{ name: string; maxMarks: number }>
+): Promise<CeComponentRecord[]> {
+  const parsed = ceComponentsSchema.parse(components);
+  const db = await getDbClient();
+  const result = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await assertExamSubjectNotFinalized(scoped, examSubjectId);
+    const { rows: ex } = await scoped.query<{ examination_id: string; ce_enabled: boolean; ce_mode: "total" | "components" }>(
+      `select e.id as examination_id, e.ce_enabled, e.ce_mode
+         from exam_subjects es join examinations e on e.id = es.examination_id where es.id = $1`,
+      [examSubjectId]
+    );
+    if (!ex[0]) throw new Error("Exam subject not found.");
+    if (!ex[0].ce_enabled) throw new Error("Continuous Evaluation is not enabled for this examination.");
+    let wanted = parsed;
+    if (ex[0].ce_mode === "total") {
+      if (parsed.length !== 1) throw new Error("CE is in Total mode — give exactly one CE maximum.");
+      wanted = [{ name: TOTAL_MODE_CE_COMPONENT_NAME, maxMarks: parsed[0].maxMarks }];
+    }
+    const names = wanted.map((c) => c.name.toLowerCase());
+    if (new Set(names).size !== names.length) throw new Error("CE component names must be unique.");
+
+    const { rows: existing } = await scoped.query<{ id: string; name: string; used: boolean }>(
+      `select c.id, c.name, exists (select 1 from ce_marks m where m.ce_component_id = c.id) as used
+         from exam_ce_components c where c.exam_subject_id = $1`,
+      [examSubjectId]
+    );
+    for (const e of existing) {
+      if (!names.includes(e.name.toLowerCase())) {
+        if (e.used) throw new Error(`CE marks have already been entered for "${e.name}" — remove those first.`);
+        await scoped.query("delete from exam_ce_components where id = $1", [e.id]);
+      }
+    }
+    for (const [i, c] of wanted.entries()) {
+      const match = existing.find((e) => e.name.toLowerCase() === c.name.toLowerCase());
+      if (match) {
+        await scoped.query("update exam_ce_components set max_marks = $1, sort_order = $2 where id = $3", [c.maxMarks, i, match.id]);
+      } else {
+        await scoped.query(
+          `insert into exam_ce_components (institution_id, exam_subject_id, name, max_marks, sort_order)
+           values ($1, $2, $3, $4, $5)`,
+          [institutionId, examSubjectId, c.name, c.maxMarks, i]
+        );
+      }
+    }
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "examination", entityType: "exam_ce_components", entityId: examSubjectId, after: { components: wanted } });
+    const { rows } = await scoped.query<CeComponentRecord>(
+      "select id, exam_subject_id, name, max_marks, sort_order from exam_ce_components where exam_subject_id = $1 order by sort_order, name",
+      [examSubjectId]
+    );
+    return rows;
+  });
+  await recomputeExaminationResults(institutionId, authUserId, examSubjectId);
+  return result;
+}
+
+/** One exam_subject's CE components + every CE mark entered against them. */
+export async function getCeMarksGrid(
+  institutionId: string, authUserId: string, examSubjectId: string
+): Promise<{ components: CeComponentRecord[]; marks: CeMarkRecord[] }> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ ce_enabled: boolean }>(
+      "select e.ce_enabled from exam_subjects es join examinations e on e.id = es.examination_id where es.id = $1", [examSubjectId]
+    );
+    if (!ex[0]?.ce_enabled) return { components: [], marks: [] };
+    const { rows: components } = await scoped.query<CeComponentRecord>(
+      "select id, exam_subject_id, name, max_marks, sort_order from exam_ce_components where exam_subject_id = $1 order by sort_order, name",
+      [examSubjectId]
+    );
+    if (components.length === 0) return { components, marks: [] };
+    const { rows: marks } = await scoped.query<CeMarkRecord>(
+      "select student_id, ce_component_id, marks_obtained, is_absent, entry_status from ce_marks where ce_component_id = any($1::uuid[])",
+      [components.map((c) => c.id)]
+    );
+    return { components, marks };
+  });
+}
+
+const ceMarkEntrySchema = z.array(z.object({
+  studentId: z.string().uuid(),
+  componentId: z.string().uuid(),
+  marksObtained: z.number().nullable(),
+  isAbsent: z.boolean().default(false),
+}));
+
+/** Bulk CE mark entry — same rules as enterMarks(): draft-only, a blank
+ *  Present cell is never a row (and clears a saved draft), absent stores
+ *  no value. Also range-checks against the component's max. */
+export async function enterCeMarks(
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof ceMarkEntrySchema>
+): Promise<{ updated: number; skippedLocked: number }> {
+  const data = ceMarkEntrySchema.parse(entries);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await assertExamSubjectNotFinalized(scoped, examSubjectId);
+    const { rows: comps } = await scoped.query<{ id: string; max_marks: string }>(
+      "select id, max_marks from exam_ce_components where exam_subject_id = $1", [examSubjectId]
+    );
+    const maxById = new Map(comps.map((c) => [c.id, Number(c.max_marks)]));
+    let updated = 0, skippedLocked = 0;
+    for (const e of data) {
+      const max = maxById.get(e.componentId);
+      if (max == null) throw new Error("CE component does not belong to this subject.");
+      if (!e.isAbsent && e.marksObtained != null && (e.marksObtained < 0 || e.marksObtained > max)) {
+        throw new Error(`CE mark must be between 0 and ${max}.`);
+      }
+      const { rows: existing } = await scoped.query<{ id: string; entry_status: string }>(
+        "select id, entry_status from ce_marks where ce_component_id = $1 and student_id = $2", [e.componentId, e.studentId]
+      );
+      if (existing.length > 0 && existing[0].entry_status !== "draft") { skippedLocked++; continue; }
+      if (!e.isAbsent && e.marksObtained == null) {
+        if (existing.length > 0) {
+          await scoped.query("delete from ce_marks where id = $1 and entry_status = 'draft'", [existing[0].id]);
+          updated++;
+        }
+        continue;
+      }
+      await scoped.query(
+        `insert into ce_marks (institution_id, ce_component_id, student_id, marks_obtained, is_absent, entry_status, entered_by)
+         values ($1, $2, $3, $4, $5, 'draft', $6)
+         on conflict (institution_id, ce_component_id, student_id)
+         do update set marks_obtained = excluded.marks_obtained, is_absent = excluded.is_absent,
+                        entered_by = excluded.entered_by, updated_at = now()
+         where ce_marks.entry_status = 'draft'`,
+        [institutionId, e.componentId, e.studentId, e.isAbsent ? null : e.marksObtained, e.isAbsent, userId]
+      );
+      updated++;
+    }
+    return { updated, skippedLocked };
+  });
+}
+
+/** enterCeMarks() + the same best-effort live recompute enterMarksAndRecompute() does. */
+export async function enterCeMarksAndRecompute(
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof ceMarkEntrySchema>
+): Promise<{ updated: number; skippedLocked: number }> {
+  const result = await enterCeMarks(institutionId, authUserId, userId, examSubjectId, entries);
+  if (result.updated > 0) {
+    try { await recomputeExaminationResults(institutionId, authUserId, examSubjectId); } catch { /* best-effort, see enterMarksAndRecompute() */ }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Results (§28 "once marks are approved, they feed the analytics engine")
 // ---------------------------------------------------------------------------
 /** Computes total/percentage/grade + pass-fail for every student who has
- *  AT LEAST ONE subject's mark entered for this examination — §CS.4 "don't
- *  need compute results -- as mark is started entering, it should start
- *  see in result analysis" retired the previous "skip until every subject
- *  is approved/locked" gate entirely: a student now gets a `results` row
- *  (and therefore shows up in Result Analysis) the moment their FIRST mark
- *  is saved, draft or otherwise, and that row keeps updating live as more
- *  subjects/statuses come in. `subjects_entered`/`subjects_expected`/
- *  `is_provisional` (migration 0054) let a reader tell a still-filling-in
- *  result apart from a fully finalized one — is_provisional is true unless
- *  every subject is entered AND every one of those marks is approved or
- *  locked. total_marks/percentage are always computed against the FULL
- *  exam's max_total_marks (not just the subjects entered so far), so the
- *  percentage naturally reads as "current progress toward the final
- *  total" rather than a misleadingly-high average of only what's in.
- *  Overall pass/fail follows the Result Analysis spec exactly: a student
- *  fails if failedSubjectCount > 0 OR overallPct < institution PassPct —
- *  a subject itself fails against its own pass_marks override if set, else
- *  falls back to the same tenant PassPct applied to that subject's
- *  max_marks. Grade label/color always come from lookupGrade() against
- *  the examination's grade scale; the binary pass/fail always comes from
- *  isPass() — this function never compares a percentage to a literal
- *  threshold itself. Both is_pass/grade are naturally provisional too
- *  while is_provisional is true — callers that need a FINAL-only view
- *  (Report Cards, Consolidated Mark Sheet, the parent/student portal,
- *  Star of the Month scoring) filter `where not is_provisional`.
+ *  AT LEAST ONE unit (written mark or CE component mark) entered for this
+ *  examination — §CS.4 live results: a student gets a `results` row the
+ *  moment their FIRST mark is saved, draft or otherwise, and that row keeps
+ *  updating live as more subjects/statuses come in. `subjects_entered`/
+ *  `subjects_expected`/`is_provisional` (migration 0054) let a reader tell
+ *  a still-filling-in result apart from a complete one.
+ *
+ *  The math itself is computeStudentResult() above (the ONE pure definition,
+ *  EXAMINATION_SPEC §1.5) — this function only loads inputs and persists:
+ *   - §1.1 absent units are excluded from total AND denominator;
+ *   - §1.2 blank (not-yet-entered) units stay in the denominator;
+ *   - §8 overall pass = no failed subject AND percentage >=
+ *     examinations.overall_pass_pct (DEFAULT_OVERALL_PASS_PCT if unset);
+ *   - §8 grade via resolveGradeBand() (half-open bands, no boundary gaps);
+ *   - §CE components are just more units of their subject.
+ *  §1.6 freeze: a finalized examination is skipped entirely, and the upsert
+ *  itself refuses to overwrite any row with is_frozen = true.
  *
  *  Called automatically after every mark save/delete as well as every
- *  submit/verify/approve/lock/correct transition (no manual "Compute
- *  results" click anywhere in the app any more), and is safely re-runnable
- *  on demand regardless. */
+ *  submit/verify/approve/lock/correct transition, and safely re-runnable. */
 export async function computeResults(institutionId: string, authUserId: string, examinationId: string): Promise<{ computed: number; skippedIncomplete: number }> {
   const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: examSubjects } = await scoped.query<{ id: string; max_marks: string; pass_marks: string | null }>(
-      "select id, max_marks, pass_marks from exam_subjects where examination_id = $1", [examinationId]
-    );
-    if (examSubjects.length === 0) return { computed: 0, skippedIncomplete: 0 };
-    const maxTotal = examSubjects.reduce((sum, s) => sum + Number(s.max_marks), 0);
-    const examSubjectIds = examSubjects.map((s) => s.id);
-    const passMarksBySubject = new Map(examSubjects.map((s) => [s.id, s.pass_marks == null ? null : Number(s.pass_marks)]));
+  const out = await db.withInstitutionContext({ institutionId, authUserId }, (scoped) =>
+    computeResultsScoped(scoped, institutionId, examinationId)
+  );
+  // Result Analysis reads (modules/analytics/service.ts) are cached
+  // indefinitely until this exact tag is revalidated — this is that "until
+  // there's a change" moment.
+  safeRevalidateTag(resultAnalysisTag(institutionId, examinationId));
+  return out;
+}
 
-    const { rows: examRow } = await scoped.query<{ grade_scale_id: string | null }>(
-      "select grade_scale_id from examinations where id = $1", [examinationId]
-    );
-    const gradeScaleId = examRow[0]?.grade_scale_id ?? null;
-
-    const { rows: instRow } = await scoped.query<{ pass_pct: string }>(
-      "select pass_pct from institutions where id = $1", [institutionId]
-    );
-    const passPct = Number(instRow[0]?.pass_pct ?? 35);
-
-    // Every subject mark that has an actual value (or is explicitly marked
-    // absent) for this exam, whatever its entry_status — draft included —
-    // so a result starts forming the instant the first mark is saved.
-    const { rows: subjectMarks } = await scoped.query<{ student_id: string; exam_subject_id: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }>(
-      `select student_id, exam_subject_id, marks_obtained, is_absent, entry_status
-         from marks
-        where exam_subject_id = any($1) and (marks_obtained is not null or is_absent = true)`,
-      [examSubjectIds]
-    );
-
-    const byStudent = new Map<string, typeof subjectMarks>();
-    for (const m of subjectMarks) {
-      if (!byStudent.has(m.student_id)) byStudent.set(m.student_id, []);
-      byStudent.get(m.student_id)!.push(m);
-    }
-
-    let computed = 0;
-    const skippedIncomplete = 0; // retained for API compat -- nothing is skipped any more, see doc comment above.
-    for (const [studentId, rows] of byStudent) {
-      let total = 0;
-      let failedSubjectCount = 0;
-      for (const r of rows) {
-        if (r.is_absent || r.marks_obtained == null) {
-          failedSubjectCount++;
-          continue;
-        }
-        const obtained = Number(r.marks_obtained);
-        total += obtained;
-        const subjectMax = Number(examSubjects.find((s) => s.id === r.exam_subject_id)!.max_marks);
-        const subjectPassMarks = passMarksBySubject.get(r.exam_subject_id);
-        const subjectPct = subjectMax > 0 ? (obtained / subjectMax) * 100 : 0;
-        const subjectPassed = subjectPassMarks != null
-          ? obtained >= subjectPassMarks
-          : isPass(subjectPct, passPct);
-        if (!subjectPassed) failedSubjectCount++;
-      }
-      const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
-      const grade = await lookupGrade(scoped, gradeScaleId, percentage);
-      const overallPass = failedSubjectCount === 0 && isPass(percentage, passPct);
-      const subjectsEntered = rows.length;
-      const subjectsExpected = examSubjects.length;
-      const isProvisional = subjectsEntered < subjectsExpected || rows.some((r) => r.entry_status !== "approved" && r.entry_status !== "locked");
-
-      await scoped.query(
-        `insert into results (institution_id, examination_id, student_id, total_marks, max_total_marks, percentage, grade_band_id, is_pass, failed_subject_count, subjects_entered, subjects_expected, is_provisional, computed_at)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
-         on conflict (institution_id, examination_id, student_id)
-         do update set total_marks = excluded.total_marks, max_total_marks = excluded.max_total_marks,
-                        percentage = excluded.percentage, grade_band_id = excluded.grade_band_id,
-                        is_pass = excluded.is_pass, failed_subject_count = excluded.failed_subject_count,
-                        subjects_entered = excluded.subjects_entered, subjects_expected = excluded.subjects_expected,
-                        is_provisional = excluded.is_provisional, computed_at = now()`,
-        [institutionId, examinationId, studentId, total, maxTotal, percentage, grade?.id ?? null, overallPass, failedSubjectCount, subjectsEntered, subjectsExpected, isProvisional]
-      );
-      computed++;
-    }
-    // Result Analysis reads (modules/analytics/service.ts) are cached
-    // indefinitely and reused across tab clicks/filter changes until this
-    // exact tag is revalidated — this is that "until there's a change"
-    // moment, the instant a mark is saved/transitioned for this exam.
-    safeRevalidateTag(resultAnalysisTag(institutionId, examinationId));
-    return { computed, skippedIncomplete };
+/** Loads one examination's subjects (+ CE components when CE is enabled)
+ *  as ResultSubjectDefs — shared by computeResultsScoped() and the
+ *  per-track analytics summary so both see identical unit definitions. */
+export async function loadResultSubjectDefs(
+  scoped: DbClient, examinationId: string
+): Promise<{ subjects: Array<ResultSubjectDef & { ceComponentIds: string[] }>; ceEnabled: boolean }> {
+  const { rows: examRow } = await scoped.query<{ ce_enabled: boolean }>(
+    "select ce_enabled from examinations where id = $1", [examinationId]
+  );
+  const ceEnabled = examRow[0]?.ce_enabled ?? false;
+  const { rows: examSubjects } = await scoped.query<{ id: string; max_marks: string; pass_marks: string | null }>(
+    "select id, max_marks, pass_marks from exam_subjects where examination_id = $1", [examinationId]
+  );
+  const { rows: comps } = ceEnabled && examSubjects.length > 0
+    ? await scoped.query<{ id: string; exam_subject_id: string; max_marks: string }>(
+        `select id, exam_subject_id, max_marks from exam_ce_components
+          where exam_subject_id = any($1) order by sort_order, name`,
+        [examSubjects.map((s) => s.id)]
+      )
+    : { rows: [] as Array<{ id: string; exam_subject_id: string; max_marks: string }> };
+  const subjects = examSubjects.map((s) => {
+    const mine = comps.filter((c) => c.exam_subject_id === s.id);
+    return {
+      id: s.id,
+      passMarks: s.pass_marks == null ? null : Number(s.pass_marks),
+      mainMaxMarks: Number(s.max_marks),
+      units: [
+        { key: `m:${s.id}`, maxMarks: Number(s.max_marks) },
+        ...mine.map((c) => ({ key: `ce:${c.id}`, maxMarks: Number(c.max_marks) })),
+      ],
+      ceComponentIds: mine.map((c) => c.id),
+    };
   });
+  return { subjects, ceEnabled };
+}
+
+async function computeResultsScoped(
+  scoped: DbClient, institutionId: string, examinationId: string
+): Promise<{ computed: number; skippedIncomplete: number }> {
+  const { rows: examRow } = await scoped.query<{ grade_scale_id: string | null; overall_pass_pct: string | null; finalized: boolean }>(
+    "select grade_scale_id, overall_pass_pct, finalized_at is not null as finalized from examinations where id = $1", [examinationId]
+  );
+  if (!examRow[0] || examRow[0].finalized) return { computed: 0, skippedIncomplete: 0 };
+  const gradeScaleId = examRow[0].grade_scale_id;
+  const overallPassPct = examRow[0].overall_pass_pct == null ? DEFAULT_OVERALL_PASS_PCT : Number(examRow[0].overall_pass_pct);
+
+  const { subjects } = await loadResultSubjectDefs(scoped, examinationId);
+  if (subjects.length === 0) return { computed: 0, skippedIncomplete: 0 };
+
+  const { rows: instRow } = await scoped.query<{ pass_pct: string }>(
+    "select pass_pct from institutions where id = $1", [institutionId]
+  );
+  const subjectPassPct = Number(instRow[0]?.pass_pct ?? 35);
+
+  const { rows: bands } = gradeScaleId
+    ? await scoped.query<{ id: string; min_percent: string; max_percent: string; grade_label: string; color: string | null }>(
+        "select id, min_percent, max_percent, grade_label, color from grade_bands where grade_scale_id = $1", [gradeScaleId]
+      )
+    : { rows: [] as Array<{ id: string; min_percent: string; max_percent: string; grade_label: string; color: string | null }> };
+
+  // Every unit row that has a value or is explicitly absent, any status.
+  const { rows: markRows } = await scoped.query<{ student_id: string; unit_key: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }>(
+    `select student_id, 'm:' || exam_subject_id as unit_key, marks_obtained, is_absent, entry_status
+       from marks
+      where exam_subject_id = any($1) and (marks_obtained is not null or is_absent = true)
+     union all
+     select student_id, 'ce:' || ce_component_id as unit_key, marks_obtained, is_absent, entry_status
+       from ce_marks
+      where ce_component_id = any($2::uuid[]) and (marks_obtained is not null or is_absent = true)`,
+    [subjects.map((s) => s.id), subjects.flatMap((s) => s.ceComponentIds)]
+  );
+
+  const byStudent = new Map<string, Map<string, ResultUnitEntry>>();
+  for (const m of markRows) {
+    if (!byStudent.has(m.student_id)) byStudent.set(m.student_id, new Map());
+    byStudent.get(m.student_id)!.set(m.unit_key, {
+      key: m.unit_key, marksObtained: m.marks_obtained == null ? null : Number(m.marks_obtained),
+      isAbsent: m.is_absent, entryStatus: m.entry_status,
+    });
+  }
+
+  let computed = 0;
+  for (const [studentId, entries] of byStudent) {
+    const r = computeStudentResult({ subjects, entries, subjectPassPct, overallPassPct });
+    // No sat subject at all (e.g. absent everywhere) => no percentage to grade.
+    const band = r.maxTotal > 0 ? resolveGradeBand(bands, r.percentage) : null;
+    await scoped.query(
+      `insert into results (institution_id, examination_id, student_id, total_marks, max_total_marks, percentage, grade_band_id,
+                            grade_label, grade_color, is_pass, failed_subject_count, absent_subject_count, pass_threshold_pct,
+                            subjects_entered, subjects_expected, is_provisional, computed_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, now())
+       on conflict (institution_id, examination_id, student_id)
+       do update set total_marks = excluded.total_marks, max_total_marks = excluded.max_total_marks,
+                      percentage = excluded.percentage, grade_band_id = excluded.grade_band_id,
+                      grade_label = excluded.grade_label, grade_color = excluded.grade_color,
+                      is_pass = excluded.is_pass, failed_subject_count = excluded.failed_subject_count,
+                      absent_subject_count = excluded.absent_subject_count, pass_threshold_pct = excluded.pass_threshold_pct,
+                      subjects_entered = excluded.subjects_entered, subjects_expected = excluded.subjects_expected,
+                      is_provisional = excluded.is_provisional, computed_at = now()
+       where results.is_frozen = false`,
+      [institutionId, examinationId, studentId, r.total, r.maxTotal, r.percentage, band?.id ?? null,
+       band?.grade_label ?? null, band?.color ?? null, r.isPass, r.failedSubjectCount, r.absentSubjectCount, overallPassPct,
+       r.subjectsEntered, r.subjectsExpected, r.isProvisional]
+    );
+    computed++;
+  }
+  return { computed, skippedIncomplete: 0 };
+}
+
+/** §1.6 grade freeze — the explicit "Finalize results" action. Distinct
+ *  from ordinary live/provisional/published state: until this runs,
+ *  results keep live-recomputing on every mark change (§CS.4); after it,
+ *  every results row of the exam is an immutable snapshot
+ *  (results.is_frozen, examinations.finalized_at) that computeResults()
+ *  will never touch again — not on a grade-band edit, a threshold change,
+ *  or a re-entered mark. Refuses Daily Assessment registers (they have no
+ *  `results` rows and keep their own live math), an already-finalized exam,
+ *  an exam with no results, and any exam that still has a provisional
+ *  (incomplete or not-yet-approved) result. Irreversible by design. */
+export async function finalizeExamination(
+  institutionId: string, authUserId: string, userId: string, examinationId: string
+): Promise<{ frozen: number }> {
+  const db = await getDbClient();
+  const out = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ finalized: boolean; is_daily_assessment: boolean }>(
+      `select e.finalized_at is not null as finalized, et.is_daily_assessment
+         from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`,
+      [examinationId]
+    );
+    if (!ex[0]) throw new Error("Examination not found.");
+    if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers can't be finalized.");
+    if (ex[0].finalized) throw new Error("This examination is already finalized.");
+    // One last live recompute so the snapshot reflects current marks/bands.
+    await computeResultsScoped(scoped, institutionId, examinationId);
+    const { rows: counts } = await scoped.query<{ total: string; provisional: string }>(
+      `select count(*)::text as total, count(*) filter (where is_provisional)::text as provisional
+         from results where examination_id = $1`,
+      [examinationId]
+    );
+    if (Number(counts[0]?.total ?? 0) === 0) throw new Error("No results to finalize yet.");
+    if (Number(counts[0]?.provisional ?? 0) > 0) {
+      throw new Error(`${counts[0].provisional} result(s) are still provisional — every subject must be entered and approved/locked before finalizing.`);
+    }
+    const { rows: frozen } = await scoped.query(
+      "update results set is_frozen = true, frozen_at = now() where examination_id = $1 and is_frozen = false returning id",
+      [examinationId]
+    );
+    await scoped.query(
+      "update examinations set finalized_at = now(), finalized_by = $2, status = 'finalized', updated_at = now() where id = $1",
+      [examinationId, userId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "finalize", module: "examination", entityType: "examinations", entityId: examinationId, after: { frozen: frozen.length } });
+    return { frozen: frozen.length };
+  });
+  safeRevalidateTag(resultAnalysisTag(institutionId, examinationId));
+  return out;
 }
 
 /** "Result > Consolidated marks / Report Cards" follow-up — one flat row
@@ -1171,7 +1651,11 @@ export interface ExaminationMarksMatrixRow {
   class_name: string | null;
   exam_subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
   marks_obtained: string | null; is_absent: boolean;
+  /** §CE breakdown for this cell — empty when CE is off for the exam or the
+   *  subject has no CE components. Written mark stays in marks_obtained. */
+  ce_components: MatrixCeCell[];
 }
+export interface MatrixCeCell { id: string; name: string; max_marks: string; marks_obtained: string | null; is_absent: boolean }
 
 /** `classId` (§Page-6 follow-up "Consolidated Marks — select exam, class
  *  from dropdown") narrows to one of the exam's covered classes; omitted or
@@ -1181,17 +1665,20 @@ export async function getExaminationMarksMatrix(
 ): Promise<ExaminationMarksMatrixRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<ExaminationMarksMatrixRow>(
+    const { rows } = await scoped.query<Omit<ExaminationMarksMatrixRow, "ce_components">>(
       `select distinct se.student_id, s.full_name as student_name, s.admission_number,
               se.roll_number, s.gender, sec.name as section_name, c.name as class_name,
               es.id as exam_subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
               m.marks_obtained, coalesce(m.is_absent, false) as is_absent
          from exam_subjects es
+         join examinations e on e.id = es.examination_id
          join subjects sub on sub.id = es.subject_id
          join exam_classes ec on ec.examination_id = es.examination_id
+         -- §1.4 roster: exam's own academic year, active enrollment, not withdrawn.
          join student_enrollments se on se.class_id = ec.class_id
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
-         join students s on s.id = se.student_id
+              and se.academic_year_id = e.academic_year_id
+         join students s on s.id = se.student_id and s.status <> 'withdrawn'
          left join sections sec on sec.id = se.section_id
          left join classes c on c.id = se.class_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
@@ -1199,11 +1686,50 @@ export async function getExaminationMarksMatrix(
         order by sub.name`,
       [examinationId, classId || null]
     );
+    // §CE: attach each (student, subject) cell's CE breakdown so the
+    // existing Consolidated/Report Card renderers show CE alongside the
+    // written mark — same matrix, no parallel CE-only query path.
+    const ceByCell = await loadCeMatrixCells(scoped, examinationId);
+    const withCe = rows.map((r) => ({
+      ...r,
+      ce_components: ceByCell?.components.get(r.exam_subject_id)?.map((c) => {
+        const m = ceByCell.marks.get(`${r.student_id}:${c.id}`);
+        return { id: c.id, name: c.name, max_marks: c.max_marks, marks_obtained: m?.marks_obtained ?? null, is_absent: m?.is_absent ?? false };
+      }) ?? [],
+    }));
     // Roster order within each subject block (stable sort keeps subject
     // grouping, then reorders students inside it) -- §users-roles follow-up.
-    return sortRoster(rows.map((r) => ({ ...r, full_name: r.student_name })))
+    return sortRoster(withCe.map((r) => ({ ...r, full_name: r.student_name })))
       .sort((a, b) => a.subject_name.localeCompare(b.subject_name));
   });
+}
+
+async function loadCeMatrixCells(scoped: DbClient, examinationId: string): Promise<{
+  components: Map<string, Array<{ id: string; name: string; max_marks: string }>>;
+  marks: Map<string, { marks_obtained: string | null; is_absent: boolean }>;
+} | null> {
+  const { rows: ex } = await scoped.query<{ ce_enabled: boolean }>("select ce_enabled from examinations where id = $1", [examinationId]);
+  if (!ex[0]?.ce_enabled) return null;
+  const { rows: comps } = await scoped.query<{ id: string; exam_subject_id: string; name: string; max_marks: string }>(
+    `select c.id, c.exam_subject_id, c.name, c.max_marks from exam_ce_components c
+       join exam_subjects es on es.id = c.exam_subject_id
+      where es.examination_id = $1 order by c.sort_order, c.name`,
+    [examinationId]
+  );
+  const components = new Map<string, Array<{ id: string; name: string; max_marks: string }>>();
+  for (const c of comps) {
+    const list = components.get(c.exam_subject_id) ?? [];
+    list.push({ id: c.id, name: c.name, max_marks: c.max_marks });
+    components.set(c.exam_subject_id, list);
+  }
+  const { rows: cm } = comps.length > 0
+    ? await scoped.query<{ student_id: string; ce_component_id: string; marks_obtained: string | null; is_absent: boolean }>(
+        "select student_id, ce_component_id, marks_obtained, is_absent from ce_marks where ce_component_id = any($1::uuid[])",
+        [comps.map((c) => c.id)]
+      )
+    : { rows: [] as Array<{ student_id: string; ce_component_id: string; marks_obtained: string | null; is_absent: boolean }> };
+  const marks = new Map(cm.map((m) => [`${m.student_id}:${m.ce_component_id}`, { marks_obtained: m.marks_obtained, is_absent: m.is_absent }]));
+  return { components, marks };
 }
 
 /** The distinct classes an examination actually covers (§Page-6 follow-up)
@@ -1226,6 +1752,11 @@ export async function listClassesForExamination(
   });
 }
 
+/** §1.6: a finalized (frozen) result shows the grade label snapshotted at
+ *  finalization, immune to later band renames; a live row shows the band's
+ *  current label. Expects `results r` and `left join grade_bands gb`. */
+const RESULT_GRADE_LABEL_SQL = "case when r.is_frozen then coalesce(r.grade_label, gb.grade_label) else coalesce(gb.grade_label, r.grade_label) end";
+
 /** §CS.4 "don't need compute results -- as mark is started entering, it
  *  should start see in result analysis" -- Result Analysis itself
  *  (modules/analytics/service.ts) shows live/provisional results, but this
@@ -1236,7 +1767,8 @@ export async function getResults(institutionId: string, authUserId: string, exam
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ResultRow>(
       `select r.student_id, s.full_name as student_name, r.total_marks, r.max_total_marks,
-              r.percentage, gb.grade_label, r.rank
+              r.percentage, ${RESULT_GRADE_LABEL_SQL} as grade_label, r.rank,
+              r.is_pass, r.failed_subject_count, r.absent_subject_count, r.pass_threshold_pct, r.is_frozen
          from results r
          join students s on s.id = r.student_id
          left join grade_bands gb on gb.id = r.grade_band_id
@@ -1267,7 +1799,7 @@ export async function listStudentResultHistory(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<StudentResultHistoryRow>(
-      `select e.id as examination_id, e.name as examination_name, r.percentage, gb.grade_label, r.computed_at
+      `select e.id as examination_id, e.name as examination_name, r.percentage, ${RESULT_GRADE_LABEL_SQL} as grade_label, r.computed_at
          from results r
          join examinations e on e.id = r.examination_id
          left join grade_bands gb on gb.id = r.grade_band_id
@@ -1335,7 +1867,7 @@ export async function getCumulativeMarksheet(
       `select r.student_id, s.full_name as student_name, s.admission_number,
               se.roll_number, s.gender, sec.name as section_name, c.name as class_name,
               e.id as examination_id, e.name as examination_name, e.start_date,
-              r.percentage, gb.grade_label
+              r.percentage, ${RESULT_GRADE_LABEL_SQL} as grade_label
          from results r
          join examinations e on e.id = r.examination_id
          join students s on s.id = r.student_id
@@ -1479,32 +2011,23 @@ export async function getMostRecentExamination(institutionId: string, authUserId
 
 export interface PassRateTrendPoint { examinationId: string; examinationName: string; percentage: number }
 
-/** "Institution-wide Pass rate trend (across exams in %)" — a student
- *  "passes" an examination here if every one of their approved/locked,
- *  non-absent marks meets that subject's own pass_marks (the same
- *  definition results/report cards already imply per-subject, just rolled
- *  up to "passed everything"). Only examinations that already have at least
- *  one computed result (computeResults() has been run) are included — an
- *  examination still in progress isn't a 0% data point, it's just not part
- *  of the trend yet. Ordered oldest-to-newest (left-to-right on a trend
- *  chart), most recent `limit` examinations. */
+/** "Institution-wide Pass rate trend (across exams in %)" — share of each
+ *  examination's students whose STORED overall result is a pass
+ *  (results.is_pass, written only by computeResults() via
+ *  computeStudentResult()). EXAMINATION_SPEC §1.5: this used to re-derive
+ *  "passed" independently (every approved mark >= pass_marks, ignoring the
+ *  overall-percentage threshold and absence), so the Home chart could
+ *  disagree with Result Analysis / report cards; it now reads the same
+ *  stored value getInstitutionPassRateTrendByStage() already used. Only
+ *  examinations with at least one computed result are included. Ordered
+ *  oldest-to-newest, most recent `limit` examinations. */
 export async function getInstitutionPassRateTrend(institutionId: string, authUserId: string, limit = 5): Promise<PassRateTrendPoint[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{ id: string; name: string; total: string; passed: string }>(
       `select e.id, e.name,
               count(distinct r.student_id) as total,
-              count(distinct r.student_id) filter (
-                where not exists (
-                  select 1 from marks m
-                    join exam_subjects es2 on es2.id = m.exam_subject_id
-                   where es2.examination_id = e.id
-                     and m.student_id = r.student_id
-                     and m.entry_status in ('approved', 'locked')
-                     and m.is_absent = false
-                     and m.marks_obtained < es2.pass_marks
-                )
-              ) as passed
+              count(distinct r.student_id) filter (where r.is_pass) as passed
          from examinations e
          join results r on r.examination_id = e.id
         group by e.id, e.name, e.start_date, e.created_at
