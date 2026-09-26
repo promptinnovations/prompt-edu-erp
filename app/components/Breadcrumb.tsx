@@ -23,7 +23,7 @@ const LABELS: Record<string, string[]> = {
   "/examinations/*": ["Examinations", "Exam details"],
   "/examinations/*/marks/*": ["Examinations", "Exam details", "Marks"],
   "/attendance": ["Attendance"],
-  "/analytics": ["Analytics"],
+  "/analytics": ["Result Analysis"],
   "/skills": ["Skills"],
   "/achievements": ["Achievements"],
   "/scoring": ["Scoring"],

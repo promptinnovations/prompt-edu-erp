@@ -72,8 +72,8 @@ export default async function AnalyticsPage({
   if (!canView) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-[var(--heading)]">Analytics</h1>
-        <p className="text-sm text-zinc-500">You don&apos;t have permission to view analytics.</p>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Result Analysis</h1>
+        <p className="text-sm text-zinc-500">You don&apos;t have permission to view Result Analysis.</p>
       </div>
     );
   }
@@ -175,7 +175,7 @@ export default async function AnalyticsPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[var(--heading)]">Analytics</h1>
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">Result Analysis</h1>
         <RefreshButton />
       </div>
       <p className="text-xs text-zinc-500">

@@ -18,7 +18,7 @@ import OnboardingChecklist from "./OnboardingChecklist";
 import TodoWidget from "./TodoWidget";
 import {
   ResultIcon, StaffIcon, AttendanceIcon, StudentIcon, DisciplineIcon, AnalysisIcon,
-  SubstitutionIcon, CalendarIcon, ExamIcon, MentoringIcon, SkillsIcon, LibraryIcon,
+  SubstitutionIcon, CalendarIcon, ExamIcon, MentoringIcon, SkillsIcon, LibraryIcon, TrendUpIcon,
 } from "../../components/NavIcons";
 import AttendanceTrendChart from "../../components/AttendanceTrendChart";
 import AttendanceStageTrendChart from "../../components/AttendanceStageTrendChart";
@@ -143,6 +143,14 @@ export default async function DashboardPage() {
     ...(enabledModules.has("library") && can(ctx.permissions, "library.view") ? [{ label: "Library", href: "/library", icon: <LibraryIcon /> }] : []),
   ];
 
+  // §Dashboard follow-up: "this page shall be titled as Result analysis.
+  // Give it a direct button in dashboard - make it more noticeable than
+  // others" — a single featured, filled/accent tile (every other
+  // quickButtons entry is the same plain white outline card) so Result
+  // Analysis (/analytics) stands out as the primary landing spot, gated on
+  // the same "reports.view" permission the page itself requires.
+  const hasResultAnalysisAccess = can(ctx.permissions, "reports.view");
+
   const statCards: Array<[string, number]> = [
     [t("classes"), stats.classes],
     ["Divisions", stats.divisions],
@@ -164,6 +172,23 @@ export default async function DashboardPage() {
       </div>
 
       <StarOfTheMonthBanner institutionId={institutionId} authUserId={authUserId} />
+
+      {hasResultAnalysisAccess ? (
+        <Link
+          href="/analytics"
+          className="group relative flex items-center gap-4 overflow-hidden rounded-card bg-[var(--brand)] p-5 text-white shadow-float transition-transform hover:scale-[1.01]"
+        >
+          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+          <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white">
+            <TrendUpIcon className="h-6 w-6" />
+          </span>
+          <div className="relative min-w-0 flex-1">
+            <div className="text-base font-semibold">Result Analysis</div>
+            <div className="text-sm text-white/80">Exam pass rates, subject and class performance, live results</div>
+          </div>
+          <span className="relative text-2xl transition-transform group-hover:translate-x-1">&rarr;</span>
+        </Link>
+      ) : null}
 
       {quickButtons.length > 0 ? (
         // Grid, not a horizontally-scrolling row (§ follow-up: "instead of
