@@ -120,6 +120,23 @@ describe("getTeacherClassScope() — resolves teacher_assignments into a usable 
     const scope = await getTeacherClassScope(institutionId, unassigned.authUserId, unassigned.userId);
     expect(scope.classIds.size).toBe(0);
   });
+
+  it("§'mark entry 404' root cause: a PURE class_teacher (no subject_teacher rows anywhere, MMP's actual setup) is authorized for every subject in their class, not zero", async () => {
+    const db = await getDbClient();
+    const classTeacherOnly = await seedDemoUser(db, institutionId, "classteacher-only@teacher-scope.example", "Class Teacher Only", "teacher");
+    await createTeacherAssignment(institutionId, adminAuth, adminUserId, {
+      userId: classTeacherOnly.userId, classId: classBId, sectionId: undefined, academicYearId, roleType: "class_teacher",
+    });
+    const scope = await getTeacherClassScope(institutionId, classTeacherOnly.authUserId, classTeacherOnly.userId);
+    // No subject_teacher row was ever created for this teacher/class -- unlike
+    // the Scoped Teacher above (who has an explicit Math-only row), there is
+    // no subject-level restriction on file, so every subject in Class B must
+    // be open to them.
+    expect(scopeIncludesSubjectInClass(scope, classBId, subjectMathId)).toBe(true);
+    expect(scopeIncludesSubjectInClass(scope, classBId, subjectScienceId)).toBe(true);
+    // Still correctly excluded from a class they have no assignment in at all.
+    expect(scopeIncludesSubjectInClass(scope, classAId, subjectMathId)).toBe(false);
+  });
 });
 
 describe("listStudentsForAdmin() classIds scoping — the Students/Classes-hub call site", () => {

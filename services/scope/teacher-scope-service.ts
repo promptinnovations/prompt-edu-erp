@@ -96,11 +96,35 @@ export function scopeIncludesSection(scope: TeacherClassScope, classId: string, 
   return scope.classIdsWithAllSections.has(classId) || scope.sectionIds.has(sectionId);
 }
 
-/** True if this teacher teaches `subjectId` in `classId` specifically
- *  (subject_teacher assignment) — used to gate marks entry access, which is
- *  always for one exam_subject (= one subject) at a time. */
+/** True if this teacher may act on `subjectId` in `classId` — used to gate
+ *  marks entry access, which is always for one exam_subject (= one subject)
+ *  at a time.
+ *
+ *  §"mark entry page 404" root cause: MMP's (and most madrasa-style
+ *  institutions') teacher_assignments are 100% class_teacher rows with
+ *  subject_id = null — one teacher runs the whole class, every subject,
+ *  with no separate subject_teacher rows ever created. The original rule
+ *  here ("only a subject_teacher row authorizes a subject") silently
+ *  authorized ZERO subjects for every such teacher the moment the CS.2
+ *  scoping fix shipped, which is why the dashboard's new Mark Entry widget
+ *  came up empty/404 for them — not a routing bug, a scope bug.
+ *
+ *  analytics/service's own scopedBySubject filter (app/(institution)/
+ *  analytics/page.tsx) already reasoned about this correctly: when a
+ *  teacher has recorded NO subject_teacher rows at all for a class, that
+ *  means "no subject-level restriction was ever set up for them there", so
+ *  they're treated as authorized for every subject in that class. This
+ *  makes that same rule the shared one, instead of two independently
+ *  inconsistent copies: a subject_teacher row for a class narrows access to
+ *  just those subjects; its total absence (pure class_teacher assignment)
+ *  leaves the whole class open, since that's the only way this teacher's
+ *  scope can ever act on it. */
 export function scopeIncludesSubjectInClass(scope: TeacherClassScope, classId: string, subjectId: string): boolean {
-  return scope.subjectIdsByClass.get(classId)?.has(subjectId) ?? false;
+  const allowedSubjects = scope.subjectIdsByClass.get(classId);
+  if (!allowedSubjects || allowedSubjects.size === 0) {
+    return scope.classIds.has(classId);
+  }
+  return allowedSubjects.has(subjectId);
 }
 
 
