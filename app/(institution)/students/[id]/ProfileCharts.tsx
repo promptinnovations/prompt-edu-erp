@@ -1,6 +1,7 @@
 import type { MonthlyAttendancePoint } from "../../../../modules/attendance/service";
 import type { StudentSubjectMarkRow } from "../../../../modules/examination/service";
 import { seriesColor } from "../../../components/charts/series";
+import { formatMarks } from "../../../../services/format/marks";
 
 const MONTH_LABEL = (ym: string) => {
   const [, m] = ym.split("-");
@@ -83,7 +84,7 @@ export function ExamSubjectPieChart({ subjects }: { subjects: StudentSubjectMark
           <li key={s.subject_id} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: seriesColor(i) }} />
             <span className="text-zinc-700">{s.subject_name}</span>
-            <span className="text-zinc-500">{s.marks_obtained}/{s.max_marks}</span>
+            <span className="text-zinc-500">{formatMarks(s.marks_obtained)}/{formatMarks(s.max_marks)}</span>
           </li>
         ))}
         {subjects.filter((s) => s.is_absent).map((s) => (

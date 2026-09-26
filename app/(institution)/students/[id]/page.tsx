@@ -27,6 +27,7 @@ import StudentProfileForm from "../StudentProfileForm";
 import ProfileTabs from "./ProfileTabs";
 import { MonthlyAttendanceBarChart, ExamSubjectPieChart } from "./ProfileCharts";
 import { formatDateIST } from "../../../../services/datetime/ist";
+import { formatMarks } from "../../../../services/format/marks";
 
 function formatDate(d: string | Date | null) {
   if (!d) return "—";
@@ -390,7 +391,7 @@ export default async function StudentDetailPage({
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
                     <td className="py-1.5 pr-4 text-zinc-600">
-                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${formatMarks(s.marks_obtained)}/${formatMarks(s.max_marks)}` : "—"}
                     </td>
                   </tr>
                 ))}
@@ -643,7 +644,7 @@ export default async function StudentDetailPage({
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
                     <td className="py-1.5 pr-4 text-zinc-600">
-                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${formatMarks(s.marks_obtained)}/${formatMarks(s.max_marks)}` : "—"}
                     </td>
                     <td className="py-1.5 pr-4 text-zinc-600">
                       {!s.is_absent && s.marks_obtained !== null ? `${Math.round((Number(s.marks_obtained) / Number(s.max_marks)) * 1000) / 10}%` : "—"}
@@ -676,7 +677,7 @@ export default async function StudentDetailPage({
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
                     <td className="py-1.5 pr-4 text-zinc-600">
-                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${formatMarks(s.marks_obtained)}/${formatMarks(s.max_marks)}` : "—"}
                     </td>
                     <td className="py-1.5 pr-4 text-zinc-600">
                       {!s.is_absent && s.marks_obtained !== null ? `${Math.round((Number(s.marks_obtained) / Number(s.max_marks)) * 1000) / 10}%` : "—"}
@@ -704,7 +705,7 @@ export default async function StudentDetailPage({
                   <tr key={s.subject_id}>
                     <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
                     <td className="py-1.5 pr-4 text-zinc-600">
-                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${s.marks_obtained}/${s.max_marks}` : "—"}
+                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${formatMarks(s.marks_obtained)}/${formatMarks(s.max_marks)}` : "—"}
                     </td>
                     <td className="py-1.5 pr-4 text-zinc-600">
                       {!s.is_absent && s.marks_obtained !== null ? `${Math.round((Number(s.marks_obtained) / Number(s.max_marks)) * 1000) / 10}%` : "—"}
@@ -738,7 +739,7 @@ export default async function StudentDetailPage({
                     <td className="py-1.5 pr-4 text-zinc-900">{formatDate(d.assessment_date)}</td>
                     <td className="py-1.5 pr-4">{d.subject_name}</td>
                     <td className="py-1.5 pr-4 max-w-xs truncate" title={d.portion}>{d.portion}</td>
-                    <td className="py-1.5 pr-4">{d.is_absent ? "Absent" : d.marks_obtained !== null ? `${d.marks_obtained}/${d.max_marks}` : "—"}</td>
+                    <td className="py-1.5 pr-4">{d.is_absent ? "Absent" : d.marks_obtained !== null ? `${formatMarks(d.marks_obtained)}/${formatMarks(d.max_marks)}` : "—"}</td>
                   </tr>
                 ))}
               </tbody>

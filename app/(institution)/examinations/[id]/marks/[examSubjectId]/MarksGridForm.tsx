@@ -6,6 +6,7 @@ import {
   deleteMarkAction, correctMarkAction,
 } from "../../../actions";
 import ConfirmSubmitButton from "../../../../../components/ui/ConfirmSubmitButton";
+import { formatMarks } from "../../../../../../services/format/marks";
 
 export interface GridStudent {
   student_id: string; student_name: string; admission_number: string;
@@ -55,7 +56,7 @@ function CorrectMarkRow({
       <input type="hidden" name="examSubjectId" value={examSubjectId} />
       <input type="hidden" name="markId" value={student.mark_id ?? ""} />
       <input autoComplete="off"
-        name="newValue" type="number" step="0.01" defaultValue={student.marks_obtained ?? ""}
+        name="newValue" type="number" step="0.01" defaultValue={formatMarks(student.marks_obtained)}
         placeholder="Marks" className="w-20 rounded-full border px-2 py-1 text-xs"
       />
       <input autoComplete="off" name="reason" required placeholder="Reason" className="w-32 rounded-full border px-2 py-1 text-xs" />
@@ -101,7 +102,7 @@ export default function MarksGridForm({
               <th className="py-1.5">Marks</th>
               <th className="py-1.5">Absent</th>
               {ceComponents.map((c) => (
-                <th key={c.id} className="py-1.5">{c.name} <span className="normal-case">/{c.maxMarks}</span></th>
+                <th key={c.id} className="py-1.5">{c.name} <span className="normal-case">/{formatMarks(c.maxMarks)}</span></th>
               ))}
               <th className="py-1.5">Status</th>
               <th className="py-1.5" />
@@ -122,7 +123,7 @@ export default function MarksGridForm({
                     name={`marks_${s.student_id}`}
                     type="number"
                     step="0.01"
-                    defaultValue={s.marks_obtained ?? ""}
+                    defaultValue={formatMarks(s.marks_obtained)}
                     disabled={!canEnter || !isDraftOrUnset}
                     className="w-24 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
@@ -143,7 +144,7 @@ export default function MarksGridForm({
                       <input autoComplete="off"
                         name={`ce_${c.id}_${s.student_id}`}
                         type="number" step="0.01" min={0} max={Number(c.maxMarks)}
-                        defaultValue={m?.marks_obtained ?? ""}
+                        defaultValue={formatMarks(m?.marks_obtained)}
                         disabled={!ceEditable}
                         aria-label={`${c.name} for ${s.student_name}`}
                         className="w-16 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"

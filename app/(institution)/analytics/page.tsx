@@ -20,6 +20,7 @@ import ClassificationRuleForm from "./ClassificationRuleForm";
 import RefreshButton from "./RefreshButton";
 import { CHART_SERIES, CHART_OVERFLOW, seriesColor } from "../../components/charts/series";
 import { monthsAgoIST } from "../../../services/datetime/ist";
+import { formatMarks } from "../../../services/format/marks";
 
 function monthsAgo(n: number): string {
   return monthsAgoIST(n);
@@ -305,7 +306,7 @@ export default async function AnalyticsPage({
                 <div className="rounded-card border p-4">
                   <p className="text-xs text-zinc-500">Top-performing teacher (this exam)</p>
                   <p className="mt-1 text-lg font-semibold text-zinc-900">{topTeacher.teacher_name} <span className="text-sm font-normal text-zinc-500">— {topTeacher.subject_name}</span></p>
-                  <p className="text-xs text-zinc-500">Average {topTeacher.average_marks}/{topTeacher.max_marks} · Pass {fmtPct(topTeacher.pass_percentage)}</p>
+                  <p className="text-xs text-zinc-500">Average {formatMarks(topTeacher.average_marks)}/{formatMarks(topTeacher.max_marks)} · Pass {fmtPct(topTeacher.pass_percentage)}</p>
                 </div>
               ) : null}
             </div>
@@ -654,11 +655,11 @@ function TeacherWiseSection({ rows }: { rows: TeacherResultRow[] }) {
                 <td className="py-1.5">{t.teacher_name}</td>
                 <td className="py-1.5">{t.subject_name}</td>
                 <td className="py-1.5">{t.marked_count}</td>
-                <td className="py-1.5">{t.max_marks}</td>
-                <td className="py-1.5">{t.average_marks ?? "—"}</td>
-                <td className="py-1.5">{t.median_marks ?? "—"}</td>
-                <td className="py-1.5">{t.highest_marks ?? "—"}</td>
-                <td className="py-1.5">{t.lowest_marks ?? "—"}</td>
+                <td className="py-1.5">{formatMarks(t.max_marks)}</td>
+                <td className="py-1.5">{t.average_marks != null ? formatMarks(t.average_marks) : "—"}</td>
+                <td className="py-1.5">{t.median_marks != null ? formatMarks(t.median_marks) : "—"}</td>
+                <td className="py-1.5">{t.highest_marks != null ? formatMarks(t.highest_marks) : "—"}</td>
+                <td className="py-1.5">{t.lowest_marks != null ? formatMarks(t.lowest_marks) : "—"}</td>
                 <td className="py-1.5" style={{ color: PASS_COLOR }}>{fmtPct(t.pass_percentage)}</td>
                 <td className="py-1.5">{t.full_marks_count}</td>
                 <td className="py-1.5" style={{ color: FAIL_COLOR }}>{t.fail_count}</td>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
 import { getExamination, getResults } from "../../../../../modules/examination/service";
+import { formatMarks } from "../../../../../services/format/marks";
 
 /** "Result > Report Cards" — one link per student into their own printable
  *  report card (app/(institution)/results/[id]/report-cards/[studentId]).
@@ -46,7 +47,7 @@ export default async function ReportCardsListPage({ params }: { params: Promise<
               {results.map((r) => (
                 <tr key={r.student_id}>
                   <td className="px-4 py-2">{r.student_name}</td>
-                  <td className="px-4 py-2">{r.total_marks} / {r.max_total_marks}</td>
+                  <td className="px-4 py-2">{formatMarks(r.total_marks)} / {formatMarks(r.max_total_marks)}</td>
                   <td className="px-4 py-2">{r.grade_label ?? "—"}</td>
                   <td className="px-4 py-2">{r.rank ?? "—"}</td>
                   <td className="px-4 py-2 text-right">

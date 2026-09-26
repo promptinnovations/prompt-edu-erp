@@ -11,6 +11,7 @@ import {
   DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR,
 } from "../../../../modules/examination/service";
 import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../services/scope/teacher-scope-service";
+import { formatMarks } from "../../../../services/format/marks";
 import { ExamScopePlanner, ExamSubjectsSection } from "./ExamDetailForms";
 import { ExamResultSettingsForm, CeComponentsForm, FinalizeResultsButton } from "./ExamResultSettings";
 import DailyAssessmentSection from "./DailyAssessmentSection";
@@ -231,7 +232,7 @@ export default async function ExaminationDetailPage({
             {results.map((r) => (
               <tr key={r.student_id}>
                 <td className="py-1.5">{r.student_name}</td>
-                <td className="py-1.5">{r.total_marks} / {r.max_total_marks}</td>
+                <td className="py-1.5">{formatMarks(r.total_marks)} / {formatMarks(r.max_total_marks)}</td>
                 <td className="py-1.5">{Number(r.percentage).toFixed(2)}%</td>
                 <td className="py-1.5">{r.grade_label ?? "—"}</td>
                 <td className="py-1.5">

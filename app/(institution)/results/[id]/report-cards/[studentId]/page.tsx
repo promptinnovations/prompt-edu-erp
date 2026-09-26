@@ -9,6 +9,7 @@ import { getStudent } from "../../../../../../modules/students/service";
 import { listAcademicYears } from "../../../../../../modules/academic/service";
 import { getStudentAttendanceSummary } from "../../../../../../modules/attendance/service";
 import { formatDateIST, todayIST } from "../../../../../../services/datetime/ist";
+import { formatMarks } from "../../../../../../services/format/marks";
 import PrintButton from "../../../../../components/PrintButton";
 import PrintLetterhead from "../../../../../components/PrintLetterhead";
 
@@ -167,15 +168,15 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
                     {r.subject_name}
                     {r.ce_components.length > 1 ? (
                       <div className="text-[11px] text-zinc-500">
-                        CE: {r.ce_components.map((c) => `${c.name} ${c.is_absent ? "AB" : c.marks_obtained ?? "—"}/${c.max_marks}`).join(" · ")}
+                        CE: {r.ce_components.map((c) => `${c.name} ${c.is_absent ? "AB" : c.marks_obtained ? formatMarks(c.marks_obtained) : "—"}/${formatMarks(c.max_marks)}`).join(" · ")}
                       </div>
                     ) : null}
                   </td>
-                  <td className="py-1.5 text-right">{hasCe ? Number(r.max_marks) + ceMax : r.max_marks}</td>
-                  <td className="py-1.5 text-right">{r.pass_marks}</td>
-                  <td className="py-1.5 text-right">{r.is_absent ? "Absent" : r.marks_obtained ?? "—"}</td>
-                  {hasCe ? <td className="py-1.5 text-right">{ceText}</td> : null}
-                  {hasCe ? <td className="py-1.5 text-right">{sat.length > 0 ? `${satObtained}/${satMax}` : "—"}</td> : null}
+                  <td className="py-1.5 text-right">{formatMarks(hasCe ? Number(r.max_marks) + ceMax : r.max_marks)}</td>
+                  <td className="py-1.5 text-right">{formatMarks(r.pass_marks)}</td>
+                  <td className="py-1.5 text-right">{r.is_absent ? "Absent" : r.marks_obtained ? formatMarks(r.marks_obtained) : "—"}</td>
+                  {hasCe ? <td className="py-1.5 text-right">{ceText === "—" || ceText === "Absent" ? ceText : ceText.split("/").map(formatMarks).join("/")}</td> : null}
+                  {hasCe ? <td className="py-1.5 text-right">{sat.length > 0 ? `${formatMarks(satObtained)}/${formatMarks(satMax)}` : "—"}</td> : null}
                   <td className="py-1.5 text-right">
                     {subjectPassed == null ? (
                       "—"
@@ -198,7 +199,7 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
           <div className="mt-6 flex items-center justify-between rounded-xl border bg-zinc-50 p-4 text-sm">
             <div>
               <span className="font-medium text-zinc-900">Total: </span>
-              {overall.total_marks} / {overall.max_total_marks} ({Number(overall.percentage).toFixed(2)}%)
+              {formatMarks(overall.total_marks)} / {formatMarks(overall.max_total_marks)} ({Number(overall.percentage).toFixed(2)}%)
             </div>
             <div className="flex items-center gap-3">
               <span className="font-medium text-zinc-900">Overall Result:</span>

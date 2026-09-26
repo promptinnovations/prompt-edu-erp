@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { saveDailyAssessmentMarksAction } from "../../../actions";
+import { formatMarks } from "../../../../../../services/format/marks";
 
 export interface DailyGridStudent {
   student_id: string; student_name: string; admission_number: string;
@@ -37,7 +38,7 @@ export default function DailyMarksGridForm({
             <tr>
               <th className="py-1.5">Admission #</th>
               <th className="py-1.5">Student</th>
-              <th className="py-1.5">Marks (of {maxMarks})</th>
+              <th className="py-1.5">Marks (of {formatMarks(maxMarks)})</th>
               <th className="py-1.5">Absent</th>
             </tr>
           </thead>
@@ -54,7 +55,7 @@ export default function DailyMarksGridForm({
                     name={`marks_${s.student_id}`}
                     type="number"
                     step="0.01"
-                    defaultValue={s.marks_obtained ?? ""}
+                    defaultValue={formatMarks(s.marks_obtained)}
                     disabled={!editable}
                     className="w-24 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />

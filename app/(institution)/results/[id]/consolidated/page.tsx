@@ -9,6 +9,7 @@ import type { MatrixCeCell } from "../../../../../modules/examination/service";
 import PrintButton from "../../../../components/PrintButton";
 import PrintLetterhead from "../../../../components/PrintLetterhead";
 import ClassFilterForm from "./ClassFilterForm";
+import { formatMarks } from "../../../../../services/format/marks";
 
 /** "Result > Consolidated marks" — one student per row, one subject per
  *  column (the traditional "consolidated marksheet" format), pivoted
@@ -84,7 +85,7 @@ export default async function ConsolidatedMarksPage({
               <tr>
                 <th className="sticky left-0 bg-zinc-50 px-4 py-2">Student</th>
                 {subjectList.map((s) => (
-                  <th key={s.id} className="px-3 py-2 text-center">{s.name}<div className="normal-case font-normal">/{s.maxMarks}</div></th>
+                  <th key={s.id} className="px-3 py-2 text-center">{s.name}<div className="normal-case font-normal">/{formatMarks(s.maxMarks)}</div></th>
                 ))}
                 <th className="px-3 py-2 text-center">Total</th>
                 <th className="px-3 py-2 text-center">Grade</th>
@@ -106,7 +107,7 @@ export default async function ConsolidatedMarksPage({
                     </td>
                     {subjectList.map((s) => {
                       const c = cell.get(`${studentId}:${s.id}`);
-                      const marks = c?.isAbsent ? "AB" : c?.marks ?? "—";
+                      const marks = c?.isAbsent ? "AB" : c?.marks ? formatMarks(c.marks) : "—";
                       if (c && !c.isAbsent && c.marks) total += Number(c.marks);
                       // §CE: CE shown under the written mark in the same cell.
                       const ce = c?.ce ?? [];
@@ -116,14 +117,14 @@ export default async function ConsolidatedMarksPage({
                           {marks}
                           {ce.length > 0 ? (
                             <div className="text-[11px] text-zinc-500">
-                              CE {ce.map((x) => (x.is_absent ? "AB" : x.marks_obtained ?? "—")).join("+")}
+                              CE {ce.map((x) => (x.is_absent ? "AB" : x.marks_obtained ? formatMarks(x.marks_obtained) : "—")).join("+")}
                             </div>
                           ) : null}
                         </td>
                       );
                     })}
                     <td className="px-3 py-2 text-center font-medium">
-                      {overall ? `${overall.total_marks}/${overall.max_total_marks}` : total}
+                      {overall ? `${formatMarks(overall.total_marks)}/${formatMarks(overall.max_total_marks)}` : formatMarks(total)}
                     </td>
                     <td className="px-3 py-2 text-center">{overall?.grade_label ?? "—"}</td>
                     <td className="px-3 py-2 text-center">

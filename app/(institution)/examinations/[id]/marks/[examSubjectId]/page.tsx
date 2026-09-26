@@ -5,6 +5,7 @@ import { can } from "../../../../../../services/permissions/permission-service";
 import { getExamination, listExamSubjects, getMarksGrid, getCeMarksGrid } from "../../../../../../modules/examination/service";
 import { listSubjects } from "../../../../../../modules/academic/service";
 import { assertMarkEntryScope } from "../../../../../../services/scope/teacher-scope-service";
+import { formatMarks } from "../../../../../../services/format/marks";
 import MarksGridForm from "./MarksGridForm";
 
 export default async function MarksEntryPage({
@@ -53,8 +54,8 @@ export default async function MarksEntryPage({
         {subjectName} — marks entry
       </h1>
       <p className="text-sm text-zinc-500">
-        Max {examSubject.max_marks}, pass {examSubject.pass_marks}
-        {ce.components.length > 0 ? ` · CE max ${ceMax} (${ce.components.map((c) => `${c.name} /${c.max_marks}`).join(", ")})` : ""}
+        Max {formatMarks(examSubject.max_marks)}, pass {formatMarks(examSubject.pass_marks)}
+        {ce.components.length > 0 ? ` · CE max ${formatMarks(ceMax)} (${ce.components.map((c) => `${c.name} /${formatMarks(c.max_marks)}`).join(", ")})` : ""}
         {examination.finalized_at ? " · Results finalized — marks are read-only" : ""}
       </p>
 

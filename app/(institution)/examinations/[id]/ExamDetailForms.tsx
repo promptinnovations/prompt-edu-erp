@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { saveExamScopePlanAction, removeExamSubjectAction } from "../actions";
 import type { ExamScopePlan, ExamScopePlanGrade } from "../../../../modules/examination/service";
+import { formatMarks } from "../../../../services/format/marks";
 
 interface GradeState { inScope: boolean; sectionIds: Set<string>; subjectIds: Set<string> }
 
@@ -200,8 +201,8 @@ export function ExamSubjectsSection({
             <tr key={l.examSubjectId}>
               <td className="py-1.5">{l.name}</td>
               <td className="py-1.5 text-xs text-zinc-600">{l.grades.length > 0 ? l.grades.join(", ") : "—"}</td>
-              <td className="py-1.5">{l.maxMarks}</td>
-              <td className="py-1.5">{l.passMarks}</td>
+              <td className="py-1.5">{formatMarks(l.maxMarks)}</td>
+              <td className="py-1.5">{formatMarks(l.passMarks)}</td>
               <td className="py-1.5">
                 <a href={`/examinations/${examinationId}/marks/${l.examSubjectId}`} className="text-xs text-zinc-600 underline">Enter marks</a>
               </td>
