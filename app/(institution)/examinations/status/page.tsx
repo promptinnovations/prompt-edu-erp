@@ -97,7 +97,7 @@ export default async function MarkEntryStatusPage({
         classGroups.map((group) => (
           <section key={group.classId} className="overflow-hidden rounded-2xl border bg-white">
             <div className="border-b bg-zinc-50 px-4 py-2 text-sm font-semibold text-[var(--heading)]">
-              {group.className}
+              {`Class ${group.className}`}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
