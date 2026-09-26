@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../../services/request-context";
 import { can } from "../../../../../../services/permissions/permission-service";
-import { getExamination, listExamSubjects, getMarksGrid, getExamCoveredClassIds } from "../../../../../../modules/examination/service";
+import { getExamination, listExamSubjects, getMarksGrid } from "../../../../../../modules/examination/service";
 import { listSubjects } from "../../../../../../modules/academic/service";
-import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../../../services/scope/teacher-scope-service";
+import { assertMarkEntryScope } from "../../../../../../services/scope/teacher-scope-service";
 import MarksGridForm from "./MarksGridForm";
 
 export default async function MarksEntryPage({
@@ -28,18 +28,14 @@ export default async function MarksEntryPage({
   if (!examSubject) notFound();
   const subjectName = subjects.find((s) => s.id === examSubject.subject_id)?.name ?? "—";
 
-  // "Teachers can give access only to their respective classes" follow-up —
-  // marks.approve is the management-only "unrestricted" signal (mirrors
-  // attendance.edit/student.view_all elsewhere); anyone without it may only
-  // enter/view marks for a subject they're actually assigned to teach in at
-  // least one of this examination's covered classes.
-  if (!can(ctx.permissions, "marks.approve")) {
-    const [scope, coveredClassIds] = await Promise.all([
-      getTeacherClassScope(institutionId, authUserId, ctx.userId),
-      getExamCoveredClassIds(institutionId, authUserId, id),
-    ]);
-    const authorized = coveredClassIds.some((classId) => scopeIncludesSubjectInClass(scope, classId, examSubject.subject_id));
-    if (!authorized) notFound();
+  // §CS.2 "teachers should have mark entry to their respective class
+  // only" -- shared with every mark-writing server action (actions.ts) so
+  // the rule lives in one place; a failed check hides the page (notFound())
+  // rather than throwing, same behavior as before.
+  try {
+    await assertMarkEntryScope(institutionId, authUserId, ctx.userId, ctx.permissions, examSubjectId);
+  } catch {
+    notFound();
   }
 
   const grid = await getMarksGrid(institutionId, authUserId, examSubjectId);

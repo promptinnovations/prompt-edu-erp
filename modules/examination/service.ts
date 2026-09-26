@@ -611,6 +611,25 @@ export async function addExamSubject(
   });
 }
 
+/** §CS.2 "teachers should have mark entry to their respective class only"
+ *  -- resolves the (examinationId, subjectId) an exam_subject row belongs
+ *  to, so a caller that only has the examSubjectId (every mark-entry
+ *  server action does) can check the acting teacher's class/subject scope
+ *  against it. Kept minimal/read-only on purpose -- see
+ *  services/scope/teacher-scope-service.ts's assertMarkEntryScope(), the
+ *  only intended caller. */
+export async function getExamSubjectRef(
+  institutionId: string, authUserId: string, examSubjectId: string
+): Promise<{ examinationId: string; subjectId: string } | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ examination_id: string; subject_id: string }>(
+      "select examination_id, subject_id from exam_subjects where id = $1", [examSubjectId]
+    );
+    return rows[0] ? { examinationId: rows[0].examination_id, subjectId: rows[0].subject_id } : null;
+  });
+}
+
 export async function listExamSubjects(institutionId: string, authUserId: string, examinationId: string): Promise<ExamSubjectRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -730,8 +749,16 @@ export async function listExaminationsForClass(
  *  one. `entry_status` on `marks` isn't used here — a row existing in
  *  `marks` at all (regardless of its own status) counts as "entered",
  *  since even a draft/unverified entry means someone has started. */
+/** §CS.2 "mark entry status also should be shown class wise" -- one row
+ *  per (subject, class) instead of collapsing every class an exam_subject
+ *  covers into a single subject-wide count. Grouped by class_id (not
+ *  section_id) even when an exam_classes row is section-specific, since
+ *  "class wise" here means the class (e.g. "Class 5"), not each division --
+ *  the page below groups these rows into a subject list per class.
+ */
 export interface MarkEntryStatusRow {
-  exam_subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
+  exam_subject_id: string; subject_id: string; subject_name: string; max_marks: string; pass_marks: string;
+  class_id: string; class_name: string; stage: string | null;
   expected: number; entered: number;
 }
 
@@ -739,12 +766,14 @@ export async function getMarkEntryStatus(institutionId: string, authUserId: stri
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<MarkEntryStatusRow>(
-      `select es.id as exam_subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
+      `select es.id as exam_subject_id, es.subject_id, sub.name as subject_name, es.max_marks, es.pass_marks,
+              ec.class_id, cl.name as class_name, cl.stage,
               count(distinct se.student_id) as expected,
               count(distinct m.student_id) as entered
          from exam_subjects es
          join subjects sub on sub.id = es.subject_id
          join exam_classes ec on ec.examination_id = es.examination_id
+         join classes cl on cl.id = ec.class_id
          join student_enrollments se on se.class_id = ec.class_id
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
@@ -758,11 +787,11 @@ export async function getMarkEntryStatus(institutionId: string, authUserId: stri
             not exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id)
             or exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id and cs2.subject_id = es.subject_id)
           )
-        group by es.id, sub.name, es.max_marks, es.pass_marks
+        group by es.id, es.subject_id, sub.name, es.max_marks, es.pass_marks, ec.class_id, cl.name, cl.stage
         order by sub.name`,
       [examinationId]
     );
-    return rows.map((r) => ({ ...r, expected: Number(r.expected), entered: Number(r.entered) }));
+    return sortClasses(rows.map((r) => ({ ...r, expected: Number(r.expected), entered: Number(r.entered) })));
   });
 }
 

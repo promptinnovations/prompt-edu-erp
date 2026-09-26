@@ -437,11 +437,78 @@ describe("§CS.1 \"are the subjects allocated class wise?\" -- class_subjects ga
     expect(artGrid.map((r) => r.student_id)).toEqual([g8Student.id]);
     expect(artGrid.some((r) => r.student_id === g7Student.id)).toBe(false);
 
-    // getMarkEntryStatus()'s "expected" counts must reflect the same gate.
+    // getMarkEntryStatus()'s "expected" counts must reflect the same gate --
+    // §CS.2 "mark entry status also should be shown class wise" split what
+    // used to be one row per subject into one row per (subject, class), so
+    // sum across the class rows that share this exam_subject_id.
     const status = await getMarkEntryStatus(institutionA, adminAuth, exam.id);
-    const scienceStatus = status.find((s) => s.exam_subject_id === scienceExamSubject.id)!;
-    const artStatus = status.find((s) => s.exam_subject_id === artExamSubject.id)!;
-    expect(scienceStatus.expected).toBe(2);
-    expect(artStatus.expected).toBe(1);
+    const scienceExpected = status
+      .filter((s) => s.exam_subject_id === scienceExamSubject.id)
+      .reduce((sum, s) => sum + s.expected, 0);
+    const artExpected = status
+      .filter((s) => s.exam_subject_id === artExamSubject.id)
+      .reduce((sum, s) => sum + s.expected, 0);
+    expect(scienceExpected).toBe(2);
+    expect(artExpected).toBe(1);
+  });
+});
+
+describe("§CS.2 \"mark entry status also should be shown class wise\" -- getMarkEntryStatus() rows are split one-per-class instead of one-per-subject", () => {
+  it("a subject covering two classes produces two separate rows, each with its own class identity and expected/entered counts", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+
+    const grade9 = await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 9 (CS.2)", sortOrder: 92 });
+    const grade10 = await createClass(institutionA, adminAuth, adminUserId, { name: "Grade 10 (CS.2)", sortOrder: 93 });
+    const grade9Section = await createSection(institutionA, adminAuth, adminUserId, { classId: grade9.id, name: "A" });
+    const grade10Section = await createSection(institutionA, adminAuth, adminUserId, { classId: grade10.id, name: "A" });
+    const history = await createSubject(institutionA, adminAuth, adminUserId, { name: "History (CS.2)" });
+
+    const g9Student = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "CS2-1", fullName: "Grade9 Student" });
+    const g10StudentA = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "CS2-2", fullName: "Grade10 Student A" });
+    const g10StudentB = await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "CS2-3", fullName: "Grade10 Student B" });
+
+    const db = await getDbClient();
+    await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, async (scoped) => {
+      await scoped.query(
+        `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id) values ($1, $2, $3, $4, $5)`,
+        [institutionA, g9Student.id, year!.id, grade9.id, grade9Section.id]
+      );
+      await scoped.query(
+        `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id) values ($1, $2, $3, $4, $5)`,
+        [institutionA, g10StudentA.id, year!.id, grade10.id, grade10Section.id]
+      );
+      await scoped.query(
+        `insert into student_enrollments (institution_id, student_id, academic_year_id, class_id, section_id) values ($1, $2, $3, $4, $5)`,
+        [institutionA, g10StudentB.id, year!.id, grade10.id, grade10Section.id]
+      );
+    });
+
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+    const exam = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: year!.id, name: "CS.2 Term Exam",
+    });
+    await addExamClass(institutionA, adminAuth, exam.id, grade9.id);
+    await addExamClass(institutionA, adminAuth, exam.id, grade10.id);
+    const historyExamSubject = await addExamSubject(institutionA, adminAuth, adminUserId, {
+      examinationId: exam.id, subjectId: history.id, maxMarks: 100, passMarks: 35,
+    });
+
+    await enterMarks(institutionA, adminAuth, adminUserId, historyExamSubject.id, [
+      { studentId: g10StudentA.id, marksObtained: 60, isAbsent: false },
+    ]);
+
+    const status = await getMarkEntryStatus(institutionA, adminAuth, exam.id);
+    const historyRows = status.filter((s) => s.exam_subject_id === historyExamSubject.id);
+    expect(historyRows).toHaveLength(2);
+
+    const g9Row = historyRows.find((r) => r.class_id === grade9.id)!;
+    const g10Row = historyRows.find((r) => r.class_id === grade10.id)!;
+    expect(g9Row.class_name).toBe("Grade 9 (CS.2)");
+    expect(g9Row.expected).toBe(1);
+    expect(g9Row.entered).toBe(0);
+    expect(g10Row.class_name).toBe("Grade 10 (CS.2)");
+    expect(g10Row.expected).toBe(2);
+    expect(g10Row.entered).toBe(1);
   });
 });

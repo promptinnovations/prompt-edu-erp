@@ -89,11 +89,16 @@ export function ExamScopeSection({
  *  100/35, editable per row before submitting) instead of adding one
  *  subject at a time. */
 export function ExamSubjectsSection({
-  examinationId, subjects, linked,
+  examinationId, subjects, linked, canManage = true,
 }: {
   examinationId: string;
   subjects: Array<{ id: string; name: string }>;
   linked: Array<{ examSubjectId: string; subjectId: string; name: string; maxMarks: string; passMarks: string }>;
+  /** §CS.2 "exam creation is solely done by admin" -- false for anyone
+   *  without settings.manage (teachers): still shows the linked-subjects
+   *  table (with its "Enter marks" links, which teachers need), but hides
+   *  the Remove button and the whole add-subject checklist/form below it. */
+  canManage?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null; added?: number }, FormData>(
     bulkAddExamSubjectsAction, { error: null }
@@ -120,11 +125,13 @@ export function ExamSubjectsSection({
                     <a href={`/examinations/${examinationId}/marks/${l.examSubjectId}`} className="text-xs text-zinc-600 underline">Enter marks</a>
                   </td>
                   <td className="py-1.5 text-right">
-                    <form action={removeAction} className="inline">
-                      <input type="hidden" name="examinationId" value={examinationId} />
-                      <input type="hidden" name="examSubjectId" value={l.examSubjectId} />
-                      <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Remove</button>
-                    </form>
+                    {canManage ? (
+                      <form action={removeAction} className="inline">
+                        <input type="hidden" name="examinationId" value={examinationId} />
+                        <input type="hidden" name="examSubjectId" value={l.examSubjectId} />
+                        <button type="submit" className="text-xs text-red-600 underline hover:text-red-800">Remove</button>
+                      </form>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -136,7 +143,7 @@ export function ExamSubjectsSection({
         <p className="text-xs text-zinc-500">No subjects added yet — check the ones below, set marks, and Save.</p>
       )}
 
-      {remaining.length > 0 ? (
+      {canManage && remaining.length > 0 ? (
         <form action={formAction} className="space-y-2">
           <input type="hidden" name="examinationId" value={examinationId} />
           <div className="overflow-x-auto">

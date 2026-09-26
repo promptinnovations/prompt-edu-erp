@@ -22,7 +22,10 @@ import { createStudent, enrollStudent, listStudentsForAdmin } from "../../module
 import { createTeacherAssignment } from "../../modules/staff/service";
 import {
   getTeacherClassScope, scopeIncludesSection, scopeIncludesSubjectInClass,
+  assertMarkEntryScope, assertDailyAssessmentScope,
 } from "../../services/scope/teacher-scope-service";
+import { getPermissionsForUser } from "../../services/permissions/permission-service";
+import { listExamTypes, createExamination, addExamClass, addExamSubject } from "../../modules/examination/service";
 
 let institutionId: string;
 let adminAuth: string, adminUserId: string;
@@ -145,5 +148,63 @@ describe("Tenant isolation for teacher_assignments-based scoping", () => {
     const otherTeacher = await seedDemoUser(db, otherInstitution, "teacher@other.example", "Other Teacher", "teacher");
     const scope = await getTeacherClassScope(otherInstitution, otherTeacher.authUserId, otherTeacher.userId);
     expect(scope.classIds.size).toBe(0);
+  });
+});
+
+
+describe("§CS.2 \"teachers should have mark entry to their respective class only\" -- assertMarkEntryScope()/assertDailyAssessmentScope() hard-enforce the same rule getTeacherClassScope() above only advises on", () => {
+  it("a subject_teacher assignment authorizes marks entry for that class/subject, but not a sibling subject or class", async () => {
+    const year = await getCurrentAcademicYear(institutionId, adminAuth);
+    const examTypes = await listExamTypes(institutionId, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+    const exam = await createExamination(institutionId, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: year!.id, name: "CS.2 Term Exam",
+    });
+    await addExamClass(institutionId, adminAuth, exam.id, classAId);
+    await addExamClass(institutionId, adminAuth, exam.id, classBId);
+    const mathExamSubject = await addExamSubject(institutionId, adminAuth, adminUserId, {
+      examinationId: exam.id, subjectId: subjectMathId, maxMarks: 100, passMarks: 35,
+    });
+    const scienceExamSubject = await addExamSubject(institutionId, adminAuth, adminUserId, {
+      examinationId: exam.id, subjectId: subjectScienceId, maxMarks: 100, passMarks: 35,
+    });
+
+    const teacherPermissions = await getPermissionsForUser(teacherAuth, teacherUserId, institutionId);
+    const adminPermissions = await getPermissionsForUser(adminAuth, adminUserId, institutionId);
+
+    // Authorized: teacher teaches Math in Class A (see beforeAll's
+    // subject_teacher assignment), and this exam covers Class A.
+    await expect(
+      assertMarkEntryScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, mathExamSubject.id)
+    ).resolves.toBeUndefined();
+
+    // Not authorized: same teacher, but Science -- no subject_teacher row
+    // for it anywhere, regardless of which class the exam covers it in.
+    await expect(
+      assertMarkEntryScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, scienceExamSubject.id)
+    ).rejects.toThrow(/only enter marks for a class\/subject/);
+
+    // marks.approve (management/admin) bypasses the scope check entirely --
+    // same "unrestricted" signal the marks-entry page already used.
+    await expect(
+      assertMarkEntryScope(institutionId, adminAuth, adminUserId, adminPermissions, scienceExamSubject.id)
+    ).resolves.toBeUndefined();
+  });
+
+  it("assertDailyAssessmentScope() applies the identical rule directly against a (classId, subjectId) pair", async () => {
+    const teacherPermissions = await getPermissionsForUser(teacherAuth, teacherUserId, institutionId);
+
+    await expect(
+      assertDailyAssessmentScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, classAId, subjectMathId)
+    ).resolves.toBeUndefined();
+
+    await expect(
+      assertDailyAssessmentScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, classAId, subjectScienceId)
+    ).rejects.toThrow(/only manage daily assessments/);
+
+    // Class B: the teacher has no assignment there at all, math or otherwise.
+    await expect(
+      assertDailyAssessmentScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, classBId, subjectMathId)
+    ).rejects.toThrow(/only manage daily assessments/);
   });
 });

@@ -25,6 +25,8 @@
  * "unrestricted" permission check that gates whether scoping is applied.
  */
 import { getDbClient } from "../db/client";
+import { can } from "../permissions/permission-service";
+import { getExamSubjectRef, getExamCoveredClassIds } from "../../modules/examination/service";
 
 export interface TeacherClassScope {
   /** Every class this teacher has at least one assignment in (as class
@@ -99,4 +101,54 @@ export function scopeIncludesSection(scope: TeacherClassScope, classId: string, 
  *  always for one exam_subject (= one subject) at a time. */
 export function scopeIncludesSubjectInClass(scope: TeacherClassScope, classId: string, subjectId: string): boolean {
   return scope.subjectIdsByClass.get(classId)?.has(subjectId) ?? false;
+}
+
+
+/** §CS.2 "teachers should have mark entry to their respective class
+ *  only" -- the marks-entry PAGE (app/(institution)/examinations/[id]/
+ *  marks/[examSubjectId]/page.tsx) already gated on this exact scope, but
+ *  only there: the server actions that actually write marks (saveMarksAction,
+ *  deleteMarkAction, correctMarkAction, and the shared submit/verify/
+ *  approve/lock transitionAction, all in
+ *  app/(institution)/examinations/actions.ts) took no scope into account at
+ *  all -- only the blanket marks.enter/marks.verify/etc. permission, which
+ *  every teacher holds institution-wide. That meant a teacher blocked from
+ *  even *seeing* another class's grid could still POST a save/submit/delete
+ *  directly at its examSubjectId. This is the single shared check both the
+ *  page and every mark-writing action now call, so the rule lives in one
+ *  place instead of two independently-maintained copies.
+ *
+ *  marks.approve remains the "unrestricted, sees/acts on everything"
+ *  signal (matches every other use of it in this module) -- callers that
+ *  hold it skip the scope check entirely. Throws (rather than returning a
+ *  boolean) so a server action can just await it before proceeding, the
+ *  same way requirePermission() already works. */
+export async function assertMarkEntryScope(
+  institutionId: string, authUserId: string, userId: string, permissions: Set<string>, examSubjectId: string
+): Promise<void> {
+  if (can(permissions, "marks.approve")) return;
+  const ref = await getExamSubjectRef(institutionId, authUserId, examSubjectId);
+  if (!ref) throw new Error("Exam subject not found.");
+  const [scope, coveredClassIds] = await Promise.all([
+    getTeacherClassScope(institutionId, authUserId, userId),
+    getExamCoveredClassIds(institutionId, authUserId, ref.examinationId),
+  ]);
+  const authorized = coveredClassIds.some((classId) => scopeIncludesSubjectInClass(scope, classId, ref.subjectId));
+  if (!authorized) throw new Error("You can only enter marks for a class/subject you're assigned to teach.");
+}
+
+/** §CS.2 companion for Daily Assessment (createDailyAssessmentAction,
+ *  updateDailyAssessmentAction, deleteDailyAssessmentAction,
+ *  saveDailyAssessmentMarksAction in actions.ts) -- same rule, but a daily
+ *  assessment session already carries its own single (classId, subjectId)
+ *  directly (no exam_subject indirection like the standard exam flow), so
+ *  the caller passes those straight through instead of an examSubjectId. */
+export async function assertDailyAssessmentScope(
+  institutionId: string, authUserId: string, userId: string, permissions: Set<string>, classId: string, subjectId: string
+): Promise<void> {
+  if (can(permissions, "marks.approve")) return;
+  const scope = await getTeacherClassScope(institutionId, authUserId, userId);
+  if (!scopeIncludesSubjectInClass(scope, classId, subjectId)) {
+    throw new Error("You can only manage daily assessments for a class/subject you're assigned to teach.");
+  }
 }

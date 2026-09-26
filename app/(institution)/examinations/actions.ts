@@ -7,8 +7,9 @@ import {
   createExamination, updateExamination, deleteExamination,
   addExamSubject, addExamClass, removeExamClass, removeExamSubject,
   enterMarks, deleteMark, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks, computeResults,
-  createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment,
+  createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment, getDailyAssessment,
 } from "../../../modules/examination/service";
+import { assertMarkEntryScope, assertDailyAssessmentScope } from "../../../services/scope/teacher-scope-service";
 
 export async function createExaminationAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
@@ -188,6 +189,7 @@ export async function saveMarksAction(_prevState: { error: string | null }, form
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
     requirePermission(ctx.permissions, "marks.enter");
+    await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
     const studentIds = formData.getAll("studentId").map(String);
     const entries = studentIds.map((studentId) => {
       const raw = formData.get(`marks_${studentId}`);
@@ -213,6 +215,7 @@ export async function deleteMarkAction(_prevState: { error: string | null }, for
   const examSubjectId = String(formData.get("examSubjectId") ?? "");
   try {
     requirePermission(ctx.permissions, "marks.enter");
+    await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
     await deleteMark(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("markId") ?? ""));
     revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
     return { error: null };
@@ -232,6 +235,7 @@ export async function correctMarkAction(_prevState: { error: string | null }, fo
   const examSubjectId = String(formData.get("examSubjectId") ?? "");
   try {
     requirePermission(ctx.permissions, "marks.lock");
+    await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
     const raw = formData.get("newValue");
     const isAbsent = formData.get("isAbsent") === "on";
     const reason = String(formData.get("reason") ?? "").trim();
@@ -255,6 +259,7 @@ async function transitionAction(
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
     requirePermission(ctx.permissions, permission);
+    await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
     const count = await fn(ctx.institutionId, ctx.session.authUserId, examSubjectId, ctx.userId);
     revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
     return { error: null, count };
@@ -307,10 +312,13 @@ export async function createDailyAssessmentAction(_prevState: { error: string | 
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
     requirePermission(ctx.permissions, "marks.enter");
+    const classId = String(formData.get("classId") ?? "");
+    const subjectId = String(formData.get("subjectId") ?? "");
+    await assertDailyAssessmentScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, classId, subjectId);
     await createDailyAssessment(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       examinationId,
-      classId: String(formData.get("classId") ?? ""),
-      subjectId: String(formData.get("subjectId") ?? ""),
+      classId,
+      subjectId,
       assessmentDate: String(formData.get("assessmentDate") ?? ""),
       portion: String(formData.get("portion") ?? ""),
       maxMarks: Number(formData.get("maxMarks") ?? 20),
@@ -329,8 +337,14 @@ export async function updateDailyAssessmentAction(_prevState: { error: string | 
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
     requirePermission(ctx.permissions, "marks.enter");
+    const existing = await getDailyAssessment(ctx.institutionId, ctx.session.authUserId, dailyAssessmentId);
+    if (!existing) return { error: "Daily assessment entry not found." };
+    await assertDailyAssessmentScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, existing.class_id, existing.subject_id);
     const classId = String(formData.get("classId") ?? "");
     const subjectId = String(formData.get("subjectId") ?? "");
+    if ((classId && classId !== existing.class_id) || (subjectId && subjectId !== existing.subject_id)) {
+      await assertDailyAssessmentScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, classId || existing.class_id, subjectId || existing.subject_id);
+    }
     const assessmentDate = String(formData.get("assessmentDate") ?? "");
     const portion = String(formData.get("portion") ?? "");
     const maxMarksRaw = formData.get("maxMarks");
@@ -355,6 +369,9 @@ export async function deleteDailyAssessmentAction(_prevState: { error: string | 
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
     requirePermission(ctx.permissions, "marks.enter");
+    const existing = await getDailyAssessment(ctx.institutionId, ctx.session.authUserId, dailyAssessmentId);
+    if (!existing) return { error: "Daily assessment entry not found." };
+    await assertDailyAssessmentScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, existing.class_id, existing.subject_id);
     await deleteDailyAssessment(ctx.institutionId, ctx.session.authUserId, ctx.userId, dailyAssessmentId);
     revalidatePath(`/examinations/${examinationId}`);
     return { error: null };
@@ -370,6 +387,9 @@ export async function saveDailyAssessmentMarksAction(_prevState: { error: string
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
     requirePermission(ctx.permissions, "marks.enter");
+    const existing = await getDailyAssessment(ctx.institutionId, ctx.session.authUserId, dailyAssessmentId);
+    if (!existing) return { error: "Daily assessment entry not found." };
+    await assertDailyAssessmentScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, existing.class_id, existing.subject_id);
     const studentIds = formData.getAll("studentId").map(String);
     const entries = studentIds.map((studentId) => {
       const raw = formData.get(`marks_${studentId}`);

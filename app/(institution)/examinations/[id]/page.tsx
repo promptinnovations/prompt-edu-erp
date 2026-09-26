@@ -99,6 +99,17 @@ export default async function ExaminationDetailPage({
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
   const examTypeName = examType?.name ?? "—";
 
+  // §CS.2 "exam creation is solely done by admin" -- confirming scope
+  // and adding/removing subjects are settings.manage-gated server actions
+  // already (see actions.ts), but this page rendered the admin forms
+  // unconditionally, so a teacher without settings.manage would see (and
+  // could submit, only to get a server-side permission error) the
+  // "Confirm scope" checkboxes and "Add subject"/"Remove" controls. Gate
+  // the forms themselves on the same permission the actions already
+  // require, so a teacher only ever sees the read-only "already linked"
+  // tables (still needed for the Enter marks links).
+  const canManage = can(ctx.permissions, "settings.manage");
+
   // §CS.1 "are the subjects allocated class wise?" -- the add-subject
   // checklist below used to offer every subject in the institution
   // regardless of the exam's confirmed classes, which is how a Class 1
@@ -163,16 +174,22 @@ export default async function ExaminationDetailPage({
         <p className="mt-1 text-sm text-zinc-500">{examTypeName} · {examination.status}</p>
       </div>
 
-      <section className="rounded-card border bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">1. Confirm scope</h2>
-        <p className="mb-3 text-xs text-zinc-500">Which grades and divisions does this exam apply to?</p>
-        <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
-      </section>
+      {canManage ? (
+        <section className="rounded-card border bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">1. Confirm scope</h2>
+          <p className="mb-3 text-xs text-zinc-500">Which grades and divisions does this exam apply to?</p>
+          <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
+        </section>
+      ) : null}
 
       <section className="rounded-card border bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">2. Subjects &amp; total marks</h2>
-        <p className="mb-3 text-xs text-zinc-500">Total mark, subject wise — check the subjects this exam covers and set each one&apos;s max/pass marks.</p>
-        <ExamSubjectsSection examinationId={id} subjects={eligibleSubjects} linked={linkedSubjects} />
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">{canManage ? "2. Subjects & total marks" : "Subjects & total marks"}</h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          {canManage
+            ? "Total mark, subject wise — check the subjects this exam covers and set each one's max/pass marks."
+            : "Subjects this exam covers — open a subject to enter marks for your class."}
+        </p>
+        <ExamSubjectsSection examinationId={id} subjects={eligibleSubjects} linked={linkedSubjects} canManage={canManage} />
       </section>
 
       <section className="rounded-card border bg-white p-5">
