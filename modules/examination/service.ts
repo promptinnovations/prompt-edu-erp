@@ -2154,9 +2154,27 @@ const RESULT_GRADE_LABEL_SQL = "case when r.is_frozen then coalesce(r.grade_labe
  *  provisional ones (flagged is_provisional so the UI can label them).
  *  Approval/locking and finalizeExamination() remain separate, later
  *  actions — they are never a precondition for a result to be listed. */
-export async function getResults(institutionId: string, authUserId: string, examinationId: string): Promise<ResultRow[]> {
+/** `allowedClassIds` — §Teacher-access follow-up: the exam detail page's
+ *  Results table showed every student's result to any signed-in viewer,
+ *  teacher included, with no class scoping at all (the subjects list above
+ *  it had the same gap, fixed alongside this). Optional and additive: every
+ *  existing caller (report cards, consolidated marks, admin/management
+ *  exam detail) omits it and gets the old unfiltered behaviour; the exam
+ *  detail page passes the teacher's own `getTeacherClassScope().classIds`
+ *  when the viewer isn't settings.manage. Matched via the student's ACTIVE
+ *  enrollment in the exam's own academic year — same join shape
+ *  `computeResultsScoped()`'s roster query already uses. */
+export async function getResults(
+  institutionId: string, authUserId: string, examinationId: string, allowedClassIds?: string[] | null
+): Promise<ResultRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    // Distinguish "omitted -> no filter" (every existing caller) from "an
+    // explicit, possibly EMPTY array -> filter to exactly these classes"
+    // (the teacher-scoped caller) -- a teacher with zero current-year
+    // assignments must see zero results, not every student, so an empty
+    // array must NOT be coerced to null here.
+    const classFilter = allowedClassIds === undefined || allowedClassIds === null ? null : allowedClassIds;
     const { rows } = await scoped.query<ResultRow>(
       `select r.student_id, s.full_name as student_name, r.total_marks, r.max_total_marks,
               r.percentage, ${RESULT_GRADE_LABEL_SQL} as grade_label, r.rank,
@@ -2164,10 +2182,16 @@ export async function getResults(institutionId: string, authUserId: string, exam
               r.is_provisional, r.subjects_entered, r.subjects_expected
          from results r
          join students s on s.id = r.student_id
+         join examinations e on e.id = r.examination_id
          left join grade_bands gb on gb.id = r.grade_band_id
         where r.examination_id = $1
+          and ($2::uuid[] is null or exists (
+                select 1 from student_enrollments se
+                 where se.student_id = r.student_id and se.status = 'active'
+                   and se.academic_year_id = e.academic_year_id and se.class_id = any($2::uuid[])
+              ))
         order by r.percentage desc`,
-      [examinationId]
+      [examinationId, classFilter]
     );
     return rows;
   });

@@ -7,8 +7,10 @@ import {
   getExamination, listExamSubjects, getResults, listExamTypes,
   listDailyAssessments, getDailyAssessmentConsolidatedResult,
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
-  listCeComponents, getExamScopePlan, listExamSubjectGrades, DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR,
+  listCeComponents, getExamScopePlan, listExamSubjectGrades, getExamSubjectClassIds,
+  DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR,
 } from "../../../../modules/examination/service";
+import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../services/scope/teacher-scope-service";
 import { ExamScopePlanner, ExamSubjectsSection } from "./ExamDetailForms";
 import { ExamResultSettingsForm, CeComponentsForm, FinalizeResultsButton } from "./ExamResultSettings";
 import DailyAssessmentSection from "./DailyAssessmentSection";
@@ -93,21 +95,32 @@ export default async function ExaminationDetailPage({
   // sees the read-only subjects table (with its Enter marks links).
   const canManage = can(ctx.permissions, "settings.manage");
 
-  const [examSubjects, subjects, results, ceComponents, subjectGrades, scopePlan] = await Promise.all([
+  // §Teacher-access follow-up: "a teacher should see only their respective
+  // class and subjects to enter marks in their portal not all school wide
+  // classes and subjects" -- the subjects list and Results table below were
+  // both previously unfiltered for anyone reaching this page. A teacher's
+  // own scope (teacher_assignments, current academic year) is resolved
+  // once here and used to filter both.
+  const teacherScope = canManage ? null : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
+
+  const [examSubjects, subjects, ceComponents, subjectGrades, scopePlan] = await Promise.all([
     listExamSubjects(institutionId, authUserId, id),
     listSubjects(institutionId, authUserId),
-    getResults(institutionId, authUserId, id),
     listCeComponents(institutionId, authUserId, id),
     listExamSubjectGrades(institutionId, authUserId, id),
     canManage ? getExamScopePlan(institutionId, authUserId, id) : Promise.resolve(null),
   ]);
+  const results = await getResults(
+    institutionId, authUserId, id,
+    teacherScope ? [...teacherScope.classIds] : null
+  );
   const isFinalized = Boolean(examination.finalized_at);
   const ceMode = examination.ce_mode ?? "total";
 
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
   const examTypeName = examType?.name ?? "—";
 
-  const linkedSubjects = examSubjects.map((es) => ({
+  let linkedSubjects = examSubjects.map((es) => ({
     examSubjectId: es.id,
     subjectId: es.subject_id,
     name: subjectById.get(es.subject_id) ?? "—",
@@ -115,6 +128,15 @@ export default async function ExaminationDetailPage({
     passMarks: es.pass_marks,
     grades: subjectGrades[es.id] ?? [],
   })).sort((a, b) => a.name.localeCompare(b.name));
+
+  if (teacherScope) {
+    const coveredClassIdsBySubject = await Promise.all(
+      linkedSubjects.map((l) => getExamSubjectClassIds(institutionId, authUserId, l.examSubjectId))
+    );
+    linkedSubjects = linkedSubjects.filter((l, i) =>
+      coveredClassIdsBySubject[i].some((classId) => scopeIncludesSubjectInClass(teacherScope, classId, l.subjectId))
+    );
+  }
   const provisionalCount = results.filter((r) => r.is_provisional).length;
 
   return (
