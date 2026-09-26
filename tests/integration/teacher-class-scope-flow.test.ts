@@ -32,7 +32,8 @@ let adminAuth: string, adminUserId: string;
 let teacherAuth: string, teacherUserId: string; // assigned to Class A only
 let classAId: string, classBId: string;
 let sectionA1Id: string, sectionA2Id: string;
-let subjectMathId: string, subjectScienceId: string;
+let subjectMathId: string, subjectScienceId: string, subjectEnglishId: string;
+let englishTeacherAuth: string, englishTeacherUserId: string;
 let academicYearId: string;
 let studentAId: string, studentBId: string;
 
@@ -62,6 +63,8 @@ beforeAll(async () => {
   subjectMathId = math.id;
   const science = await createSubject(institutionId, adminAuth, adminUserId, { name: "Science" });
   subjectScienceId = science.id;
+  const english = await createSubject(institutionId, adminAuth, adminUserId, { name: "English" });
+  subjectEnglishId = english.id;
 
   const year = await getCurrentAcademicYear(institutionId, adminAuth);
   academicYearId = year!.id;
@@ -82,6 +85,18 @@ beforeAll(async () => {
   });
   await createTeacherAssignment(institutionId, adminAuth, adminUserId, {
     userId: teacherUserId, classId: classAId, subjectId: subjectMathId, academicYearId, roleType: "subject_teacher",
+  });
+
+  // §"if subject teacher is not available, give mark entry power to class
+  // teachers": a SEPARATE teacher holds a dedicated subject_teacher row for
+  // English in Class A -- this is the "someone else already teaches this
+  // subject" case the fallback must never override. Science, by contrast,
+  // has NO dedicated subject_teacher anywhere in Class A, so the fallback
+  // should open it up to the Scoped Teacher (a class_teacher of Class A).
+  const englishTeacher = await seedDemoUser(db, institutionId, "english-teacher@teacher-scope.example", "English Teacher", "teacher");
+  englishTeacherAuth = englishTeacher.authUserId; englishTeacherUserId = englishTeacher.userId;
+  await createTeacherAssignment(institutionId, adminAuth, adminUserId, {
+    userId: englishTeacherUserId, classId: classAId, subjectId: subjectEnglishId, academicYearId, roleType: "subject_teacher",
   });
 });
 
@@ -107,10 +122,20 @@ describe("getTeacherClassScope() — resolves teacher_assignments into a usable 
     expect(scopeIncludesSection(scope, classAId, sectionA2Id)).toBe(true);
   });
 
-  it("scopeIncludesSubjectInClass: Mathematics in Class A is authorized, Science is not", async () => {
+  it("scopeIncludesSubjectInClass: Mathematics in Class A is authorized (explicit), Science is authorized via class-teacher fallback (no dedicated teacher), English is not (dedicated to someone else)", async () => {
     const scope = await getTeacherClassScope(institutionId, teacherAuth, teacherUserId);
     expect(scopeIncludesSubjectInClass(scope, classAId, subjectMathId)).toBe(true);
-    expect(scopeIncludesSubjectInClass(scope, classAId, subjectScienceId)).toBe(false);
+    // §"if subject teacher is not available, give mark entry power to class
+    // teachers": Scoped Teacher is a class_teacher of Class A, and nobody
+    // institution-wide holds a dedicated subject_teacher row for Science in
+    // Class A -- so the fallback opens it up, even though this teacher
+    // already holds an explicit (Math-only) subject_teacher row elsewhere
+    // in the same class.
+    expect(scopeIncludesSubjectInClass(scope, classAId, subjectScienceId)).toBe(true);
+    // English in Class A DOES have a dedicated subject_teacher (English
+    // Teacher, seeded in beforeAll) -- the fallback must never override
+    // someone else's exclusive assignment.
+    expect(scopeIncludesSubjectInClass(scope, classAId, subjectEnglishId)).toBe(false);
     expect(scopeIncludesSubjectInClass(scope, classBId, subjectMathId)).toBe(false);
   });
 
@@ -185,6 +210,9 @@ describe("§CS.2 \"teachers should have mark entry to their respective class onl
     const scienceExamSubject = await addExamSubject(institutionId, adminAuth, adminUserId, {
       examinationId: exam.id, subjectId: subjectScienceId, maxMarks: 100, passMarks: 35,
     });
+    const englishExamSubject = await addExamSubject(institutionId, adminAuth, adminUserId, {
+      examinationId: exam.id, subjectId: subjectEnglishId, maxMarks: 100, passMarks: 35,
+    });
 
     const teacherPermissions = await getPermissionsForUser(teacherAuth, teacherUserId, institutionId);
     const adminPermissions = await getPermissionsForUser(adminAuth, adminUserId, institutionId);
@@ -195,16 +223,25 @@ describe("§CS.2 \"teachers should have mark entry to their respective class onl
       assertMarkEntryScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, mathExamSubject.id)
     ).resolves.toBeUndefined();
 
-    // Not authorized: same teacher, but Science -- no subject_teacher row
-    // for it anywhere, regardless of which class the exam covers it in.
+    // §"if subject teacher is not available, give mark entry power to class
+    // teachers": also authorized for Science, via the class-teacher
+    // fallback -- nobody holds a dedicated subject_teacher row for Science
+    // in Class A, and this teacher is a class_teacher there.
     await expect(
       assertMarkEntryScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, scienceExamSubject.id)
+    ).resolves.toBeUndefined();
+
+    // Not authorized: English in Class A is dedicated to English Teacher
+    // (seeded in beforeAll) -- the fallback never overrides someone else's
+    // exclusive assignment.
+    await expect(
+      assertMarkEntryScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, englishExamSubject.id)
     ).rejects.toThrow(/only enter marks for a class\/subject/);
 
     // marks.approve (management/admin) bypasses the scope check entirely --
     // same "unrestricted" signal the marks-entry page already used.
     await expect(
-      assertMarkEntryScope(institutionId, adminAuth, adminUserId, adminPermissions, scienceExamSubject.id)
+      assertMarkEntryScope(institutionId, adminAuth, adminUserId, adminPermissions, englishExamSubject.id)
     ).resolves.toBeUndefined();
   });
 
@@ -215,8 +252,17 @@ describe("§CS.2 \"teachers should have mark entry to their respective class onl
       assertDailyAssessmentScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, classAId, subjectMathId)
     ).resolves.toBeUndefined();
 
+    // §"if subject teacher is not available, give mark entry power to class
+    // teachers": Science in Class A has no dedicated subject_teacher, so
+    // the class-teacher fallback authorizes it too.
     await expect(
       assertDailyAssessmentScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, classAId, subjectScienceId)
+    ).resolves.toBeUndefined();
+
+    // English in Class A is dedicated to English Teacher -- never
+    // overridden by the fallback.
+    await expect(
+      assertDailyAssessmentScope(institutionId, teacherAuth, teacherUserId, teacherPermissions, classAId, subjectEnglishId)
     ).rejects.toThrow(/only manage daily assessments/);
 
     // Class B: the teacher has no assignment there at all, math or otherwise.

@@ -12,6 +12,7 @@ import {
 } from "../../../modules/analytics/service";
 import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import { getStaffSectionScope } from "../../../services/scope/section-head-scope-service";
+import { getInstitution, institutionNoun } from "../../../services/institution/institution-service";
 import { Donut, BarChart, StackedBarChart, Histogram, StatCard, type ChartDatum, type StackedBarGroup } from "../../components/charts/ResultCharts";
 import PrintButton from "../../components/PrintButton";
 import ExaminationPicker from "./ExaminationPicker";
@@ -109,12 +110,17 @@ export default async function AnalyticsPage({
     hasBroadResultAccess ? null : getStaffSectionScope(institutionId, authUserId, ctx.userId),
   ]);
 
-  const [classes, sections, examinations, rule] = await Promise.all([
+  const [classes, sections, examinations, rule, institution] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     listExaminations(institutionId, authUserId),
     getClassificationRule(institutionId, authUserId),
+    getInstitution(institutionId, authUserId),
   ]);
+  // §"if a tenant type is Madrasa, use madrasa everywhere ... if it is a
+  // college, use college instead ... for school, school only" — the word
+  // this page uses in place of the generic "School" in tab/stat labels.
+  const noun = institutionNoun(institution?.type ?? "school");
 
   const examinationId = examinationIdParam || pickDefaultExaminationId(examinations);
 
@@ -224,8 +230,8 @@ export default async function AnalyticsPage({
           // single most useful "how did this exam go" glance.
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatCard label="Students with a result" value={String(schoolSummary.total_students)} />
-            <StatCard label="School average %" value={fmtPct(schoolSummary.average_percent)} />
-            <StatCard label="School pass %" value={fmtPct(schoolSummary.pass_percent)} accent={PASS_COLOR} />
+            <StatCard label={`${noun} average %`} value={fmtPct(schoolSummary.average_percent)} />
+            <StatCard label={`${noun} pass %`} value={fmtPct(schoolSummary.pass_percent)} accent={PASS_COLOR} />
           </div>
         ) : examinationId ? (
           <p className="mt-4 text-sm text-zinc-500">No computed results for this examination yet.</p>
@@ -253,7 +259,7 @@ export default async function AnalyticsPage({
                 href={tabHref(t.key)}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium ${tab === t.key ? "bg-[var(--brand)] text-white" : "text-zinc-500 hover:bg-zinc-100"}`}
               >
-                {t.label}
+                {t.key === "school" ? `${noun}-wide` : t.label}
               </Link>
             ))}
           </nav>

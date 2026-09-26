@@ -40,6 +40,18 @@ export interface TeacherClassScope {
   /** classId -> set of subject_ids this teacher teaches there (from
    *  subject_teacher rows only — class_teacher rows don't imply a subject). */
   subjectIdsByClass: Map<string, Set<string>>;
+  /** Classes where this teacher holds a class_teacher-role assignment (any
+   *  section) — §"if subject teacher is not available, give mark entry
+   *  power to class teachers": this is the set that fallback applies to,
+   *  distinct from classIds (which also includes classes reached only via
+   *  a subject_teacher row). */
+  classIdsAsClassTeacher: Set<string>;
+  /** classId -> set of subject_ids that ALREADY have a dedicated
+   *  subject_teacher assigned, institution-wide, this academic year —
+   *  regardless of who holds it. Populated only for the classes this
+   *  teacher is a class_teacher of (classIdsAsClassTeacher), since that's
+   *  the only place the fallback below ever consults it. */
+  dedicatedSubjectsByClass: Map<string, Set<string>>;
 }
 
 const EMPTY_SCOPE: TeacherClassScope = {
@@ -47,6 +59,8 @@ const EMPTY_SCOPE: TeacherClassScope = {
   sectionIds: new Set(),
   classIdsWithAllSections: new Set(),
   subjectIdsByClass: new Map(),
+  classIdsAsClassTeacher: new Set(),
+  dedicatedSubjectsByClass: new Map(),
 };
 
 /** Resolves `teacherUserId`'s (a `users.id`, NOT an auth_user_id — matches
@@ -58,8 +72,8 @@ export async function getTeacherClassScope(
 ): Promise<TeacherClassScope> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ class_id: string; section_id: string | null; subject_id: string | null }>(
-      `select ta.class_id, ta.section_id, ta.subject_id
+    const { rows } = await scoped.query<{ class_id: string; section_id: string | null; subject_id: string | null; role_type: string }>(
+      `select ta.class_id, ta.section_id, ta.subject_id, ta.role_type
          from teacher_assignments ta
          join academic_years ay on ay.id = ta.academic_year_id
         where ta.user_id = $1 and ay.is_current = true`,
@@ -71,6 +85,7 @@ export async function getTeacherClassScope(
     const sectionIds = new Set<string>();
     const classIdsWithAllSections = new Set<string>();
     const subjectIdsByClass = new Map<string, Set<string>>();
+    const classIdsAsClassTeacher = new Set<string>();
 
     for (const r of rows) {
       classIds.add(r.class_id);
@@ -84,8 +99,35 @@ export async function getTeacherClassScope(
         set.add(r.subject_id);
         subjectIdsByClass.set(r.class_id, set);
       }
+      if (r.role_type === "class_teacher") classIdsAsClassTeacher.add(r.class_id);
     }
-    return { classIds, sectionIds, classIdsWithAllSections, subjectIdsByClass };
+
+    // §"if subject teacher is not available, give mark entry power to
+    // class teachers": institution-wide, current-year lookup of which
+    // subjects ALREADY have a dedicated subject_teacher in each class this
+    // person is a class_teacher of -- so scopeIncludesSubjectInClass()
+    // below can tell "nobody teaches this subject specifically" (fallback
+    // applies) apart from "someone else already does" (fallback must NOT
+    // override that person's exclusive assignment). Scoped to just those
+    // classes, not the whole institution, to keep this cheap.
+    const dedicatedSubjectsByClass = new Map<string, Set<string>>();
+    if (classIdsAsClassTeacher.size > 0) {
+      const { rows: dedicatedRows } = await scoped.query<{ class_id: string; subject_id: string }>(
+        `select distinct ta2.class_id, ta2.subject_id
+           from teacher_assignments ta2
+           join academic_years ay2 on ay2.id = ta2.academic_year_id
+          where ay2.is_current = true and ta2.subject_id is not null
+            and ta2.class_id = any($1::uuid[])`,
+        [Array.from(classIdsAsClassTeacher)]
+      );
+      for (const r of dedicatedRows) {
+        const set = dedicatedSubjectsByClass.get(r.class_id) ?? new Set<string>();
+        set.add(r.subject_id);
+        dedicatedSubjectsByClass.set(r.class_id, set);
+      }
+    }
+
+    return { classIds, sectionIds, classIdsWithAllSections, subjectIdsByClass, classIdsAsClassTeacher, dedicatedSubjectsByClass };
   });
 }
 
@@ -118,13 +160,28 @@ export function scopeIncludesSection(scope: TeacherClassScope, classId: string, 
  *  inconsistent copies: a subject_teacher row for a class narrows access to
  *  just those subjects; its total absence (pure class_teacher assignment)
  *  leaves the whole class open, since that's the only way this teacher's
- *  scope can ever act on it. */
+ *  scope can ever act on it.
+ *
+ *  §"if subject teacher is not available, give mark entry power to class
+ *  teachers": a second, narrower fallback -- a class_teacher of `classId`
+ *  who ALSO holds one or more subject_teacher rows there (so the branch
+ *  above doesn't apply) still gets access to any OTHER subject in that
+ *  class for which nobody, institution-wide, holds a dedicated
+ *  subject_teacher assignment this year. A subject that already has its
+ *  own assigned teacher (even if it isn't this person) is never overridden
+ *  by this fallback -- see dedicatedSubjectsByClass's doc comment. */
 export function scopeIncludesSubjectInClass(scope: TeacherClassScope, classId: string, subjectId: string): boolean {
   const allowedSubjects = scope.subjectIdsByClass.get(classId);
   if (!allowedSubjects || allowedSubjects.size === 0) {
-    return scope.classIds.has(classId);
+    if (scope.classIds.has(classId)) return true;
+  } else if (allowedSubjects.has(subjectId)) {
+    return true;
   }
-  return allowedSubjects.has(subjectId);
+  if (scope.classIdsAsClassTeacher.has(classId)) {
+    const dedicated = scope.dedicatedSubjectsByClass.get(classId);
+    if (!dedicated || !dedicated.has(subjectId)) return true;
+  }
+  return false;
 }
 
 

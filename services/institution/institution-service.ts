@@ -29,6 +29,12 @@ export interface InstitutionSummary {
   // Portfolio/Result Analysis ever show an Academic/Islamic split at all;
   // an 'academic'-only institution (the default) never sees any of it.
   educationMode: "academic" | "islamic" | "both";
+  /** §"if a tenant type is Madrasa, use madrasa everywhere ... if it is a
+   *  college, use college instead ... for school, school only" — institutions.type
+   *  (madrasa|islamic_school|school|college|dars|other, set at creation).
+   *  Consumers derive a display noun from this via institutionNoun() below
+   *  rather than hard-coding "School" — app-wide, every tenant. */
+  type: string;
   // Admin-configurable display order of the two tracks wherever both are
   // shown side by side — "which should come first will be decided by
   // institute admin" (verbatim ask). Always the two track ids, just
@@ -49,10 +55,10 @@ export async function getInstitution(institutionId: string, authUserId: string):
     const { rows } = await scoped.query<{
       id: string; code: string; name: string; app_name: string | null; theme_palette: string | null; logo_file_id: string | null; pass_pct: string;
       education_mode: "academic" | "islamic" | "both"; track_order: ("academic" | "islamic")[];
-      exam_seating_gender_rule: ExamSeatingGenderRule;
+      exam_seating_gender_rule: ExamSeatingGenderRule; type: string;
     }>(
       `select id, code, name, app_name, theme_palette, logo_file_id, pass_pct, education_mode, track_order,
-              exam_seating_gender_rule
+              exam_seating_gender_rule, type
          from institutions where id = $1`,
       [institutionId]
     );
@@ -68,6 +74,7 @@ export async function getInstitution(institutionId: string, authUserId: string):
       educationMode: rows[0].education_mode,
       trackOrder: rows[0].track_order,
       examSeatingGenderRule: rows[0].exam_seating_gender_rule,
+      type: rows[0].type,
     };
   });
 }
@@ -168,6 +175,21 @@ export async function updateInstitutionPassPct(
       before: { passPct: before[0] ? Number(before[0].pass_pct) : null }, after: { passPct: data.passPct },
     });
   });
+}
+
+/** §"if a tenant type is Madrasa, use madrasa everywhere like Madrasa-wide,
+ *  Madrasa average, madrasa pass etc. if it is a college, use college
+ *  instead. for school, school only" — the one place that decides the
+ *  word "School"/"Madrasa"/"College" gets swapped for in generic labels
+ *  (Result Analysis's "School-wide"/"School average %"/"School pass %" and
+ *  anywhere else that previously hard-coded "School"). Applies to every
+ *  tenant, not a per-institution customization -- islamic_school/dars/
+ *  other fall back to the original generic "School" wording since the user
+ *  only named madrasa/college/school as needing their own word. */
+export function institutionNoun(type: string): string {
+  if (type === "madrasa") return "Madrasa";
+  if (type === "college") return "College";
+  return "School";
 }
 
 export interface InstitutionPublicSummary {
