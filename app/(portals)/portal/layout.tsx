@@ -22,6 +22,20 @@ const STUDENT_NAV_ITEMS: NavItem[] = [
   { href: "/portal/student/library", label: "Library & reading" },
 ];
 
+// §"Parent & Student portal side panel + app download button" — the parent
+// side previously had no sidebar at all (single-column layout, "out of
+// scope" per an earlier redesign). Mirrors STUDENT_NAV_ITEMS's shape;
+// requireOwnParentContext() on each of these routes already defaults to
+// the parent's primary child when no ?childId= is present, so a bare href
+// here (no query string) still lands on the right child — see
+// app/(portals)/portal/parent/_lib.tsx.
+const PARENT_NAV_ITEMS: NavItem[] = [
+  { href: "/portal/parent", label: "Dashboard" },
+  { href: "/portal/parent/attendance", label: "Attendance" },
+  { href: "/portal/parent/results", label: "Results" },
+  { href: "/portal/parent/portfolio", label: "Portfolio" },
+];
+
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   let ctx;
   try {
@@ -33,13 +47,18 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!ctx.institutionId) redirect("/login");
 
   // §student-portal redesign "in the side panel you can give option for
-  // adding all of them from student side" — the sidebar only appears on
+  // adding all of them from student side" — the sidebar appears on
   // /portal/student/* routes (institution-code prefix already stripped by
   // middleware.ts, same x-pathname header services/request-context.ts
-  // reads); the parent side keeps its existing single-column layout
-  // unchanged, out of scope for this redesign.
+  // reads).
+  // §"Parent & Student portal side panel + app download button" — the
+  // parent side gets the identical sidebar treatment now (own nav items,
+  // below), closing the gap the comment above used to call out as
+  // "out of scope".
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isStudentSide = pathname.startsWith("/portal/student");
+  const isParentSide = pathname.startsWith("/portal/parent");
+  const showSidebar = isStudentSide || isParentSide;
 
   const [institution, notifications, unreadCount, viewer, platformDefaultPalette, ownStudentId, ownParentId] = await Promise.all([
     getInstitution(ctx.institutionId, ctx.session.authUserId),
@@ -137,7 +156,7 @@ export default async function PortalLayout({ children }: { children: React.React
   // highlighted" follow-up: the header now shows only the institution's own
   // name/logo, nothing else — "PROMPT EDU ERP" branding moved down to a
   // small credit line in the page footer instead.
-  if (!isStudentSide) {
+  if (!showSidebar) {
     return (
       <div className="flex min-h-full flex-col bg-[var(--background)]">
         <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
@@ -175,7 +194,7 @@ export default async function PortalLayout({ children }: { children: React.React
               </div>
             </div>
           ) : null}
-          <NavLinks items={STUDENT_NAV_ITEMS} />
+          <NavLinks items={isParentSide ? PARENT_NAV_ITEMS : STUDENT_NAV_ITEMS} />
         </ResponsiveSidebar>
         <div className="flex min-w-0 flex-1 flex-col">
           {header}
