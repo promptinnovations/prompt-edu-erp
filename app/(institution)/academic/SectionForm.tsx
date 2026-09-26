@@ -21,7 +21,7 @@ export default function SectionForm({ classes }: { classes: Array<{ id: string; 
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">{t("sectionName")}</label>
-        <input name="name" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" placeholder="e.g. A" />
+        <input autoComplete="off" name="name" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" placeholder="e.g. A" />
       </div>
       <button
         type="submit"

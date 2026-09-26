@@ -37,11 +37,11 @@ export default async function SubstitutionReportPage({
           <form method="get" className="flex flex-wrap items-end gap-2">
             <div>
               <label className="mb-1 block text-xs text-zinc-500">From</label>
-              <input type="date" name="from" defaultValue={effectiveFrom} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+              <input autoComplete="off" type="date" name="from" defaultValue={effectiveFrom} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-zinc-500">To</label>
-              <input type="date" name="to" defaultValue={effectiveTo} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+              <input autoComplete="off" type="date" name="to" defaultValue={effectiveTo} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
             </div>
             <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">Load</button>
           </form>

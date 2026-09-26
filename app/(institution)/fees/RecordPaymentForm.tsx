@@ -18,7 +18,7 @@ export default function RecordPaymentForm({ invoices }: { invoices: InvoiceOptio
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Amount (₹)</label>
-        <input name="amount" type="number" min={0.01} step="0.01" required className="w-full rounded-full border px-3 py-1.5 text-sm" />
+        <input autoComplete="off" name="amount" type="number" min={0.01} step="0.01" required className="w-full rounded-full border px-3 py-1.5 text-sm" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Method</label>
@@ -33,7 +33,7 @@ export default function RecordPaymentForm({ invoices }: { invoices: InvoiceOptio
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Reference no. (optional)</label>
-        <input name="referenceNo" className="w-full rounded-full border px-3 py-1.5 text-sm" />
+        <input autoComplete="off" name="referenceNo" className="w-full rounded-full border px-3 py-1.5 text-sm" />
       </div>
       <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

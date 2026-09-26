@@ -26,11 +26,11 @@ export default function SubmitAchievementForm({
       </div>
       <div className="flex-1">
         <label className="mb-1 block text-xs text-zinc-500">Title</label>
-        <input name="title" required className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="title" required className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Position</label>
-        <input name="position" placeholder="1st" className="w-20 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="position" placeholder="1st" className="w-20 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Submit

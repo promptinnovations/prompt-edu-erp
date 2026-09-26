@@ -67,7 +67,7 @@ export default async function StudentDirectoryPage({
         <form className="flex flex-wrap items-end gap-2" method="get">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Search</label>
-            <input
+            <input autoComplete="off"
               name="q"
               defaultValue={q}
               placeholder="Name or admission number"

@@ -44,7 +44,7 @@ export default function AddTimetablePeriodForm({
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Period no.</label>
-        <input type="number" name="periodNo" min={1} max={20} required className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+        <input autoComplete="off" type="number" name="periodNo" min={1} max={20} required className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Subject</label>

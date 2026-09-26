@@ -298,7 +298,7 @@ export async function getNormalizedScore(
     return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
       const { rows } = await scoped.query<{ avg_percentage: string | null }>(
         `select avg(percentage) as avg_percentage from results
-          where student_id = $1 and computed_at between $2 and $3`,
+          where student_id = $1 and computed_at between $2 and $3 and is_provisional = false`,
         [studentId, fromDate, toDate]
       );
       return rows[0]?.avg_percentage ? Number(rows[0].avg_percentage) : 0;

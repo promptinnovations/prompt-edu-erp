@@ -40,11 +40,11 @@ export default function AttendanceTrendPicker({
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">From month</label>
-        <input type="month" name="fromMonth" defaultValue={fromMonth} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" type="month" name="fromMonth" defaultValue={fromMonth} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">To month</label>
-        <input type="month" name="toMonth" defaultValue={toMonth} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" type="month" name="toMonth" defaultValue={toMonth} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
         Load trend

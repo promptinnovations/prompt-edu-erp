@@ -11,7 +11,7 @@ export default function SubjectForm({ educationMode = "academic" }: { educationM
     <form action={formAction} className="flex items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">{t("subjectName")}</label>
-        <input
+        <input autoComplete="off"
           name="name"
           required
           className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"

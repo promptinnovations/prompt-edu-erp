@@ -22,19 +22,19 @@ function EditParentForm({ studentId, parent, onDone }: { studentId: string; pare
       <input type="hidden" name="parentId" value={parent.id} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Name</label>
-        <input name="fullName" defaultValue={parent.full_name} required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="fullName" defaultValue={parent.full_name} required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Phone</label>
-        <input name="phone" defaultValue={parent.phone ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="phone" defaultValue={parent.phone ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Email</label>
-        <input name="email" type="email" defaultValue={parent.email ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="email" type="email" defaultValue={parent.email ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Occupation</label>
-        <input name="occupation" defaultValue={parent.occupation ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="occupation" defaultValue={parent.occupation ?? ""} className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50">
         Save
@@ -73,7 +73,7 @@ function ProvisionParentAccountForm({ parentId, studentId, defaultEmail, default
     <form action={formAction} className="mt-1 flex flex-wrap items-end gap-1">
       <input type="hidden" name="parentId" value={parentId} />
       <input type="hidden" name="redirectStudentId" value={studentId} />
-      <input name="email" type="email" defaultValue={defaultEmail} placeholder="login email" required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input autoComplete="off" name="email" type="email" defaultValue={defaultEmail} placeholder="login email" required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       <input type="hidden" name="fullName" value={defaultName} />
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Create parent portal login
@@ -126,22 +126,22 @@ export default function ParentSection({
           <input type="hidden" name="studentId" value={studentId} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Name</label>
-            <input name="fullName" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="fullName" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Relationship</label>
-            <input name="relationship" placeholder="Father / Mother / Guardian" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="relationship" placeholder="Father / Mother / Guardian" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Phone</label>
-            <input name="phone" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="phone" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Email</label>
-            <input name="email" type="email" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="email" type="email" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <label className="flex items-center gap-1 text-xs text-zinc-500">
-            <input type="checkbox" name="isPrimaryContact" /> Primary contact
+            <input autoComplete="off" type="checkbox" name="isPrimaryContact" /> Primary contact
           </label>
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Add parent/guardian
@@ -228,7 +228,7 @@ export function ProvisionStudentAccountForm({
         <input type="hidden" name="studentId" value={studentId} />
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Login email</label>
-          <input name="email" type="email" defaultValue={defaultEmail} required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input autoComplete="off" name="email" type="email" defaultValue={defaultEmail} required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
         <input type="hidden" name="fullName" value={defaultName} />
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

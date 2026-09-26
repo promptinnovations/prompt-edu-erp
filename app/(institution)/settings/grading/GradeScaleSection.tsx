@@ -23,12 +23,12 @@ function GradeBandRow({ band, canManage }: { band: GradeBand; canManage: boolean
       <li className="flex flex-wrap items-center gap-2 py-1 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="gradeBandId" value={band.id} />
-          <input name="gradeLabel" defaultValue={band.grade_label} className="w-16 rounded-full border px-2 py-1 text-xs" />
-          <input name="minPercent" type="number" step="0.01" defaultValue={band.min_percent} className="w-20 rounded-full border px-2 py-1 text-xs" placeholder="Min %" />
+          <input autoComplete="off" name="gradeLabel" defaultValue={band.grade_label} className="w-16 rounded-full border px-2 py-1 text-xs" />
+          <input autoComplete="off" name="minPercent" type="number" step="0.01" defaultValue={band.min_percent} className="w-20 rounded-full border px-2 py-1 text-xs" placeholder="Min %" />
           <span className="text-xs text-zinc-500">–</span>
-          <input name="maxPercent" type="number" step="0.01" defaultValue={band.max_percent} className="w-20 rounded-full border px-2 py-1 text-xs" placeholder="Max %" />
-          <input name="gradePoint" type="number" step="0.01" defaultValue={band.grade_point ?? ""} className="w-16 rounded-full border px-2 py-1 text-xs" placeholder="GP" />
-          <input name="color" type="color" defaultValue={band.color ?? "#94a3b8"} className="h-7 w-9 rounded border p-0.5" title="Band color" />
+          <input autoComplete="off" name="maxPercent" type="number" step="0.01" defaultValue={band.max_percent} className="w-20 rounded-full border px-2 py-1 text-xs" placeholder="Max %" />
+          <input autoComplete="off" name="gradePoint" type="number" step="0.01" defaultValue={band.grade_point ?? ""} className="w-16 rounded-full border px-2 py-1 text-xs" placeholder="GP" />
+          <input autoComplete="off" name="color" type="color" defaultValue={band.color ?? "#94a3b8"} className="h-7 w-9 rounded border p-0.5" title="Band color" />
           <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
@@ -71,7 +71,7 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
         {editing ? (
           <form action={updateAction} className="flex items-center gap-2" onSubmit={() => setEditing(false)}>
             <input type="hidden" name="gradeScaleId" value={scale.id} />
-            <input name="name" defaultValue={scale.name} className="rounded-full border px-2 py-1 text-sm" />
+            <input autoComplete="off" name="name" defaultValue={scale.name} className="rounded-full border px-2 py-1 text-sm" />
             <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
@@ -111,23 +111,23 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
           <input type="hidden" name="gradeScaleId" value={scale.id} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Label</label>
-            <input name="gradeLabel" required placeholder="A+" className="w-16 rounded-full border px-2 py-1 text-sm" />
+            <input autoComplete="off" name="gradeLabel" required placeholder="A+" className="w-16 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Min %</label>
-            <input name="minPercent" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1 text-sm" />
+            <input autoComplete="off" name="minPercent" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Max %</label>
-            <input name="maxPercent" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1 text-sm" />
+            <input autoComplete="off" name="maxPercent" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Grade point</label>
-            <input name="gradePoint" type="number" step="0.01" className="w-16 rounded-full border px-2 py-1 text-sm" />
+            <input autoComplete="off" name="gradePoint" type="number" step="0.01" className="w-16 rounded-full border px-2 py-1 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Color</label>
-            <input name="color" type="color" defaultValue="#4f46e5" className="h-8 w-10 rounded border p-0.5" />
+            <input autoComplete="off" name="color" type="color" defaultValue="#4f46e5" className="h-8 w-10 rounded border p-0.5" />
           </div>
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add band
@@ -156,10 +156,10 @@ export default function GradeScaleSection({
         <form action={createAction} className="flex items-end gap-2 rounded-card border border-dashed p-3">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">New grade scale name</label>
-            <input name="name" required placeholder="e.g. A+–F Letter Grades" className="rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="name" required placeholder="e.g. A+–F Letter Grades" className="rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
-            <input type="checkbox" name="isDefault" /> Make default
+            <input autoComplete="off" type="checkbox" name="isDefault" /> Make default
           </label>
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add grade scale

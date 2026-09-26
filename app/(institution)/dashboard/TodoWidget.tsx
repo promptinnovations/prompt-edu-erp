@@ -45,7 +45,7 @@ export default function TodoWidget({ todos }: { todos: Todo[] }) {
   return (
     <div className="space-y-3">
       <form action={formAction} className="flex gap-2">
-        <input
+        <input autoComplete="off"
           name="text" required maxLength={500} placeholder="Add a task…"
           className="min-w-0 flex-1 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]"
         />

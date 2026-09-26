@@ -31,7 +31,7 @@ export default function StudentLoginSection({
             <input type="hidden" name="studentId" value={studentId} />
             <div>
               <label className="mb-1 block text-xs text-zinc-500">New password (parent&apos;s phone number)</label>
-              <input name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+              <input autoComplete="off" name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
             </div>
             <button type="submit" disabled={resetPending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
               Reset password
@@ -55,7 +55,7 @@ export default function StudentLoginSection({
       <input type="hidden" name="studentId" value={studentId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Parent&apos;s phone number (becomes the password)</label>
-        <input name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="parentPhone" defaultValue={defaultParentPhone} required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <button type="submit" disabled={createPending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Create student login

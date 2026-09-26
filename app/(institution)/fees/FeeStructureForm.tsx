@@ -32,11 +32,11 @@ export function FeeStructureForm({ categories, classes, academicYears }: { categ
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Amount (₹)</label>
-        <input name="amount" type="number" min={0} step="0.01" required className="w-full rounded-full border px-3 py-1.5 text-sm" />
+        <input autoComplete="off" name="amount" type="number" min={0} step="0.01" required className="w-full rounded-full border px-3 py-1.5 text-sm" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Due date (optional)</label>
-        <input name="dueDate" type="date" className="w-full rounded-full border px-3 py-1.5 text-sm" />
+        <input autoComplete="off" name="dueDate" type="date" className="w-full rounded-full border px-3 py-1.5 text-sm" />
       </div>
       <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

@@ -12,7 +12,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
       <div className="flex flex-wrap gap-3">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Email</label>
-          <input
+          <input autoComplete="off"
             name="email"
             type="email"
             required
@@ -22,11 +22,11 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-          <input name="fullName" required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input autoComplete="off" name="fullName" required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Password</label>
-          <input
+          <input autoComplete="off"
             name="password"
             type="text"
             required
@@ -42,7 +42,7 @@ export default function CreateUserForm({ roleOptions }: { roleOptions: Instituti
         <div className="flex flex-wrap gap-3">
           {roleOptions.map((r) => (
             <label key={r.id} className="flex items-center gap-1.5 text-sm text-zinc-700">
-              <input type="checkbox" name="roleCodes" value={r.code} className="rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+              <input autoComplete="off" type="checkbox" name="roleCodes" value={r.code} className="rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
               {r.name}
             </label>
           ))}

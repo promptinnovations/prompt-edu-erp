@@ -875,6 +875,28 @@ export async function enterMarks(
   });
 }
 
+/** §CS.4 "as mark is started entering, it should start see in result
+ *  analysis" -- enterMarks() itself runs inside withInstitutionContext()
+ *  above and returns before this call, so recomputeExaminationResults()
+ *  (which opens its own scoped connection) runs after that transaction has
+ *  committed. Wrapped in try/catch so a recompute hiccup never turns a
+ *  successful mark save into a user-facing error -- the marks row is the
+ *  source of truth and is already saved; Result Analysis will catch up on
+ *  the next successful recompute (e.g. the next save). */
+export async function enterMarksAndRecompute(
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof markEntrySchema>
+): Promise<{ updated: number; skippedLocked: number }> {
+  const result = await enterMarks(institutionId, authUserId, userId, examSubjectId, entries);
+  if (result.updated > 0) {
+    try {
+      await recomputeExaminationResults(institutionId, authUserId, examSubjectId);
+    } catch {
+      // best-effort live recompute, see doc comment above
+    }
+  }
+  return result;
+}
+
 /** Removes one student's mark entry entirely (as opposed to correctMark(),
  *  which changes its value but keeps it as a row + history) — only while
  *  it's still 'draft', the same boundary enterMarks() itself enforces, so
@@ -882,16 +904,32 @@ export async function enterMarks(
  *  outside the correction-history path. §"add edit & remove button ...
  *  student added mark entered" follow-up. */
 export async function deleteMark(institutionId: string, authUserId: string, userId: string, markId: string): Promise<void> {
+  await deleteMarkAndReturnSubject(institutionId, authUserId, userId, markId);
+}
+
+async function deleteMarkAndReturnSubject(institutionId: string, authUserId: string, userId: string, markId: string): Promise<string> {
   const db = await getDbClient();
-  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ id: string; entry_status: string }>(
-      "select id, entry_status from marks where id = $1", [markId]
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; entry_status: string; exam_subject_id: string }>(
+      "select id, entry_status, exam_subject_id from marks where id = $1", [markId]
     );
     if (rows.length === 0) throw new Error("Mark not found.");
     if (rows[0].entry_status !== "draft") throw new Error("This mark has already been submitted — use Correct instead of Remove.");
     await scoped.query("delete from marks where id = $1", [markId]);
     await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "marks", entityId: markId });
+    return rows[0].exam_subject_id;
   });
+}
+
+/** §CS.4 -- same live-recompute rationale as enterMarksAndRecompute() above,
+ *  for the "Remove" action. */
+export async function deleteMarkAndRecompute(institutionId: string, authUserId: string, userId: string, markId: string): Promise<void> {
+  const examSubjectId = await deleteMarkAndReturnSubject(institutionId, authUserId, userId, markId);
+  try {
+    await recomputeExaminationResults(institutionId, authUserId, examSubjectId);
+  } catch {
+    // best-effort live recompute, see doc comment above
+  }
 }
 
 async function transitionMarks(
@@ -1000,21 +1038,37 @@ export async function correctMark(
 // ---------------------------------------------------------------------------
 // Results (§28 "once marks are approved, they feed the analytics engine")
 // ---------------------------------------------------------------------------
-/** Computes total/percentage/grade + pass-fail for every student who has a
- *  complete, approved-or-locked mark set for this examination — one subject
- *  short and the student is skipped as incomplete rather than misrepresented
- *  with a partial total (§28). Overall pass/fail follows the Result
- *  Analysis spec exactly: a student fails if failedSubjectCount > 0 OR
- *  overallPct < institution PassPct — a subject itself fails against its
- *  own pass_marks override if set, else falls back to the same tenant
- *  PassPct applied to that subject's max_marks. Grade label/color always
- *  come from lookupGrade() against the examination's grade scale; the
- *  binary pass/fail always comes from isPass() — this function never
- *  compares a percentage to a literal threshold itself.
+/** Computes total/percentage/grade + pass-fail for every student who has
+ *  AT LEAST ONE subject's mark entered for this examination — §CS.4 "don't
+ *  need compute results -- as mark is started entering, it should start
+ *  see in result analysis" retired the previous "skip until every subject
+ *  is approved/locked" gate entirely: a student now gets a `results` row
+ *  (and therefore shows up in Result Analysis) the moment their FIRST mark
+ *  is saved, draft or otherwise, and that row keeps updating live as more
+ *  subjects/statuses come in. `subjects_entered`/`subjects_expected`/
+ *  `is_provisional` (migration 0054) let a reader tell a still-filling-in
+ *  result apart from a fully finalized one — is_provisional is true unless
+ *  every subject is entered AND every one of those marks is approved or
+ *  locked. total_marks/percentage are always computed against the FULL
+ *  exam's max_total_marks (not just the subjects entered so far), so the
+ *  percentage naturally reads as "current progress toward the final
+ *  total" rather than a misleadingly-high average of only what's in.
+ *  Overall pass/fail follows the Result Analysis spec exactly: a student
+ *  fails if failedSubjectCount > 0 OR overallPct < institution PassPct —
+ *  a subject itself fails against its own pass_marks override if set, else
+ *  falls back to the same tenant PassPct applied to that subject's
+ *  max_marks. Grade label/color always come from lookupGrade() against
+ *  the examination's grade scale; the binary pass/fail always comes from
+ *  isPass() — this function never compares a percentage to a literal
+ *  threshold itself. Both is_pass/grade are naturally provisional too
+ *  while is_provisional is true — callers that need a FINAL-only view
+ *  (Report Cards, Consolidated Mark Sheet, the parent/student portal,
+ *  Star of the Month scoring) filter `where not is_provisional`.
  *
- *  Called automatically whenever marks are locked/approved (no separate
- *  "compute results" click required — Result Analysis spec "live recompute,
- *  no publish step") as well as being safely re-runnable on demand. */
+ *  Called automatically after every mark save/delete as well as every
+ *  submit/verify/approve/lock/correct transition (no manual "Compute
+ *  results" click anywhere in the app any more), and is safely re-runnable
+ *  on demand regardless. */
 export async function computeResults(institutionId: string, authUserId: string, examinationId: string): Promise<{ computed: number; skippedIncomplete: number }> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -1036,12 +1090,13 @@ export async function computeResults(institutionId: string, authUserId: string, 
     );
     const passPct = Number(instRow[0]?.pass_pct ?? 35);
 
-    // Per-subject marks for approved/locked entries, so failedSubjectCount
-    // can be derived alongside the overall total in one pass.
-    const { rows: subjectMarks } = await scoped.query<{ student_id: string; exam_subject_id: string; marks_obtained: string | null; is_absent: boolean }>(
-      `select student_id, exam_subject_id, marks_obtained, is_absent
+    // Every subject mark that has an actual value (or is explicitly marked
+    // absent) for this exam, whatever its entry_status — draft included —
+    // so a result starts forming the instant the first mark is saved.
+    const { rows: subjectMarks } = await scoped.query<{ student_id: string; exam_subject_id: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }>(
+      `select student_id, exam_subject_id, marks_obtained, is_absent, entry_status
          from marks
-        where exam_subject_id = any($1) and entry_status in ('approved','locked')`,
+        where exam_subject_id = any($1) and (marks_obtained is not null or is_absent = true)`,
       [examSubjectIds]
     );
 
@@ -1052,12 +1107,8 @@ export async function computeResults(institutionId: string, authUserId: string, 
     }
 
     let computed = 0;
-    let skippedIncomplete = 0;
+    const skippedIncomplete = 0; // retained for API compat -- nothing is skipped any more, see doc comment above.
     for (const [studentId, rows] of byStudent) {
-      if (rows.length !== examSubjects.length) {
-        skippedIncomplete++;
-        continue;
-      }
       let total = 0;
       let failedSubjectCount = 0;
       for (const r of rows) {
@@ -1078,22 +1129,27 @@ export async function computeResults(institutionId: string, authUserId: string, 
       const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
       const grade = await lookupGrade(scoped, gradeScaleId, percentage);
       const overallPass = failedSubjectCount === 0 && isPass(percentage, passPct);
+      const subjectsEntered = rows.length;
+      const subjectsExpected = examSubjects.length;
+      const isProvisional = subjectsEntered < subjectsExpected || rows.some((r) => r.entry_status !== "approved" && r.entry_status !== "locked");
 
       await scoped.query(
-        `insert into results (institution_id, examination_id, student_id, total_marks, max_total_marks, percentage, grade_band_id, is_pass, failed_subject_count, computed_at)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+        `insert into results (institution_id, examination_id, student_id, total_marks, max_total_marks, percentage, grade_band_id, is_pass, failed_subject_count, subjects_entered, subjects_expected, is_provisional, computed_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
          on conflict (institution_id, examination_id, student_id)
          do update set total_marks = excluded.total_marks, max_total_marks = excluded.max_total_marks,
                         percentage = excluded.percentage, grade_band_id = excluded.grade_band_id,
-                        is_pass = excluded.is_pass, failed_subject_count = excluded.failed_subject_count, computed_at = now()`,
-        [institutionId, examinationId, studentId, total, maxTotal, percentage, grade?.id ?? null, overallPass, failedSubjectCount]
+                        is_pass = excluded.is_pass, failed_subject_count = excluded.failed_subject_count,
+                        subjects_entered = excluded.subjects_entered, subjects_expected = excluded.subjects_expected,
+                        is_provisional = excluded.is_provisional, computed_at = now()`,
+        [institutionId, examinationId, studentId, total, maxTotal, percentage, grade?.id ?? null, overallPass, failedSubjectCount, subjectsEntered, subjectsExpected, isProvisional]
       );
       computed++;
     }
     // Result Analysis reads (modules/analytics/service.ts) are cached
     // indefinitely and reused across tab clicks/filter changes until this
     // exact tag is revalidated — this is that "until there's a change"
-    // moment, the instant marks are (re)approved/locked for this exam.
+    // moment, the instant a mark is saved/transitioned for this exam.
     safeRevalidateTag(resultAnalysisTag(institutionId, examinationId));
     return { computed, skippedIncomplete };
   });
@@ -1170,6 +1226,11 @@ export async function listClassesForExamination(
   });
 }
 
+/** §CS.4 "don't need compute results -- as mark is started entering, it
+ *  should start see in result analysis" -- Result Analysis itself
+ *  (modules/analytics/service.ts) shows live/provisional results, but this
+ *  is the "official" Results landing page, so it keeps the old finalized-
+ *  only behaviour by filtering out is_provisional rows. */
 export async function getResults(institutionId: string, authUserId: string, examinationId: string): Promise<ResultRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -1179,7 +1240,7 @@ export async function getResults(institutionId: string, authUserId: string, exam
          from results r
          join students s on s.id = r.student_id
          left join grade_bands gb on gb.id = r.grade_band_id
-        where r.examination_id = $1
+        where r.examination_id = $1 and r.is_provisional = false
         order by r.percentage desc`,
       [examinationId]
     );
@@ -1210,7 +1271,7 @@ export async function listStudentResultHistory(
          from results r
          join examinations e on e.id = r.examination_id
          left join grade_bands gb on gb.id = r.grade_band_id
-        where r.student_id = $1
+        where r.student_id = $1 and r.is_provisional = false
         order by r.computed_at desc`,
       [studentId]
     );
@@ -1282,7 +1343,7 @@ export async function getCumulativeMarksheet(
          left join student_enrollments se on se.student_id = r.student_id and se.status = 'active'
          left join sections sec on sec.id = se.section_id
          left join classes c on c.id = se.class_id
-        where e.academic_year_id = $1 and ($2::uuid is null or se.class_id = $2)
+        where e.academic_year_id = $1 and ($2::uuid is null or se.class_id = $2) and r.is_provisional = false
         order by e.start_date nulls last, e.created_at`,
       [academicYearId, classId || null]
     );

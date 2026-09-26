@@ -23,9 +23,9 @@ function ActivityRow({ activity, canManage }: { activity: SkillActivity; canMana
       <li className="py-1">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="skillActivityId" value={activity.id} />
-          <input name="name" defaultValue={activity.name} className="rounded-full border px-2 py-1 text-sm" />
+          <input autoComplete="off" name="name" defaultValue={activity.name} className="rounded-full border px-2 py-1 text-sm" />
           <label className="flex items-center gap-1 text-xs text-zinc-500">
-            <input type="checkbox" name="isActive" defaultChecked={activity.is_active} /> Active
+            <input autoComplete="off" type="checkbox" name="isActive" defaultChecked={activity.is_active} /> Active
           </label>
           <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
@@ -68,7 +68,7 @@ function SkillTypeCard({
         {editing ? (
           <form action={updateAction} className="flex items-center gap-2" onSubmit={() => setEditing(false)}>
             <input type="hidden" name="skillTypeId" value={type.id} />
-            <input name="name" defaultValue={type.name} className="rounded-full border px-2 py-1 text-sm" />
+            <input autoComplete="off" name="name" defaultValue={type.name} className="rounded-full border px-2 py-1 text-sm" />
             <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
           </form>
@@ -98,16 +98,16 @@ function SkillTypeCard({
           <input type="hidden" name="skillTypeId" value={type.id} />
           <div>
             <label className="mb-1 block text-xs text-zinc-500">New activity</label>
-            <input name="name" required placeholder="e.g. Weekly reading log" className="rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="name" required placeholder="e.g. Weekly reading log" className="rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
-            <input type="checkbox" name="evidenceRequired" /> Evidence
+            <input autoComplete="off" type="checkbox" name="evidenceRequired" /> Evidence
           </label>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
-            <input type="checkbox" name="verificationRequired" defaultChecked /> Verification
+            <input autoComplete="off" type="checkbox" name="verificationRequired" defaultChecked /> Verification
           </label>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
-            <input type="checkbox" name="approvalRequired" /> Approval
+            <input autoComplete="off" type="checkbox" name="approvalRequired" /> Approval
           </label>
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add activity
@@ -134,7 +134,7 @@ export default function SkillConfigSection({
         <form action={createAction} className="flex items-end gap-2 rounded-card border border-dashed p-3">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">New skill type</label>
-            <input name="name" required placeholder="e.g. Reading" className="rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="name" required placeholder="e.g. Reading" className="rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add skill type

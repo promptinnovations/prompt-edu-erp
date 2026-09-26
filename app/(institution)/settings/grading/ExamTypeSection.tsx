@@ -28,13 +28,13 @@ function ExamTypeRow({ examType, canManage }: { examType: ExamType; canManage: b
       <li className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="examTypeId" value={examType.id} />
-          <input name="name" defaultValue={examType.name} className="rounded-full border px-2 py-1 text-sm" />
+          <input autoComplete="off" name="name" defaultValue={examType.name} className="rounded-full border px-2 py-1 text-sm" />
           <select name="category" defaultValue={examType.category ?? ""} className="w-40 rounded-full border px-2 py-1 text-xs">
             <option value="">No category</option>
             <option value="Academic">Academic</option>
             <option value="Islamic">Islamic</option>
           </select>
-          <input
+          <input autoComplete="off"
             name="periodicity" list="periodicity-suggestions" defaultValue={examType.periodicity ?? ""}
             placeholder="Periodicity (e.g. Term)"
             className="w-36 rounded-full border px-2 py-1 text-xs"
@@ -95,11 +95,11 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
         <form action={createAction} className="flex flex-wrap items-end gap-2 rounded-card border border-dashed p-3">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Code</label>
-            <input name="code" required placeholder="e.g. MS-MID" className="w-28 rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="code" required placeholder="e.g. MS-MID" className="w-28 rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Name</label>
-            <input name="name" required placeholder="e.g. Moral Science Mid Term" className="rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="name" required placeholder="e.g. Moral Science Mid Term" className="rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Category (optional)</label>
@@ -111,7 +111,7 @@ export default function ExamTypeSection({ examTypes, canManage }: { examTypes: E
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Periodicity (optional)</label>
-            <input
+            <input autoComplete="off"
               name="periodicity" list="periodicity-suggestions" placeholder="e.g. Term"
               className="w-36 rounded-full border px-2 py-1.5 text-sm"
             />

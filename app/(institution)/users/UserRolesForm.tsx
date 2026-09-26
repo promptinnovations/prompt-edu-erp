@@ -22,7 +22,7 @@ export default function UserRolesForm({
       <div className="flex flex-wrap justify-end gap-2">
         {roleOptions.map((r) => (
           <label key={r.id} className="flex items-center gap-1 text-xs text-zinc-600">
-            <input type="checkbox" name="roleCodes" value={r.code} defaultChecked={currentSet.has(r.code)} className="rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" type="checkbox" name="roleCodes" value={r.code} defaultChecked={currentSet.has(r.code)} className="rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
             {r.name}
           </label>
         ))}

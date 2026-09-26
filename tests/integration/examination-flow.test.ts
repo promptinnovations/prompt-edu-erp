@@ -180,10 +180,10 @@ describe("Examination workflow (§28)", () => {
     expect(locked).toBe(2);
   });
 
-  it("computeResults() only counts approved/locked marks, computes correct percentage and grade", async () => {
+  it("computeResults() computes correct percentage/grade for fully-approved/locked marks", async () => {
     const outcome = await computeResults(institutionA, adminAuth, examinationId);
     expect(outcome.computed).toBe(2);
-    expect(outcome.skippedIncomplete).toBe(0);
+    expect(outcome.skippedIncomplete).toBe(0); // retained for API compat -- nothing is skipped any more (§CS.4)
 
     const results = await getResults(institutionA, adminAuth, examinationId);
     expect(results).toHaveLength(2);
@@ -197,7 +197,13 @@ describe("Examination workflow (§28)", () => {
     expect(r2.grade_label).toBe("D"); // 35-39.99 band
   });
 
-  it("computeResults() skips a student who does not have approved marks for every exam subject", async () => {
+  // §CS.4 "don't need compute results -- as mark is started entering, it
+  // should start see in result analysis" -- a student with an incomplete
+  // subject set (or a subject still in draft) now still gets a `results`
+  // row (so Result Analysis sees it live), but it's flagged
+  // is_provisional so the "official" Results view (getResults()) keeps
+  // excluding it until every subject is approved/locked.
+  it("computeResults() flags a student's result as provisional when not every exam subject is approved/locked, and getResults() excludes it", async () => {
     // Add a second subject to the same examination with no marks entered at all.
     const secondSubject = await createSubject(institutionA, adminAuth, adminUserId, { name: "Science" });
     const es2 = await addExamSubject(institutionA, adminAuth, adminUserId, {
@@ -212,8 +218,27 @@ describe("Examination workflow (§28)", () => {
     await approveMarks(institutionA, adminAuth, es2.id, adminUserId);
 
     const outcome = await computeResults(institutionA, adminAuth, examinationId);
-    expect(outcome.computed).toBe(1); // only student1 now has approved marks for both subjects
-    expect(outcome.skippedIncomplete).toBe(1); // student2 is incomplete for the new subject
+    expect(outcome.computed).toBe(2); // both students get a live row -- nothing is skipped
+    expect(outcome.skippedIncomplete).toBe(0);
+
+    // The official Results view still only shows student1 (fully covered + approved/locked).
+    const results = await getResults(institutionA, adminAuth, examinationId);
+    expect(results.map((r) => r.student_id)).toEqual([student1]);
+
+    const db = await getDbClient();
+    const raw = await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, (scoped) =>
+      scoped.query<{ student_id: string; is_provisional: boolean; subjects_entered: number; subjects_expected: number }>(
+        "select student_id, is_provisional, subjects_entered, subjects_expected from results where examination_id = $1",
+        [examinationId]
+      )
+    );
+    const row2 = raw.rows.find((r) => r.student_id === student2)!;
+    expect(row2.is_provisional).toBe(true);
+    expect(row2.subjects_entered).toBe(1);
+    expect(row2.subjects_expected).toBe(2);
+
+    const row1 = raw.rows.find((r) => r.student_id === student1)!;
+    expect(row1.is_provisional).toBe(false);
   });
 });
 
@@ -354,14 +379,18 @@ describe("getCumulativeMarksheet() (§491 'Consolidated Mark Sheet ... cumulativ
     expect(student1Row.average_percentage).toBeCloseTo(87.5, 1);
 
     // student2 became incomplete once the second exam_subject was added
-    // with no marks for them -- computeResults() skips (never deletes)
-    // an incomplete student's row, so their STALE result from the first
-    // (single-subject) compute is what the cumulative sheet still shows:
-    // 30/100 -> corrected to 38/100 before submission, still 38%.
-    const student2Row = sheet.rows.find((r) => r.student_id === student2)!;
-    expect(student2Row).toBeTruthy();
-    const student2Score = student2Row.exams.find((e) => e.examination_id === examinationId)!;
-    expect(Number(student2Score.percentage)).toBeCloseTo(38, 5);
+    // with no marks for them at all -- §CS.4 "as mark is started entering,
+    // it should start see in result analysis" means computeResults() now
+    // LIVE-updates student2's `results` row every time (rather than
+    // leaving a stale one untouched), flagging it is_provisional. This
+    // "official" cumulative marksheet keeps the old finalized-only
+    // behaviour (see getCumulativeMarksheet()'s is_provisional filter), so
+    // student2 no longer has a row for this examination at all -- their
+    // live, in-progress result still shows up in Result Analysis itself
+    // (modules/analytics/service.ts), which is deliberately unfiltered.
+    const student2Row = sheet.rows.find((r) => r.student_id === student2);
+    const student2Score = student2Row?.exams.find((e) => e.examination_id === examinationId);
+    expect(student2Score).toBeUndefined();
   });
 
   it("classId narrows to one class, and Institution B sees no rows for Institution A's academic year", async () => {

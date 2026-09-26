@@ -23,13 +23,13 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
             <input type="hidden" name="scoringRuleId" value={rule.id} />
             <span className="text-sm text-zinc-500">{rule.module} / {rule.activity_code}</span>
             <label className="text-xs text-zinc-500">Points
-              <input name="points" type="number" step="0.01" defaultValue={rule.points} className="ml-1 w-20 rounded-full border px-2 py-1 text-xs" />
+              <input autoComplete="off" name="points" type="number" step="0.01" defaultValue={rule.points} className="ml-1 w-20 rounded-full border px-2 py-1 text-xs" />
             </label>
             <label className="text-xs text-zinc-500">Max
-              <input name="maxPoints" type="number" step="0.01" defaultValue={rule.max_points ?? ""} className="ml-1 w-20 rounded-full border px-2 py-1 text-xs" />
+              <input autoComplete="off" name="maxPoints" type="number" step="0.01" defaultValue={rule.max_points ?? ""} className="ml-1 w-20 rounded-full border px-2 py-1 text-xs" />
             </label>
             <label className="flex items-center gap-1 text-xs text-zinc-500">
-              <input type="checkbox" name="isActive" defaultChecked={rule.is_active} /> Active
+              <input autoComplete="off" type="checkbox" name="isActive" defaultChecked={rule.is_active} /> Active
             </label>
             <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
@@ -95,25 +95,25 @@ export default function ScoringRuleSection({ rules, canManage }: { rules: Scorin
         <form action={createAction} className="flex flex-wrap items-end gap-2 rounded-card border border-dashed p-3">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Module</label>
-            <input name="module" required placeholder="reading" className="w-28 rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="module" required placeholder="reading" className="w-28 rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Activity code</label>
-            <input name="activityCode" required placeholder="fiction_book" className="w-36 rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="activityCode" required placeholder="fiction_book" className="w-36 rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Points</label>
-            <input name="points" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="points" type="number" step="0.01" required className="w-20 rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Max points</label>
-            <input name="maxPoints" type="number" step="0.01" className="w-20 rounded-full border px-2 py-1.5 text-sm" />
+            <input autoComplete="off" name="maxPoints" type="number" step="0.01" className="w-20 rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
-            <input type="checkbox" name="verificationRequired" defaultChecked /> Needs verification
+            <input autoComplete="off" type="checkbox" name="verificationRequired" defaultChecked /> Needs verification
           </label>
           <label className="flex items-center gap-1 pb-2 text-xs text-zinc-500">
-            <input type="checkbox" name="approvalRequired" defaultChecked /> Needs approval
+            <input autoComplete="off" type="checkbox" name="approvalRequired" defaultChecked /> Needs approval
           </label>
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add scoring rule

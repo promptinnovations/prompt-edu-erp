@@ -4,7 +4,6 @@ import { useActionState } from "react";
 import {
   bulkSetExamScopeAction, removeExamClassAction,
   bulkAddExamSubjectsAction, removeExamSubjectAction,
-  computeResultsAction,
 } from "../actions";
 
 /** §418 "confirm scope of exam, section, grade, division — make user
@@ -57,14 +56,14 @@ export function ExamScopeSection({
               <legend className="px-1 text-xs font-semibold text-zinc-700">Class {g.className}</legend>
               {g.divisions.length === 0 ? (
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="sectionAndClass" value={`${g.classId}|`} className="rounded" />
+                  <input autoComplete="off" type="checkbox" name="sectionAndClass" value={`${g.classId}|`} className="rounded" />
                   Whole class (no divisions)
                 </label>
               ) : (
                 <div className="space-y-1">
                   {g.divisions.map((d) => (
                     <label key={d.sectionId} className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" name="sectionAndClass" value={`${g.classId}|${d.sectionId}`} className="rounded" />
+                      <input autoComplete="off" type="checkbox" name="sectionAndClass" value={`${g.classId}|${d.sectionId}`} className="rounded" />
                       Division {d.sectionName}
                     </label>
                   ))}
@@ -155,14 +154,14 @@ export function ExamSubjectsSection({
                 {remaining.map((s) => (
                   <tr key={s.id}>
                     <td className="py-1.5">
-                      <input type="checkbox" name="subjectId" value={s.id} className="rounded" />
+                      <input autoComplete="off" type="checkbox" name="subjectId" value={s.id} className="rounded" />
                     </td>
                     <td className="py-1.5">{s.name}</td>
                     <td className="py-1.5">
-                      <input name={`max_${s.id}`} type="number" defaultValue={100} className="w-20 rounded-full border px-2 py-1 text-sm" />
+                      <input autoComplete="off" name={`max_${s.id}`} type="number" defaultValue={100} className="w-20 rounded-full border px-2 py-1 text-sm" />
                     </td>
                     <td className="py-1.5">
-                      <input name={`pass_${s.id}`} type="number" defaultValue={35} className="w-20 rounded-full border px-2 py-1 text-sm" />
+                      <input autoComplete="off" name={`pass_${s.id}`} type="number" defaultValue={35} className="w-20 rounded-full border px-2 py-1 text-sm" />
                     </td>
                   </tr>
                 ))}
@@ -177,18 +176,5 @@ export function ExamSubjectsSection({
         </form>
       ) : null}
     </div>
-  );
-}
-
-export function ComputeResultsButton({ examinationId }: { examinationId: string }) {
-  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(computeResultsAction, { error: null });
-  return (
-    <form action={formAction} className="flex items-center gap-2">
-      <input type="hidden" name="examinationId" value={examinationId} />
-      <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
-        Compute results
-      </button>
-      {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
-    </form>
   );
 }

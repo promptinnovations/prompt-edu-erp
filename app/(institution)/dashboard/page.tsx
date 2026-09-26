@@ -43,6 +43,12 @@ export default async function DashboardPage() {
 
   const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
   const hasExaminationAccess = enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"));
+  // §CS.3 "Mark entry status visible only for principal/management/admin
+  //  not for teachers" -- marks.approve is the institution-wide "sees
+  //  everything" signal (institution_admin + management hold it, teacher
+  //  does not), same gate the /examinations/status page and its sidebar
+  //  link now enforce.
+  const canSeeMarkEntryStatus = hasExaminationAccess && can(ctx.permissions, "marks.approve");
   const hasAttendanceAccess = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"));
   const hasUnrestrictedLeaveReview = can(ctx.permissions, "attendance.edit");
   const hasScopedLeaveReview = can(ctx.permissions, "attendance.leave.review_own_class");
@@ -77,7 +83,7 @@ export default async function DashboardPage() {
   const isSectionOrAbove = attendanceVisibility.hasAccess && !attendanceVisibility.scope?.classIds;
 
   const [markEntryStatus, passRateTrendByStage, upcoming, attendanceTrend, attendanceTrendByStage, consecutiveAbsentees, pendingLeave] = await Promise.all([
-    hasExaminationAccess && recentExam ? getMarkEntryStatus(institutionId, authUserId, recentExam.id) : Promise.resolve([]),
+    canSeeMarkEntryStatus && recentExam ? getMarkEntryStatus(institutionId, authUserId, recentExam.id) : Promise.resolve([]),
     // §Dashboard follow-up: "do the same of attendance trend for [pass
     // rate] as well - Y axis 0-100%, X-axis each exams - different section
     // different colour".
@@ -225,7 +231,7 @@ export default async function DashboardPage() {
             <TodoWidget todos={todos} />
           </section>
 
-          {hasExaminationAccess && recentExam ? (
+          {canSeeMarkEntryStatus && recentExam ? (
             <section className="rounded-card border bg-white p-5">
               <h3 className="mb-1 text-sm font-semibold text-[var(--heading)]">Mark entry status</h3>
               <p className="mb-3 text-xs text-zinc-500">{recentExam.name}</p>

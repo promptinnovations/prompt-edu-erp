@@ -8,7 +8,7 @@ import {
   listDailyAssessments, getDailyAssessmentConsolidatedResult,
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
 } from "../../../../modules/examination/service";
-import { ExamScopeSection, ExamSubjectsSection, ComputeResultsButton } from "./ExamDetailForms";
+import { ExamScopeSection, ExamSubjectsSection } from "./ExamDetailForms";
 import DailyAssessmentSection from "./DailyAssessmentSection";
 
 export default async function ExaminationDetailPage({
@@ -195,7 +195,6 @@ export default async function ExaminationDetailPage({
       <section className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[var(--heading)]">Results</h2>
-          <ComputeResultsButton examinationId={id} />
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">

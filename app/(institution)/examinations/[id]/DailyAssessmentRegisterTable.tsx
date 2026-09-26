@@ -49,7 +49,7 @@ function DailyAssessmentRegisterRow({
             <input type="hidden" name="examinationId" value={examinationId} />
             <div>
               <label className="mb-1 block text-xs text-zinc-500">Date</label>
-              <input name="assessmentDate" type="date" defaultValue={entry.assessment_date} className="rounded-full border px-2 py-1 text-sm" />
+              <input autoComplete="off" name="assessmentDate" type="date" defaultValue={entry.assessment_date} className="rounded-full border px-2 py-1 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-zinc-500">Class</label>
@@ -65,11 +65,11 @@ function DailyAssessmentRegisterRow({
             </div>
             <div className="min-w-[200px] flex-1">
               <label className="mb-1 block text-xs text-zinc-500">Portion</label>
-              <input name="portion" defaultValue={entry.portion} className="w-full rounded-full border px-2 py-1 text-sm" />
+              <input autoComplete="off" name="portion" defaultValue={entry.portion} className="w-full rounded-full border px-2 py-1 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-zinc-500">Max mark</label>
-              <input name="maxMarks" type="number" min="1" step="0.5" defaultValue={entry.max_marks} className="w-20 rounded-full border px-2 py-1 text-sm" />
+              <input autoComplete="off" name="maxMarks" type="number" min="1" step="0.5" defaultValue={entry.max_marks} className="w-20 rounded-full border px-2 py-1 text-sm" />
             </div>
             <button type="submit" className="rounded-full border px-3 py-1 text-xs hover:bg-zinc-100">Save</button>
             <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>

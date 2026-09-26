@@ -31,7 +31,7 @@ export default function TimetableTemplateForm({ classes }: { classes: Array<{ id
         <div className="flex flex-wrap gap-2">
           {classes.map((c) => (
             <label key={c.id} className="flex items-center gap-1 rounded-full border px-2 py-1 text-xs">
-              <input type="checkbox" checked={selectedClassIds.includes(c.id)} onChange={() => toggleClass(c.id)} /> {c.name}
+              <input autoComplete="off" type="checkbox" checked={selectedClassIds.includes(c.id)} onChange={() => toggleClass(c.id)} /> {c.name}
             </label>
           ))}
         </div>
@@ -42,7 +42,7 @@ export default function TimetableTemplateForm({ classes }: { classes: Array<{ id
         <div className="flex flex-wrap gap-2">
           {DAYS.map((d) => (
             <label key={d.value} className="flex items-center gap-1 rounded-full border px-2 py-1 text-xs">
-              <input type="checkbox" checked={selectedDays.includes(d.value)} onChange={() => toggleDay(d.value)} /> {d.label}
+              <input autoComplete="off" type="checkbox" checked={selectedDays.includes(d.value)} onChange={() => toggleDay(d.value)} /> {d.label}
             </label>
           ))}
         </div>
@@ -50,7 +50,7 @@ export default function TimetableTemplateForm({ classes }: { classes: Array<{ id
 
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Periods per day</label>
-        <input
+        <input autoComplete="off"
           type="number" min={1} max={20} value={periodsPerDay}
           onChange={(e) => setPeriodsPerDay(Number(e.target.value))}
           className="w-24 rounded-lg border px-3 py-1.5 text-sm"

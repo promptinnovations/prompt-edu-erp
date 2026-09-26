@@ -52,7 +52,7 @@ export default function SectionHeadAssignmentForm({
                 {stages.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             ) : (
-              <input name="stage" required placeholder="e.g. HSS" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+              <input autoComplete="off" name="stage" required placeholder="e.g. HSS" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
             )}
           </div>
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

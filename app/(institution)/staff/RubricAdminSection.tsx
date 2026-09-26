@@ -9,14 +9,14 @@ import type { ObservationCriterionRecord } from "../../../modules/staff/service"
 const LevelFields = ({ score, defaults }: { score: number; defaults?: { descriptor: string; explanation: string } }) => (
   <div className="grid gap-2 sm:grid-cols-[3rem_1fr_2fr] sm:items-start">
     <div className="pt-1.5 text-xs font-medium text-zinc-500">Score {score}</div>
-    <input
+    <input autoComplete="off"
       name={`level_${score}_descriptor`}
       defaultValue={defaults?.descriptor ?? ""}
       placeholder="Descriptor"
       required
       className="rounded-full border bg-white px-2.5 py-1.5 text-sm"
     />
-    <input
+    <input autoComplete="off"
       name={`level_${score}_explanation`}
       defaultValue={defaults?.explanation ?? ""}
       placeholder="Explanation"
@@ -43,10 +43,10 @@ function CriterionEditor({ criterion }: { criterion: ObservationCriterionRecord 
       <form action={formAction} className="mt-3 space-y-2">
         <input type="hidden" name="criterionId" value={criterion.id} />
         <div className="grid gap-2 sm:grid-cols-2">
-          <input name="domain" defaultValue={criterion.domain} placeholder="Domain" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
-          <input name="criteriaText" defaultValue={criterion.criteria_text} placeholder="Criterion" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="domain" defaultValue={criterion.domain} placeholder="Domain" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="criteriaText" defaultValue={criterion.criteria_text} placeholder="Criterion" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
-        <input name="sortOrder" type="number" defaultValue={criterion.sort_order} className="w-24 rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+        <input autoComplete="off" name="sortOrder" type="number" defaultValue={criterion.sort_order} className="w-24 rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         {[5, 4, 3, 2, 1].map((s) => <LevelFields key={s} score={s} defaults={byScore.get(s)} />)}
         <div className="flex items-center gap-2">
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
@@ -75,10 +75,10 @@ function AddCriterionForm() {
       <summary className="cursor-pointer text-sm text-zinc-600">+ Add criterion</summary>
       <form action={formAction} className="mt-3 space-y-2">
         <div className="grid gap-2 sm:grid-cols-2">
-          <input name="domain" placeholder="Domain (e.g. A. Planning &amp; Preparation)" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
-          <input name="criteriaText" placeholder="Criterion" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="domain" placeholder="Domain (e.g. A. Planning &amp; Preparation)" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="criteriaText" placeholder="Criterion" required className="rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
-        <input name="sortOrder" type="number" defaultValue={0} className="w-24 rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+        <input autoComplete="off" name="sortOrder" type="number" defaultValue={0} className="w-24 rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         {[5, 4, 3, 2, 1].map((s) => <LevelFields key={s} score={s} />)}
         <div className="flex items-center gap-2">
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-xs text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

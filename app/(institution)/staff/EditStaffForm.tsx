@@ -36,19 +36,19 @@ export default function EditStaffForm({
       <input type="hidden" name="staffId" value={staffId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Staff code</label>
-        <input name="staffCode" defaultValue={staffCode} required className="w-32 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="staffCode" defaultValue={staffCode} required className="w-32 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-        <input name="fullName" defaultValue={fullName} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="fullName" defaultValue={fullName} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Designation</label>
-        <input name="designation" defaultValue={designation ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="designation" defaultValue={designation ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Department</label>
-        <input name="department" defaultValue={department ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="department" defaultValue={department ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Employment status</label>

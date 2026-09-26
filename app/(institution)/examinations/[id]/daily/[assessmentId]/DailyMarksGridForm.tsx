@@ -50,7 +50,7 @@ export default function DailyMarksGridForm({
                 </td>
                 <td className="py-1.5">{s.student_name}</td>
                 <td className="py-1.5">
-                  <input
+                  <input autoComplete="off"
                     name={`marks_${s.student_id}`}
                     type="number"
                     step="0.01"
@@ -60,7 +60,7 @@ export default function DailyMarksGridForm({
                   />
                 </td>
                 <td className="py-1.5">
-                  <input name={`absent_${s.student_id}`} type="checkbox" defaultChecked={s.is_absent} disabled={!editable} />
+                  <input autoComplete="off" name={`absent_${s.student_id}`} type="checkbox" defaultChecked={s.is_absent} disabled={!editable} />
                 </td>
               </tr>
             ))}

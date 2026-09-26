@@ -172,7 +172,13 @@ export default async function InstitutionLayout({ children }: { children: React.
         { href: "/examinations#create", label: "Create Exam" },
         { href: "/examinations#list", label: "Exams" },
         { href: "/examinations", label: "Mark entry" },
-        { href: "/examinations/status", label: "Mark entry status" },
+        // §CS.3 "Mark entry status visible only for principal/management/
+        // admin not for teachers" -- marks.approve is the institution-wide
+        // "sees everything" signal (held by institution_admin + management,
+        // not teacher), same gate the page itself now enforces.
+        ...(can(ctx.permissions, "marks.approve")
+          ? [{ href: "/examinations/status", label: "Mark entry status" }]
+          : []),
         // Seating Arrangement (migration 0049) gates on its own permission
         // rather than the group's marks.view/marks.enter — a teacher who
         // enters marks has no business generating hall seating plans.

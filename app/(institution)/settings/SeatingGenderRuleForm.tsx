@@ -30,7 +30,7 @@ export default function SeatingGenderRuleForm({ current }: { current: "hard" | "
             key={opt.value}
             className="flex cursor-pointer items-start gap-2 rounded-card border p-3 text-sm hover:border-[var(--brand)]"
           >
-            <input type="radio" name="examSeatingGenderRule" value={opt.value} defaultChecked={current === opt.value} className="mt-0.5 h-4 w-4" />
+            <input autoComplete="off" type="radio" name="examSeatingGenderRule" value={opt.value} defaultChecked={current === opt.value} className="mt-0.5 h-4 w-4" />
             <span>
               <span className="block font-medium text-zinc-800">{opt.label}</span>
               <span className="mt-0.5 block text-xs text-zinc-500">{opt.body}</span>

@@ -35,7 +35,7 @@ export default function ClassSectionPicker({
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Date</label>
-        <input type="date" name="date" defaultValue={date} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" type="date" name="date" defaultValue={date} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
         Load

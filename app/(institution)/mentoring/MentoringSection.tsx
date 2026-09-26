@@ -15,8 +15,8 @@ function EditGoalsForm({ record }: { record: MentoringRow }) {
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-1">
       <input type="hidden" name="mentoringRecordId" value={record.id} />
-      <input name="goals" defaultValue={record.goals ?? ""} placeholder="Goals" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-      <input name="actionPlan" defaultValue={record.action_plan ?? ""} placeholder="Action plan" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input autoComplete="off" name="goals" defaultValue={record.goals ?? ""} placeholder="Goals" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input autoComplete="off" name="actionPlan" defaultValue={record.action_plan ?? ""} placeholder="Action plan" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Save
       </button>
@@ -47,19 +47,19 @@ export default function MentoringSection({
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Date</label>
-            <input type="date" name="date" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" type="date" name="date" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Academic observation</label>
-            <input name="academicObservation" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="academicObservation" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Behaviour observation</label>
-            <input name="behaviourObservation" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="behaviourObservation" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Goals</label>
-            <input name="goals" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="goals" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Confidentiality</label>

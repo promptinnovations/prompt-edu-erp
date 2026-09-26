@@ -7,7 +7,7 @@ import type { StaffProfileRecord } from "../../../modules/staff/service";
 const Field = ({ label, name, defaultValue, type = "text" }: { label: string; name: string; defaultValue: string; type?: string }) => (
   <div>
     <label className="mb-1 block text-xs text-zinc-500">{label}</label>
-    <input
+    <input autoComplete="off"
       name={name}
       type={type}
       defaultValue={defaultValue}

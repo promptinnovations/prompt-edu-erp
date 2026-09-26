@@ -53,7 +53,7 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
         <input type="hidden" name="entityType" value={entityType} />
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Upload filled file (.xlsx or .csv)</label>
-          <input type="file" name="file" accept=".xlsx,.csv" required className="text-sm" />
+          <input autoComplete="off" type="file" name="file" accept=".xlsx,.csv" required className="text-sm" />
         </div>
         <button type="submit" disabled={staging} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           {staging ? "Validating…" : "Preview"}

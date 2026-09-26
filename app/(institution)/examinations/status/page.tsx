@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
-import { requirePermission, can } from "../../../../services/permissions/permission-service";
+import { can } from "../../../../services/permissions/permission-service";
 import { listExaminations, getMarkEntryStatus, type MarkEntryStatusRow } from "../../../../modules/examination/service";
-import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../services/scope/teacher-scope-service";
 
 /** "Examination > Mark entry status" — pick an examination, see per-subject
  *  entered/pending counts, so an admin can spot which subjects still need
@@ -11,14 +11,16 @@ import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../s
  *
  *  §CS.2 "mark entry status also should be shown class wise" -- previously
  *  a flat list of subjects for the whole exam; now grouped one section per
- *  class, each with its own subject rows. Also §CS.2 "teachers should have
- *  mark entry to their respective class only" applied here too: this page
- *  had NO permission check at all before, and a teacher opening it would
- *  see every class's status, not just their own. Gated on marks.view (the
- *  narrowest permission that legitimately reads this page), and further
- *  scoped to the caller's own assigned classes unless they hold
- *  marks.approve (the institution-wide "sees everything" signal used
- *  identically by assertMarkEntryScope() for actually writing marks).
+ *  class, each with its own subject rows.
+ *
+ *  §CS.3 "Mark entry status visible only for principal/management/admin
+ *  not for teachers" -- this page (and its sidebar link/dashboard widget,
+ *  see layout.tsx/dashboard/page.tsx) used to also let a teacher view a
+ *  scoped-down version of this page (their own classes only). The user
+ *  has now asked for teachers to have NO access to it at all, so this is
+ *  gated on marks.approve -- the institution-wide "sees everything"
+ *  signal held by institution_admin/management, never by a plain teacher
+ *  (see database/scripts/seed.ts's roleGrants) -- with no scoped fallback.
  */
 export default async function MarkEntryStatusPage({
   searchParams,
@@ -30,24 +32,12 @@ export default async function MarkEntryStatusPage({
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "examination");
-  requirePermission(ctx.permissions, "marks.view");
+  if (!can(ctx.permissions, "marks.approve")) notFound();
 
   const examinations = await listExaminations(institutionId, authUserId);
   const effectiveExamId = examinationId || examinations[0]?.id || "";
-  const rawStatus = effectiveExamId ? await getMarkEntryStatus(institutionId, authUserId, effectiveExamId) : [];
+  const status = effectiveExamId ? await getMarkEntryStatus(institutionId, authUserId, effectiveExamId) : [];
   const examination = examinations.find((e) => e.id === effectiveExamId);
-
-  // §CS.2 "teachers should have mark entry to their respective class
-  // only" -- same rule assertMarkEntryScope() enforces on the write side:
-  // a subject only counts as "theirs" when they hold a subject_teacher
-  // assignment for that exact (class, subject) pair, not merely being
-  // class_teacher of the class.
-  const unrestricted = can(ctx.permissions, "marks.approve");
-  let status: MarkEntryStatusRow[] = rawStatus;
-  if (!unrestricted) {
-    const scope = await getTeacherClassScope(institutionId, authUserId, ctx.userId);
-    status = rawStatus.filter((r) => scopeIncludesSubjectInClass(scope, r.class_id, r.subject_id));
-  }
 
   // Group rows into one section per class, preserving the class-then-subject
   // order getMarkEntryStatus() already sorted (sortClasses, then subject name).
@@ -89,15 +79,13 @@ export default async function MarkEntryStatusPage({
         <section className="overflow-hidden rounded-2xl border bg-white p-6 text-center text-sm text-zinc-500">
           {examinations.length === 0
             ? "No examinations yet."
-            : unrestricted
-              ? "No subjects/classes configured for this examination yet."
-              : "No subjects/classes configured for this examination in your assigned class(es)."}
+            : "No subjects/classes configured for this examination yet."}
         </section>
       ) : (
         classGroups.map((group) => (
           <section key={group.classId} className="overflow-hidden rounded-2xl border bg-white">
             <div className="border-b bg-zinc-50 px-4 py-2 text-sm font-semibold text-[var(--heading)]">
-              {`Class ${group.className}`}
+              {group.className}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

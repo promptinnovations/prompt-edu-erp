@@ -68,7 +68,7 @@ export default function GenerateSeatingForm({
                     : ""
                 }`}
               >
-                <input
+                <input autoComplete="off"
                   type="checkbox"
                   name="roomId"
                   value={room.id}
@@ -110,7 +110,7 @@ export default function GenerateSeatingForm({
               <div key={index} className="flex flex-wrap items-end gap-2 rounded-card border border-dashed p-3">
                 <div>
                   <label className="mb-1 block text-xs text-zinc-500">Room name</label>
-                  <input
+                  <input autoComplete="off"
                     name="adHocName" value={room.name} required
                     onChange={(e) => updateAdHoc(index, { name: e.target.value })}
                     placeholder="e.g. Assembly Hall" className={`w-48 ${INPUT}`}
@@ -118,7 +118,7 @@ export default function GenerateSeatingForm({
                 </div>
                 <div>
                   <label className="mb-1 block text-xs text-zinc-500">Benches</label>
-                  <input
+                  <input autoComplete="off"
                     name="adHocBenchCount" type="number" min={1} max={500} value={room.benchCount} required
                     onChange={(e) => updateAdHoc(index, { benchCount: Number(e.target.value) })}
                     className={`w-24 ${INPUT}`}
@@ -126,7 +126,7 @@ export default function GenerateSeatingForm({
                 </div>
                 <div>
                   <label className="mb-1 block text-xs text-zinc-500">Seats per bench</label>
-                  <input
+                  <input autoComplete="off"
                     name="adHocSeatsPerBench" type="number" min={1} max={10} value={room.seatsPerBench} required
                     onChange={(e) => updateAdHoc(index, { seatsPerBench: Number(e.target.value) })}
                     className={`w-32 ${INPUT}`}

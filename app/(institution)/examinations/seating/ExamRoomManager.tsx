@@ -24,15 +24,15 @@ export default function ExamRoomManager({ rooms }: { rooms: ExamRoomRecord[] }) 
       <form action={createAction} className="flex flex-wrap items-end gap-2">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Room name</label>
-          <input name="name" required placeholder="e.g. Room 12" className={`w-44 ${INPUT}`} />
+          <input autoComplete="off" name="name" required placeholder="e.g. Room 12" className={`w-44 ${INPUT}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Benches</label>
-          <input name="benchCount" type="number" min={1} max={500} defaultValue={15} required className={`w-24 ${INPUT}`} />
+          <input autoComplete="off" name="benchCount" type="number" min={1} max={500} defaultValue={15} required className={`w-24 ${INPUT}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Seats per bench</label>
-          <input name="seatsPerBench" type="number" min={1} max={10} defaultValue={2} required className={`w-32 ${INPUT}`} />
+          <input autoComplete="off" name="seatsPerBench" type="number" min={1} max={10} defaultValue={2} required className={`w-32 ${INPUT}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Restriction</label>
@@ -121,15 +121,15 @@ function EditRoomRow({ room, onDone }: { room: ExamRoomRecord; onDone: () => voi
       <input type="hidden" name="roomId" value={room.id} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Room name</label>
-        <input name="name" defaultValue={room.name} required className={`w-44 ${INPUT}`} />
+        <input autoComplete="off" name="name" defaultValue={room.name} required className={`w-44 ${INPUT}`} />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Benches</label>
-        <input name="benchCount" type="number" min={1} max={500} defaultValue={room.bench_count} required className={`w-24 ${INPUT}`} />
+        <input autoComplete="off" name="benchCount" type="number" min={1} max={500} defaultValue={room.bench_count} required className={`w-24 ${INPUT}`} />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Seats per bench</label>
-        <input name="seatsPerBench" type="number" min={1} max={10} defaultValue={room.seats_per_bench} required className={`w-32 ${INPUT}`} />
+        <input autoComplete="off" name="seatsPerBench" type="number" min={1} max={10} defaultValue={room.seats_per_bench} required className={`w-32 ${INPUT}`} />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Restriction</label>
@@ -140,7 +140,7 @@ function EditRoomRow({ room, onDone }: { room: ExamRoomRecord; onDone: () => voi
         </select>
       </div>
       <label className="flex items-center gap-1.5 pb-2 text-sm text-zinc-600">
-        <input type="checkbox" name="isActive" value="true" defaultChecked={room.is_active} className="h-4 w-4" />
+        <input autoComplete="off" type="checkbox" name="isActive" value="true" defaultChecked={room.is_active} className="h-4 w-4" />
         Available
       </label>
       {/* Unchecked checkboxes are simply absent from FormData, so this

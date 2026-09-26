@@ -19,7 +19,7 @@ export default function SectionRow({
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="sectionId" value={sectionId} />
           <span className="text-zinc-500">{classLabel} —</span>
-          <input
+          <input autoComplete="off"
             name="name"
             defaultValue={name}
             required

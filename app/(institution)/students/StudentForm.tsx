@@ -35,15 +35,15 @@ export default function StudentForm({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Admission number</label>
-          <input name="admissionNumber" required className={`w-full ${inputCls}`} />
+          <input autoComplete="off" name="admissionNumber" required className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-          <input name="fullName" required placeholder="e.g. മുഹമ്മദ് അലി / Fatima Noor" className={`w-full ${inputCls}`} />
+          <input autoComplete="off" name="fullName" required placeholder="e.g. മുഹമ്മദ് അലി / Fatima Noor" className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Date of birth</label>
-          <input type="date" name="dateOfBirth" required className={`w-full ${inputCls}`} />
+          <input autoComplete="off" type="date" name="dateOfBirth" required className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Gender</label>
@@ -75,26 +75,26 @@ export default function StudentForm({
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
           <label className="mb-1 block text-xs text-zinc-500">Current residential address</label>
-          <input name="address" required className={`w-full ${inputCls}`} />
+          <input autoComplete="off" name="address" required className={`w-full ${inputCls}`} />
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Father&apos;s name</label>
-          <input name="fatherName" className={`w-full ${inputCls}`} />
+          <input autoComplete="off" name="fatherName" className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Father&apos;s phone</label>
-          <input name="fatherPhone" className={`w-full ${inputCls}`} />
+          <input autoComplete="off" name="fatherPhone" className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Mother&apos;s name</label>
-          <input name="motherName" className={`w-full ${inputCls}`} />
+          <input autoComplete="off" name="motherName" className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Mother&apos;s phone</label>
-          <input name="motherPhone" className={`w-full ${inputCls}`} />
+          <input autoComplete="off" name="motherPhone" className={`w-full ${inputCls}`} />
         </div>
       </div>
       <p className="text-xs text-zinc-500">

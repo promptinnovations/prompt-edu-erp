@@ -29,15 +29,15 @@ export default function TeacherObservationForm({
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Date</label>
-            <input type="date" name="date" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" type="date" name="date" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Notes</label>
-            <input name="overallNotes" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="overallNotes" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Follow-up</label>
-            <input name="followUpNotes" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="followUpNotes" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Record

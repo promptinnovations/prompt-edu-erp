@@ -16,7 +16,7 @@ function FollowUpForm({ disciplineRecordId }: { disciplineRecordId: string }) {
   return (
     <form action={formAction} className="flex items-center gap-1">
       <input type="hidden" name="disciplineRecordId" value={disciplineRecordId} />
-      <input name="followUpNotes" placeholder="Follow-up note" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input autoComplete="off" name="followUpNotes" placeholder="Follow-up note" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Save
       </button>
@@ -53,7 +53,7 @@ export default function DisciplineRecordForm({
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Date</label>
-            <input type="date" name="date" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" type="date" name="date" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Severity</label>
@@ -64,15 +64,15 @@ export default function DisciplineRecordForm({
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Action taken</label>
-            <input name="actionTaken" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="actionTaken" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Remarks</label>
-            <input name="description" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="description" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Evidence photo</label>
-            <input name="evidencePhoto" type="file" accept="image/*" className="w-40 rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="evidencePhoto" type="file" accept="image/*" className="w-40 rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Record

@@ -27,7 +27,7 @@ export default function PhotoForm({ staffId, photoUrl }: { staffId: string; phot
       <div className="flex flex-col gap-1">
         <form action={uploadAction} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="staffId" value={staffId} />
-          <input
+          <input autoComplete="off"
             name="photo"
             type="file"
             accept="image/png,image/jpeg,image/webp"

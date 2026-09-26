@@ -17,7 +17,7 @@ export default function UserPasswordForm({ userId, currentPassword }: { userId: 
   return (
     <form action={formAction} className="flex items-center gap-1.5">
       <input type="hidden" name="userId" value={userId} />
-      <input
+      <input autoComplete="off"
         name="password"
         type="text"
         value={value}

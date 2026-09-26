@@ -29,7 +29,7 @@ export default function ParentPortalSectionsForm({ sections }: { sections: Recor
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {Object.entries(LABELS).map(([key, label]) => (
           <label key={key} className="flex items-center gap-2 text-sm text-zinc-700">
-            <input type="checkbox" name={key} defaultChecked={sections[key] !== false} />
+            <input autoComplete="off" type="checkbox" name={key} defaultChecked={sections[key] !== false} />
             {label}
           </label>
         ))}

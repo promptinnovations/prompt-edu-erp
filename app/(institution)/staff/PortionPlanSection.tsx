@@ -14,8 +14,8 @@ function RecordCompletionForm({ portionPlanId }: { portionPlanId: string }) {
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-1">
       <input type="hidden" name="portionPlanId" value={portionPlanId} />
-      <input type="date" name="completedDate" required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
-      <input type="number" name="completionPercent" min={0} max={100} placeholder="%" required className="w-16 rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input autoComplete="off" type="date" name="completedDate" required className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input autoComplete="off" type="number" name="completionPercent" min={0} max={100} placeholder="%" required className="w-16 rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Log
       </button>
@@ -61,11 +61,11 @@ export default function PortionPlanSection({
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Chapter</label>
-            <input name="chapterName" required className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="chapterName" required className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Planned date</label>
-            <input type="date" name="plannedDate" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" type="date" name="plannedDate" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Create plan

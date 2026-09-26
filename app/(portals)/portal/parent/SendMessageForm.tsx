@@ -27,7 +27,7 @@ export default function SendMessageForm({ staffOptions, studentId }: { staffOpti
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Subject</label>
-        <input name="subject" required className="w-full rounded-full border px-3 py-1.5 text-sm" />
+        <input autoComplete="off" name="subject" required className="w-full rounded-full border px-3 py-1.5 text-sm" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Message</label>

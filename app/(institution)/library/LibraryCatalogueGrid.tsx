@@ -61,7 +61,7 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <input
+        <input autoComplete="off"
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -77,7 +77,7 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <label className="flex items-center gap-1.5 text-sm text-zinc-600">
-          <input type="checkbox" checked={onlyAvailable} onChange={(e) => setOnlyAvailable(e.target.checked)} />
+          <input autoComplete="off" type="checkbox" checked={onlyAvailable} onChange={(e) => setOnlyAvailable(e.target.checked)} />
           Available only
         </label>
         <span className="text-xs text-zinc-500">{filtered.length} of {books.length} books</span>

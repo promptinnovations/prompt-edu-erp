@@ -7,7 +7,7 @@ import type { StudentProfileRecord } from "../../../modules/students/service";
 const Field = ({ label, name, defaultValue }: { label: string; name: string; defaultValue: string }) => (
   <div>
     <label className="mb-1 block text-xs text-zinc-500">{label}</label>
-    <input
+    <input autoComplete="off"
       name={name}
       defaultValue={defaultValue}
       className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"

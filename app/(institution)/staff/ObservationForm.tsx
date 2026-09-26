@@ -56,19 +56,19 @@ export default function ObservationForm({
       <div className="grid gap-3 sm:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Date</label>
-          <input name="date" type="date" required className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="date" type="date" required className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Term</label>
-          <input name="term" placeholder="e.g. Term 1" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="term" placeholder="e.g. Term 1" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Class &amp; division</label>
-          <input name="classDiv" placeholder="e.g. UP 6 B" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="classDiv" placeholder="e.g. UP 6 B" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Content</label>
-          <input name="content" placeholder="Lesson / topic observed" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
+          <input autoComplete="off" name="content" placeholder="Lesson / topic observed" className="w-full rounded-full border bg-white px-2.5 py-1.5 text-sm" />
         </div>
       </div>
 

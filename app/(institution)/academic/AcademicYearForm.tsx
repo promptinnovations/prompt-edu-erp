@@ -13,7 +13,7 @@ export default function AcademicYearForm() {
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Name</label>
-        <input
+        <input autoComplete="off"
           name="name"
           required
           placeholder="e.g. 2026-2027"
@@ -22,7 +22,7 @@ export default function AcademicYearForm() {
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Start date</label>
-        <input
+        <input autoComplete="off"
           name="startDate"
           type="date"
           required
@@ -31,7 +31,7 @@ export default function AcademicYearForm() {
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">End date</label>
-        <input
+        <input autoComplete="off"
           name="endDate"
           type="date"
           required
@@ -39,7 +39,7 @@ export default function AcademicYearForm() {
         />
       </div>
       <label className="flex items-center gap-1.5 pb-2 text-xs text-zinc-500">
-        <input type="checkbox" name="isCurrent" />
+        <input autoComplete="off" type="checkbox" name="isCurrent" />
         Set as current year
       </label>
       <button

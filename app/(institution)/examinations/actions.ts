@@ -6,7 +6,7 @@ import { requirePermission } from "../../../services/permissions/permission-serv
 import {
   createExamination, updateExamination, deleteExamination,
   addExamSubject, addExamClass, removeExamClass, removeExamSubject,
-  enterMarks, deleteMark, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks, computeResults,
+  enterMarksAndRecompute, deleteMarkAndRecompute, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment, getDailyAssessment,
 } from "../../../modules/examination/service";
 import { assertMarkEntryScope, assertDailyAssessmentScope } from "../../../services/scope/teacher-scope-service";
@@ -200,7 +200,7 @@ export async function saveMarksAction(_prevState: { error: string | null }, form
         isAbsent,
       };
     });
-    await enterMarks(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, entries);
+    await enterMarksAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, entries);
     revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
     return { error: null };
   } catch (err) {
@@ -216,7 +216,7 @@ export async function deleteMarkAction(_prevState: { error: string | null }, for
   try {
     requirePermission(ctx.permissions, "marks.enter");
     await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
-    await deleteMark(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("markId") ?? ""));
+    await deleteMarkAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("markId") ?? ""));
     revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
     return { error: null };
   } catch (err) {
@@ -279,20 +279,6 @@ export async function approveMarksAction(_prevState: { error: string | null }, f
 }
 export async function lockMarksAction(_prevState: { error: string | null }, formData: FormData) {
   return transitionAction("marks.lock", lockMarks, formData);
-}
-
-export async function computeResultsAction(_prevState: { error: string | null }, formData: FormData) {
-  const ctx = await requireRequestContext();
-  if (!ctx.institutionId) return { error: "No active institution." };
-  const examinationId = String(formData.get("examinationId") ?? "");
-  try {
-    requirePermission(ctx.permissions, "marks.approve");
-    await computeResults(ctx.institutionId, ctx.session.authUserId, examinationId);
-    revalidatePath(`/examinations/${examinationId}`);
-    return { error: null };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to compute results." };
-  }
 }
 
 // ---------------------------------------------------------------------------

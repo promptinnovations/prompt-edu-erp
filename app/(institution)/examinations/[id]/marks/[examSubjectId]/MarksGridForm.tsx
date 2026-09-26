@@ -54,11 +54,11 @@ function CorrectMarkRow({
       <input type="hidden" name="examinationId" value={examinationId} />
       <input type="hidden" name="examSubjectId" value={examSubjectId} />
       <input type="hidden" name="markId" value={student.mark_id ?? ""} />
-      <input
+      <input autoComplete="off"
         name="newValue" type="number" step="0.01" defaultValue={student.marks_obtained ?? ""}
         placeholder="Marks" className="w-20 rounded-full border px-2 py-1 text-xs"
       />
-      <input name="reason" required placeholder="Reason" className="w-32 rounded-full border px-2 py-1 text-xs" />
+      <input autoComplete="off" name="reason" required placeholder="Reason" className="w-32 rounded-full border px-2 py-1 text-xs" />
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100 disabled:opacity-50">Save</button>
       <button type="button" onClick={() => setOpen(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
@@ -105,7 +105,7 @@ export default function MarksGridForm({
                 </td>
                 <td className="py-1.5">{s.student_name}</td>
                 <td className="py-1.5">
-                  <input
+                  <input autoComplete="off"
                     name={`marks_${s.student_id}`}
                     type="number"
                     step="0.01"
@@ -115,7 +115,7 @@ export default function MarksGridForm({
                   />
                 </td>
                 <td className="py-1.5">
-                  <input
+                  <input autoComplete="off"
                     name={`absent_${s.student_id}`}
                     type="checkbox"
                     defaultChecked={s.is_absent}

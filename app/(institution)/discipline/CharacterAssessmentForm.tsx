@@ -39,7 +39,7 @@ export default function CharacterAssessmentForm({
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Period</label>
-            <input name="period" required placeholder="Term 1" className="w-24 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="period" required placeholder="Term 1" className="w-24 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Rating</label>
@@ -50,7 +50,7 @@ export default function CharacterAssessmentForm({
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-zinc-500">Notes</label>
-            <input name="notes" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+            <input autoComplete="off" name="notes" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
           </div>
           <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Record

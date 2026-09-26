@@ -117,7 +117,7 @@ export async function getStudent360(
          from results r
          join examinations e on e.id = r.examination_id
          left join grade_bands gb on gb.id = r.grade_band_id
-        where r.student_id = $1
+        where r.student_id = $1 and r.is_provisional = false
         order by r.computed_at desc
         limit 1`,
       [studentId]

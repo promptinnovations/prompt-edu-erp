@@ -13,7 +13,7 @@ export default function PublishAnnouncementForm({ roles }: { roles: RoleOption[]
     <form action={formAction} className="space-y-3">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Title</label>
-        <input name="title" required maxLength={300} className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="title" required maxLength={300} className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Message</label>
@@ -23,11 +23,11 @@ export default function PublishAnnouncementForm({ roles }: { roles: RoleOption[]
         <label className="mb-1 block text-xs text-zinc-500">Audience</label>
         <div className="flex items-center gap-4 text-sm">
           <label className="flex items-center gap-1.5">
-            <input type="radio" name="audienceType" value="all" checked={audienceType === "all"} onChange={() => setAudienceType("all")} />
+            <input autoComplete="off" type="radio" name="audienceType" value="all" checked={audienceType === "all"} onChange={() => setAudienceType("all")} />
             Everyone
           </label>
           <label className="flex items-center gap-1.5">
-            <input type="radio" name="audienceType" value="role" checked={audienceType === "role"} onChange={() => setAudienceType("role")} />
+            <input autoComplete="off" type="radio" name="audienceType" value="role" checked={audienceType === "role"} onChange={() => setAudienceType("role")} />
             Specific role(s)
           </label>
         </div>
@@ -35,7 +35,7 @@ export default function PublishAnnouncementForm({ roles }: { roles: RoleOption[]
           <div className="mt-2 flex flex-wrap gap-3 text-sm">
             {roles.map((r) => (
               <label key={r.code} className="flex items-center gap-1.5">
-                <input type="checkbox" name="roleCodes" value={r.code} />
+                <input autoComplete="off" type="checkbox" name="roleCodes" value={r.code} />
                 {r.name}
               </label>
             ))}

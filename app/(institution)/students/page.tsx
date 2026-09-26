@@ -64,7 +64,7 @@ export default async function StudentsPage({
         <form className="flex flex-wrap items-end gap-2" method="get">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">{t("search")}</label>
-            <input
+            <input autoComplete="off"
               name="q"
               defaultValue={q}
               placeholder={t("searchPlaceholder")}
@@ -85,7 +85,7 @@ export default async function StudentsPage({
             </select>
           </div>
           <label className="flex items-center gap-1.5 pb-2 text-xs text-zinc-500">
-            <input type="checkbox" name="removed" value="1" defaultChecked={removed === "1"} />
+            <input autoComplete="off" type="checkbox" name="removed" value="1" defaultChecked={removed === "1"} />
             {t("showRemoved")}
           </label>
           <button

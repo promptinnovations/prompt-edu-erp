@@ -87,11 +87,11 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">From date</label>
-            <input type="date" name="fromDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
+            <input autoComplete="off" type="date" name="fromDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">To date</label>
-            <input type="date" name="toDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
+            <input autoComplete="off" type="date" name="toDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" required />
           </div>
         </div>
       ) : null}
@@ -99,7 +99,7 @@ export default function ReportGeneratorForm({ definitions, classes, sections, ex
       {reportType === "consolidated_performance" ? (
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Period</label>
-          <input
+          <input autoComplete="off"
             type="text"
             name="period"
             placeholder="e.g. Term 1 2026"

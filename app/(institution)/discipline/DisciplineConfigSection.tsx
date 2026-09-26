@@ -24,9 +24,9 @@ function CategoryRow({ category }: { category: Category }) {
       <li className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="categoryId" value={category.id} />
-          <input name="name" defaultValue={category.name} className="rounded-full border px-2 py-1 text-sm" />
+          <input autoComplete="off" name="name" defaultValue={category.name} className="rounded-full border px-2 py-1 text-sm" />
           <label className="flex items-center gap-1 text-xs text-zinc-500">
-            <input type="checkbox" name="isPositive" defaultChecked={category.is_positive} /> Positive/appreciation category
+            <input autoComplete="off" type="checkbox" name="isPositive" defaultChecked={category.is_positive} /> Positive/appreciation category
           </label>
           <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
@@ -76,7 +76,7 @@ function AttributeRow({ attribute }: { attribute: Attribute }) {
       <li className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
         <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="attributeId" value={attribute.id} />
-          <input name="name" defaultValue={attribute.name} className="rounded-full border px-2 py-1 text-sm" />
+          <input autoComplete="off" name="name" defaultValue={attribute.name} className="rounded-full border px-2 py-1 text-sm" />
           <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
@@ -118,7 +118,7 @@ function RatingLabelRow({ ratingLabel }: { ratingLabel: RatingLabel }) {
       <form action={action} className="flex items-center gap-2">
         <input type="hidden" name="rating" value={ratingLabel.rating} />
         <span className="w-6 text-xs text-zinc-500">{ratingLabel.rating}</span>
-        <input name="label" defaultValue={ratingLabel.label} className="w-48 rounded-full border px-2 py-1 text-sm" />
+        <input autoComplete="off" name="label" defaultValue={ratingLabel.label} className="w-48 rounded-full border px-2 py-1 text-sm" />
         <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
         {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
       </form>
@@ -142,9 +142,9 @@ export default function DisciplineConfigSection({
           {categories.map((c) => <CategoryRow key={c.id} category={c} />)}
         </ul>
         <form action={createCatAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-card border border-dashed p-2">
-          <input name="name" required placeholder="New category" className="w-32 rounded-full border px-2 py-1 text-sm" />
+          <input autoComplete="off" name="name" required placeholder="New category" className="w-32 rounded-full border px-2 py-1 text-sm" />
           <label className="flex items-center gap-1 text-xs text-zinc-500">
-            <input type="checkbox" name="isPositive" /> Positive
+            <input autoComplete="off" type="checkbox" name="isPositive" /> Positive
           </label>
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-2 py-1 text-xs font-medium text-white hover:opacity-90">Add</button>
         </form>
@@ -157,7 +157,7 @@ export default function DisciplineConfigSection({
           {attributes.map((a) => <AttributeRow key={a.id} attribute={a} />)}
         </ul>
         <form action={createAttrAction} className="mt-3 flex flex-wrap items-end gap-2 rounded-card border border-dashed p-2">
-          <input name="name" required placeholder="New attribute" className="w-32 rounded-full border px-2 py-1 text-sm" />
+          <input autoComplete="off" name="name" required placeholder="New attribute" className="w-32 rounded-full border px-2 py-1 text-sm" />
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-2 py-1 text-xs font-medium text-white hover:opacity-90">Add</button>
         </form>
         {createAttrState.error ? <p className="mt-1 text-xs text-red-600">{createAttrState.error}</p> : null}

@@ -31,7 +31,7 @@ export default function StaffLoginCell({ staffId, hasLogin, canManage }: { staff
   return (
     <form action={formAction} className="flex items-center gap-1.5">
       <input type="hidden" name="staffId" value={staffId} />
-      <input
+      <input autoComplete="off"
         name="password"
         type="text"
         required

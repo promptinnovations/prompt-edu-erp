@@ -15,11 +15,11 @@ export default function ClassificationRuleForm({
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">High achiever ≥ (%)</label>
-        <input type="number" step="0.01" name="highThreshold" defaultValue={highThreshold} className="w-28 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" type="number" step="0.01" name="highThreshold" defaultValue={highThreshold} className="w-28 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Low achiever &lt; (%)</label>
-        <input type="number" step="0.01" name="lowThreshold" defaultValue={lowThreshold} className="w-28 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" type="number" step="0.01" name="lowThreshold" defaultValue={lowThreshold} className="w-28 rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
         Save thresholds

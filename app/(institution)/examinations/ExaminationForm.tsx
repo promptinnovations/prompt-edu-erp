@@ -93,7 +93,7 @@ export default function ExaminationForm({
       ) : (
         <div>
           <label className="mb-1 block text-xs text-zinc-500">Name</label>
-          <input name="name" required placeholder="e.g. Term 1 Academic Main Exam" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input autoComplete="off" name="name" required placeholder="e.g. Term 1 Academic Main Exam" className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
       )}
       <button type="submit" disabled={pending || visibleExamTypes.length === 0} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

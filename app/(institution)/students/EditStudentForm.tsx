@@ -33,15 +33,15 @@ export default function EditStudentForm({
       <input type="hidden" name="studentId" value={studentId} />
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Admission number</label>
-        <input name="admissionNumber" defaultValue={admissionNumber} required className="w-32 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="admissionNumber" defaultValue={admissionNumber} required className="w-32 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Full name</label>
-        <input name="fullName" defaultValue={fullName} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" name="fullName" defaultValue={fullName} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Date of birth</label>
-        <input type="date" name="dateOfBirth" defaultValue={dateOfBirth ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+        <input autoComplete="off" type="date" name="dateOfBirth" defaultValue={dateOfBirth ?? ""} className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Gender</label>

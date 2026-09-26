@@ -18,7 +18,7 @@ export default function AddEventForm() {
     <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
       <div className="sm:col-span-2 lg:col-span-2">
         <label className="mb-1 block text-xs text-zinc-500">Title</label>
-        <input name="title" required maxLength={200} className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+        <input autoComplete="off" name="title" required maxLength={200} className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Type</label>
@@ -30,19 +30,19 @@ export default function AddEventForm() {
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Start date</label>
-        <input type="date" name="startDate" required className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+        <input autoComplete="off" type="date" name="startDate" required className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">End date (optional)</label>
-        <input type="date" name="endDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+        <input autoComplete="off" type="date" name="endDate" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
       </div>
       <div className="sm:col-span-2 lg:col-span-1">
         <label className="mb-1 block text-xs text-zinc-500">Description (optional)</label>
-        <input name="description" maxLength={2000} className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+        <input autoComplete="off" name="description" maxLength={2000} className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
       </div>
       <div className="sm:col-span-2 lg:col-span-1">
         <label className="mb-1 block text-xs text-zinc-500">Club in charge (optional)</label>
-        <input name="clubInCharge" maxLength={200} placeholder="e.g. Literary Club" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
+        <input autoComplete="off" name="clubInCharge" maxLength={200} placeholder="e.g. Literary Club" className="w-full rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)]" />
       </div>
       <div className="sm:col-span-2 lg:col-span-6 flex items-center gap-3">
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

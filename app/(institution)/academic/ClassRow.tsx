@@ -28,13 +28,13 @@ export default function ClassRow({
           onSubmit={() => setEditing(false)}
         >
           <input type="hidden" name="classId" value={classId} />
-          <input
+          <input autoComplete="off"
             name="name"
             defaultValue={name}
             required
             className="rounded-full border px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
           />
-          <input
+          <input autoComplete="off"
             name="stage"
             defaultValue={stage ?? ""}
             placeholder="Stage (LP/UP/HS/HSS)"

@@ -18,7 +18,7 @@ export default function PassPctForm({ passPct, canManage }: { passPct: number; c
     <form action={action} className="flex flex-wrap items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Default pass percentage</label>
-        <input
+        <input autoComplete="off"
           name="passPct" type="number" step="0.01" min={0} max={100} defaultValue={passPct}
           className="w-24 rounded-full border px-2 py-1.5 text-sm"
         />

@@ -28,11 +28,11 @@ function EditPaymentForm({ payment, onDone }: { payment: InvoicePaymentRow; onDo
       <input type="hidden" name="id" value={payment.id} />
       <label className="flex flex-col gap-1">
         <span className="text-zinc-500">Amount</span>
-        <input name="amount" type="number" step="0.01" min="0.01" defaultValue={payment.amount} className="rounded border px-2 py-1" />
+        <input autoComplete="off" name="amount" type="number" step="0.01" min="0.01" defaultValue={payment.amount} className="rounded border px-2 py-1" />
       </label>
       <label className="flex flex-col gap-1">
         <span className="text-zinc-500">Payment date</span>
-        <input name="paymentDate" type="date" defaultValue={payment.payment_date?.slice(0, 10)} className="rounded border px-2 py-1" />
+        <input autoComplete="off" name="paymentDate" type="date" defaultValue={payment.payment_date?.slice(0, 10)} className="rounded border px-2 py-1" />
       </label>
       <label className="flex flex-col gap-1">
         <span className="text-zinc-500">Method</span>
@@ -42,11 +42,11 @@ function EditPaymentForm({ payment, onDone }: { payment: InvoicePaymentRow; onDo
       </label>
       <label className="flex flex-col gap-1">
         <span className="text-zinc-500">Reference no.</span>
-        <input name="referenceNo" defaultValue={payment.reference_no ?? ""} className="rounded border px-2 py-1" />
+        <input autoComplete="off" name="referenceNo" defaultValue={payment.reference_no ?? ""} className="rounded border px-2 py-1" />
       </label>
       <label className="col-span-2 flex flex-col gap-1 sm:col-span-2">
         <span className="text-zinc-500">Notes</span>
-        <input name="notes" defaultValue={payment.notes ?? ""} className="rounded border px-2 py-1" />
+        <input autoComplete="off" name="notes" defaultValue={payment.notes ?? ""} className="rounded border px-2 py-1" />
       </label>
       <div className="col-span-2 flex items-end gap-2 sm:col-span-1">
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-white">

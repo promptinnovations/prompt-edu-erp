@@ -63,7 +63,7 @@ function AlertPreview({ alerts, onDismiss }: { alerts: AlertCandidate[]; onDismi
                   <span className="text-xs text-red-600">No phone on file</span>
                 ) : (
                   <label className="flex items-center gap-1.5 text-xs text-zinc-500">
-                    <input
+                    <input autoComplete="off"
                       type="checkbox"
                       checked={!isExcluded}
                       onChange={(e) =>
@@ -182,10 +182,10 @@ export default function AttendanceGridForm({
                   </select>
                 </td>
                 <td className="py-1.5">
-                  <input type="checkbox" name={`late_${s.student_id}`} defaultChecked={s.is_late} disabled={!canEnter} />
+                  <input autoComplete="off" type="checkbox" name={`late_${s.student_id}`} defaultChecked={s.is_late} disabled={!canEnter} />
                 </td>
                 <td className="py-1.5">
-                  <input
+                  <input autoComplete="off"
                     type="number"
                     min={0}
                     name={`lateMinutes_${s.student_id}`}

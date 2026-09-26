@@ -29,7 +29,7 @@ function ExaminationRow({
         <td colSpan={3} className="px-4 py-2">
           <form action={updateAction} className="flex flex-wrap items-center gap-2" onSubmit={() => setEditing(false)}>
             <input type="hidden" name="examinationId" value={exam.id} />
-            <input name="name" defaultValue={exam.name} className="rounded-full border px-2 py-1 text-sm" />
+            <input autoComplete="off" name="name" defaultValue={exam.name} className="rounded-full border px-2 py-1 text-sm" />
             <select name="academicYearId" defaultValue={exam.academic_year_id} className="rounded-full border px-2 py-1 text-sm">
               {academicYears.map((y) => (
                 <option key={y.id} value={y.id}>{y.name}</option>

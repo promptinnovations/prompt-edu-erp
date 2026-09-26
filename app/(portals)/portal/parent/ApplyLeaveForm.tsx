@@ -27,15 +27,15 @@ export default function ApplyLeaveForm({
         <input type="hidden" name="studentId" value={studentId} />
         <div>
           <label className="mb-1 block text-xs text-zinc-500">From</label>
-          <input type="date" name="startDate" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input autoComplete="off" type="date" name="startDate" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-zinc-500">To</label>
-          <input type="date" name="endDate" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input autoComplete="off" type="date" name="endDate" required className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
         <div className="flex-1 min-w-[10rem]">
           <label className="mb-1 block text-xs text-zinc-500">Reason</label>
-          <input name="reason" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+          <input autoComplete="off" name="reason" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
         </div>
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Apply

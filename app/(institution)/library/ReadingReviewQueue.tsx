@@ -13,7 +13,7 @@ function SubmitReviewForm({ readingRecordId }: { readingRecordId: string }) {
   return (
     <form action={formAction} className="flex items-center gap-1">
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
-      <input name="reviewText" placeholder="Review text…" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      <input autoComplete="off" name="reviewText" placeholder="Review text…" className="rounded-full border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
         Save
       </button>

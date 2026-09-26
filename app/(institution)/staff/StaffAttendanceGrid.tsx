@@ -29,7 +29,7 @@ export default function StaffAttendanceGrid({
     <div className="space-y-3">
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Date</label>
-        <input
+        <input autoComplete="off"
           type="date"
           value={selectedDate}
           onChange={(e) => {

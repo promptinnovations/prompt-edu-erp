@@ -30,7 +30,7 @@ export default function LogoForm({ logoUrl }: { logoUrl: string | null }) {
         </div>
 
         <form action={uploadAction} className="flex flex-1 flex-wrap items-center gap-2">
-          <input
+          <input autoComplete="off"
             name="logo"
             type="file"
             accept="image/png,image/jpeg,image/gif,image/webp"
