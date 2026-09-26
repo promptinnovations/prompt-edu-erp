@@ -2,14 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { can } from "../../../../services/permissions/permission-service";
-import { listClasses, listSections, listSubjects, listClassSubjects } from "../../../../modules/academic/service";
+import { listClasses, listSubjects, listClassSubjects } from "../../../../modules/academic/service";
 import {
-  getExamination, listExamSubjects, listExamClasses, getResults, listExamTypes,
+  getExamination, listExamSubjects, getResults, listExamTypes,
   listDailyAssessments, getDailyAssessmentConsolidatedResult,
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
-  listCeComponents, DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR,
+  listCeComponents, getExamScopePlan, listExamSubjectGrades, DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR,
 } from "../../../../modules/examination/service";
-import { ExamScopeSection, ExamSubjectsSection } from "./ExamDetailForms";
+import { ExamScopePlanner, ExamSubjectsSection } from "./ExamDetailForms";
 import { ExamResultSettingsForm, CeComponentsForm, FinalizeResultsButton } from "./ExamResultSettings";
 import DailyAssessmentSection from "./DailyAssessmentSection";
 
@@ -88,15 +88,18 @@ export default async function ExaminationDetailPage({
     );
   }
 
-  const [examSubjects, examClasses, subjects, classes, sections, results, classSubjects, ceComponents] = await Promise.all([
+  // §CS.2 "exam creation is solely done by admin" -- the scope planner and
+  // subject Remove are settings.manage-gated server actions; a teacher only
+  // sees the read-only subjects table (with its Enter marks links).
+  const canManage = can(ctx.permissions, "settings.manage");
+
+  const [examSubjects, subjects, results, ceComponents, subjectGrades, scopePlan] = await Promise.all([
     listExamSubjects(institutionId, authUserId, id),
-    listExamClasses(institutionId, authUserId, id),
     listSubjects(institutionId, authUserId),
-    listClasses(institutionId, authUserId),
-    listSections(institutionId, authUserId),
     getResults(institutionId, authUserId, id),
-    listClassSubjects(institutionId, authUserId),
     listCeComponents(institutionId, authUserId, id),
+    listExamSubjectGrades(institutionId, authUserId, id),
+    canManage ? getExamScopePlan(institutionId, authUserId, id) : Promise.resolve(null),
   ]);
   const isFinalized = Boolean(examination.finalized_at);
   const ceMode = examination.ce_mode ?? "total";
@@ -104,70 +107,15 @@ export default async function ExaminationDetailPage({
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
   const examTypeName = examType?.name ?? "—";
 
-  // §CS.2 "exam creation is solely done by admin" -- confirming scope
-  // and adding/removing subjects are settings.manage-gated server actions
-  // already (see actions.ts), but this page rendered the admin forms
-  // unconditionally, so a teacher without settings.manage would see (and
-  // could submit, only to get a server-side permission error) the
-  // "Confirm scope" checkboxes and "Add subject"/"Remove" controls. Gate
-  // the forms themselves on the same permission the actions already
-  // require, so a teacher only ever sees the read-only "already linked"
-  // tables (still needed for the Enter marks links).
-  const canManage = can(ctx.permissions, "settings.manage");
-
-  // §CS.1 "are the subjects allocated class wise?" -- the add-subject
-  // checklist below used to offer every subject in the institution
-  // regardless of the exam's confirmed classes, which is how a Class 1
-  // exam ended up offering Class 11-only subjects like Fiqh. Narrow it to
-  // subjects actually taught (per class_subjects) by at least one of this
-  // exam's scoped classes -- same class_subjects gate getMarksGrid() and
-  // getMarkEntryStatus() apply server-side, and same fallback: a class with
-  // zero class_subjects rows configured at all doesn't narrow anything (so
-  // institutions that haven't set up class_subjects keep seeing every
-  // subject, same as before this fix).
-  const subjectIdsByClass = new Map<string, Set<string>>();
-  for (const cs of classSubjects) {
-    const set = subjectIdsByClass.get(cs.class_id) ?? new Set<string>();
-    set.add(cs.subject_id);
-    subjectIdsByClass.set(cs.class_id, set);
-  }
-  const scopedClassIds = [...new Set(examClasses.map((ec) => ec.class_id))];
-  const hasUnconfiguredScopedClass = scopedClassIds.some((cid) => !subjectIdsByClass.has(cid));
-  const eligibleSubjects = scopedClassIds.length === 0 || hasUnconfiguredScopedClass
-    ? subjects
-    : subjects.filter((s) => scopedClassIds.some((cid) => subjectIdsByClass.get(cid)?.has(s.id)));
-
-  // §418 "confirm scope of exam, section, grade, division — make user
-  // friendly": classes grouped with their own divisions, for the
-  // checkbox-grid scope form (ExamScopeSection) — same grouping shape the
-  // Classes hub redesign (§417) already introduced, reused here.
-  const sectionsByClass = new Map<string, Array<{ sectionId: string; sectionName: string }>>();
-  for (const s of sections) {
-    const list = sectionsByClass.get(s.class_id) ?? [];
-    list.push({ sectionId: s.id, sectionName: s.name });
-    sectionsByClass.set(s.class_id, list);
-  }
-  const classGroups = classes.map((c) => ({
-    classId: c.id,
-    className: c.name,
-    divisions: (sectionsByClass.get(c.id) ?? []).sort((a, b) => a.sectionName.localeCompare(b.sectionName)),
-  }));
-
-  const classById = new Map(classes.map((c) => [c.id, c.name]));
-  const linkedClasses = examClasses.map((ec) => ({
-    examClassId: ec.id,
-    label: ec.section_id
-      ? `Class ${classById.get(ec.class_id) ?? "?"} ${ec.section_name ?? ""}`.trim()
-      : `Class ${classById.get(ec.class_id) ?? "?"} (whole class)`,
-  }));
-
   const linkedSubjects = examSubjects.map((es) => ({
     examSubjectId: es.id,
     subjectId: es.subject_id,
     name: subjectById.get(es.subject_id) ?? "—",
     maxMarks: es.max_marks,
     passMarks: es.pass_marks,
-  }));
+    grades: subjectGrades[es.id] ?? [],
+  })).sort((a, b) => a.name.localeCompare(b.name));
+  const provisionalCount = results.filter((r) => r.is_provisional).length;
 
   return (
     <div className="space-y-6">
@@ -179,11 +127,13 @@ export default async function ExaminationDetailPage({
         <p className="mt-1 text-sm text-zinc-500">{examTypeName} · {examination.status}</p>
       </div>
 
-      {canManage ? (
+      {canManage && scopePlan ? (
         <section className="rounded-card border bg-white p-5">
-          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">1. Confirm scope</h2>
-          <p className="mb-3 text-xs text-zinc-500">Which grades and divisions does this exam apply to?</p>
-          <ExamScopeSection examinationId={id} classGroups={classGroups} linked={linkedClasses} />
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">1. Scope &amp; subjects</h2>
+          <p className="mb-3 text-xs text-zinc-500">
+            Section › Grade › Division. For each grade, tick only the subjects this exam covers — only those need marks.
+          </p>
+          <ExamScopePlanner key={examSubjects.map((e) => e.id).join(",") + String(results.length)} examinationId={id} plan={scopePlan} />
         </section>
       ) : null}
 
@@ -191,10 +141,10 @@ export default async function ExaminationDetailPage({
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">{canManage ? "2. Subjects & total marks" : "Subjects & total marks"}</h2>
         <p className="mb-3 text-xs text-zinc-500">
           {canManage
-            ? "Total mark, subject wise — check the subjects this exam covers and set each one's max/pass marks."
+            ? "Each subject and the grades it is set for. Open a subject to enter marks."
             : "Subjects this exam covers — open a subject to enter marks for your class."}
         </p>
-        <ExamSubjectsSection examinationId={id} subjects={eligibleSubjects} linked={linkedSubjects} canManage={canManage} />
+        <ExamSubjectsSection examinationId={id} linked={linkedSubjects} canManage={canManage} />
       </section>
 
       {canManage ? (
@@ -237,6 +187,11 @@ export default async function ExaminationDetailPage({
           <h2 className="text-sm font-semibold text-[var(--heading)]">
             Results{isFinalized ? " — finalized (frozen)" : ""}
           </h2>
+          {!isFinalized && provisionalCount > 0 ? (
+            <p className="w-full text-xs text-zinc-500 sm:w-auto">
+              Live: {provisionalCount} provisional (marks still being entered or not yet verified/locked). Verifying, locking and finalizing can be done later.
+            </p>
+          ) : null}
           {canManage && can(ctx.permissions, "marks.lock") && !isFinalized ? <FinalizeResultsButton examinationId={id} /> : null}
         </div>
         <div className="overflow-x-auto">
@@ -264,6 +219,7 @@ export default async function ExaminationDetailPage({
                     </span>
                   )}
                   {r.absent_subject_count > 0 ? <span className="ml-1 text-xs text-zinc-500">({r.absent_subject_count} absent)</span> : null}
+                  {r.is_provisional ? <span className="ml-1 text-xs text-amber-700">Provisional ({r.subjects_entered}/{r.subjects_expected})</span> : null}
                 </td>
               </tr>
             ))}

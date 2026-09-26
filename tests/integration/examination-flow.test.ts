@@ -201,9 +201,10 @@ describe("Examination workflow (§28)", () => {
   // should start see in result analysis" -- a student with an incomplete
   // subject set (or a subject still in draft) now still gets a `results`
   // row (so Result Analysis sees it live), but it's flagged
-  // is_provisional so the "official" Results view (getResults()) keeps
-  // excluding it until every subject is approved/locked.
-  it("computeResults() flags a student's result as provisional when not every exam subject is approved/locked, and getResults() excludes it", async () => {
+  // is_provisional. MMP follow-up ("once entered and saved, dont wait for
+  // locking, directly show in results"): getResults() now LISTS the
+  // provisional row too (flagged) instead of hiding it until approval.
+  it("computeResults() flags a student's result as provisional when not every exam subject is approved/locked, and getResults() still shows it (flagged)", async () => {
     // Add a second subject to the same examination with no marks entered at all.
     const secondSubject = await createSubject(institutionA, adminAuth, adminUserId, { name: "Science" });
     const es2 = await addExamSubject(institutionA, adminAuth, adminUserId, {
@@ -221,9 +222,11 @@ describe("Examination workflow (§28)", () => {
     expect(outcome.computed).toBe(2); // both students get a live row -- nothing is skipped
     expect(outcome.skippedIncomplete).toBe(0);
 
-    // The official Results view still only shows student1 (fully covered + approved/locked).
+    // Both students are listed; only student2's row is provisional.
     const results = await getResults(institutionA, adminAuth, examinationId);
-    expect(results.map((r) => r.student_id)).toEqual([student1]);
+    expect(results.map((r) => r.student_id).sort()).toEqual([student1, student2].sort());
+    expect(results.find((r) => r.student_id === student1)!.is_provisional).toBe(false);
+    expect(results.find((r) => r.student_id === student2)!.is_provisional).toBe(true);
 
     const db = await getDbClient();
     const raw = await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, (scoped) =>

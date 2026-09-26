@@ -33,6 +33,23 @@ export interface ExaminationRecord {
   ce_mode?: "total" | "components";
 }
 export interface ExamSubjectRecord { id: string; examination_id: string; subject_id: string; max_marks: string; pass_marks: string }
+
+/** EXAMINATION_SPEC §3.4 "one resolver" for SUBJECT scope (migration 0056):
+ *  true when exam_subject `es` applies to grade `classExpr`. Every read that
+ *  pairs an exam_subject with a class (marks grid roster, Mark Entry Status,
+ *  consolidated matrix, results denominators, subject analysis) goes
+ *  through this — never a second ad-hoc rule.
+ *    - exam_subject has exam_subject_classes rows -> strict: exactly the
+ *      grades an admin ticked in the Section > Grade > Division planner;
+ *    - no rows (legacy exams / addExamSubject()) -> the previous
+ *      class_subjects gate (ungated for a grade with no class_subjects). */
+export function examSubjectAppliesToClassSql(es: string, classExpr: string): string {
+  return `(case when exists (select 1 from exam_subject_classes esc0 where esc0.exam_subject_id = ${es}.id)
+      then exists (select 1 from exam_subject_classes esc1 where esc1.exam_subject_id = ${es}.id and esc1.class_id = ${classExpr})
+      else (not exists (select 1 from class_subjects cs0 where cs0.institution_id = ${es}.institution_id and cs0.class_id = ${classExpr})
+            or exists (select 1 from class_subjects cs1 where cs1.institution_id = ${es}.institution_id and cs1.class_id = ${classExpr} and cs1.subject_id = ${es}.subject_id))
+    end)`;
+}
 export interface MarkRow {
   student_id: string; student_name: string; admission_number: string;
   roll_number: number | null; gender: string | null; section_name: string | null;
@@ -48,6 +65,13 @@ export interface ResultRow {
   failed_subject_count: number; absent_subject_count: number;
   pass_threshold_pct: string | null;
   is_frozen: boolean;
+  /** Live result: some subject not yet entered, or entered but not yet
+   *  approved/locked. Shown immediately (marked "Provisional") — entering
+   *  and saving marks is enough for a result to appear; verification,
+   *  approval, locking and finalizing are later, optional steps. */
+  is_provisional: boolean;
+  subjects_entered: number;
+  subjects_expected: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -841,6 +865,343 @@ export async function removeExamClass(institutionId: string, authUserId: string,
   });
 }
 
+// ---------------------------------------------------------------------------
+// Exam scope planner (migration 0056) — Section > Grade > Division, with a
+// per-grade subject picker. User's words (MMP): "when scope is added,
+// workflow should be - Section (HS, UP, LP etc.) > Grades > Divisions - for
+// each grade an option for choosing relevant subject for the exam ... this
+// must be applicable for all tenants". Everything is read from the calling
+// institution's own data: sections = classes.stage (free text per
+// institution, null grouped as "No section"), grades = classes, divisions =
+// sections, and the subjects offered per grade = that grade's class_subjects
+// (the existing class->subject source of truth, §CS.1). A grade with no
+// class_subjects configured at all offers every institution subject (and
+// says so), matching the resolver's own legacy fallback.
+// ---------------------------------------------------------------------------
+export interface ExamScopePlanGrade {
+  classId: string; className: string; stage: string | null;
+  inScope: boolean;
+  /** Class has no divisions: the grade itself is the single scope row. */
+  hasDivisions: boolean;
+  divisions: Array<{ sectionId: string; name: string; selected: boolean; hasMarks: boolean }>;
+  /** Subjects offered for this grade (class_subjects, or all when unconfigured). */
+  subjectOptions: Array<{ subjectId: string; name: string; taughtHere: boolean }>;
+  subjectsConfigured: boolean;
+  selectedSubjectIds: string[];
+  /** Subjects with marks already entered for this grade — can't be unticked. */
+  lockedSubjectIds: string[];
+}
+export interface ExamScopePlan {
+  sections: Array<{ key: string; label: string; grades: ExamScopePlanGrade[] }>;
+  isDailyAssessment: boolean;
+  isFinalized: boolean;
+}
+
+interface PlanData {
+  classes: Array<{ id: string; name: string; stage: string | null }>;
+  sections: Array<{ id: string; class_id: string; name: string }>;
+  subjects: Array<{ id: string; name: string }>;
+  classSubjects: Map<string, Set<string>>;
+  examClasses: Array<{ class_id: string; section_id: string | null }>;
+  examSubjects: Array<{ id: string; subject_id: string }>;
+  /** `${subjectId}|${classId}` currently effective per the resolver. */
+  effectiveLinks: Set<string>;
+  /** `${subjectId}|${classId}` -> marks already entered by students of that grade. */
+  marksByLink: Map<string, number>;
+  /** `${classId}|${sectionId}` -> marks entered (any subject) by students of that division. */
+  marksByDivision: Map<string, number>;
+}
+
+async function loadPlanData(scoped: DbClient, examinationId: string): Promise<PlanData> {
+  const [cls, secs, subs, cs, ecs, ess, eff, ml, md] = await Promise.all([
+    scoped.query<{ id: string; name: string; stage: string | null }>("select id, name, stage from classes"),
+    scoped.query<{ id: string; class_id: string; name: string }>("select id, class_id, name from sections"),
+    scoped.query<{ id: string; name: string }>("select id, name from subjects order by name"),
+    scoped.query<{ class_id: string; subject_id: string }>("select class_id, subject_id from class_subjects"),
+    scoped.query<{ class_id: string; section_id: string | null }>(
+      "select class_id, section_id from exam_classes where examination_id = $1", [examinationId]),
+    scoped.query<{ id: string; subject_id: string }>(
+      "select id, subject_id from exam_subjects where examination_id = $1", [examinationId]),
+    scoped.query<{ subject_id: string; class_id: string }>(
+      `select distinct es.subject_id, ec.class_id
+         from exam_subjects es join exam_classes ec on ec.examination_id = es.examination_id
+        where es.examination_id = $1 and ${examSubjectAppliesToClassSql("es", "ec.class_id")}`, [examinationId]),
+    scoped.query<{ subject_id: string; class_id: string; n: string }>(
+      `select es.subject_id, se.class_id, count(distinct m.id)::text as n
+         from marks m
+         join exam_subjects es on es.id = m.exam_subject_id
+         join examinations e on e.id = es.examination_id
+         join student_enrollments se on se.student_id = m.student_id and se.status = 'active'
+              and se.academic_year_id = e.academic_year_id
+        where es.examination_id = $1
+        group by es.subject_id, se.class_id`, [examinationId]),
+    scoped.query<{ class_id: string; section_id: string | null; n: string }>(
+      `select se.class_id, se.section_id, count(distinct m.id)::text as n
+         from marks m
+         join exam_subjects es on es.id = m.exam_subject_id
+         join examinations e on e.id = es.examination_id
+         join student_enrollments se on se.student_id = m.student_id and se.status = 'active'
+              and se.academic_year_id = e.academic_year_id
+        where es.examination_id = $1
+        group by se.class_id, se.section_id`, [examinationId]),
+  ]);
+  const classSubjects = new Map<string, Set<string>>();
+  for (const r of cs.rows) {
+    const set = classSubjects.get(r.class_id) ?? new Set<string>();
+    set.add(r.subject_id);
+    classSubjects.set(r.class_id, set);
+  }
+  return {
+    classes: cls.rows, sections: secs.rows, subjects: subs.rows, classSubjects,
+    examClasses: ecs.rows, examSubjects: ess.rows,
+    effectiveLinks: new Set(eff.rows.map((r) => `${r.subject_id}|${r.class_id}`)),
+    marksByLink: new Map(ml.rows.map((r) => [`${r.subject_id}|${r.class_id}`, Number(r.n)])),
+    marksByDivision: new Map(md.rows.map((r) => [`${r.class_id}|${r.section_id ?? ""}`, Number(r.n)])),
+  };
+}
+
+/** Subjects an admin may pick for one grade: that grade's class_subjects,
+ *  or every subject when the grade has none configured. */
+function allowedSubjectIdsForGrade(d: PlanData, classId: string): Set<string> {
+  return d.classSubjects.get(classId) ?? new Set(d.subjects.map((s) => s.id));
+}
+
+export async function getExamScopePlan(institutionId: string, authUserId: string, examinationId: string): Promise<ExamScopePlan> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ finalized: boolean; is_daily_assessment: boolean }>(
+      `select e.finalized_at is not null as finalized, et.is_daily_assessment
+         from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`, [examinationId]
+    );
+    if (!ex[0]) throw new Error("Examination not found.");
+    const d = await loadPlanData(scoped, examinationId);
+    const subjectName = new Map(d.subjects.map((s) => [s.id, s.name]));
+    const grades: ExamScopePlanGrade[] = sortClasses(d.classes.map((c) => ({ ...c, class_name: c.name }))).map((c) => {
+      const scopeRows = d.examClasses.filter((ec) => ec.class_id === c.id);
+      const inScope = scopeRows.length > 0;
+      const wholeClass = scopeRows.some((r) => r.section_id == null);
+      const divs = d.sections.filter((s) => s.class_id === c.id).sort((a, b) => a.name.localeCompare(b.name));
+      const allowed = allowedSubjectIdsForGrade(d, c.id);
+      const selected = inScope
+        ? [...new Set(d.examSubjects.map((es) => es.subject_id))].filter((sid) => d.effectiveLinks.has(`${sid}|${c.id}`))
+        : [];
+      const optionIds = new Set([...allowed, ...selected]);
+      return {
+        classId: c.id, className: c.name, stage: c.stage,
+        inScope,
+        hasDivisions: divs.length > 0,
+        divisions: divs.map((s) => ({
+          sectionId: s.id, name: s.name,
+          selected: wholeClass || scopeRows.some((r) => r.section_id === s.id),
+          hasMarks: (d.marksByDivision.get(`${c.id}|${s.id}`) ?? 0) > 0,
+        })),
+        subjectOptions: d.subjects.filter((s) => optionIds.has(s.id))
+          .map((s) => ({ subjectId: s.id, name: subjectName.get(s.id) ?? "—", taughtHere: allowed.has(s.id) })),
+        subjectsConfigured: d.classSubjects.has(c.id),
+        selectedSubjectIds: selected,
+        lockedSubjectIds: selected.filter((sid) => (d.marksByLink.get(`${sid}|${c.id}`) ?? 0) > 0),
+      };
+    });
+    const sections: ExamScopePlan["sections"] = [];
+    for (const g of grades) {
+      const key = (g.stage ?? "").trim();
+      let sec = sections.find((x) => x.key === key.toUpperCase());
+      if (!sec) { sec = { key: key.toUpperCase(), label: key || "No section", grades: [] }; sections.push(sec); }
+      sec.grades.push(g);
+    }
+    return { sections, isDailyAssessment: ex[0].is_daily_assessment, isFinalized: ex[0].finalized };
+  });
+}
+
+const scopePlanSchema = z.object({
+  grades: z.array(z.object({
+    classId: z.string().uuid(),
+    /** Selected divisions; ignored (whole class) when the grade has none. */
+    sectionIds: z.array(z.string().uuid()).default([]),
+    subjectIds: z.array(z.string().uuid()).default([]),
+  })),
+  defaultMaxMarks: z.number().positive().default(100),
+  defaultPassMarks: z.number().nonnegative().default(35),
+});
+
+/** Saves the WHOLE exam scope from the planner in one transaction: exactly
+ *  the grades/divisions listed become exam_classes, exactly the (subject,
+ *  grade) pairs listed become exam_subject_classes (creating any missing
+ *  exam_subjects with the default max/pass marks, removing exam_subjects no
+ *  grade uses any more). Nothing is created for a subject a grade didn't
+ *  tick — the old "every subject x every class" behaviour is gone. Refuses
+ *  (whole save rolls back) rather than silently orphaning entered marks:
+ *  a subject can't be unticked for a grade, a division/grade can't be
+ *  dropped, and a subject can't be offered to a grade that doesn't teach it
+ *  (per class_subjects) unless it already has marks there. Results are
+ *  recomputed live afterwards (a finalized exam is refused outright). */
+export async function saveExamScopePlan(
+  institutionId: string, authUserId: string, userId: string, examinationId: string, input: z.input<typeof scopePlanSchema>
+): Promise<{ grades: number; subjects: number; links: number }> {
+  const data = scopePlanSchema.parse(input);
+  const db = await getDbClient();
+  const out = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ finalized: boolean; is_daily_assessment: boolean }>(
+      `select e.finalized_at is not null as finalized, et.is_daily_assessment
+         from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`, [examinationId]
+    );
+    if (!ex[0]) throw new Error("Examination not found.");
+    if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers don't use exam scope.");
+    if (ex[0].finalized) throw new Error("This examination has been finalized — its scope is locked.");
+    const d = await loadPlanData(scoped, examinationId);
+    const classById = new Map(d.classes.map((c) => [c.id, c]));
+    const subjectName = new Map(d.subjects.map((s) => [s.id, s.name]));
+    const gradeLabel = (classId: string) => `Grade ${classById.get(classId)?.name ?? "?"}`;
+
+    const desiredScope: Array<{ classId: string; sectionId: string | null }> = [];
+    const desiredLinks = new Set<string>(); // subjectId|classId
+    const seen = new Set<string>();
+    for (const g of data.grades) {
+      if (seen.has(g.classId)) continue;
+      seen.add(g.classId);
+      if (!classById.has(g.classId)) throw new Error("Unknown grade in scope.");
+      const divs = d.sections.filter((s) => s.class_id === g.classId);
+      if (divs.length === 0) {
+        desiredScope.push({ classId: g.classId, sectionId: null });
+      } else {
+        const picked = [...new Set(g.sectionIds)];
+        if (picked.length === 0) throw new Error(`${gradeLabel(g.classId)}: pick at least one division.`);
+        for (const sid of picked) {
+          if (!divs.some((dv) => dv.id === sid)) throw new Error(`${gradeLabel(g.classId)}: unknown division.`);
+          desiredScope.push({ classId: g.classId, sectionId: sid });
+        }
+      }
+      const subjectIds = [...new Set(g.subjectIds)];
+      if (subjectIds.length === 0) throw new Error(`${gradeLabel(g.classId)}: pick at least one subject.`);
+      const allowed = allowedSubjectIdsForGrade(d, g.classId);
+      for (const sid of subjectIds) {
+        const link = `${sid}|${g.classId}`;
+        if (!subjectName.has(sid)) throw new Error("Unknown subject.");
+        if (!allowed.has(sid) && !(d.marksByLink.get(link) ?? 0)) {
+          throw new Error(`${gradeLabel(g.classId)}: ${subjectName.get(sid)} isn't taught at this grade (Academic Setup › class subjects).`);
+        }
+        desiredLinks.add(link);
+      }
+    }
+
+    // Never orphan entered marks.
+    const blocked: string[] = [];
+    for (const link of d.effectiveLinks) {
+      if (!desiredLinks.has(link) && (d.marksByLink.get(link) ?? 0) > 0) {
+        const [sid, cid] = link.split("|");
+        blocked.push(`${subjectName.get(sid) ?? "?"} for ${gradeLabel(cid)}`);
+      }
+    }
+    const inDesired = (classId: string, sectionId: string | null) =>
+      desiredScope.some((r) => r.classId === classId && (r.sectionId == null || r.sectionId === sectionId));
+    for (const ec of d.examClasses) {
+      // Division keys (class|section) this old scope row covered that the new plan no longer does.
+      const dropped = ec.section_id != null
+        ? (inDesired(ec.class_id, ec.section_id) ? [] : [ec.section_id])
+        : d.sections.filter((sx) => sx.class_id === ec.class_id && !inDesired(ec.class_id, sx.id)).map((sx) => sx.id)
+            .concat(inDesired(ec.class_id, null) || desiredScope.some((r) => r.classId === ec.class_id) ? [] : [""]);
+      for (const sid of dropped) {
+        if ((d.marksByDivision.get(`${ec.class_id}|${sid}`) ?? 0) > 0) {
+          const secName = d.sections.find((sx) => sx.id === sid)?.name;
+          blocked.push(`${gradeLabel(ec.class_id)}${secName ? ` division ${secName}` : ""} (removed from scope)`);
+        }
+      }
+    }
+    if (blocked.length > 0) {
+      throw new Error(`Marks have already been entered for: ${[...new Set(blocked)].join(", ")} — remove those marks first, or keep them selected.`);
+    }
+
+    // exam_classes — replace.
+    await scoped.query("delete from exam_classes where examination_id = $1", [examinationId]);
+    for (const r of desiredScope) {
+      await scoped.query(
+        `insert into exam_classes (institution_id, examination_id, class_id, section_id) values ($1, $2, $3, $4) on conflict do nothing`,
+        [institutionId, examinationId, r.classId, r.sectionId]
+      );
+    }
+
+    // exam_subjects — create missing, drop unused.
+    const desiredSubjectIds = new Set([...desiredLinks].map((l) => l.split("|")[0]));
+    const esBySubject = new Map(d.examSubjects.map((es) => [es.subject_id, es.id]));
+    for (const sid of desiredSubjectIds) {
+      if (esBySubject.has(sid)) continue;
+      const { rows } = await scoped.query<ExamSubjectRecord>(
+        `insert into exam_subjects (institution_id, examination_id, subject_id, max_marks, pass_marks)
+         values ($1, $2, $3, $4, $5) returning id, examination_id, subject_id, max_marks, pass_marks`,
+        [institutionId, examinationId, sid, data.defaultMaxMarks, data.defaultPassMarks]
+      );
+      esBySubject.set(sid, rows[0].id);
+    }
+    for (const es of d.examSubjects) {
+      if (desiredSubjectIds.has(es.subject_id)) continue;
+      const { rows: used } = await scoped.query<{ count: string }>(
+        "select count(*)::text as count from marks where exam_subject_id = $1", [es.id]
+      );
+      if (Number(used[0]?.count ?? 0) > 0) {
+        throw new Error(`Marks have already been entered for ${subjectName.get(es.subject_id) ?? "a subject"} — remove those marks first, or keep it selected.`);
+      }
+      await scoped.query("delete from exam_subjects where id = $1", [es.id]);
+      esBySubject.delete(es.subject_id);
+    }
+
+    // exam_subject_classes — replace; every exam_subject is now explicit.
+    await scoped.query("delete from exam_subject_classes where examination_id = $1", [examinationId]);
+    for (const link of desiredLinks) {
+      const [sid, cid] = link.split("|");
+      await scoped.query(
+        `insert into exam_subject_classes (institution_id, examination_id, exam_subject_id, class_id)
+         values ($1, $2, $3, $4) on conflict do nothing`,
+        [institutionId, examinationId, esBySubject.get(sid), cid]
+      );
+    }
+
+    await recordAudit(scoped, {
+      institutionId, userId, action: "update", module: "examination", entityType: "exam_scope", entityId: examinationId,
+      after: { scope: desiredScope, subjectGrades: [...desiredLinks] },
+    });
+    await computeResultsScoped(scoped, institutionId, examinationId);
+    return { grades: seen.size, subjects: desiredSubjectIds.size, links: desiredLinks.size };
+  });
+  safeRevalidateTag(resultAnalysisTag(institutionId, examinationId));
+  return out;
+}
+
+/** Grades an exam_subject applies to within its exam's scope (resolver) —
+ *  used by the teacher mark-entry scope check so a teacher's grade must
+ *  actually have this subject in the exam, not merely be in scope. */
+export async function getExamSubjectClassIds(institutionId: string, authUserId: string, examSubjectId: string): Promise<string[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ class_id: string }>(
+      `select distinct ec.class_id
+         from exam_subjects es join exam_classes ec on ec.examination_id = es.examination_id
+        where es.id = $1 and ${examSubjectAppliesToClassSql("es", "ec.class_id")}`,
+      [examSubjectId]
+    );
+    return rows.map((r) => r.class_id);
+  });
+}
+
+/** Per exam_subject, the grade names it's set for (for the subjects table). */
+export async function listExamSubjectGrades(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<Record<string, string[]>> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ exam_subject_id: string; class_name: string; stage: string | null }>(
+      `select distinct es.id as exam_subject_id, c.name as class_name, c.stage
+         from exam_subjects es
+         join exam_classes ec on ec.examination_id = es.examination_id
+         join classes c on c.id = ec.class_id
+        where es.examination_id = $1 and ${examSubjectAppliesToClassSql("es", "ec.class_id")}`,
+      [examinationId]
+    );
+    const out: Record<string, string[]> = {};
+    for (const r of sortClasses(rows)) (out[r.exam_subject_id] ??= []).push(r.class_name);
+    return out;
+  });
+}
+
 /** Guarded like deleteExamType() — a subject with marks already entered
  *  against it can't be silently unlinked (that would orphan real mark
  *  data); the admin must be told to remove the marks first instead. */
@@ -938,15 +1299,10 @@ export async function getMarkEntryStatus(institutionId: string, authUserId: stri
          join students st on st.id = se.student_id and st.status <> 'withdrawn'
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
         where es.examination_id = $1
-          -- §CS.1 "are the subjects allocated class wise?" -- a class only counts
-          -- toward a subject's expected roster if class_subjects actually links
-          -- that class to that subject. A class with NO class_subjects rows at
-          -- all (never configured) falls back to "counts for every subject" so
-          -- institutions that haven't set up class_subjects keep prior behavior.
-          and (
-            not exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id)
-            or exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id and cs2.subject_id = es.subject_id)
-          )
+          -- A grade only counts toward a subject's expected roster if the
+          -- subject is set for that grade in this exam (migration 0056
+          -- resolver; legacy exams fall back to the class_subjects gate).
+          and ${examSubjectAppliesToClassSql("es", "ec.class_id")}
         group by es.id, es.subject_id, sub.name, es.max_marks, es.pass_marks, ec.class_id, cl.name, cl.stage
         order by sub.name`,
       [examinationId]
@@ -978,14 +1334,9 @@ export async function getMarksGrid(institutionId: string, authUserId: string, ex
          left join sections sec on sec.id = se.section_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = s.id
         where es.id = $1
-          -- §CS.1 same class_subjects gate as getMarkEntryStatus() above -- a
-          -- student's class must actually teach this subject (per class_subjects)
-          -- to appear on the marks-entry grid, unless that class has no
-          -- class_subjects rows configured at all (then it's ungated, same as before).
-          and (
-            not exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id)
-            or exists (select 1 from class_subjects cs2 where cs2.institution_id = es.institution_id and cs2.class_id = ec.class_id and cs2.subject_id = es.subject_id)
-          )
+          -- Only students of grades this subject is set for in this exam
+          -- (migration 0056 resolver, same as getMarkEntryStatus()).
+          and ${examSubjectAppliesToClassSql("es", "ec.class_id")}
         group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name, m.id, m.marks_obtained, m.is_absent, m.entry_status`,
       [examSubjectId]
     );
@@ -1513,6 +1864,39 @@ export async function loadResultSubjectDefs(
   return { subjects, ceEnabled };
 }
 
+/** Migration 0056: for every rostered student of an examination (§1.4
+ *  roster — exam's academic year, active enrollment, not withdrawn), the set
+ *  of exam_subject ids that actually apply to that student's grade, via
+ *  examSubjectAppliesToClassSql(). A student's result is computed over THIS
+ *  set only — never every subject of the exam — so a subject not set for
+ *  their grade neither inflates the denominator nor keeps them provisional.
+ *  A student with marks but no roster row (e.g. enrollment since moved) is
+ *  absent from the map; callers fall back to every subject for them. */
+export async function loadStudentApplicableSubjects(
+  scoped: DbClient, examinationId: string
+): Promise<Map<string, Set<string>>> {
+  const { rows } = await scoped.query<{ student_id: string; exam_subject_id: string }>(
+    `select distinct se.student_id, es.id as exam_subject_id
+       from exam_subjects es
+       join examinations e on e.id = es.examination_id
+       join exam_classes ec on ec.examination_id = es.examination_id
+       join student_enrollments se on se.class_id = ec.class_id
+            and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
+            and se.academic_year_id = e.academic_year_id
+       join students st on st.id = se.student_id and st.status <> 'withdrawn'
+      where es.examination_id = $1
+        and ${examSubjectAppliesToClassSql("es", "ec.class_id")}`,
+    [examinationId]
+  );
+  const out = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const set = out.get(r.student_id) ?? new Set<string>();
+    set.add(r.exam_subject_id);
+    out.set(r.student_id, set);
+  }
+  return out;
+}
+
 async function computeResultsScoped(
   scoped: DbClient, institutionId: string, examinationId: string
 ): Promise<{ computed: number; skippedIncomplete: number }> {
@@ -1558,9 +1942,14 @@ async function computeResultsScoped(
     });
   }
 
+  const applicable = await loadStudentApplicableSubjects(scoped, examinationId);
+
   let computed = 0;
   for (const [studentId, entries] of byStudent) {
-    const r = computeStudentResult({ subjects, entries, subjectPassPct, overallPassPct });
+    const mine = applicable.get(studentId);
+    const studentSubjects = mine ? subjects.filter((s) => mine.has(s.id)) : subjects;
+    if (studentSubjects.length === 0) continue;
+    const r = computeStudentResult({ subjects: studentSubjects, entries, subjectPassPct, overallPassPct });
     // No sat subject at all (e.g. absent everywhere) => no percentage to grade.
     const band = r.maxTotal > 0 ? resolveGradeBand(bands, r.percentage) : null;
     await scoped.query(
@@ -1683,6 +2072,8 @@ export async function getExaminationMarksMatrix(
          left join classes c on c.id = se.class_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
         where es.examination_id = $1 and ($2::uuid is null or se.class_id = $2)
+          -- migration 0056: only subjects set for this student's grade.
+          and ${examSubjectAppliesToClassSql("es", "ec.class_id")}
         order by sub.name`,
       [examinationId, classId || null]
     );
@@ -1757,22 +2148,24 @@ export async function listClassesForExamination(
  *  current label. Expects `results r` and `left join grade_bands gb`. */
 const RESULT_GRADE_LABEL_SQL = "case when r.is_frozen then coalesce(r.grade_label, gb.grade_label) else coalesce(gb.grade_label, r.grade_label) end";
 
-/** §CS.4 "don't need compute results -- as mark is started entering, it
- *  should start see in result analysis" -- Result Analysis itself
- *  (modules/analytics/service.ts) shows live/provisional results, but this
- *  is the "official" Results landing page, so it keeps the old finalized-
- *  only behaviour by filtering out is_provisional rows. */
+/** §CS.4 + MMP follow-up ("once entered and saved (submitted), dont wait
+ *  for locking, directly show in results - verification, editing, locking
+ *  can be done later"): every live result row is returned, including
+ *  provisional ones (flagged is_provisional so the UI can label them).
+ *  Approval/locking and finalizeExamination() remain separate, later
+ *  actions — they are never a precondition for a result to be listed. */
 export async function getResults(institutionId: string, authUserId: string, examinationId: string): Promise<ResultRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ResultRow>(
       `select r.student_id, s.full_name as student_name, r.total_marks, r.max_total_marks,
               r.percentage, ${RESULT_GRADE_LABEL_SQL} as grade_label, r.rank,
-              r.is_pass, r.failed_subject_count, r.absent_subject_count, r.pass_threshold_pct, r.is_frozen
+              r.is_pass, r.failed_subject_count, r.absent_subject_count, r.pass_threshold_pct, r.is_frozen,
+              r.is_provisional, r.subjects_entered, r.subjects_expected
          from results r
          join students s on s.id = r.student_id
          left join grade_bands gb on gb.id = r.grade_band_id
-        where r.examination_id = $1 and r.is_provisional = false
+        where r.examination_id = $1
         order by r.percentage desc`,
       [examinationId]
     );
@@ -1950,6 +2343,13 @@ export interface StudentExamReport {
  *  a specific one instead — e.g. a dropdown on the Academics tab). Returns
  *  null when the student has no marks anywhere yet, so the caller can show
  *  an empty state instead of a misleading all-zero chart. */
+/** Roster rows placing student $2 in exam_subject `es`'s examination scope. */
+const STUDENT_EXAM_ROSTER_SQL = `select 1 from student_enrollments se
+     join examinations e2 on e2.id = es.examination_id
+     join exam_classes ec on ec.examination_id = es.examination_id and ec.class_id = se.class_id
+          and (ec.section_id is null or ec.section_id = se.section_id)
+    where se.student_id = $2 and se.status = 'active' and se.academic_year_id = e2.academic_year_id`;
+
 export async function getStudentExamReport(
   institutionId: string, authUserId: string, studentId: string, examinationId?: string
 ): Promise<StudentExamReport | null> {
@@ -1983,6 +2383,12 @@ export async function getStudentExamReport(
          left join marks m
            on m.exam_subject_id = es.id and m.student_id = $2 and m.entry_status in ('approved','locked')
         where es.examination_id = $1
+          -- migration 0056: only subjects set for this student's grade (a
+          -- student with no roster row for this exam keeps the full list).
+          and (
+            not exists (${STUDENT_EXAM_ROSTER_SQL})
+            or exists (${STUDENT_EXAM_ROSTER_SQL} and ${examSubjectAppliesToClassSql("es", "se.class_id")})
+          )
         order by sub.name`,
       [examId, studentId]
     );

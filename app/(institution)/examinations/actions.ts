@@ -5,7 +5,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
   createExamination, updateExamination, deleteExamination,
-  addExamSubject, addExamClass, removeExamClass, removeExamSubject,
+  addExamSubject, addExamClass, removeExamClass, removeExamSubject, saveExamScopePlan,
   enterMarksAndRecompute, deleteMarkAndRecompute, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment, getDailyAssessment,
   enterCeMarksAndRecompute, setCeComponents, finalizeExamination, setInstitutionCeDefaults,
@@ -98,29 +98,33 @@ export async function addExamClassAction(_prevState: { error: string | null }, f
   }
 }
 
-/** §418 "confirm scope of exam, section, grade, division — make user
- *  friendly": one checkbox-grid submit instead of adding class/divisions
- *  one at a time — every checked `sectionAndClass` value (same
- *  "classId|sectionId" encoding addExamClassAction already uses) is linked
- *  in one Save. */
-export async function bulkSetExamScopeAction(_prevState: { error: string | null; added?: number }, formData: FormData) {
+/** Migration 0056 — "Section (HS, UP, LP etc.) > Grades > Divisions - for
+ *  each grade an option for choosing relevant subject for the exam". The
+ *  planner (ExamScopePlanner) posts the whole scope as one JSON `plan`
+ *  field: [{ classId, sectionIds[], subjectIds[] }] for every grade in
+ *  scope, plus default max/pass marks for newly-added subjects. Replaces
+ *  the old separate "confirm scope" + "add subjects to the whole exam"
+ *  forms, which applied every checked subject to every class. */
+export async function saveExamScopePlanAction(_prevState: { error: string | null; saved?: string }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
     requirePermission(ctx.permissions, "settings.manage");
-    const selections = formData.getAll("sectionAndClass").map(String);
-    let added = 0;
-    for (const sel of selections) {
-      const [classId, sectionId] = sel.split("|");
-      if (!classId) continue;
-      await addExamClass(ctx.institutionId, ctx.session.authUserId, examinationId, classId, sectionId || null);
-      added++;
-    }
+    const grades = JSON.parse(String(formData.get("plan") ?? "[]")) as Array<{ classId: string; sectionIds: string[]; subjectIds: string[] }>;
+    const maxRaw = String(formData.get("defaultMaxMarks") ?? "").trim();
+    const passRaw = String(formData.get("defaultPassMarks") ?? "").trim();
+    const out = await saveExamScopePlan(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId, {
+      grades,
+      defaultMaxMarks: maxRaw ? Number(maxRaw) : 100,
+      defaultPassMarks: passRaw ? Number(passRaw) : 35,
+    });
     revalidatePath(`/examinations/${examinationId}`);
-    return { error: null, added };
+    revalidatePath("/examinations/status");
+    revalidatePath("/results");
+    return { error: null, saved: `${out.grades} grade(s), ${out.subjects} subject(s) saved.` };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to confirm exam scope." };
+    return { error: err instanceof Error ? err.message : "Failed to save exam scope." };
   }
 }
 
@@ -135,37 +139,6 @@ export async function removeExamClassAction(_prevState: { error: string | null }
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to remove class." };
-  }
-}
-
-/** §418 companion to bulkSetExamScopeAction — same "select several, Save
- *  once" pattern for subjects: every checked subjectId gets its own
- *  max/pass marks inputs (name-suffixed `max_<subjectId>`/`pass_<subjectId>`,
- *  same convention markStaffAttendanceAction already uses for per-row
- *  fields), added in one submit instead of one row at a time. */
-export async function bulkAddExamSubjectsAction(_prevState: { error: string | null; added?: number }, formData: FormData) {
-  const ctx = await requireRequestContext();
-  if (!ctx.institutionId) return { error: "No active institution." };
-  const examinationId = String(formData.get("examinationId") ?? "");
-  try {
-    requirePermission(ctx.permissions, "settings.manage");
-    const subjectIds = formData.getAll("subjectId").map(String);
-    let added = 0;
-    for (const subjectId of subjectIds) {
-      const maxRaw = formData.get(`max_${subjectId}`);
-      const passRaw = formData.get(`pass_${subjectId}`);
-      await addExamSubject(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
-        examinationId,
-        subjectId,
-        maxMarks: maxRaw ? Number(maxRaw) : 100,
-        passMarks: passRaw ? Number(passRaw) : 35,
-      });
-      added++;
-    }
-    revalidatePath(`/examinations/${examinationId}`);
-    return { error: null, added };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to add exam subjects." };
   }
 }
 

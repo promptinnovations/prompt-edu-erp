@@ -21,7 +21,7 @@ import { z } from "zod";
 import { unstable_cache } from "next/cache";
 import { getDbClient } from "../../services/db/client";
 import type { AttendanceScope } from "../attendance/service";
-import { isPass, PASS_COLOR, FAIL_COLOR, resolveGradeBand, computeStudentResult, loadResultSubjectDefs, DEFAULT_OVERALL_PASS_PCT, type ResultUnitEntry } from "../examination/service";
+import { isPass, PASS_COLOR, FAIL_COLOR, resolveGradeBand, computeStudentResult, loadResultSubjectDefs, loadStudentApplicableSubjects, examSubjectAppliesToClassSql, DEFAULT_OVERALL_PASS_PCT, type ResultUnitEntry } from "../examination/service";
 import { resultAnalysisTag, classificationTag, ANALYTICS_VIEWS_TAG, safeRevalidateTag } from "../../services/cache/tags";
 
 /**
@@ -487,8 +487,8 @@ export async function getResultSchoolSummary(institutionId: string, authUserId: 
 
 export interface TrackResultSummary {
   track: "academic" | "islamic";
-  // Only students with a complete, approved/locked mark for every one of
-  // this track's exam_subjects in this examination — same "complete
+  // Only students with a saved mark (any status — live, §CS.4) for every
+  // one of this track's exam_subjects set for their grade — same "complete
   // entry" rule computeResults() itself uses, just computed ad hoc per
   // track instead of persisted (§ education-track follow-up: a 'both'
   // institution's overall results.percentage row mixes both tracks'
@@ -537,14 +537,14 @@ async function getTrackWiseSummaryImpl(
 
     // EXAMINATION_SPEC §1.5: same unit definitions + the same pure
     // computeStudentResult() computeResults() persists with — only the
-    // subject subset (one track) and the approved/locked-only input differ.
+    // subject subset (one track, per student grade) differs.
     const { subjects: allDefs } = await loadResultSubjectDefs(scoped, examinationId);
     const { rows: unitRows } = await scoped.query<{ student_id: string; unit_key: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }>(
       `select student_id, 'm:' || exam_subject_id as unit_key, marks_obtained, is_absent, entry_status
-         from marks where exam_subject_id = any($1) and entry_status in ('approved','locked')
+         from marks where exam_subject_id = any($1)
        union all
        select student_id, 'ce:' || ce_component_id as unit_key, marks_obtained, is_absent, entry_status
-         from ce_marks where ce_component_id = any($2::uuid[]) and entry_status in ('approved','locked')`,
+         from ce_marks where ce_component_id = any($2::uuid[])`,
       [allDefs.map((d) => d.id), allDefs.flatMap((d) => d.ceComponentIds)]
     );
     const byStudent = new Map<string, Map<string, ResultUnitEntry>>();
@@ -556,16 +556,23 @@ async function getTrackWiseSummaryImpl(
       });
     }
 
+    // Migration 0056: each student is judged only on the subjects set for their grade.
+    const applicable = await loadStudentApplicableSubjects(scoped, examinationId);
+
     const summaries: TrackResultSummary[] = [];
     for (const track of tracks) {
       const trackIds = new Set(tracked.filter((t) => t.track === track).map((t) => t.id));
-      const subjects = allDefs.filter((d) => trackIds.has(d.id));
+      const trackDefs = allDefs.filter((d) => trackIds.has(d.id));
       let totalStudents = 0, passCount = 0, failCount = 0, percentSum = 0;
-      for (const [, entries] of byStudent) {
+      for (const [studentId, entries] of byStudent) {
+        const mine = applicable.get(studentId);
+        const subjects = mine ? trackDefs.filter((d) => mine.has(d.id)) : trackDefs;
+        if (subjects.length === 0) continue;
         const r = computeStudentResult({ subjects, entries, subjectPassPct, overallPassPct });
         // Complete-for-this-track only (every unit of every track subject
-        // entered and approved/locked) — same rule as before.
-        if (r.subjectsEntered !== subjects.length || r.isProvisional) continue;
+        // for this student's grade entered). Live: saved marks count without
+        // waiting for approval/locking (MMP follow-up).
+        if (r.subjectsEntered !== subjects.length) continue;
         totalStudents++;
         percentSum += r.percentage;
         if (r.isPass) passCount++; else failCount++;
@@ -820,7 +827,7 @@ async function getResultsByTeacherImpl(
               and ta.role_type = 'subject_teacher' and ta.academic_year_id = $3
          join users u on u.id = ta.user_id
         where es.examination_id = $2 and m.institution_id = $1
-              and m.entry_status in ('approved', 'locked') and m.is_absent = false and m.marks_obtained is not null`,
+              and m.is_absent = false and m.marks_obtained is not null`,
       [institutionId, examinationId, academicYearId]
     );
 
@@ -1146,8 +1153,12 @@ async function getSubjectWiseByGradeImpl(
          join student_enrollments se on se.class_id = ec.class_id and se.academic_year_id = $2 and se.status = 'active'
               and (ec.section_id is null or se.section_id = ec.section_id)
          join students s on s.id = se.student_id
-         left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id and m.entry_status in ('approved', 'locked')
+         -- Live (§CS.4 / MMP follow-up): any saved mark counts — approval and
+         -- locking are later, optional steps, never a gate on analysis.
+         left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
         where ec.examination_id = $1
+          -- migration 0056: only subjects set for this grade.
+          and ${examSubjectAppliesToClassSql("es", "ec.class_id")}
         order by c.sort_order, sub.name, s.full_name`,
       [examinationId, academicYearId]
     );

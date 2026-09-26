@@ -26,7 +26,7 @@
  */
 import { getDbClient } from "../db/client";
 import { can } from "../permissions/permission-service";
-import { getExamSubjectRef, getExamCoveredClassIds } from "../../modules/examination/service";
+import { getExamSubjectRef, getExamSubjectClassIds } from "../../modules/examination/service";
 
 export interface TeacherClassScope {
   /** Every class this teacher has at least one assignment in (as class
@@ -131,7 +131,9 @@ export async function assertMarkEntryScope(
   if (!ref) throw new Error("Exam subject not found.");
   const [scope, coveredClassIds] = await Promise.all([
     getTeacherClassScope(institutionId, authUserId, userId),
-    getExamCoveredClassIds(institutionId, authUserId, ref.examinationId),
+    // Migration 0056: only grades this exam_subject is actually set for,
+    // not every grade in the exam's scope.
+    getExamSubjectClassIds(institutionId, authUserId, examSubjectId),
   ]);
   const authorized = coveredClassIds.some((classId) => scopeIncludesSubjectInClass(scope, classId, ref.subjectId));
   if (!authorized) throw new Error("You can only enter marks for a class/subject you're assigned to teach.");
