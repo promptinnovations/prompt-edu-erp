@@ -29,7 +29,10 @@ import { createStaffMember, listStaff } from "../staff/service";
 import { createBook } from "../library/service";
 import { submitAchievement, listAchievementCategories, listAchievementLevels } from "../achievements/service";
 import { createStudentLoginAccount } from "../portal/service";
-import { createExamination, listExamTypes, listExaminations, getOrCreateDailyAssessmentSession, upsertDailyAssessmentMark } from "../examination/service";
+import {
+  createExamination, listExamTypes, listExaminations, getOrCreateDailyAssessmentSession, upsertDailyAssessmentMark,
+  listAllExamSubjectsWithNames, enterMarks, computeResults,
+} from "../examination/service";
 import { createCalendarEvent, CALENDAR_EVENT_TYPES } from "../calendar/service";
 import { upsertTimetablePeriod } from "../substitution/service";
 
@@ -67,6 +70,15 @@ interface EntityImportDefinition {
    *  would not roll back rows already committed earlier in the same batch
    *  (§Q.1 "any row-level failure during commit rolls back that batch"). */
   insertRow(institutionId: string, authUserId: string, userId: string, data: Record<string, unknown>, scoped: DbClient): Promise<void>;
+  /** Optional: side effects that must run only AFTER confirmImport()'s
+   *  transaction has actually committed (e.g. a downstream recompute that
+   *  opens its own connection, so it can't run mid-transaction the way
+   *  insertRow() does). Given the `data` of every row actually inserted
+   *  this batch. confirmImport() calls this best-effort (wrapped in
+   *  try/catch) so a hiccup here never turns an already-committed import
+   *  into a user-facing error -- same spirit as enterMarksAndRecompute()'s
+   *  own post-save recompute in modules/examination/service.ts. */
+  afterCommit?(institutionId: string, authUserId: string, insertedRows: Record<string, unknown>[]): Promise<void>;
 }
 
 /** Excel worksheet names may not contain any of : \\ / ? * [ ] and are
@@ -817,6 +829,112 @@ const examinationsDefinition: EntityImportDefinition = {
   },
 };
 
+/** §"mark entry also should be available for bulk upload" — the regular-
+ *  exam counterpart to dailyAssessmentMarksDefinition below, writing to
+ *  `marks` (not daily_assessment_marks). Each row names its exam_subject by
+ *  (Examination name, Subject) rather than a raw exam_subject_id an admin
+ *  would have no way to know — resolved via listAllExamSubjectsWithNames()
+ *  (the exam_subject must already exist: create the examination and add
+ *  this subject to it first, via Examinations UI or the "Examinations"
+ *  bulk entity type above — this entity type deliberately doesn't
+ *  duplicate that). insertRow() calls the SAME enterMarks() the manual
+ *  Marks Entry grid (MarksGridForm.tsx / saveMarksAction) calls — the
+ *  draft/locked skip, the finalized-exam guard, and the "blank cell means
+ *  leave this student's mark alone, not zero" rule (see enterMarks()'s own
+ *  doc comment) all come from that one function, never re-implemented
+ *  here against the `marks` table directly. Unlike Daily Assessment Marks
+ *  (which requires a value unless Absent), a blank, non-absent cell here
+ *  is valid and simply means "don't touch" — matching enterMarks()'s own
+ *  semantics rather than erroring the row out.
+ *
+ *  Results recompute (computeResults() — the same function
+ *  recomputeExaminationResults() calls after every manual save) can't run
+ *  mid-transaction since it opens its own connection, so it runs once per
+ *  unique examination actually touched, via afterCommit() below, after
+ *  confirmImport()'s transaction has committed. */
+const marksDefinition: EntityImportDefinition = {
+  entityType: "marks",
+  label: "Marks (exam mark entry)",
+  columns: [
+    { key: "examinationName", label: "Examination name", required: true },
+    { key: "subjectName", label: "Subject", required: true },
+    { key: "admissionNumber", label: "Student admission number", required: true },
+    { key: "marksObtained", label: "Marks obtained (leave blank to leave this student's mark untouched)", required: false },
+    { key: "absent", label: "Absent? (yes/no)", required: false },
+  ],
+  sampleRow: {
+    examinationName: "Term 1 Main Exam 2026", subjectName: "Mathematics",
+    admissionNumber: "2026-001", marksObtained: "78", absent: "",
+  },
+  async prepareContext(institutionId, authUserId) {
+    const [examSubjects, students] = await Promise.all([
+      listAllExamSubjectsWithNames(institutionId, authUserId),
+      listStudents(institutionId, authUserId),
+    ]);
+    return {
+      examSubjectsByKey: new Map(examSubjects.map((es) => [
+        `${normKey(es.examination_name)}::${normKey(es.subject_name)}`,
+        { examSubjectId: es.exam_subject_id, examinationId: es.examination_id, maxMarks: Number(es.max_marks) },
+      ])),
+      studentsByAdmissionNumber: new Map(students.map((s) => [normKey(s.admission_number), s.id])),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const examinationName = req(raw, "examinationName", errors);
+    const subjectName = req(raw, "subjectName", errors);
+    const admissionNumber = req(raw, "admissionNumber", errors);
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    const examSubjectsByKey = context.examSubjectsByKey as Map<string, { examSubjectId: string; examinationId: string; maxMarks: number }>;
+    const examSubject = examSubjectsByKey.get(`${normKey(examinationName)}::${normKey(subjectName)}`);
+    if (!examSubject) errors.push(`"${subjectName}" isn't set up for examination "${examinationName}" — add it under that exam's Subjects first.`);
+
+    const studentsByAdmissionNumber = context.studentsByAdmissionNumber as Map<string, string>;
+    const studentId = studentsByAdmissionNumber.get(normKey(admissionNumber));
+    if (!studentId) errors.push(`Student admission number "${admissionNumber}" was not found.`);
+
+    const absentRaw = normKey(raw.absent);
+    const isAbsent = absentRaw === "yes" || absentRaw === "y" || absentRaw === "true" || absentRaw === "1";
+    // §"blank cell means don't touch this row, not zero" -- passed through
+    // as marksObtained: null; enterMarks() itself is what turns that into
+    // "leave this student's mark alone" (or clears a draft), never treated
+    // as a validation error the way Daily Assessment Marks (required
+    // unless absent) does.
+    const marksObtainedRaw = (raw.marksObtained ?? "").trim();
+    let marksObtained: number | null = null;
+    if (!isAbsent && marksObtainedRaw) {
+      marksObtained = Number(marksObtainedRaw);
+      if (!Number.isFinite(marksObtained)) errors.push(`"Marks obtained" must be a number.`);
+      else if (marksObtained < 0) errors.push(`"Marks obtained" can't be negative.`);
+      else if (examSubject && marksObtained > examSubject.maxMarks) errors.push(`"Marks obtained" (${marksObtained}) can't exceed the maximum mark (${examSubject.maxMarks}).`);
+    }
+    if (errors.length > 0) return { status: "invalid", errors };
+
+    return {
+      status: "valid",
+      dedupeKey: `${examSubject!.examSubjectId}:${studentId}`,
+      data: {
+        examSubjectId: examSubject!.examSubjectId, examinationId: examSubject!.examinationId,
+        studentId, marksObtained, isAbsent,
+      },
+    };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await enterMarks(institutionId, authUserId, userId, data.examSubjectId as string, [{
+      studentId: data.studentId as string,
+      marksObtained: data.marksObtained as number | null,
+      isAbsent: data.isAbsent as boolean,
+    }], scoped);
+  },
+  async afterCommit(institutionId, authUserId, insertedRows) {
+    const examinationIds = new Set(insertedRows.map((r) => r.examinationId as string));
+    for (const examinationId of examinationIds) {
+      await computeResults(institutionId, authUserId, examinationId);
+    }
+  },
+};
+
 /** §504 "Add mark entry in bulk import/export" for Daily Assessment — the
  *  gap the comment at the top of this file originally flagged ("marks...
  *  import is a documented follow-up... needs an extra selection parameter
@@ -952,6 +1070,7 @@ const registry: Record<string, EntityImportDefinition> = {
   calendar_events: calendarEventsDefinition,
   timetable_periods: timetablePeriodsDefinition,
   examinations: examinationsDefinition,
+  marks: marksDefinition,
   daily_assessment_marks: dailyAssessmentMarksDefinition,
 };
 
@@ -1107,7 +1226,13 @@ export interface ConfirmResult { batchId: string; importedRows: number; skippedR
 
 export async function confirmImport(institutionId: string, authUserId: string, userId: string, batchId: string): Promise<ConfirmResult> {
   const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  // afterCommitRef captures the definition + inserted-row data from inside
+  // the transaction below, so the optional afterCommit() hook (needed by
+  // the "Marks" entity type's results recompute -- see its own comment)
+  // can be invoked once the transaction has actually committed, outside
+  // this whole withInstitutionContext() call.
+  const afterCommitRef: { definition?: EntityImportDefinition; insertedRows: Record<string, unknown>[] } = { insertedRows: [] };
+  const result = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows: batchRows } = await scoped.query<{ id: string; entity_type: string; status: string; rows_jsonb: ParsedRow[] }>(
       "select id, entity_type, status, rows_jsonb from import_batches where id = $1", [batchId]
     );
@@ -1117,6 +1242,7 @@ export async function confirmImport(institutionId: string, authUserId: string, u
 
     const definition = registry[batch.entity_type];
     if (!definition) throw new Error(`Unknown import entity type "${batch.entity_type}".`);
+    afterCommitRef.definition = definition;
 
     const validRows = batch.rows_jsonb.filter((r) => r.status === "valid" && r.data);
     let imported = 0;
@@ -1138,6 +1264,7 @@ export async function confirmImport(institutionId: string, authUserId: string, u
     // the staged preview.
     for (const row of validRows) {
       await definition.insertRow(institutionId, authUserId, userId, row.data as Record<string, unknown>, scoped);
+      afterCommitRef.insertedRows.push(row.data as Record<string, unknown>);
       imported++;
     }
 
@@ -1152,6 +1279,15 @@ export async function confirmImport(institutionId: string, authUserId: string, u
 
     return { batchId, importedRows: imported, skippedRows: batch.rows_jsonb.length - imported };
   });
+
+  if (afterCommitRef.definition?.afterCommit) {
+    try {
+      await afterCommitRef.definition.afterCommit(institutionId, authUserId, afterCommitRef.insertedRows);
+    } catch {
+      // best-effort, see the afterCommit() doc comment on EntityImportDefinition above.
+    }
+  }
+  return result;
 }
 
 export interface ImportBatchLogRow {

@@ -819,6 +819,33 @@ export async function listExamSubjects(institutionId: string, authUserId: string
   });
 }
 
+export interface ExamSubjectWithNamesRow {
+  exam_subject_id: string; examination_id: string; examination_name: string;
+  subject_id: string; subject_name: string; max_marks: string;
+}
+
+/** §"mark entry also should be available for bulk upload" -- lets the
+ *  "Marks" bulk import entity type (modules/bulk/service.ts) resolve a
+ *  row's "Examination name" + "Subject" columns straight to an
+ *  exam_subject_id, the same name-based lookup spirit as
+ *  listExaminations()/listSubjects() already feeding the "Examinations"
+ *  entity type. Institution-wide (not scoped to one examination) since the
+ *  importer doesn't otherwise know which exam a row's name resolves to
+ *  until this list exists to check against. */
+export async function listAllExamSubjectsWithNames(institutionId: string, authUserId: string): Promise<ExamSubjectWithNamesRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<ExamSubjectWithNamesRow>(
+      `select es.id as exam_subject_id, es.examination_id, e.name as examination_name,
+              es.subject_id, sub.name as subject_name, es.max_marks
+         from exam_subjects es
+         join examinations e on e.id = es.examination_id
+         join subjects sub on sub.id = es.subject_id`
+    );
+    return rows;
+  });
+}
+
 export async function addExamClass(
   institutionId: string, authUserId: string, examinationId: string, classId: string, sectionId?: string | null
 ): Promise<void> {
@@ -1311,6 +1338,98 @@ export async function getMarkEntryStatus(institutionId: string, authUserId: stri
   });
 }
 
+export interface OpenMarkEntryRow {
+  examinationId: string; examinationName: string;
+  classId: string; className: string;
+  subjectId: string; subjectName: string;
+  examSubjectId: string;
+  status: "not_started" | "in_progress";
+}
+
+/** §"an exam of which the mark entry is open should be available in the
+ *  dashboard of every teacher, but only classes/subjects concerned" --
+ *  teacher-facing counterpart to getMarkEntryStatus() above (which is
+ *  institution-wide and marks.approve-gated, see dashboard/page.tsx's own
+ *  §CS.3 restriction -- this one is deliberately NOT gated on that, every
+ *  teacher holding marks.enter sees it). Scoped to classes/subjects this
+ *  teacher is actually assigned to via getTeacherClassScope() -- imported
+ *  dynamically to avoid a module cycle (teacher-scope-service.ts itself
+ *  imports getExamSubjectRef/getExamSubjectClassIds from this file), the
+ *  same pattern recomputeExaminationResults() below already uses for
+ *  analytics/service. Daily Assessment exam types are excluded entirely
+ *  (et.is_daily_assessment = false) -- that feature has its own monthly-
+ *  register UI, not this per-exam_subject marks grid.
+ *
+ *  "Open for entry" is a MARKS-level notion, not examinations.status: a
+ *  (exam_subject, class) pair with zero marks rows yet is "not_started"
+ *  (nothing entered, still enterable); some rows but not every roster
+ *  student locked is "in_progress"; every roster student's mark locked is
+ *  dropped from the result entirely (no longer "open").
+ *
+ *  One query across every exam this teacher could possibly touch --
+ *  classIds is bounded by their own teacher_assignments, and the per-
+ *  subject scope check runs in memory afterwards -- so this never turns
+ *  into an N+1 loop over exam_subjects the way the admin-vs-teacher check
+ *  on the single-exam page (examinations/[id]/page.tsx) can get away with
+ *  but a dashboard widget spanning every open exam should not. */
+export async function getOpenMarkEntryForTeacher(
+  institutionId: string, authUserId: string, teacherUserId: string
+): Promise<OpenMarkEntryRow[]> {
+  const { getTeacherClassScope, scopeIncludesSubjectInClass } = await import("../../services/scope/teacher-scope-service");
+  const scope = await getTeacherClassScope(institutionId, authUserId, teacherUserId);
+  if (scope.classIds.size === 0) return [];
+
+  const db = await getDbClient();
+  const rows = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      exam_subject_id: string; examination_id: string; examination_name: string;
+      subject_id: string; subject_name: string; class_id: string; class_name: string;
+      roster_count: string; marks_count: string; locked_count: string;
+    }>(
+      `select es.id as exam_subject_id, es.examination_id, e.name as examination_name,
+              es.subject_id, sub.name as subject_name, ec.class_id, cl.name as class_name,
+              count(distinct se.student_id) as roster_count,
+              count(distinct m.student_id) as marks_count,
+              count(distinct m.student_id) filter (where m.entry_status = 'locked') as locked_count
+         from exam_subjects es
+         join examinations e on e.id = es.examination_id
+         join exam_types et on et.id = e.exam_type_id and et.is_daily_assessment = false
+         join subjects sub on sub.id = es.subject_id
+         join exam_classes ec on ec.examination_id = es.examination_id
+         join classes cl on cl.id = ec.class_id
+         join student_enrollments se on se.class_id = ec.class_id
+              and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
+              and se.academic_year_id = e.academic_year_id
+         join students st on st.id = se.student_id and st.status <> 'withdrawn'
+         left join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
+        where ec.class_id = any($1::uuid[])
+          and ${examSubjectAppliesToClassSql("es", "ec.class_id")}
+        group by es.id, es.examination_id, e.name, es.subject_id, sub.name, ec.class_id, cl.name
+        order by cl.name, sub.name`,
+      [Array.from(scope.classIds)]
+    );
+    return rows;
+  });
+
+  const out: OpenMarkEntryRow[] = [];
+  for (const r of rows) {
+    if (!scopeIncludesSubjectInClass(scope, r.class_id, r.subject_id)) continue;
+    const rosterCount = Number(r.roster_count);
+    if (rosterCount === 0) continue;
+    const marksCount = Number(r.marks_count);
+    const lockedCount = Number(r.locked_count);
+    if (marksCount > 0 && lockedCount >= rosterCount) continue; // fully locked -- no longer "open"
+    out.push({
+      examinationId: r.examination_id, examinationName: r.examination_name,
+      classId: r.class_id, className: r.class_name,
+      subjectId: r.subject_id, subjectName: r.subject_name,
+      examSubjectId: r.exam_subject_id,
+      status: marksCount === 0 ? "not_started" : "in_progress",
+    });
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Mark entry grid (§28)
 // ---------------------------------------------------------------------------
@@ -1370,13 +1489,21 @@ async function assertExamSubjectNotFinalized(scoped: DbClient, examSubjectId: st
 }
 
 /** Bulk mark entry — only touches marks still in 'draft' (or not yet created). Editing
- *  an already-submitted/verified/approved/locked mark must go through correctMark(). */
+ *  an already-submitted/verified/approved/locked mark must go through correctMark().
+ *
+ *  scopedClient (§"mark entry also should be available for bulk upload") --
+ *  same optional trailing param as createExamination()'s own scopedClient,
+ *  so the "Marks" bulk import entity type (modules/bulk/service.ts) can
+ *  call this SAME function -- the one and only save-marks code path --
+ *  from inside confirmImport()'s already-open transaction instead of
+ *  duplicating its draft/locked/blank-cell logic against the `marks` table
+ *  directly. */
 export async function enterMarks(
-  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof markEntrySchema>
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof markEntrySchema>,
+  scopedClient?: DbClient
 ): Promise<{ updated: number; skippedLocked: number }> {
   const data = markEntrySchema.parse(entries);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     await assertExamSubjectNotFinalized(scoped, examSubjectId);
     let updated = 0;
     let skippedLocked = 0;
@@ -1411,7 +1538,10 @@ export async function enterMarks(
       updated++;
     }
     return { updated, skippedLocked };
-  });
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
 /** §CS.4 "as mark is started entering, it should start see in result

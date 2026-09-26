@@ -14,9 +14,12 @@ import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
 import { getPermissionsForUser, requirePermission } from "../../services/permissions/permission-service";
-import { createClass, createSection, createSubject, listClasses, listSections, getCurrentAcademicYear } from "../../modules/academic/service";
+import { createClass, createSection, createSubject, listClasses, listSections, listSubjects, getCurrentAcademicYear } from "../../modules/academic/service";
 import { createStudent, listStudents, enrollStudent, getCurrentEnrollment } from "../../modules/students/service";
-import { listExamTypes, listExaminations, listDailyAssessments } from "../../modules/examination/service";
+import {
+  listExamTypes, listExaminations, listDailyAssessments,
+  createExamination, addExamClass, addExamSubject, getMarksGrid,
+} from "../../modules/examination/service";
 import {
   generateImportTemplate, stageImport, confirmImport, listRecentImportBatches,
   exportRows, exportDefinitions, listImportEntityTypes,
@@ -73,7 +76,7 @@ describe("Import entity catalogue + templates (§Q.1, §Q.3)", () => {
   it("listImportEntityTypes() exposes the v1 target entities", () => {
     const types = listImportEntityTypes().map((t) => t.entityType).sort();
     expect(types).toEqual(
-      ["achievements", "calendar_events", "classes", "daily_assessment_marks", "enrollments", "examinations", "library_books", "parents",
+      ["achievements", "calendar_events", "classes", "daily_assessment_marks", "enrollments", "examinations", "library_books", "marks", "parents",
         "sections", "staff", "student_logins", "students", "subjects", "timetable_periods"].sort()
     );
   });
@@ -386,6 +389,88 @@ describe("Daily Assessment Marks bulk import (§504 'Add mark entry in bulk impo
   });
 });
 
+describe("Marks bulk import (§'mark entry also should be available for bulk upload')", () => {
+  it("resolves (Examination name, Subject) to an exam_subject, writes through enterMarks(), respects the blank-means-don't-touch rule, and recomputes results", async () => {
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => !t.is_daily_assessment)!;
+    const grade6 = (await listClasses(institutionA, adminAuth)).find((c) => c.name === "Grade 6")!;
+    const bulkYear = await getCurrentAcademicYear(institutionA, adminAuth);
+    const exam = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: bulkYear!.id, name: "Bulk Marks Term Exam",
+    });
+    await addExamClass(institutionA, adminAuth, exam.id, grade6.id);
+    const subjects = await listSubjects(institutionA, adminAuth);
+    const botanySubject = subjects.find((s) => s.name === "Botany")!;
+    const examSubject = await addExamSubject(institutionA, adminAuth, adminUserId, {
+      examinationId: exam.id, subjectId: botanySubject.id, maxMarks: 100, passMarks: 35,
+    });
+
+    const student = (await listStudents(institutionA, adminAuth)).find((s) => s.admission_number === "EXIST-1")!;
+
+    const file = xlsxToCsvLikeRows(
+      ["Examination name", "Subject", "Student admission number",
+       "Marks obtained (leave blank to leave this student's mark untouched)", "Absent? (yes/no)"],
+      [
+        ["Bulk Marks Term Exam", "Botany", "EXIST-1", "88", ""], // valid
+        ["Bulk Marks Term Exam", "Chemistry", "EXIST-1", "50", ""], // invalid: subject not set up for this exam
+        ["Bulk Marks Term Exam", "Botany", "NOT-A-REAL-ADM", "50", ""], // invalid: bad admission number
+      ]
+    );
+    const result = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "marks", filename: "marks.csv", fileBuffer: file, format: "csv",
+    });
+    expect(result.rows[0].status).toBe("valid");
+    expect(result.rows[1].status).toBe("invalid");
+    expect(result.rows[1].errors[0]).toMatch(/isn't set up for examination/);
+    expect(result.rows[2].status).toBe("invalid");
+    expect(result.rows[2].errors[0]).toMatch(/admission number .* was not found/);
+
+    const confirmed = await confirmImport(institutionA, adminAuth, adminUserId, result.batchId);
+    expect(confirmed.importedRows).toBe(1);
+
+    const grid = await getMarksGrid(institutionA, adminAuth, examSubject.id);
+    const row = grid.find((r) => r.student_id === student.id)!;
+    expect(row.marks_obtained).toBe("88.00");
+    expect(row.is_absent).toBe(false);
+
+    // A second import for the same student with a BLANK marks cell (and
+    // not marked absent) goes through enterMarks() exactly like the manual
+    // grid does -- for a still-draft mark, that means "not entered", so it
+    // clears the draft row entirely (never forces it to zero) rather than
+    // silently overwriting it with 0. See enterMarks()'s own doc comment
+    // ("§1.2: a blank, Present cell is 'not entered yet' -- never a row").
+    const blankFile = xlsxToCsvLikeRows(
+      ["Examination name", "Subject", "Student admission number",
+       "Marks obtained (leave blank to leave this student's mark untouched)", "Absent? (yes/no)"],
+      [["Bulk Marks Term Exam", "Botany", "EXIST-1", "", ""]]
+    );
+    const blankStaged = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "marks", filename: "marks-blank.csv", fileBuffer: blankFile, format: "csv",
+    });
+    expect(blankStaged.rows[0].status).toBe("valid");
+    await confirmImport(institutionA, adminAuth, adminUserId, blankStaged.batchId);
+    const gridAfterBlank = await getMarksGrid(institutionA, adminAuth, examSubject.id);
+    const rowAfterBlank = gridAfterBlank.find((r) => r.student_id === student.id)!;
+    expect(rowAfterBlank.marks_obtained).toBeNull();
+    expect(rowAfterBlank.mark_id).toBeNull();
+  });
+
+  it("marks obtained above the exam_subject's own max marks is invalid", async () => {
+    const grid = await stageImport(institutionA, adminAuth, adminUserId, {
+      entityType: "marks",
+      filename: "marks-overlimit.csv",
+      fileBuffer: xlsxToCsvLikeRows(
+        ["Examination name", "Subject", "Student admission number",
+         "Marks obtained (leave blank to leave this student's mark untouched)", "Absent? (yes/no)"],
+        [["Bulk Marks Term Exam", "Botany", "EXIST-1", "500", ""]]
+      ),
+      format: "csv",
+    });
+    expect(grid.rows[0].status).toBe("invalid");
+    expect(grid.rows[0].errors[0]).toMatch(/can't exceed/);
+  });
+});
+
 describe("Confirm: commits valid rows, transactional atomicity across the whole batch (§Q.1)", () => {
   it("confirmImport() inserts every valid row and updates the batch log", async () => {
     const file = xlsxToCsvLikeRows(["Name", "Sort order"], [["Grade 10", "10"]]);
@@ -482,6 +567,21 @@ describe("Permission boundaries (§F.3)", () => {
     const adminPerms = await getPermissionsForUser(adminAuth, adminUserId, institutionA);
     expect(() => requirePermission(adminPerms, "data.import")).not.toThrow();
     expect(() => requirePermission(adminPerms, "data.export")).not.toThrow();
+  });
+
+  // §"mark entry also should be available for bulk upload" -- "usable by
+  // an admin/management user only ... do NOT expose it to teachers": the
+  // "marks" entity type is gated by the SAME single data.import check the
+  // Import/Export page (app/(institution)/import/page.tsx) already applies
+  // uniformly to every entity type in the dropdown (including
+  // "Examinations" and "Daily Assessment Marks" above) -- not a per-entity
+  // permission -- so a teacher lacking data.import is rejected before ever
+  // reaching stageImport()/confirmImport() for "marks" specifically, same
+  // as for any other entity type.
+  it("a teacher (no data.import) is rejected for the 'marks' entity type the same way as any other", async () => {
+    const teacherPerms = await getPermissionsForUser(teacherAuth, teacherUserId, institutionA);
+    expect(listImportEntityTypes().some((e) => e.entityType === "marks")).toBe(true);
+    expect(() => requirePermission(teacherPerms, "data.import")).toThrow(/Forbidden/);
   });
 });
 

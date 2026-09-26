@@ -8,7 +8,7 @@ import { getOnboardingChecklist } from "../../../services/onboarding/onboarding-
 import { can } from "../../../services/permissions/permission-service";
 import { getInstitutionStats, getTodayAttendanceSummary, getUpcomingItems } from "../../../services/home/home-service";
 import { listMyTodos } from "../../../services/todo/todo-service";
-import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrendByStage } from "../../../modules/examination/service";
+import { getMostRecentExamination, getMarkEntryStatus, getInstitutionPassRateTrendByStage, getOpenMarkEntryForTeacher } from "../../../modules/examination/service";
 import {
   getInstitutionAttendanceTrend, getInstitutionAttendanceTrendByStage, getConsecutiveAbsentees,
   getPendingLeaveApplicationsForReviewer,
@@ -49,6 +49,11 @@ export default async function DashboardPage() {
   //  does not), same gate the /examinations/status page and its sidebar
   //  link now enforce.
   const canSeeMarkEntryStatus = hasExaminationAccess && can(ctx.permissions, "marks.approve");
+  // §"an exam of which the mark entry is open should be available in the
+  // dashboard of every teacher, but only classes/subjects concerned" --
+  // every teacher holding marks.enter (i.e. everyone who can reach the
+  // marks grid at all), NOT gated on marks.approve like the widget above.
+  const canSeeOpenMarkEntry = hasExaminationAccess && can(ctx.permissions, "marks.enter");
   const hasAttendanceAccess = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"));
   const hasUnrestrictedLeaveReview = can(ctx.permissions, "attendance.edit");
   const hasScopedLeaveReview = can(ctx.permissions, "attendance.leave.review_own_class");
@@ -82,8 +87,9 @@ export default async function DashboardPage() {
   // sections" to plot).
   const isSectionOrAbove = attendanceVisibility.hasAccess && !attendanceVisibility.scope?.classIds;
 
-  const [markEntryStatus, passRateTrendByStage, upcoming, attendanceTrend, attendanceTrendByStage, consecutiveAbsentees, pendingLeave] = await Promise.all([
+  const [markEntryStatus, openMarkEntry, passRateTrendByStage, upcoming, attendanceTrend, attendanceTrendByStage, consecutiveAbsentees, pendingLeave] = await Promise.all([
     canSeeMarkEntryStatus && recentExam ? getMarkEntryStatus(institutionId, authUserId, recentExam.id) : Promise.resolve([]),
+    canSeeOpenMarkEntry ? getOpenMarkEntryForTeacher(institutionId, authUserId, ctx.userId) : Promise.resolve([]),
     // §Dashboard follow-up: "do the same of attendance trend for [pass
     // rate] as well - Y axis 0-100%, X-axis each exams - different section
     // different colour".
@@ -271,6 +277,47 @@ export default async function DashboardPage() {
                 </>
               )}
               <Link href="/examinations/status" className="mt-2 inline-block text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">View full status →</Link>
+            </section>
+          ) : null}
+
+          {canSeeOpenMarkEntry ? (
+            <section className="rounded-card border bg-white p-5 lg:col-span-2">
+              <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Mark Entry</h3>
+              {openMarkEntry.length === 0 ? (
+                <p className="text-sm text-zinc-500">Nothing open for entry right now.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-zinc-500">
+                        <th className="pb-2 font-medium">Exam</th>
+                        <th className="pb-2 font-medium">Class</th>
+                        <th className="pb-2 font-medium">Subject</th>
+                        <th className="pb-2 font-medium">Status</th>
+                        <th className="pb-2 font-medium"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {openMarkEntry.map((r) => (
+                        <tr key={`${r.examSubjectId}-${r.classId}`} className="border-b">
+                          <td className="py-2 text-zinc-900">{r.examinationName}</td>
+                          <td className="py-2 text-zinc-500">{r.className}</td>
+                          <td className="py-2 text-zinc-500">{r.subjectName}</td>
+                          <td className="py-2 text-zinc-500">{r.status === "not_started" ? "Not started" : "In progress"}</td>
+                          <td className="py-2 text-right">
+                            <Link
+                              href={`/examinations/${r.examinationId}/marks/${r.examSubjectId}`}
+                              className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]"
+                            >
+                              {r.status === "not_started" ? "Enter marks" : "Continue"} →
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
           ) : null}
 
