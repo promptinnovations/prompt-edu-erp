@@ -104,12 +104,20 @@ export function Donut({
 }
 
 function ChartLegend({ segments, total }: { segments: ChartDatum[]; total: number }) {
+  // §Analytics follow-up: "calculate in 100, not in 1000" — the count and
+  // percentage were both correctly computed (out of `total`, so always
+  // <=100%), but the cramped "Pass (6, 66.7%)" rendering let the count and
+  // percentage digits run together at a glance and read like one number out
+  // of 1000. Splitting them onto their own inline spans with a middot
+  // separator keeps count and percentage visually distinct.
   return (
     <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
       {segments.map((s) => (
         <span key={s.label} className="inline-flex items-center gap-1 text-[11px] text-zinc-500">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
-          {s.label} ({s.value}{total > 0 ? `, ${fmtPct((s.value / total) * 100)}` : ""})
+          <span>{s.label}:</span>
+          <span className="font-medium text-zinc-700">{s.value}</span>
+          {total > 0 ? <span>&middot; {fmtPct((s.value / total) * 100)}</span> : null}
         </span>
       ))}
     </div>

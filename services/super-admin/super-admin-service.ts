@@ -337,6 +337,7 @@ export async function createInstitution(
     // not an Institution Admin preference, so it's provisioned right here.
     if (data.board === "sksvb") {
       await provisionSksvbDefaults(scoped, institution.id);
+      await provisionGradingPresetDef(scoped, institution.id, SKSVB_PRESET);
     }
     if (data.board && (SCHOOL_BOARDS as readonly string[]).includes(data.board)) {
       await provisionGradingPreset(scoped, institution.id, data.board as (typeof SCHOOL_BOARDS)[number]);
@@ -611,6 +612,23 @@ const ICSE_PRESET: GradingPresetDef = {
   ],
 };
 
+/** SKSVB — no single published grading scale the way a school board has
+ *  (§K "never hard-code a grading scale" is about display/analysis, not
+ *  about leaving an institution with NO scale at all: without one, every
+ *  result computed for this institution has grade_band_id/grade_label =
+ *  null, and Result Analysis's Grade distribution donut renders empty for
+ *  every exam — see the MMP "Half Yearly Exam" case that surfaced this).
+ *  Reuses the Kerala State 9-band shape/pass-% as a sensible starting
+ *  point — fully editable afterward via the existing grade scale/grade
+ *  band CRUD, exactly like a hand-built custom scale, same as every other
+ *  preset here. */
+const SKSVB_PRESET: GradingPresetDef = {
+  curriculum: "SKSVB",
+  scaleName: "SKSVB 9-point (default)",
+  passPct: 35,
+  bands: KERALA_STATE_PRESET.bands,
+};
+
 const GRADING_PRESETS: Record<(typeof SCHOOL_BOARDS)[number], GradingPresetDef> = {
   kerala_state: KERALA_STATE_PRESET,
   cbse: CBSE_PRESET,
@@ -627,11 +645,9 @@ const GRADING_PRESETS: Record<(typeof SCHOOL_BOARDS)[number], GradingPresetDef> 
  *  edited/deleted the original — matches provisionSksvbDefaults()'s
  *  "safe to run again" spirit without pretending the two runs are the
  *  same scale. */
-async function provisionGradingPreset(
-  scoped: DbClient, institutionId: string, board: (typeof SCHOOL_BOARDS)[number]
+async function provisionGradingPresetDef(
+  scoped: DbClient, institutionId: string, preset: GradingPresetDef
 ): Promise<void> {
-  const preset = GRADING_PRESETS[board];
-
   await scoped.query("update grade_scales set is_default = false where institution_id = $1 and is_default = true", [institutionId]);
   const { rows: scaleRows } = await scoped.query<{ id: string }>(
     `insert into grade_scales (institution_id, name, is_default, curriculum) values ($1, $2, true, $3) returning id`,
@@ -649,6 +665,16 @@ async function provisionGradingPreset(
   }
 
   await scoped.query("update institutions set pass_pct = $1, updated_at = now() where id = $2", [preset.passPct, institutionId]);
+}
+
+/** Thin wrapper kept for the two SCHOOL_BOARDS call sites below (looks up
+ *  the board's preset then delegates) — provisionGradingPresetDef() is the
+ *  one both this and the SKSVB call site (which has no SCHOOL_BOARDS key to
+ *  look up) actually share. */
+async function provisionGradingPreset(
+  scoped: DbClient, institutionId: string, board: (typeof SCHOOL_BOARDS)[number]
+): Promise<void> {
+  await provisionGradingPresetDef(scoped, institutionId, GRADING_PRESETS[board]);
 }
 
 const updateStatusSchema = z.object({ status: z.enum(INSTITUTION_STATUSES) });
@@ -761,6 +787,7 @@ export async function updateInstitutionBoard(
     );
     if (data.board === "sksvb") {
       await provisionSksvbDefaults(scoped, institutionId);
+      await provisionGradingPresetDef(scoped, institutionId, SKSVB_PRESET);
     }
     if (isSchoolBoard) {
       await provisionGradingPreset(scoped, institutionId, data.board as (typeof SCHOOL_BOARDS)[number]);

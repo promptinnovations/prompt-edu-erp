@@ -39,6 +39,22 @@ function fmtPct(v: number | null): string {
   return v !== null && v !== undefined ? `${v}%` : "—";
 }
 
+/** §Analytics follow-up: "when opens, latest exam should be there as
+ *  default, other exams shall be selected from dropdown" — previously
+ *  `examinationId` defaulted to `""` (nothing selected) until the admin
+ *  picked one and pressed Load. Prefers the exam with the latest
+ *  `start_date`; an exam with no start_date falls back to `examinations`'
+ *  own order (listExaminations() sorts `created_at desc`, so index 0 is
+ *  still "most recent" among undated exams). */
+function pickDefaultExaminationId(exams: Array<{ id: string; start_date: string | null }>): string {
+  if (exams.length === 0) return "";
+  const dated = exams.filter((e) => e.start_date);
+  if (dated.length > 0) {
+    return dated.reduce((latest, e) => (e.start_date! > latest.start_date! ? e : latest)).id;
+  }
+  return exams[0].id;
+}
+
 function gradeCountsToChart(counts: Record<string, number>): ChartDatum[] {
   // No institution-config color available at this call site (a bare
   // grade_label -> count map, e.g. ResultGroupRow.grade_counts, doesn't
@@ -57,7 +73,7 @@ export default async function AnalyticsPage({
   }>;
 }) {
   const {
-    examinationId = "", trendClassId = "", trendSectionId = "",
+    examinationId: examinationIdParam = "", trendClassId = "", trendSectionId = "",
     fromMonth = monthsAgo(2), toMonth = monthsAgo(0),
     tab: rawTab = "school", classId: selectedClassId = "",
   } = await searchParams;
@@ -98,6 +114,8 @@ export default async function AnalyticsPage({
     listExaminations(institutionId, authUserId),
     getClassificationRule(institutionId, authUserId),
   ]);
+
+  const examinationId = examinationIdParam || pickDefaultExaminationId(examinations);
 
   const [subjectComparison, indicators, classification, schoolSummary, trackSummaries] = examinationId
     ? await Promise.all([
