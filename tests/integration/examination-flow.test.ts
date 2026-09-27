@@ -20,6 +20,7 @@ import {
   getMarksGrid, enterMarks, deleteMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   correctMark, computeResults, getResults, listStudentResultHistory,
   getExaminationMarksMatrix, getCumulativeMarksheet, getMarkEntryStatus,
+  publishExamination,
 } from "../../modules/examination/service";
 
 let institutionA: string;
@@ -330,6 +331,9 @@ describe("Edit & remove buttons follow-up — exam CRUD and mark removal (§'add
 
 describe("listStudentResultHistory() — parent/student portal 'Results' detail view follow-up", () => {
   it("returns every computed result for a student, newest first, not just the latest", async () => {
+    // §migration 0057: listStudentResultHistory is portal-only and now
+    // requires the examination be published to the student/parent portal.
+    await publishExamination(institutionA, adminAuth, adminUserId, examinationId);
     const history = await listStudentResultHistory(institutionA, adminAuth, student1);
     expect(history.length).toBeGreaterThanOrEqual(1);
     const row = history.find((r) => r.examination_id === examinationId)!;

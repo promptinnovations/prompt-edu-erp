@@ -23,7 +23,7 @@ export default async function StudentDashboardPage() {
   if (!ownStudentId) return <NotLinkedNotice />;
 
   const [summary, kudosReceived, approvedReviews, classes] = await Promise.all([
-    getStudent360(institutionId, authUserId, ownStudentId, 5),
+    getStudent360(institutionId, authUserId, ownStudentId, 5, undefined, true),
     listKudosForStudent(institutionId, authUserId, ownStudentId),
     listApprovedReviews(institutionId, authUserId, null, ownStudentId),
     listClasses(institutionId, authUserId),

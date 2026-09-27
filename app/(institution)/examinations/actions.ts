@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
-import { requirePermission } from "../../../services/permissions/permission-service";
+import { can, requirePermission } from "../../../services/permissions/permission-service";
 import {
   createExamination, updateExamination, deleteExamination,
   addExamSubject, addExamClass, removeExamClass, removeExamSubject, saveExamScopePlan,
   enterMarksAndRecompute, deleteMarkAndRecompute, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment, getDailyAssessment,
-  enterCeMarksAndRecompute, setCeComponents, finalizeExamination, setInstitutionCeDefaults,
+  enterCeMarksAndRecompute, setCeComponents, setInstitutionCeDefaults,
+  publishExamination, unpublishExamination,
 } from "../../../modules/examination/service";
 import { assertMarkEntryScope, assertDailyAssessmentScope } from "../../../services/scope/teacher-scope-service";
 
@@ -242,23 +243,46 @@ export async function setCeComponentsAction(_prevState: { error: string | null; 
   }
 }
 
-/** §1.6 explicit, irreversible "Finalize results" — freezes every result
- *  row of the exam. Gated on marks.lock (whoever can lock marks can lock
- *  the results built from them) plus settings.manage. */
-export async function finalizeExaminationAction(_prevState: { error: string | null; frozen?: number }, formData: FormData) {
+/** §"the admin/principal should publish result of an exam for viewing it
+ *  in student/parent portal" — gated on the same admin/principal-level
+ *  composite (marks.approve or settings.manage) used everywhere else in
+ *  the app this round for "sees/controls results beyond their own class"
+ *  (see results/consolidated, results/report-cards, analytics). A teacher
+ *  (marks.enter only) never reaches this. */
+function requireCanPublishResults(ctx: { isSuperAdmin: boolean; permissions: Set<string> }) {
+  if (ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage")) return;
+  throw new Error("Only the principal/management or an institution admin can publish results.");
+}
+
+export async function publishExaminationAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
-    requirePermission(ctx.permissions, "settings.manage");
-    requirePermission(ctx.permissions, "marks.lock");
-    const { frozen } = await finalizeExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
+    requireCanPublishResults(ctx);
+    await publishExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
     revalidatePath(`/examinations/${examinationId}`);
     revalidatePath("/examinations");
     revalidatePath("/results");
-    return { error: null, frozen };
+    return { error: null };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to finalize results." };
+    return { error: err instanceof Error ? err.message : "Failed to publish results." };
+  }
+}
+
+export async function unpublishExaminationAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requireCanPublishResults(ctx);
+    await unpublishExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
+    revalidatePath(`/examinations/${examinationId}`);
+    revalidatePath("/examinations");
+    revalidatePath("/results");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to unpublish results." };
   }
 }
 

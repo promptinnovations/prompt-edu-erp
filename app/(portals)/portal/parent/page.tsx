@@ -67,7 +67,10 @@ export default async function ParentPortalPage({
   const sections = await getParentPortalSections(institutionId, authUserId);
 
   const [summary, childLeaves, achievements, skillSubmissions, readingRecords, characterAssessments, ratingLabels, mentoringNotes, allInvoices, staffDirectory] = await Promise.all([
-    getStudent360(institutionId, authUserId, selectedChildId, 10, { canViewDiscipline: sections.discipline }),
+    // §"publish result of an exam for viewing it in student/parent portal"
+    // — onlyPublishedResults=true is what makes the parent dashboard's
+    // "latest result" respect that gate.
+    getStudent360(institutionId, authUserId, selectedChildId, 10, { canViewDiscipline: sections.discipline }, true),
     can(ctx.permissions, "attendance.leave.apply")
       ? listLeaveApplicationsForStudent(institutionId, authUserId, selectedChildId)
       : Promise.resolve([]),

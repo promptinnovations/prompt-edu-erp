@@ -105,7 +105,15 @@ export interface Student360Scope {
 
 export async function getStudent360(
   institutionId: string, authUserId: string, studentId: string, recentEventLimit = 10,
-  scope?: Student360Scope
+  scope?: Student360Scope,
+  // §"the admin/principal should publish result of an exam for viewing it
+  // in student/parent portal" — this function is shared by a STAFF page
+  // (students/[id]/page.tsx, which must keep seeing live results
+  // regardless of publish state, same as every other staff-facing view)
+  // and the student/parent portal (which must not). Opt-in, defaulting to
+  // the pre-existing unfiltered behaviour, rather than a breaking change to
+  // every existing call site.
+  onlyPublishedResults = false
 ): Promise<Student360Record> {
   const student = await getStudent(institutionId, authUserId, studentId);
   const enrollment = await getCurrentEnrollment(institutionId, authUserId, studentId);
@@ -118,9 +126,10 @@ export async function getStudent360(
          join examinations e on e.id = r.examination_id
          left join grade_bands gb on gb.id = r.grade_band_id
         where r.student_id = $1 and r.is_provisional = false
+          and ($2 = false or e.published_at is not null)
         order by r.computed_at desc
         limit 1`,
-      [studentId]
+      [studentId, onlyPublishedResults]
     );
     return rows[0] ?? null;
   });

@@ -7,7 +7,7 @@ export default async function StudentExamsPage() {
   const { institutionId, authUserId, ownStudentId } = await requireOwnStudentId();
   if (!ownStudentId) return <NotLinkedNotice />;
 
-  const summary = await getStudent360(institutionId, authUserId, ownStudentId);
+  const summary = await getStudent360(institutionId, authUserId, ownStudentId, 10, undefined, true);
   const breakdown = summary.latestConsolidatedScore?.breakdown_jsonb ?? {};
   const breakdownEntries = Object.entries(breakdown);
   const maxValue = Math.max(1, ...breakdownEntries.map(([, v]) => Number(v) || 0));

@@ -1,8 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { updateExamResultSettingsAction, setCeComponentsAction, finalizeExaminationAction } from "../actions";
-import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
+import { updateExamResultSettingsAction, setCeComponentsAction, publishExaminationAction, unpublishExaminationAction } from "../actions";
 
 /** EXAMINATION_SPEC §8 per-exam overall pass threshold + §CE on/off/mode.
  *  Regular exams only — the Daily Assessment detail view never renders this. */
@@ -93,21 +92,33 @@ export function CeComponentsForm({
   );
 }
 
-/** §1.6 — the explicit, irreversible finalize/lock of an exam's results. */
-export function FinalizeResultsButton({ examinationId }: { examinationId: string }) {
-  const [state, formAction] = useActionState<{ error: string | null; frozen?: number }, FormData>(
-    finalizeExaminationAction, { error: null }
+/** §"the admin/principal should publish result of an exam for viewing it
+ *  in student/parent portal" — staff-side views never gate on this at all
+ *  (this is purely a portal-visibility toggle, unlike the old finalize/
+ *  freeze action it replaces). Toggleable any number of times: publishing
+ *  again after a correction, or unpublishing to pull a result back, are
+ *  both ordinary, non-destructive actions — no confirmation dialog needed
+ *  the way an irreversible freeze would have required. */
+export function PublishResultsButton({ examinationId, published }: { examinationId: string; published: boolean }) {
+  const [publishState, publishAction, publishPending] = useActionState<{ error: string | null }, FormData>(
+    publishExaminationAction, { error: null }
   );
+  const [unpublishState, unpublishAction, unpublishPending] = useActionState<{ error: string | null }, FormData>(
+    unpublishExaminationAction, { error: null }
+  );
+  const state = published ? unpublishState : publishState;
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-2">
+    <form action={published ? unpublishAction : publishAction} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="examinationId" value={examinationId} />
-      <ConfirmSubmitButton
-        message="Finalize results? Every student's total, percentage, grade and pass/fail will be frozen permanently — later mark or grade-band changes will not affect them."
-        className="rounded-full border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
-      >
-        Finalize results
-      </ConfirmSubmitButton>
-      {typeof state.frozen === "number" ? <span className="text-xs text-zinc-500">{state.frozen} result(s) frozen.</span> : null}
+      {published ? (
+        <button type="submit" disabled={unpublishPending} className="rounded-full border px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50">
+          Unpublish from portal
+        </button>
+      ) : (
+        <button type="submit" disabled={publishPending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+          Publish to student/parent portal
+        </button>
+      )}
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
   );

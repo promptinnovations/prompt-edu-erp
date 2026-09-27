@@ -31,6 +31,10 @@ export interface ExaminationRecord {
   finalized_at?: string | null;
   ce_enabled?: boolean;
   ce_mode?: "total" | "components";
+  // Migration 0057 — portal-visibility gate, independent of finalized_at
+  // (see publishExamination()'s doc comment). Only populated by
+  // getExamination(), same convention as the other 0055/0057 columns above.
+  published_at?: string | null;
 }
 export interface ExamSubjectRecord { id: string; examination_id: string; subject_id: string; max_marks: string; pass_marks: string }
 
@@ -593,7 +597,8 @@ export async function getExamination(institutionId: string, authUserId: string, 
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<ExaminationRecord>(
       `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id,
-              overall_pass_pct, finalized_at::text as finalized_at, ce_enabled, ce_mode
+              overall_pass_pct, finalized_at::text as finalized_at, ce_enabled, ce_mode,
+              published_at::text as published_at
          from examinations where id = $1`,
       [examinationId]
     );
@@ -2154,6 +2159,56 @@ export async function finalizeExamination(
   return out;
 }
 
+/** §"the admin/principal should publish result of an exam for viewing it
+ *  in student/parent portal" — the ONLY thing that gates the student/parent
+ *  portal's result views (getStudent360()'s latestResult in
+ *  modules/portfolio/service.ts, listStudentResultHistory() below). Staff
+ *  views (this examination's own detail page, Consolidated Marks, Report
+ *  Cards, Result Analysis) are unaffected — they already show live results
+ *  regardless of this flag, same as before this migration existed.
+ *
+ *  Deliberately NOT the same thing as finalizeExamination(): publishing
+ *  touches examinations.published_at only, never results/marks, and can be
+ *  toggled back with unpublishExamination() any number of times (e.g. to
+ *  pull a result back for correction) — finalize is a one-way freeze of
+ *  the computed numbers themselves. An exam can be published while still
+ *  provisional (some students' marks not yet entered) — that is an
+ *  intentional choice left to the admin/principal, not enforced here. */
+export async function publishExamination(
+  institutionId: string, authUserId: string, userId: string, examinationId: string
+): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ is_daily_assessment: boolean }>(
+      `select et.is_daily_assessment
+         from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`,
+      [examinationId]
+    );
+    if (!ex[0]) throw new Error("Examination not found.");
+    if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers aren't published this way.");
+    await scoped.query(
+      "update examinations set published_at = now(), published_by = $2, updated_at = now() where id = $1",
+      [examinationId, userId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "publish", module: "examination", entityType: "examinations", entityId: examinationId });
+  });
+}
+
+/** Reverses publishExamination() — pulls the exam's results back out of the
+ *  student/parent portal without touching results/marks at all. */
+export async function unpublishExamination(
+  institutionId: string, authUserId: string, userId: string, examinationId: string
+): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await scoped.query(
+      "update examinations set published_at = null, published_by = null, updated_at = now() where id = $1",
+      [examinationId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "unpublish", module: "examination", entityType: "examinations", entityId: examinationId });
+  });
+}
+
 /** "Result > Consolidated marks / Report Cards" follow-up — one flat row
  *  per (student, exam_subject) covering EVERY subject of the examination,
  *  base on the students actually enrolled in the classes/sections this
@@ -2340,6 +2395,12 @@ export interface StudentResultHistoryRow {
  *  getStudent360()'s latestResult (portfolio/service.ts), which only ever
  *  returns the single most recent one. Same results/examinations/
  *  grade_bands join, just not narrowed to the latest row. */
+/** Portal-only (its one and only caller is the parent portal's Results
+ *  page) — so the `e.published_at is not null` gate lives directly in this
+ *  query rather than behind an optional parameter: every reader of this
+ *  function is a portal reader, by construction, unlike getStudent360()
+ *  below which is shared with staff-facing pages and needs the flag to be
+ *  opt-in per caller. */
 export async function listStudentResultHistory(
   institutionId: string, authUserId: string, studentId: string
 ): Promise<StudentResultHistoryRow[]> {
@@ -2350,7 +2411,7 @@ export async function listStudentResultHistory(
          from results r
          join examinations e on e.id = r.examination_id
          left join grade_bands gb on gb.id = r.grade_band_id
-        where r.student_id = $1 and r.is_provisional = false
+        where r.student_id = $1 and r.is_provisional = false and e.published_at is not null
         order by r.computed_at desc`,
       [studentId]
     );

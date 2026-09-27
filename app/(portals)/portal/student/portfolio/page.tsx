@@ -18,7 +18,7 @@ export default async function StudentPortfolioPage() {
 
   const [summary, skillTypes, achievementCategories, achievementLevels, disciplineFlags, characterAssessments, ratingLabels, mentoringNotes] =
     await Promise.all([
-      getStudent360(institutionId, authUserId, ownStudentId, 30),
+      getStudent360(institutionId, authUserId, ownStudentId, 30, undefined, true),
       listSkillTypes(institutionId, authUserId),
       listAchievementCategories(institutionId, authUserId),
       listAchievementLevels(institutionId, authUserId),

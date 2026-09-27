@@ -13,7 +13,7 @@ import {
 import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../services/scope/teacher-scope-service";
 import { formatMarks } from "../../../../services/format/marks";
 import { ExamScopePlanner, ExamSubjectsSection } from "./ExamDetailForms";
-import { ExamResultSettingsForm, CeComponentsForm, FinalizeResultsButton } from "./ExamResultSettings";
+import { ExamResultSettingsForm, CeComponentsForm, PublishResultsButton } from "./ExamResultSettings";
 import DailyAssessmentSection from "./DailyAssessmentSection";
 
 export default async function ExaminationDetailPage({
@@ -123,6 +123,13 @@ export default async function ExaminationDetailPage({
   );
   const isFinalized = Boolean(examination.finalized_at);
   const ceMode = examination.ce_mode ?? "total";
+  // §"the admin/principal should publish result of an exam for viewing it
+  // in student/parent portal" — deliberately independent of isFinalized/
+  // canManage: a teacher never sees this button, but management (who may
+  // not hold settings.manage) still can, same composite used for scoping
+  // Consolidated Marks/Report Cards/Result Analysis this round.
+  const isPublished = Boolean(examination.published_at);
+  const canPublish = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
 
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
   const examTypeName = examType?.name ?? "—";
@@ -224,14 +231,17 @@ export default async function ExaminationDetailPage({
       <section className="rounded-card border bg-white p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-[var(--heading)]">
-            Results{isFinalized ? " — finalized (frozen)" : ""}
+            Results
+            <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-normal ${isPublished ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>
+              {isPublished ? "Published to portal" : "Not published to portal"}
+            </span>
           </h2>
-          {!isFinalized && provisionalCount > 0 ? (
+          {provisionalCount > 0 ? (
             <p className="w-full text-xs text-zinc-500 sm:w-auto">
-              Live: {provisionalCount} provisional (marks still being entered or not yet verified/locked). Verifying, locking and finalizing can be done later.
+              Live: {provisionalCount} provisional (marks still being entered or not yet verified/locked) — visible here and to management as soon as they&apos;re saved; publishing doesn&apos;t wait for every subject to be complete.
             </p>
           ) : null}
-          {canManage && can(ctx.permissions, "marks.lock") && !isFinalized ? <FinalizeResultsButton examinationId={id} /> : null}
+          {canPublish ? <PublishResultsButton examinationId={id} published={isPublished} /> : null}
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
