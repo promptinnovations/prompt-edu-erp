@@ -104,12 +104,18 @@ export default async function ExaminationDetailPage({
   // once here and used to filter both.
   const teacherScope = canManage ? null : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
 
-  const [examSubjects, subjects, ceComponents, subjectGrades, scopePlan] = await Promise.all([
+  const [examSubjects, subjects, ceComponents, subjectGrades, scopePlan, classesForGrades] = await Promise.all([
     listExamSubjects(institutionId, authUserId, id),
     listSubjects(institutionId, authUserId),
     listCeComponents(institutionId, authUserId, id),
     listExamSubjectGrades(institutionId, authUserId, id),
     canManage ? getExamScopePlan(institutionId, authUserId, id) : Promise.resolve(null),
+    // §"for a teacher, it should never show all grades, give only classes &
+    // subjects concerned to them" -- listExamSubjectGrades() above returns
+    // every grade institution-wide for each subject; a teacher's own scope
+    // needs to narrow the "grades" list itself (not just which subject rows
+    // appear), which requires class_id -> name below.
+    canManage ? Promise.resolve([]) : listClasses(institutionId, authUserId),
   ]);
   const results = await getResults(
     institutionId, authUserId, id,
@@ -134,9 +140,19 @@ export default async function ExaminationDetailPage({
     const coveredClassIdsBySubject = await Promise.all(
       linkedSubjects.map((l) => getExamSubjectClassIds(institutionId, authUserId, l.examSubjectId))
     );
-    linkedSubjects = linkedSubjects.filter((l, i) =>
-      coveredClassIdsBySubject[i].some((classId) => scopeIncludesSubjectInClass(teacherScope, classId, l.subjectId))
-    );
+    linkedSubjects = linkedSubjects
+      .map((l, i) => {
+        const covered = new Set(coveredClassIdsBySubject[i]);
+        // classesForGrades is already in the app's standard stage/grade/
+        // division order (services roster-order module) -- filtering it
+        // rather than `covered` itself keeps that order in the "grades"
+        // column, same as listExamSubjectGrades()'s own sortClasses() did.
+        const allowedNames = classesForGrades
+          .filter((c) => covered.has(c.id) && scopeIncludesSubjectInClass(teacherScope, c.id, l.subjectId))
+          .map((c) => c.name);
+        return { ...l, grades: allowedNames };
+      })
+      .filter((l) => l.grades.length > 0);
   }
   const provisionalCount = results.filter((r) => r.is_provisional).length;
 

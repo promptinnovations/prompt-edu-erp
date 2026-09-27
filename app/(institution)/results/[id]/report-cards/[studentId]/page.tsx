@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../../services/request-context";
+import { can } from "../../../../../../services/permissions/permission-service";
+import { getTeacherClassScope } from "../../../../../../services/scope/teacher-scope-service";
 import { getInstitution } from "../../../../../../services/institution/institution-service";
 import {
   getExamination, getExaminationMarksMatrix, getResults, PASS_COLOR, FAIL_COLOR,
 } from "../../../../../../modules/examination/service";
-import { getStudent } from "../../../../../../modules/students/service";
+import { getStudent, getCurrentEnrollment } from "../../../../../../modules/students/service";
 import { listAcademicYears } from "../../../../../../modules/academic/service";
 import { getStudentAttendanceSummary } from "../../../../../../modules/attendance/service";
 import { formatDateIST, todayIST } from "../../../../../../services/datetime/ist";
@@ -36,15 +38,40 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound();
 
+  // §"give access to ... report cards of only their assigned classes not
+  // all" — a teacher hitting this URL directly for a student outside their
+  // scope must 404, not just have the link hidden on the list page above.
+  const hasBroadResultAccess = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
+  const teacherScope = hasBroadResultAccess ? null : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
+
   const [institution, matrix, results, student, academicYears] = await Promise.all([
     getInstitution(institutionId, authUserId),
     getExaminationMarksMatrix(institutionId, authUserId, id),
-    getResults(institutionId, authUserId, id),
+    getResults(institutionId, authUserId, id, teacherScope ? [...teacherScope.classIds] : null),
     getStudent(institutionId, authUserId, studentId),
     listAcademicYears(institutionId, authUserId),
   ]);
   const studentRows = matrix.filter((r) => r.student_id === studentId);
   if (studentRows.length === 0) notFound();
+  // A scoped viewer whose classes don't cover this student's current
+  // enrollment must 404 here too — `results` above already excludes them
+  // (so `overall` below would be undefined either way), but `matrix` is
+  // intentionally left unfiltered above (still needed to resolve
+  // studentRows/subjects for legitimate viewers), so it alone can't
+  // distinguish "wrong student" from "no results computed yet".
+  if (teacherScope) {
+    const enrollment = await getCurrentEnrollment(institutionId, authUserId, studentId);
+    if (!enrollment || !teacherScope.classIds.has(enrollment.class_id)) notFound();
+  }
+  // A scoped viewer whose own classIds don't cover this student's current
+  // enrollment never even reaches the "no result computed yet" case below
+  // — getResults() above already excluded them, so `results` (unlike
+  // `matrix`, which is intentionally left unfiltered to still resolve
+  // studentRows/subjects) simply has no row for them.
+  if (teacherScope) {
+    const enrollment = await getCurrentEnrollment(institutionId, authUserId, studentId);
+    if (!enrollment || !teacherScope.classIds.has(enrollment.class_id)) notFound();
+  }
   const overall = results.find((r) => r.student_id === studentId);
   const first = studentRows[0];
   // EXAMINATION_SPEC §1.5/§8: the overall verdict is the STORED results.is_pass

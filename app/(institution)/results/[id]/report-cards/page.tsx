@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
+import { can } from "../../../../../services/permissions/permission-service";
+import { getTeacherClassScope } from "../../../../../services/scope/teacher-scope-service";
 import { getExamination, getResults } from "../../../../../modules/examination/service";
 import { formatMarks } from "../../../../../services/format/marks";
 
@@ -18,7 +20,11 @@ export default async function ReportCardsListPage({ params }: { params: Promise<
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound();
 
-  const results = await getResults(institutionId, authUserId, id);
+  // §"give access to ... report cards of only their assigned classes not
+  // all" — same scoping as Consolidated Marks above.
+  const hasBroadResultAccess = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
+  const teacherScope = hasBroadResultAccess ? null : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
+  const results = await getResults(institutionId, authUserId, id, teacherScope ? [...teacherScope.classIds] : null);
 
   return (
     <div className="space-y-6">

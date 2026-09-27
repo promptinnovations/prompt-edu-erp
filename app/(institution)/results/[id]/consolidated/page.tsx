@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
+import { can } from "../../../../../services/permissions/permission-service";
 import { getInstitution } from "../../../../../services/institution/institution-service";
+import { getTeacherClassScope } from "../../../../../services/scope/teacher-scope-service";
 import {
   getExamination, getExaminationMarksMatrix, getResults, listClassesForExamination, PASS_COLOR, FAIL_COLOR,
 } from "../../../../../modules/examination/service";
@@ -37,12 +39,34 @@ export default async function ConsolidatedMarksPage({
   const examination = await getExamination(institutionId, authUserId, id);
   if (!examination) notFound();
 
-  const [institution, rows, classOptions, results] = await Promise.all([
+  // §"give access to the consolidated mark list ... of only their assigned
+  // classes not all" — same hasBroadResultAccess signal analytics/page.tsx
+  // already uses (management/admin see everything unfiltered).
+  const hasBroadResultAccess = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
+  const teacherScope = hasBroadResultAccess ? null : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
+
+  const [institution, allClassOptions, results] = await Promise.all([
     getInstitution(institutionId, authUserId),
-    getExaminationMarksMatrix(institutionId, authUserId, id, classId || null),
     listClassesForExamination(institutionId, authUserId, id),
-    getResults(institutionId, authUserId, id),
+    // A scoped viewer's `results` filter is the full set of classes they're
+    // allowed, regardless of which single one the dropdown below shows —
+    // resultsByStudent below is only ever looked up for rows already
+    // filtered to that same scope, so extra rows here are simply unused.
+    getResults(institutionId, authUserId, id, teacherScope ? [...teacherScope.classIds] : null),
   ]);
+  const classOptions = teacherScope ? allClassOptions.filter((c) => teacherScope.classIds.has(c.id)) : allClassOptions;
+  // A requested classId outside the viewer's own scope is ignored, never
+  // honoured — falls back to "every class this teacher can see" below.
+  const validSelectedClassId = classId && classOptions.some((c) => c.id === classId) ? classId : "";
+
+  const rows = teacherScope
+    ? (validSelectedClassId
+        ? await getExaminationMarksMatrix(institutionId, authUserId, id, validSelectedClassId)
+        // No specific class picked (or an out-of-scope one was) — never
+        // fall back to the unfiltered "every class" query for a scoped
+        // viewer; instead combine just their own allowed classes.
+        : (await Promise.all(classOptions.map((c) => getExaminationMarksMatrix(institutionId, authUserId, id, c.id)))).flat())
+    : await getExaminationMarksMatrix(institutionId, authUserId, id, classId || null);
   const resultsByStudent = new Map(results.map((r) => [r.student_id, r]));
 
   const subjects = new Map<string, { name: string; maxMarks: string }>();
@@ -69,7 +93,7 @@ export default async function ConsolidatedMarksPage({
       </div>
 
       <div className="no-print">
-        <ClassFilterForm classes={classOptions} classId={classId} />
+        <ClassFilterForm classes={classOptions} classId={validSelectedClassId} showAllOption={!teacherScope} />
       </div>
 
       <section className="print-area overflow-hidden rounded-2xl border bg-white">

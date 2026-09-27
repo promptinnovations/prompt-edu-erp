@@ -106,6 +106,24 @@ export default async function InstitutionLayout({ children }: { children: React.
   const hasAccountsAccess = enabledModules.has("accounts") && can(ctx.permissions, "accounts.view");
   const hasMessagesAccess = can(ctx.permissions, "messages.view");
 
+  // §"for a teacher ... give only classes & subjects concerned to them ...
+  // don't give all this in a staff portal ... there should not be a print
+  // center ... create exam, enrollment ... should not be in teachers
+  // portal" — one shared "sees/manages everything, not just their own"
+  // signal reused across the sidebar edits below, same composite already
+  // used by results/report-cards pages this round.
+  const hasBroadResultAccess = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
+  // "Enrollment" (add/search/manage every student) is an office job — a
+  // teacher's own student.view only earns them the read-only Student
+  // profiles/Portfolio views below, same split staff/page.tsx already
+  // draws with canViewAllStaff.
+  const canManageEnrollment = ctx.isSuperAdmin || can(ctx.permissions, "student.view_all");
+  // Staff group: "only what is concerned to them — my profile, my leave, my
+  // attendance, my portion plan. nothing more." staff.edit is the same
+  // "unrestricted staff access" signal app/(institution)/staff/page.tsx's
+  // own canViewAllStaff already established.
+  const canViewAllStaff = ctx.isSuperAdmin || can(ctx.permissions, "staff.edit");
+
   // Icons must be pre-rendered elements, not bare component references —
   // GroupedNavLinks is a "use client" component, and a Server Component
   // (this layout) cannot pass a function across that boundary (React:
@@ -149,7 +167,11 @@ export default async function InstitutionLayout({ children }: { children: React.
       kind: "group" as const, label: "Student Management", icon: ni(StudentIcon),
       items: [
         { href: "/students/directory", label: "Student profiles" },
-        { href: "/students", label: "Enrollment" },
+        // §"enrollment of students (student management module) should not
+        // be in teachers portal" — gated separately from the group itself
+        // (student.view, which a teacher does hold, only unlocks the two
+        // read-only views above/below).
+        ...(canManageEnrollment ? [{ href: "/students", label: "Enrollment" }] : []),
         { href: "/students/directory?tab=portfolio", label: "Portfolio" },
       ],
     }] : []),
@@ -160,8 +182,15 @@ export default async function InstitutionLayout({ children }: { children: React.
         { href: "/attendance#overview", label: "Attendance overview" },
         { href: "/attendance#take", label: "Student attendance" },
         { href: "/attendance#leave", label: "Leave applications" },
-        { href: "/attendance#my-leave", label: "My leave" },
-        { href: "/attendance#staff-leave", label: "Staff leave review" },
+        // §"my leave should not be here" (img5) — moved into the trimmed
+        // Staff group below instead, alongside "My attendance"/"My
+        // profile"/"My portion plan".
+        // §"staff leave review is only for principal and management" —
+        // attendance.edit is the exact permission the /attendance page
+        // itself already gates that section on (hasUnrestrictedEdit).
+        ...(can(ctx.permissions, "attendance.edit")
+          ? [{ href: "/attendance#staff-leave", label: "Staff leave review" }]
+          : []),
         { href: "/attendance/register", label: "Monthly register" },
       ],
     }] : []),
@@ -169,7 +198,11 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasExaminationAccess ? [{
       kind: "group" as const, label: "Examination", icon: ni(ExamIcon),
       items: [
-        { href: "/examinations#create", label: "Create Exam" },
+        // §"create exam ... should not be in teachers portal" — matches
+        // createExaminationAction()'s own settings.manage requirement and
+        // the /examinations page's own canManage gate on that section, so
+        // this link is never shown to someone who'd just hit a 403 anyway.
+        ...(can(ctx.permissions, "settings.manage") ? [{ href: "/examinations#create", label: "Create Exam" }] : []),
         { href: "/examinations#list", label: "Exams" },
         { href: "/examinations", label: "Mark entry" },
         // §CS.3 "Mark entry status visible only for principal/management/
@@ -234,17 +267,29 @@ export default async function InstitutionLayout({ children }: { children: React.
     // "profiles vs. the original table" split as Student Management above.
     ...(hasStaffAccess ? [{
       kind: "group" as const, label: "Staff", icon: ni(StaffIcon),
-      items: [
-        { href: "/staff/directory", label: "Staff profiles" },
-        { href: "/staff#directory", label: "Staff directory" },
-        { href: "/staff#staff-attendance", label: "Staff attendance" },
-        { href: "/staff#staff-leave", label: "Staff leave" },
-        { href: "/staff/register", label: "Monthly register" },
-        { href: "/staff#portion-plans", label: "Portion plans" },
-        { href: "/staff#teacher-observations", label: "Teacher Performance" },
-        { href: "/staff#teacher-assignments", label: "Teacher assignments" },
-        { href: "/staff#section-head-assignments", label: "Section Head assignments" },
-      ],
+      // §"don't give all this in a staff portal — only what is concerned to
+      // them like my profile, my leave, my attendance, my portion plan.
+      // nothing more" (img3) — a teacher (staff.view only, no staff.edit)
+      // gets exactly those 4 personal items; everyone with staff.edit
+      // (management/admin) keeps the original 9-item admin list unchanged.
+      items: canViewAllStaff
+        ? [
+            { href: "/staff/directory", label: "Staff profiles" },
+            { href: "/staff#directory", label: "Staff directory" },
+            { href: "/staff#staff-attendance", label: "Staff attendance" },
+            { href: "/staff#staff-leave", label: "Staff leave" },
+            { href: "/staff/register", label: "Monthly register" },
+            { href: "/staff#portion-plans", label: "Portion plans" },
+            { href: "/staff#teacher-observations", label: "Teacher Performance" },
+            { href: "/staff#teacher-assignments", label: "Teacher assignments" },
+            { href: "/staff#section-head-assignments", label: "Section Head assignments" },
+          ]
+        : [
+            { href: "/staff/directory", label: "My profile" },
+            { href: "/attendance#my-leave", label: "My leave" },
+            { href: "/attendance#my-attendance", label: "My attendance" },
+            { href: "/staff#portion-plans", label: "My portion plan" },
+          ],
     }] : []),
 
     ...(hasSkillsAccess || hasAchievementsAccess ? [{
@@ -281,7 +326,12 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasFeesAccess ? [{ kind: "link" as const, href: "/fees", label: "Fees", icon: ni(FeesIcon) }] : []),
     ...(hasAccountsAccess ? [{ kind: "link" as const, href: "/accounts", label: "Accounts", icon: ni(AccountsIcon) }] : []),
     ...(hasMessagesAccess ? [{ kind: "link" as const, href: "/messages", label: "Messages", icon: ni(MessagesIcon) }] : []),
-    { kind: "link", href: "/print", label: "Print Center", icon: ni(PrintIcon) },
+    // §"there should not be a print center in the side panel of teachers.
+    // they should link to consolidated mark list, report cards through
+    // examination module" — Print Center was the only bare top-level link
+    // with zero permission gate at all; hasBroadResultAccess (same signal
+    // as the Result group's own scoping) keeps it for management/admin.
+    ...(hasBroadResultAccess ? [{ kind: "link" as const, href: "/print", label: "Print Center", icon: ni(PrintIcon) }] : []),
 
     ...(can(ctx.permissions, "data.import") || can(ctx.permissions, "data.export")
       ? [{ kind: "link" as const, href: "/import", label: t("importExport"), icon: ni(ImportIcon) }]

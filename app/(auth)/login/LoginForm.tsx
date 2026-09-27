@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loginAction, type LoginState } from "./actions";
+import LoginInstallButton from "./LoginInstallButton";
 
 const INITIAL_STATE: LoginState = { error: null, info: null };
 
@@ -208,6 +209,13 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
             </form>
           )}
           <p className="mt-6 text-center text-xs text-zinc-500">{t("firstTimeNotice")}</p>
+          {/* §"app install button should be there in every log in — in
+              every tenants" — every /login screen (institution-scoped and
+              the generic un-prefixed one alike) now offers this, not just
+              the post-login sidebar footer. */}
+          <div className="mt-4">
+            <LoginInstallButton />
+          </div>
         </div>
       </div>
     </div>
