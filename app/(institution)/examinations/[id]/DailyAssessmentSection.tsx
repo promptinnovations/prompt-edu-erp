@@ -1,6 +1,8 @@
 import AddDailyAssessmentForm, { type ClassOption, type SubjectOption } from "./AddDailyAssessmentForm";
 import DailyAssessmentRegisterTable from "./DailyAssessmentRegisterTable";
 import DailyAssessmentFilters from "./DailyAssessmentFilters";
+import { BarChart, type ChartDatum } from "../../../components/charts/ResultCharts";
+import { PASS_COLOR, FAIL_COLOR } from "../../../../modules/examination/service";
 import type {
   DailyAssessmentRow, DailyConsolidatedRow, DailyAssessmentSubjectAnalysisRow,
   DailyAssessmentClassAnalysisRow, DailyAssessmentStudentAnalysisRow,
@@ -10,6 +12,21 @@ function fmt(n: string | number | null) {
   if (n === null) return "—";
   const v = Number(n);
   return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
+
+/** §"let all the analysis be with suitable visual representations" — these
+ *  tables have no per-row grade band handy (Daily Assessment's own grade
+ *  scale isn't fetched for the subject/class/student aggregates below), so
+ *  bars are colored on a simple 3-tier percentage read rather than inventing
+ *  a literal hex per band: PASS_COLOR/FAIL_COLOR (the one legitimate fixed
+ *  color pair, per ResultCharts.tsx's COLOR RULE) at the pass/fail ends,
+ *  amber in between. The consolidated-result chart uses each row's own
+ *  grade_color when available (already resolved server-side) instead. */
+const AMBER = "#d97706";
+function colorForPercent(pct: number): string {
+  if (pct >= 75) return PASS_COLOR;
+  if (pct >= 50) return AMBER;
+  return FAIL_COLOR;
 }
 
 /** The whole Daily Assessment register for one month — everything the spec
@@ -62,6 +79,19 @@ export default function DailyAssessmentSection({
           <DailyAssessmentFilters classes={classes} subjects={allSubjects} classParam={classParam} subjectParam={subjectParam} />
         </div>
         {classParam ? (
+          <div className="space-y-4">
+            {consolidated.length > 0 ? (
+              <BarChart
+                orientation="horizontal"
+                maxValue={100}
+                valueFormat={(v) => `${Math.round(v * 10) / 10}%`}
+                data={consolidated.map((r): ChartDatum => {
+                  const max = Number(r.cumulative_max_marks);
+                  const pct = max > 0 ? (Number(r.cumulative_marks_obtained) / max) * 100 : 0;
+                  return { label: r.student_name, value: pct, color: r.grade_color ?? colorForPercent(pct) };
+                })}
+              />
+            ) : null}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -91,6 +121,7 @@ export default function DailyAssessmentSection({
               </tbody>
             </table>
           </div>
+          </div>
         ) : (
           <p className="text-sm text-zinc-500">Choose a class above to see its consolidated result.</p>
         )}
@@ -98,6 +129,18 @@ export default function DailyAssessmentSection({
 
       <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Monthly analysis — subject-wise</h2>
+        {subjectAnalysis.length > 0 ? (
+          <div className="mb-4">
+            <BarChart
+              orientation="horizontal"
+              maxValue={100}
+              valueFormat={(v) => `${Math.round(v * 10) / 10}%`}
+              data={subjectAnalysis.map((s): ChartDatum => ({
+                label: s.subject_name, value: s.avg_percent, color: colorForPercent(s.avg_percent),
+              }))}
+            />
+          </div>
+        ) : null}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -127,6 +170,18 @@ export default function DailyAssessmentSection({
 
       <section className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Monthly analysis — class-wise</h2>
+        {classAnalysis.length > 0 ? (
+          <div className="mb-4">
+            <BarChart
+              orientation="horizontal"
+              maxValue={100}
+              valueFormat={(v) => `${Math.round(v * 10) / 10}%`}
+              data={classAnalysis.map((c): ChartDatum => ({
+                label: c.class_name, value: c.avg_percent, color: colorForPercent(c.avg_percent),
+              }))}
+            />
+          </div>
+        ) : null}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -156,6 +211,17 @@ export default function DailyAssessmentSection({
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Monthly analysis — student-wise</h2>
         <p className="mb-3 text-xs text-zinc-500">Uses the class selected above.</p>
         {classParam ? (
+          <div className="space-y-4">
+            {studentAnalysis.length > 0 ? (
+              <BarChart
+                orientation="horizontal"
+                maxValue={100}
+                valueFormat={(v) => `${Math.round(v * 10) / 10}%`}
+                data={studentAnalysis.map((s): ChartDatum => ({
+                  label: s.student_name, value: s.avg_percent, color: colorForPercent(s.avg_percent),
+                }))}
+              />
+            ) : null}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -180,6 +246,7 @@ export default function DailyAssessmentSection({
                 ) : null}
               </tbody>
             </table>
+          </div>
           </div>
         ) : (
           <p className="text-sm text-zinc-500">Choose a class above to see student-wise analysis.</p>
