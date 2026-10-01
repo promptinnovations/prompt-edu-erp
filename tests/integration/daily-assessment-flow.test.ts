@@ -97,6 +97,38 @@ describe("Daily Assessment exam type (§Add Daily Assessment as a new Exam Type 
     expect(again.start_date).toBeTruthy();
     expect(again.end_date).toBeTruthy();
   });
+
+  it("createExamination() with forDate creates a DISTINCT, correctly-dated register for a past month — the manual Create Examination form's new 'Register month' picker (§'fix it so that i can create a daily assessment of a past month for entering marks') submits exactly this", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const dailyType = examTypes.find((t) => t.is_daily_assessment)!;
+
+    const july = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: dailyType.id, academicYearId: year!.id, name: "ignored", forDate: "2026-07-01",
+    });
+    expect(july.id).not.toBe(examinationId); // a different register from the current-month fixture
+    expect(july.name).toBe("Daily Assessment — July 2026");
+    // pglite returns date columns as Date objects, not "YYYY-MM-DD" strings
+    // (same quirk noted elsewhere in this codebase) — compare via ISO slice.
+    const isoDate = (v: unknown) => (v instanceof Date ? v.toISOString() : String(v)).slice(0, 10);
+    expect(isoDate(july.start_date)).toBe("2026-07-01");
+    expect(isoDate(july.end_date)).toBe("2026-07-31");
+
+    // Re-submitting the same month (as the picker would on a second visit)
+    // reuses the July register rather than creating a duplicate — the same
+    // "one register per month" guarantee the current-month path already had.
+    const julyAgain = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: dailyType.id, academicYearId: year!.id, name: "ignored", forDate: "2026-07-15",
+    });
+    expect(julyAgain.id).toBe(july.id);
+
+    // A different past month gets its own, third register.
+    const august = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: dailyType.id, academicYearId: year!.id, name: "ignored", forDate: "2026-08-01",
+    });
+    expect(august.id).not.toBe(july.id);
+    expect(august.name).toBe("Daily Assessment — August 2026");
+  });
 });
 
 describe("Daily register entries (§'Date, Class, Subject, Portion, Maximum Mark and Status')", () => {

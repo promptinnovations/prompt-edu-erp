@@ -18,10 +18,20 @@ export async function createExaminationAction(_prevState: { error: string | null
   if (!ctx.institutionId) return { error: "No active institution." };
   try {
     requirePermission(ctx.permissions, "settings.manage");
+    // §"fix it so that i can create a daily assessment of a past month for
+    // entering marks" — the Daily Assessment branch of ExaminationForm.tsx
+    // submits a "Register month" picker as forDate (type="month", so
+    // "YYYY-MM"); createExamination() needs a real date to month-truncate,
+    // so pad it to the 1st of that month. Ignored entirely for every other
+    // exam type (createExamination() only reads forDate in the
+    // is_daily_assessment branch).
+    const forDateRaw = String(formData.get("forDate") ?? "").trim();
+    const forDate = /^\d{4}-\d{2}$/.test(forDateRaw) ? `${forDateRaw}-01` : forDateRaw || undefined;
     const exam = await createExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       examTypeId: String(formData.get("examTypeId") ?? ""),
       academicYearId: String(formData.get("academicYearId") ?? ""),
       name: String(formData.get("name") ?? ""),
+      forDate,
     });
     revalidatePath("/examinations");
     return { error: null, examinationId: exam.id };

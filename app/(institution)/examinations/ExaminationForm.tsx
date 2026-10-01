@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { createExaminationAction } from "./actions";
+import { currentMonthIST } from "../../../services/datetime/ist";
 
 interface ExamTypeOption { id: string; name: string; category: string | null; periodicity: string | null; is_daily_assessment: boolean }
 
@@ -32,12 +33,19 @@ export default function ExaminationForm({
 
   // §Daily Assessment "integrated directly into the existing Exam Create ->
   // Exam Type workflow": selecting the Daily Assessment exam type swaps the
-  // free-text Name field for a note explaining what happens instead --
-  // createExamination() auto-names/dates the register from the current
-  // month server-side and reuses last month's row if one already exists,
-  // so there is nothing for the admin to type here.
+  // free-text Name field for a Register month picker instead --
+  // createExamination() auto-names/dates the register from whichever month
+  // is picked here (defaulting to the current month) and reuses that
+  // month's row if one already exists, so there is nothing else to type.
+  // §"fix it so that i can create a daily assessment of a past month for
+  // entering marks" — this picker is what was missing: previously the
+  // month was always the server's current_date with no way to choose a
+  // past (or future) one, and renaming the register afterwards didn't
+  // change which month it actually represented.
   const selectedType = visibleExamTypes.find((t) => t.id === examTypeId) ?? visibleExamTypes[0];
   const isDailyAssessment = selectedType?.is_daily_assessment ?? false;
+  const currentYearMonth = useMemo(() => currentMonthIST(), []);
+  const [registerMonth, setRegisterMonth] = useState(currentYearMonth);
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
@@ -85,8 +93,19 @@ export default function ExaminationForm({
       </div>
       {isDailyAssessment ? (
         <div className="max-w-xs">
-          <p className="text-xs text-zinc-500">
-            A monthly register (named &amp; dated automatically) will be created — or reused if this month&apos;s already exists.
+          <label className="mb-1 block text-xs text-zinc-500">Register month</label>
+          <input
+            type="month"
+            name="forDate"
+            required
+            value={registerMonth}
+            max={currentYearMonth}
+            onChange={(e) => setRegisterMonth(e.target.value)}
+            className="rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+          />
+          <p className="mt-1 text-xs text-zinc-500">
+            Named &amp; dated from the month picked above — pick a past month (e.g. July or August) to create or reopen that
+            month&apos;s register for entering marks. Reused automatically if that month&apos;s register already exists.
           </p>
           <input type="hidden" name="name" value="Daily Assessment" />
         </div>
