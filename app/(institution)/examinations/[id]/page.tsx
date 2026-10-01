@@ -8,12 +8,12 @@ import {
   listDailyAssessments, getDailyAssessmentConsolidatedResult,
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
   listCeComponents, getExamScopePlan, listExamSubjectGrades, getExamSubjectClassIds,
-  DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR,
+  DEFAULT_OVERALL_PASS_PCT, PASS_COLOR, FAIL_COLOR, examinationWorkflowStatus,
 } from "../../../../modules/examination/service";
 import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../services/scope/teacher-scope-service";
 import { formatMarks } from "../../../../services/format/marks";
 import { ExamScopePlanner, ExamSubjectsSection } from "./ExamDetailForms";
-import { ExamResultSettingsForm, CeComponentsForm, PublishResultsButton } from "./ExamResultSettings";
+import { ExamResultSettingsForm, CeComponentsForm, MarkEntryStatusControl } from "./ExamResultSettings";
 import DailyAssessmentSection from "./DailyAssessmentSection";
 
 export default async function ExaminationDetailPage({
@@ -123,13 +123,14 @@ export default async function ExaminationDetailPage({
   );
   const isFinalized = Boolean(examination.finalized_at);
   const ceMode = examination.ce_mode ?? "total";
-  // §"the admin/principal should publish result of an exam for viewing it
-  // in student/parent portal" — deliberately independent of isFinalized/
-  // canManage: a teacher never sees this button, but management (who may
-  // not hold settings.manage) still can, same composite used for scoping
-  // Consolidated Marks/Report Cards/Result Analysis this round.
+  // §"admin will switch mark entry Open > Closed > Published > Archived" —
+  // deliberately independent of isFinalized/canManage: a teacher never sees
+  // this control, but management (who may not hold settings.manage) still
+  // does, same composite used for scoping Consolidated Marks/Report Cards/
+  // Result Analysis this round.
   const isPublished = Boolean(examination.published_at);
-  const canPublish = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
+  const workflowStatus = examinationWorkflowStatus(examination);
+  const canManageMarkEntryStatus = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
 
   const subjectById = new Map(subjects.map((s) => [s.id, s.name]));
   const examTypeName = examType?.name ?? "—";
@@ -238,10 +239,10 @@ export default async function ExaminationDetailPage({
           </h2>
           {provisionalCount > 0 ? (
             <p className="w-full text-xs text-zinc-500 sm:w-auto">
-              Live: {provisionalCount} provisional (marks still being entered or not yet verified/locked) — visible here and to management as soon as they&apos;re saved; publishing doesn&apos;t wait for every subject to be complete.
+              Live: {provisionalCount} provisional (every subject not yet entered) — visible here and to management as soon as they&apos;re saved.
             </p>
           ) : null}
-          {canPublish ? <PublishResultsButton examinationId={id} published={isPublished} /> : null}
+          {canManageMarkEntryStatus ? <MarkEntryStatusControl examinationId={id} status={workflowStatus} /> : null}
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">

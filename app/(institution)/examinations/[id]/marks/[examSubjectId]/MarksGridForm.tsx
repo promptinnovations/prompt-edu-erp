@@ -1,10 +1,7 @@
 "use client";
 
 import { Fragment, useActionState, useState } from "react";
-import {
-  saveMarksAction, submitMarksAction, verifyMarksAction, approveMarksAction, lockMarksAction,
-  deleteMarkAction, correctMarkAction,
-} from "../../../actions";
+import { saveMarksAction, deleteMarkAction, correctMarkAction } from "../../../actions";
 import ConfirmSubmitButton from "../../../../../components/ui/ConfirmSubmitButton";
 import { formatMarks } from "../../../../../../services/format/marks";
 
@@ -25,24 +22,7 @@ function classLabel(s: Pick<GridStudent, "class_name" | "section_name">): string
   return parts.length > 0 ? parts.join(" ") : "Unassigned class";
 }
 
-function WorkflowButton({
-  action, label, examinationId, examSubjectId,
-}: { action: typeof submitMarksAction; label: string; examinationId: string; examSubjectId: string }) {
-  const [state, formAction, pending] = useActionState<{ error: string | null; count?: number }, FormData>(action, { error: null });
-  return (
-    <form action={formAction} className="inline-flex items-center gap-2">
-      <input type="hidden" name="examinationId" value={examinationId} />
-      <input type="hidden" name="examSubjectId" value={examSubjectId} />
-      <button type="submit" disabled={pending} className="rounded-full border px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
-        {label}
-      </button>
-      {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
-      {typeof state.count === "number" ? <span className="text-xs text-zinc-500">({state.count} updated)</span> : null}
-    </form>
-  );
-}
-
-/** Edits an already approved/locked mark (correctMark() — kept as its own
+/** Edits a mark of any status (correctMark() — kept as its own
  *  history-preserving path rather than reusing the plain Save-marks form,
  *  which only ever touches 'draft' rows) — collapsed behind a small inline
  *  form, same "click Correct, fill in, Save" shape GradeBandRow's editing
@@ -83,15 +63,22 @@ export interface GridCeComponent { id: string; name: string; maxMarks: string }
 export interface GridCeMark { student_id: string; ce_component_id: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }
 
 export default function MarksGridForm({
-  students, examinationId, examSubjectId, canEnter, canVerify, canApprove, canLock,
+  students, examinationId, examSubjectId, canEnter, canCorrect, examinationClosed,
   ceComponents = [], ceMarks = [],
 }: {
   students: GridStudent[];
   examinationId: string;
   examSubjectId: string;
-  canEnter: boolean; canVerify: boolean; canApprove: boolean; canLock: boolean;
+  canEnter: boolean;
+  /** §"1 for admin 2 for teachers" — admin/principal composite; can correct
+   *  any mark regardless of examinationClosed. */
+  canCorrect: boolean;
+  /** §"admin will switch mark entry Open > Closed > Published > Archived"
+   *  — true once the admin has closed mark entry for this examination;
+   *  teachers (canEnter) can no longer write marks until it's reopened. */
+  examinationClosed: boolean;
   /** §CE — one extra marks + absent column pair per CE component, saved by
-   *  the same Save marks submit and the same workflow buttons. */
+   *  the same Save marks submit. */
   ceComponents?: GridCeComponent[];
   ceMarks?: GridCeMark[];
 }) {
@@ -116,13 +103,17 @@ export default function MarksGridForm({
               {ceComponents.map((c) => (
                 <th key={c.id} className="py-1.5">{c.name} <span className="normal-case">/{formatMarks(c.maxMarks)}</span></th>
               ))}
-              <th className="py-1.5">Status</th>
               <th className="py-1.5" />
             </tr>
           </thead>
           <tbody className="divide-y">
             {students.map((s, i) => {
-              const isDraftOrUnset = s.entry_status === null || s.entry_status === "draft";
+              // §"admin will switch mark entry Open > Closed > Published >
+              // Archived ... 2 for teachers" — a teacher can write marks
+              // only while the examination isn't Closed; the per-mark
+              // entry_status no longer gates this (the old submit/verify/
+              // approve/lock chain is retired from the UI).
+              const teacherCanEdit = canEnter && !examinationClosed;
               // §"this (subject) should also be class wise, class should be
               // specified on the top" — students is already sorted class-
               // then-division-then-roll (sortRoster(), service.ts), so a
@@ -135,7 +126,7 @@ export default function MarksGridForm({
               <Fragment key={s.student_id}>
               {showHeader ? (
                 <tr key={`${s.class_id}-${s.section_name ?? ""}-header`} className="bg-zinc-50">
-                  <td colSpan={6 + ceComponents.length} className="py-1.5 px-1 text-xs font-semibold uppercase tracking-[0.06em] text-zinc-600">
+                  <td colSpan={5 + ceComponents.length} className="py-1.5 px-1 text-xs font-semibold uppercase tracking-[0.06em] text-zinc-600">
                     {label}
                   </td>
                 </tr>
@@ -152,7 +143,7 @@ export default function MarksGridForm({
                     type="number"
                     step="0.01"
                     defaultValue={formatMarks(s.marks_obtained)}
-                    disabled={!canEnter || !isDraftOrUnset}
+                    disabled={!teacherCanEdit}
                     className="w-24 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
@@ -161,12 +152,12 @@ export default function MarksGridForm({
                     name={`absent_${s.student_id}`}
                     type="checkbox"
                     defaultChecked={s.is_absent}
-                    disabled={!canEnter || !isDraftOrUnset}
+                    disabled={!teacherCanEdit}
                   />
                 </td>
                 {ceComponents.map((c) => {
                   const m = ceByKey.get(`${c.id}:${s.student_id}`);
-                  const ceEditable = canEnter && (!m || m.entry_status === "draft");
+                  const ceEditable = teacherCanEdit;
                   return (
                     <td key={c.id} className="py-1.5 whitespace-nowrap">
                       <input autoComplete="off"
@@ -183,9 +174,8 @@ export default function MarksGridForm({
                     </td>
                   );
                 })}
-                <td className="py-1.5 text-xs text-zinc-500">{s.entry_status ?? "—"}</td>
                 <td className="py-1.5 text-right whitespace-nowrap">
-                  {canEnter && isDraftOrUnset && s.mark_id ? (
+                  {teacherCanEdit && s.mark_id ? (
                     <form action={deleteAction} className="inline">
                       <input type="hidden" name="examinationId" value={examinationId} />
                       <input type="hidden" name="examSubjectId" value={examSubjectId} />
@@ -195,7 +185,7 @@ export default function MarksGridForm({
                       </ConfirmSubmitButton>
                     </form>
                   ) : null}
-                  {canLock && !isDraftOrUnset && s.mark_id ? (
+                  {canCorrect && s.mark_id ? (
                     <CorrectMarkRow student={s} examinationId={examinationId} examSubjectId={examSubjectId} />
                   ) : null}
                 </td>
@@ -206,20 +196,16 @@ export default function MarksGridForm({
           </tbody>
         </table>
         </div>
-        {canEnter ? (
+        {canEnter && !examinationClosed ? (
           <button type="submit" disabled={pending} className="mt-3 rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Save marks
           </button>
         ) : null}
+        {canEnter && examinationClosed ? (
+          <p className="mt-2 text-xs text-zinc-500">Mark entry is closed for this examination — ask an admin to reopen it to make changes.</p>
+        ) : null}
         {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
       </form>
-
-      <div className="flex flex-wrap gap-2 border-t pt-4">
-        {canEnter ? <WorkflowButton action={submitMarksAction} label="Submit" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
-        {canVerify ? <WorkflowButton action={verifyMarksAction} label="Verify" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
-        {canApprove ? <WorkflowButton action={approveMarksAction} label="Approve" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
-        {canLock ? <WorkflowButton action={lockMarksAction} label="Lock" examinationId={examinationId} examSubjectId={examSubjectId} /> : null}
-      </div>
     </div>
   );
 }

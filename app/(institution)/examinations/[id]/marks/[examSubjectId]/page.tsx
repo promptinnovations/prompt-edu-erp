@@ -56,7 +56,7 @@ export default async function MarksEntryPage({
       <p className="text-sm text-zinc-500">
         Max {formatMarks(examSubject.max_marks)}, pass {formatMarks(examSubject.pass_marks)}
         {ce.components.length > 0 ? ` · CE max ${formatMarks(ceMax)} (${ce.components.map((c) => `${c.name} /${formatMarks(c.max_marks)}`).join(", ")})` : ""}
-        {examination.finalized_at ? " · Results finalized — marks are read-only" : ""}
+        {examination.finalized_at ? " · Results archived — marks are read-only" : examination.marks_closed_at ? " · Mark entry closed" : ""}
       </p>
 
       <section className="rounded-card border bg-white p-5">
@@ -67,9 +67,8 @@ export default async function MarksEntryPage({
           ceComponents={ce.components.map((c) => ({ id: c.id, name: c.name, maxMarks: c.max_marks }))}
           ceMarks={ce.marks}
           canEnter={can(ctx.permissions, "marks.enter") && !examination.finalized_at}
-          canVerify={can(ctx.permissions, "marks.verify")}
-          canApprove={can(ctx.permissions, "marks.approve")}
-          canLock={can(ctx.permissions, "marks.lock")}
+          examinationClosed={Boolean(examination.marks_closed_at)}
+          canCorrect={(ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage")) && !examination.finalized_at}
         />
       </section>
     </div>

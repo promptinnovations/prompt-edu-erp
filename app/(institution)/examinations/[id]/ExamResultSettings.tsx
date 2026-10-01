@@ -1,7 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { updateExamResultSettingsAction, setCeComponentsAction, publishExaminationAction, unpublishExaminationAction } from "../actions";
+import {
+  updateExamResultSettingsAction, setCeComponentsAction, publishExaminationAction, unpublishExaminationAction,
+  closeMarkEntryAction, reopenMarkEntryAction, archiveExaminationAction,
+} from "../actions";
+import type { MarkEntryWorkflowStatus } from "../../../../modules/examination/service";
 
 /** EXAMINATION_SPEC §8 per-exam overall pass threshold + §CE on/off/mode.
  *  Regular exams only — the Daily Assessment detail view never renders this. */
@@ -92,34 +96,84 @@ export function CeComponentsForm({
   );
 }
 
-/** §"the admin/principal should publish result of an exam for viewing it
- *  in student/parent portal" — staff-side views never gate on this at all
- *  (this is purely a portal-visibility toggle, unlike the old finalize/
- *  freeze action it replaces). Toggleable any number of times: publishing
- *  again after a correction, or unpublishing to pull a result back, are
- *  both ordinary, non-destructive actions — no confirmation dialog needed
- *  the way an irreversible freeze would have required. */
-export function PublishResultsButton({ examinationId, published }: { examinationId: string; published: boolean }) {
-  const [publishState, publishAction, publishPending] = useActionState<{ error: string | null }, FormData>(
-    publishExaminationAction, { error: null }
-  );
-  const [unpublishState, unpublishAction, unpublishPending] = useActionState<{ error: string | null }, FormData>(
-    unpublishExaminationAction, { error: null }
-  );
-  const state = published ? unpublishState : publishState;
+/** One admin action button (Close / Reopen / Publish / Unpublish / Archive)
+ *  — shared shape so MarkEntryStatusControl below stays a plain switch over
+ *  the four statuses. */
+function StatusActionButton({
+  action, label, examinationId, variant = "primary", confirmMessage,
+}: {
+  action: (prevState: { error: string | null }, formData: FormData) => Promise<{ error: string | null }>;
+  label: string; examinationId: string; variant?: "primary" | "secondary"; confirmMessage?: string;
+}) {
+  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(action, { error: null });
   return (
-    <form action={published ? unpublishAction : publishAction} className="flex flex-wrap items-center gap-2">
+    <form
+      action={formAction}
+      className="inline-flex items-center gap-2"
+      onSubmit={(e) => { if (confirmMessage && !confirm(confirmMessage)) e.preventDefault(); }}
+    >
       <input type="hidden" name="examinationId" value={examinationId} />
-      {published ? (
-        <button type="submit" disabled={unpublishPending} className="rounded-full border px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50">
-          Unpublish from portal
-        </button>
-      ) : (
-        <button type="submit" disabled={publishPending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
-          Publish to student/parent portal
-        </button>
-      )}
+      <button
+        type="submit" disabled={pending}
+        className={
+          variant === "primary"
+            ? "rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50"
+            : "rounded-full border px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
+        }
+      >
+        {label}
+      </button>
       {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
     </form>
+  );
+}
+
+const STATUS_LABEL: Record<MarkEntryWorkflowStatus, string> = {
+  open: "Open", closed: "Closed", published: "Published", archived: "Archived",
+};
+const STATUS_BADGE_CLASS: Record<MarkEntryWorkflowStatus, string> = {
+  open: "bg-zinc-100 text-zinc-600",
+  closed: "bg-amber-100 text-amber-700",
+  published: "bg-emerald-100 text-emerald-700",
+  archived: "bg-zinc-200 text-zinc-700",
+};
+
+/** §"stop principal's approval and lock part - admin will switch mark entry
+ *  Open> Closed> Published> Archived, that is enough" — one admin-facing
+ *  control replacing the old per-subject Submit/Verify/Approve/Lock buttons
+ *  AND the standalone Publish button. The four stages:
+ *    Open      -> [Close mark entry]
+ *    Closed    -> [Reopen for editing] [Publish to portal]
+ *    Published -> [Unpublish] [Archive]
+ *    Archived  -> terminal, no actions (finalizeExamination() is one-way)
+ *  Reopen/Publish/Archive are each gated server-side on the previous stage
+ *  (reopenMarkEntry() requires Closed+not Published, publishExamination()
+ *  requires Closed, finalizeExamination() requires Published), so a stale
+ *  button click just surfaces that error rather than corrupting state. */
+export function MarkEntryStatusControl({ examinationId, status }: { examinationId: string; status: MarkEntryWorkflowStatus }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASS[status]}`}>
+        Mark entry: {STATUS_LABEL[status]}
+      </span>
+      {status === "open" ? (
+        <StatusActionButton action={closeMarkEntryAction} label="Close mark entry" examinationId={examinationId} variant="secondary" />
+      ) : null}
+      {status === "closed" ? (
+        <>
+          <StatusActionButton action={reopenMarkEntryAction} label="Reopen for editing" examinationId={examinationId} variant="secondary" />
+          <StatusActionButton action={publishExaminationAction} label="Publish to student/parent portal" examinationId={examinationId} />
+        </>
+      ) : null}
+      {status === "published" ? (
+        <>
+          <StatusActionButton action={unpublishExaminationAction} label="Unpublish from portal" examinationId={examinationId} variant="secondary" />
+          <StatusActionButton
+            action={archiveExaminationAction} label="Archive" examinationId={examinationId}
+            confirmMessage="Archive this examination? This freezes every result permanently and can't be undone."
+          />
+        </>
+      ) : null}
+    </div>
   );
 }

@@ -6,10 +6,10 @@ import { can, requirePermission } from "../../../services/permissions/permission
 import {
   createExamination, updateExamination, deleteExamination,
   addExamSubject, addExamClass, removeExamClass, removeExamSubject, saveExamScopePlan,
-  enterMarksAndRecompute, deleteMarkAndRecompute, correctMark, submitMarks, verifyMarks, approveMarks, lockMarks,
+  enterMarksAndRecompute, deleteMarkAndRecompute, correctMark,
   createDailyAssessment, enterDailyAssessmentMarks, updateDailyAssessment, deleteDailyAssessment, getDailyAssessment,
   enterCeMarksAndRecompute, setCeComponents, setInstitutionCeDefaults,
-  publishExamination, unpublishExamination,
+  publishExamination, unpublishExamination, closeMarkEntry, reopenMarkEntry, finalizeExamination,
 } from "../../../modules/examination/service";
 import { assertMarkEntryScope, assertDailyAssessmentScope } from "../../../services/scope/teacher-scope-service";
 
@@ -253,15 +253,16 @@ export async function setCeComponentsAction(_prevState: { error: string | null; 
   }
 }
 
-/** §"the admin/principal should publish result of an exam for viewing it
- *  in student/parent portal" — gated on the same admin/principal-level
- *  composite (marks.approve or settings.manage) used everywhere else in
- *  the app this round for "sees/controls results beyond their own class"
- *  (see results/consolidated, results/report-cards, analytics). A teacher
- *  (marks.enter only) never reaches this. */
-function requireCanPublishResults(ctx: { isSuperAdmin: boolean; permissions: Set<string> }) {
+/** §"admin will switch mark entry Open > Closed > Published > Archived" —
+ *  gated on the same admin/principal-level composite (marks.approve or
+ *  settings.manage) used everywhere else in the app this round for "sees/
+ *  controls results beyond their own class" (see results/consolidated,
+ *  results/report-cards, analytics). Used for close/reopen mark entry,
+ *  publish/unpublish, and archive. A teacher (marks.enter only) never
+ *  reaches any of these. */
+function requireCanManageMarkEntryStatus(ctx: { isSuperAdmin: boolean; permissions: Set<string> }) {
   if (ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage")) return;
-  throw new Error("Only the principal/management or an institution admin can publish results.");
+  throw new Error("Only the principal/management or an institution admin can manage mark entry status.");
 }
 
 export async function publishExaminationAction(_prevState: { error: string | null }, formData: FormData) {
@@ -269,7 +270,7 @@ export async function publishExaminationAction(_prevState: { error: string | nul
   if (!ctx.institutionId) return { error: "No active institution." };
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
-    requireCanPublishResults(ctx);
+    requireCanManageMarkEntryStatus(ctx);
     await publishExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
     revalidatePath(`/examinations/${examinationId}`);
     revalidatePath("/examinations");
@@ -285,7 +286,7 @@ export async function unpublishExaminationAction(_prevState: { error: string | n
   if (!ctx.institutionId) return { error: "No active institution." };
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
-    requireCanPublishResults(ctx);
+    requireCanManageMarkEntryStatus(ctx);
     await unpublishExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
     revalidatePath(`/examinations/${examinationId}`);
     revalidatePath("/examinations");
@@ -293,6 +294,56 @@ export async function unpublishExaminationAction(_prevState: { error: string | n
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to unpublish results." };
+  }
+}
+
+/** §"admin will switch mark entry Open > Closed > Published > Archived" —
+ *  Closed stops teachers writing marks; admin corrections stay available. */
+export async function closeMarkEntryAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requireCanManageMarkEntryStatus(ctx);
+    await closeMarkEntry(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
+    revalidatePath(`/examinations/${examinationId}`);
+    revalidatePath("/examinations");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to close mark entry." };
+  }
+}
+
+export async function reopenMarkEntryAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requireCanManageMarkEntryStatus(ctx);
+    await reopenMarkEntry(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
+    revalidatePath(`/examinations/${examinationId}`);
+    revalidatePath("/examinations");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to reopen mark entry." };
+  }
+}
+
+/** "Archive" in the Open/Closed/Published/Archived status — reuses the
+ *  pre-existing one-way finalizeExamination() freeze. */
+export async function archiveExaminationAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const examinationId = String(formData.get("examinationId") ?? "");
+  try {
+    requireCanManageMarkEntryStatus(ctx);
+    await finalizeExamination(ctx.institutionId, ctx.session.authUserId, ctx.userId, examinationId);
+    revalidatePath(`/examinations/${examinationId}`);
+    revalidatePath("/examinations");
+    revalidatePath("/results");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to archive this examination." };
   }
 }
 
@@ -329,17 +380,18 @@ export async function deleteMarkAction(_prevState: { error: string | null }, for
   }
 }
 
-/** Edits an already approved/locked mark, via correctMark() — deliberately
- *  gated on "marks.lock" (not "marks.enter"), matching that function's own
- *  doc comment: a correction bypasses the normal draft-only edit path, so
- *  only whoever can lock marks in the first place may reopen one. */
+/** Edits a mark of any status, via correctMark() — §"1 for admin" gated on
+ *  the same admin/principal composite as close/reopen/publish/archive
+ *  (NOT "marks.enter": a correction deliberately bypasses the normal
+ *  draft-only edit path in enterMarks(), and stays available to admin/
+ *  principal even while mark entry is Closed for teachers). */
 export async function correctMarkAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   const examinationId = String(formData.get("examinationId") ?? "");
   const examSubjectId = String(formData.get("examSubjectId") ?? "");
   try {
-    requirePermission(ctx.permissions, "marks.lock");
+    requireCanManageMarkEntryStatus(ctx);
     await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
     const raw = formData.get("newValue");
     const isAbsent = formData.get("isAbsent") === "on";
@@ -354,37 +406,13 @@ export async function correctMarkAction(_prevState: { error: string | null }, fo
   }
 }
 
-async function transitionAction(
-  permission: string, fn: (institutionId: string, authUserId: string, examSubjectId: string, userId: string) => Promise<number>,
-  formData: FormData
-) {
-  const ctx = await requireRequestContext();
-  if (!ctx.institutionId) return { error: "No active institution." };
-  const examSubjectId = String(formData.get("examSubjectId") ?? "");
-  const examinationId = String(formData.get("examinationId") ?? "");
-  try {
-    requirePermission(ctx.permissions, permission);
-    await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
-    const count = await fn(ctx.institutionId, ctx.session.authUserId, examSubjectId, ctx.userId);
-    revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
-    return { error: null, count };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Action failed." };
-  }
-}
-
-export async function submitMarksAction(_prevState: { error: string | null }, formData: FormData) {
-  return transitionAction("marks.enter", submitMarks, formData);
-}
-export async function verifyMarksAction(_prevState: { error: string | null }, formData: FormData) {
-  return transitionAction("marks.verify", verifyMarks, formData);
-}
-export async function approveMarksAction(_prevState: { error: string | null }, formData: FormData) {
-  return transitionAction("marks.approve", approveMarks, formData);
-}
-export async function lockMarksAction(_prevState: { error: string | null }, formData: FormData) {
-  return transitionAction("marks.lock", lockMarks, formData);
-}
+// §"stop principal's approval and lock part" — the old submit/verify/
+// approve/lock per-subject transition actions (and their transitionAction()
+// helper) lived here; removed from the UI/action layer along with the
+// Submit/Verify/Approve/Lock buttons in MarksGridForm.tsx. The underlying
+// submitMarks/verifyMarks/approveMarks/lockMarks service functions are kept
+// (older tests still exercise them directly) but are no longer reachable
+// from any UI action.
 
 // ---------------------------------------------------------------------------
 // Daily Assessment (§Daily Assessment) -- day-to-day teaching actions, so

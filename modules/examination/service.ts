@@ -7,12 +7,29 @@
  * file assumes particular exam names or grading cut-offs; those are always
  * looked up from the database for the calling institution.
  *
- * Mark workflow: draft -> submitted -> verified -> approved -> locked
- * (§28). Only approved/locked marks ever feed results/analytics (§28 "Once
- * marks are approved, they feed the analytics engine"). Editing a mark that
- * is already approved/locked goes through correctMark(), which preserves an
- * audit trail in mark_change_history rather than silently overwriting
- * (§28 "correction history").
+ * Mark workflow (superseded — see below): draft -> submitted -> verified ->
+ * approved -> locked (§28). The submitMarks/verifyMarks/approveMarks/
+ * lockMarks functions and their per-mark entry_status still exist and are
+ * exercised by older tests, but are no longer surfaced in the UI.
+ *
+ * §"admin will switch mark entry Open > Closed > Published > Archived, that
+ * is enough" — results are live from the moment marks are entered (no
+ * approve/lock gate; see computeStudentResult()'s isProvisional, which is
+ * now pure completeness). The admin instead controls ONE examination-level
+ * status (examinationWorkflowStatus(), derived from marks_closed_at /
+ * published_at / finalized_at):
+ *   Open      — teachers (marks.enter) can enter/edit their own marks.
+ *   Closed    — teachers can no longer enter marks (closeMarkEntry() /
+ *               reopenMarkEntry() toggle this); an admin/principal can still
+ *               correct any mark via correctMark(), closed or not.
+ *   Published — reuses the pre-existing publishExamination()/
+ *               unpublishExamination() portal-visibility toggle; now
+ *               requires Closed first.
+ *   Archived  — reuses the pre-existing finalizeExamination() one-way
+ *               freeze; now requires Published first.
+ * Editing a mark outside the normal draft-entry path goes through
+ * correctMark(), which preserves an audit trail in mark_change_history
+ * rather than silently overwriting (§28 "correction history").
  */
 import { z } from "zod";
 import { getDbClient, type DbClient } from "../../services/db/client";
@@ -35,6 +52,23 @@ export interface ExaminationRecord {
   // (see publishExamination()'s doc comment). Only populated by
   // getExamination(), same convention as the other 0055/0057 columns above.
   published_at?: string | null;
+  // Migration 0059 — §"admin will switch mark entry Open > Closed >
+  // Published > Archived, that is enough": the examination-level mark-entry
+  // status, replacing the old per-subject submit/verify/approve/lock chain.
+  // Open = marks_closed_at null; Closed = set; Published = published_at
+  // also set; Archived = finalized_at also set. Only populated by
+  // getExamination().
+  marks_closed_at?: string | null;
+}
+export type MarkEntryWorkflowStatus = "open" | "closed" | "published" | "archived";
+/** Derives the single admin-facing status badge from the three independent
+ *  timestamp columns above — never stored itself, so there's no risk of it
+ *  drifting from the columns that actually gate behavior. */
+export function examinationWorkflowStatus(e: Pick<ExaminationRecord, "marks_closed_at" | "published_at" | "finalized_at">): MarkEntryWorkflowStatus {
+  if (e.finalized_at) return "archived";
+  if (e.published_at) return "published";
+  if (e.marks_closed_at) return "closed";
+  return "open";
 }
 export interface ExamSubjectRecord { id: string; examination_id: string; subject_id: string; max_marks: string; pass_marks: string }
 
@@ -529,7 +563,12 @@ export interface StudentResultComputation {
  *  least one of its units was actually sat. If nothing was sat at all the
  *  denominator is 0 → percentage 0 (no division by zero) and isPass false.
  *  §8 overall: isPass = failedSubjects == 0 AND percentage >= overallPassPct
- *  (and at least one subject sat). */
+ *  (and at least one subject sat).
+ *  §"admin will switch mark entry Open > Closed > Published > Archived,
+ *  that is enough" — provisional no longer depends on the old per-mark
+ *  submit/verify/approve/lock pipeline (entryStatus is kept on
+ *  ResultUnitEntry for history but no longer read here); a result is
+ *  provisional purely on completeness — whether every unit has a row yet. */
 export function computeStudentResult(input: StudentResultInput): StudentResultComputation {
   let total = 0, maxTotal = 0, failed = 0, absentSubjects = 0, entered = 0, satSubjects = 0;
   let provisional = false;
@@ -540,7 +579,6 @@ export function computeStudentResult(input: StudentResultInput): StudentResultCo
       // No row, or a legacy empty row (null value, not absent) = blank.
       if (!e || (!e.isAbsent && e.marksObtained == null)) { sMax += u.maxMarks; provisional = true; continue; }
       rowsPresent++;
-      if (e.entryStatus !== "approved" && e.entryStatus !== "locked") provisional = true;
       if (e.isAbsent) { absent++; continue; }
       sObtained += e.marksObtained!; sMax += u.maxMarks; sat++;
     }
@@ -608,7 +646,7 @@ export async function getExamination(institutionId: string, authUserId: string, 
     const { rows } = await scoped.query<ExaminationRecord>(
       `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id,
               overall_pass_pct, finalized_at::text as finalized_at, ce_enabled, ce_mode,
-              published_at::text as published_at
+              published_at::text as published_at, marks_closed_at::text as marks_closed_at
          from examinations where id = $1`,
       [examinationId]
     );
@@ -1506,6 +1544,21 @@ async function assertExamSubjectNotFinalized(scoped: DbClient, examSubjectId: st
   if (rows[0]?.finalized) throw new Error("This examination has been finalized — its results are locked.");
 }
 
+/** §"admin will switch mark entry Open > Closed > Published > Archived ...
+ *  2 for teachers" — a teacher (marks.enter) can no longer write marks once
+ *  the admin has closed entry; they must wait for the admin to reopen it.
+ *  Deliberately NOT used by correctMark() — "1 for admin": an admin/
+ *  principal keeps correcting marks while Closed (only Archived blocks
+ *  them, via assertExamSubjectNotFinalized above). */
+async function assertMarkEntryOpenForTeachers(scoped: DbClient, examSubjectId: string): Promise<void> {
+  const { rows } = await scoped.query<{ closed: boolean }>(
+    `select e.marks_closed_at is not null as closed
+       from exam_subjects es join examinations e on e.id = es.examination_id where es.id = $1`,
+    [examSubjectId]
+  );
+  if (rows[0]?.closed) throw new Error("Mark entry is closed for this examination — ask an admin to reopen it.");
+}
+
 /** Bulk mark entry — only touches marks still in 'draft' (or not yet created). Editing
  *  an already-submitted/verified/approved/locked mark must go through correctMark().
  *
@@ -1523,6 +1576,7 @@ export async function enterMarks(
   const data = markEntrySchema.parse(entries);
   const run = async (scoped: DbClient) => {
     await assertExamSubjectNotFinalized(scoped, examSubjectId);
+    await assertMarkEntryOpenForTeachers(scoped, examSubjectId);
     let updated = 0;
     let skippedLocked = 0;
     for (const e of data) {
@@ -1699,9 +1753,12 @@ async function recomputeExaminationResults(institutionId: string, authUserId: st
   }
 }
 
-/** Corrects an already approved/locked mark, preserving history (§28 "correction history").
- *  Caller (server action) must check the marks.lock permission before invoking this — it
- *  deliberately bypasses the normal draft-only edit path in enterMarks(). */
+/** Corrects a mark of any status, preserving history (§28 "correction history").
+ *  Caller (server action) must check the admin/principal permission composite before
+ *  invoking this — it deliberately bypasses the normal draft-only edit path in
+ *  enterMarks(). Intentionally NOT gated on marks_closed_at ("1 for admin": an
+ *  admin/principal can still correct marks while mark entry is Closed) — only
+ *  assertExamSubjectNotFinalized (i.e. Archived) blocks it. */
 export async function correctMark(
   institutionId: string, authUserId: string, userId: string, markId: string, newValue: number | null, reason: string
 ): Promise<void> {
@@ -2123,7 +2180,59 @@ async function computeResultsScoped(
   return { computed, skippedIncomplete: 0 };
 }
 
-/** §1.6 grade freeze — the explicit "Finalize results" action. Distinct
+/** §"admin will switch mark entry Open > Closed > Published > Archived" —
+ *  stops teachers (marks.enter) from writing any more marks for this
+ *  examination (assertMarkEntryOpenForTeachers() in enterMarks()); an
+ *  admin/principal can still correct existing marks via correctMark(),
+ *  closed or not. Required before publishExamination() per the sequence. */
+export async function closeMarkEntry(
+  institutionId: string, authUserId: string, userId: string, examinationId: string
+): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ is_daily_assessment: boolean; closed: boolean }>(
+      `select et.is_daily_assessment, e.marks_closed_at is not null as closed
+         from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`,
+      [examinationId]
+    );
+    if (!ex[0]) throw new Error("Examination not found.");
+    if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers don't use this mark-entry status.");
+    if (ex[0].closed) throw new Error("Mark entry is already closed.");
+    await scoped.query(
+      "update examinations set marks_closed_at = now(), marks_closed_by = $2, updated_at = now() where id = $1",
+      [examinationId, userId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "close_mark_entry", module: "examination", entityType: "examinations", entityId: examinationId });
+  });
+}
+
+/** Reverses closeMarkEntry() — teachers can enter marks again. Refuses while
+ *  Published (unpublish first): reopening mark entry on a result that's
+ *  live in the student/parent portal would silently let it drift out from
+ *  under them. */
+export async function reopenMarkEntry(
+  institutionId: string, authUserId: string, userId: string, examinationId: string
+): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ closed: boolean; published: boolean }>(
+      `select marks_closed_at is not null as closed, published_at is not null as published
+         from examinations where id = $1`,
+      [examinationId]
+    );
+    if (!ex[0]) throw new Error("Examination not found.");
+    if (!ex[0].closed) throw new Error("Mark entry isn't closed.");
+    if (ex[0].published) throw new Error("Unpublish results before reopening mark entry.");
+    await scoped.query(
+      "update examinations set marks_closed_at = null, marks_closed_by = null, updated_at = now() where id = $1",
+      [examinationId]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "reopen_mark_entry", module: "examination", entityType: "examinations", entityId: examinationId });
+  });
+}
+
+/** §1.6 grade freeze — the explicit "Finalize results" action ("Archive" in
+ *  the Open/Closed/Published/Archived admin status). Distinct
  *  from ordinary live/provisional/published state: until this runs,
  *  results keep live-recomputing on every mark change (§CS.4); after it,
  *  every results row of the exam is an immutable snapshot
@@ -2138,14 +2247,15 @@ export async function finalizeExamination(
 ): Promise<{ frozen: number }> {
   const db = await getDbClient();
   const out = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: ex } = await scoped.query<{ finalized: boolean; is_daily_assessment: boolean }>(
-      `select e.finalized_at is not null as finalized, et.is_daily_assessment
+    const { rows: ex } = await scoped.query<{ finalized: boolean; is_daily_assessment: boolean; published: boolean }>(
+      `select e.finalized_at is not null as finalized, et.is_daily_assessment, e.published_at is not null as published
          from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`,
       [examinationId]
     );
     if (!ex[0]) throw new Error("Examination not found.");
     if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers can't be finalized.");
     if (ex[0].finalized) throw new Error("This examination is already finalized.");
+    if (!ex[0].published) throw new Error("Publish results before archiving.");
     // One last live recompute so the snapshot reflects current marks/bands.
     await computeResultsScoped(scoped, institutionId, examinationId);
     const { rows: counts } = await scoped.query<{ total: string; provisional: string }>(
@@ -2155,7 +2265,7 @@ export async function finalizeExamination(
     );
     if (Number(counts[0]?.total ?? 0) === 0) throw new Error("No results to finalize yet.");
     if (Number(counts[0]?.provisional ?? 0) > 0) {
-      throw new Error(`${counts[0].provisional} result(s) are still provisional — every subject must be entered and approved/locked before finalizing.`);
+      throw new Error(`${counts[0].provisional} result(s) are still provisional — every subject must be entered before archiving.`);
     }
     const { rows: frozen } = await scoped.query(
       "update results set is_frozen = true, frozen_at = now() where examination_id = $1 and is_frozen = false returning id",
@@ -2186,19 +2296,23 @@ export async function finalizeExamination(
  *  pull a result back for correction) — finalize is a one-way freeze of
  *  the computed numbers themselves. An exam can be published while still
  *  provisional (some students' marks not yet entered) — that is an
- *  intentional choice left to the admin/principal, not enforced here. */
+ *  intentional choice left to the admin/principal, not enforced here.
+ *  §"Open > Closed > Published > Archived" — DOES require mark entry be
+ *  Closed first (reopenMarkEntry() requires unpublishing first, so the two
+ *  checks keep Closed<->Published a clean two-way door). */
 export async function publishExamination(
   institutionId: string, authUserId: string, userId: string, examinationId: string
 ): Promise<void> {
   const db = await getDbClient();
   await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: ex } = await scoped.query<{ is_daily_assessment: boolean }>(
-      `select et.is_daily_assessment
+    const { rows: ex } = await scoped.query<{ is_daily_assessment: boolean; closed: boolean }>(
+      `select et.is_daily_assessment, e.marks_closed_at is not null as closed
          from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`,
       [examinationId]
     );
     if (!ex[0]) throw new Error("Examination not found.");
     if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers aren't published this way.");
+    if (!ex[0].closed) throw new Error("Close mark entry before publishing.");
     await scoped.query(
       "update examinations set published_at = now(), published_by = $2, updated_at = now() where id = $1",
       [examinationId, userId]

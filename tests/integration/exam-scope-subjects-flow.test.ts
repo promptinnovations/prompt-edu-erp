@@ -27,6 +27,7 @@ import {
   listExamTypes, createExamination, getExamScopePlan, saveExamScopePlan, listExamSubjects, listExamSubjectGrades,
   getMarksGrid, getMarkEntryStatus, getExaminationMarksMatrix, enterMarksAndRecompute, getResults,
   submitMarks, verifyMarks, approveMarks, lockMarks, finalizeExamination, getExamSubjectClassIds,
+  closeMarkEntry, publishExamination,
 } from "../../modules/examination/service";
 
 let inst: string, adminAuth: string, adminUserId: string, yearId: string, examTypeId: string;
@@ -204,7 +205,11 @@ describe("saving the plan creates exam_subjects only for ticked (subject, grade)
     expect(Number(r.max_total_marks)).toBe(200); // Science (not set for Grade 1) never in the denominator
     expect(Number(r.percentage)).toBe(70);
     expect(r.subjects_entered).toBe(2);
-    expect(r.is_provisional).toBe(true); // still draft — shown anyway, verification is later/optional
+    // §migration 0058: provisional is now pure completeness, not per-mark
+    // approve/lock status — every one of this student's expected subjects
+    // (Malayalam + Maths) has a row, so the result is no longer provisional
+    // even though both marks are still 'draft'.
+    expect(r.is_provisional).toBe(false);
   });
 
   it("refuses to untick a subject or drop a division that already has marks (no silent deletes)", async () => {
@@ -249,15 +254,20 @@ describe("saving the plan creates exam_subjects only for ticked (subject, grade)
     for (const sid of [science, hindi]) {
       await enterMarksAndRecompute(inst, adminAuth, adminUserId, byId.get(sid)!, up5Students.map((studentId) => ({ studentId, marksObtained: 40, isAbsent: false })));
     }
-    // Before any approval the results are all listed (provisional) — finalize refuses.
+    // §migration 0058: results are all complete (non-provisional) as soon as
+    // every subject is entered — the old submit/verify/approve/lock chain no
+    // longer gates this. Archiving is still a separate, later admin step,
+    // now gated on Closed -> Published -> Archived instead of per-mark status.
     expect((await getResults(inst, adminAuth, examId)).length).toBe(4);
-    await expect(finalizeExamination(inst, adminAuth, adminUserId, examId)).rejects.toThrow(/provisional/);
+    await expect(finalizeExamination(inst, adminAuth, adminUserId, examId)).rejects.toThrow(/Publish results/);
     for (const e of es) {
       await submitMarks(inst, adminAuth, e.id, adminUserId);
       await verifyMarks(inst, adminAuth, e.id, adminUserId);
       await approveMarks(inst, adminAuth, e.id, adminUserId);
       await lockMarks(inst, adminAuth, e.id, adminUserId);
     }
+    await closeMarkEntry(inst, adminAuth, adminUserId, examId);
+    await publishExamination(inst, adminAuth, adminUserId, examId);
     const { frozen } = await finalizeExamination(inst, adminAuth, adminUserId, examId);
     expect(frozen).toBe(4);
     const up = (await getResults(inst, adminAuth, examId)).find((x) => x.student_id === up5Students[0])!;

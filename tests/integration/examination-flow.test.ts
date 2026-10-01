@@ -20,7 +20,7 @@ import {
   getMarksGrid, enterMarks, deleteMark, submitMarks, verifyMarks, approveMarks, lockMarks,
   correctMark, computeResults, getResults, listStudentResultHistory,
   getExaminationMarksMatrix, getCumulativeMarksheet, getMarkEntryStatus,
-  publishExamination,
+  publishExamination, closeMarkEntry,
 } from "../../modules/examination/service";
 
 let institutionA: string;
@@ -340,6 +340,8 @@ describe("listStudentResultHistory() — parent/student portal 'Results' detail 
   it("returns every computed result for a student, newest first, not just the latest", async () => {
     // §migration 0057: listStudentResultHistory is portal-only and now
     // requires the examination be published to the student/parent portal.
+    // §migration 0058: publishing now requires mark entry be Closed first.
+    await closeMarkEntry(institutionA, adminAuth, adminUserId, examinationId);
     await publishExamination(institutionA, adminAuth, adminUserId, examinationId);
     const history = await listStudentResultHistory(institutionA, adminAuth, student1);
     expect(history.length).toBeGreaterThanOrEqual(1);

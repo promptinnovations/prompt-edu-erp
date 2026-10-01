@@ -33,7 +33,7 @@ import {
   listExamTypes, createExamination, addExamClass, addExamSubject,
   enterMarksAndRecompute, getResults, listStudentResultHistory,
   publishExamination, unpublishExamination, getExamination,
-  submitMarks, verifyMarks, approveMarks, lockMarks,
+  submitMarks, verifyMarks, approveMarks, lockMarks, closeMarkEntry,
 } from "../../modules/examination/service";
 import { getStudent360 } from "../../modules/portfolio/service";
 
@@ -131,6 +131,8 @@ describe("publish/unpublish gate (portal visibility only)", () => {
   });
 
   it("publishExamination() stamps published_at/published_by and unlocks the portal reads", async () => {
+    // §migration 0058: publishing now requires mark entry be Closed first.
+    await closeMarkEntry(inst, adminAuth, adminUserId, examinationId);
     await publishExamination(inst, adminAuth, adminUserId, examinationId);
     const exam = await getExamination(inst, adminAuth, examinationId);
     expect(exam!.published_at).toBeTruthy();

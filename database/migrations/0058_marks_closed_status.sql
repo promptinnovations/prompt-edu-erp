@@ -1,0 +1,33 @@
+-- =============================================================================
+-- PROMPT EDU ERP — Migration 0058: examination-level "mark entry" status.
+--
+-- §"stop principal's approval and lock part - admin will switch mark entry
+-- Open> Closed> Published> Archived, that is enough" — replaces the old
+-- per-mark submit -> verified -> approved -> locked chain (migration-era
+-- entry_status workflow in the `marks` table; still present, no longer
+-- surfaced in the UI) with a single, admin-controlled, EXAMINATION-level
+-- status with exactly four stages:
+--   Open      — marks_closed_at is null. Teachers (marks.enter) can write
+--               their own marks.
+--   Closed    — marks_closed_at is set (closeMarkEntry()). Teachers can no
+--               longer write marks (enterMarks() checks this); an admin/
+--               principal can still correct any mark via correctMark(),
+--               which was never gated on draft/submitted/approved status to
+--               begin with and isn't gated on this new column either.
+--   Published — reuses the EXISTING published_at/published_by columns from
+--               migration 0057 (no schema change needed) — now requires
+--               Closed first (service-level check in publishExamination()).
+--   Archived  — reuses the EXISTING finalized_at/finalized_by columns from
+--               migration 0055 (no schema change needed) — now requires
+--               Published first (service-level check in
+--               finalizeExamination()).
+--
+-- examinationWorkflowStatus() in modules/examination/service.ts derives the
+-- single admin-facing label from these three independent timestamp columns
+-- (marks_closed_at, published_at, finalized_at) — nothing is stored
+-- redundantly, so the four-stage status can never drift from the columns
+-- that actually gate behavior.
+-- =============================================================================
+
+alter table examinations add column marks_closed_at timestamptz;
+alter table examinations add column marks_closed_by uuid;

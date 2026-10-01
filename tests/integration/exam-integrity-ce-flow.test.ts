@@ -22,6 +22,7 @@ import {
   getMarksGrid, getMarkEntryStatus, getExaminationMarksMatrix, getInstitutionPassRateTrend,
   setCeComponents, enterCeMarks, finalizeExamination, listGradeScales, getGradeBands, updateGradeBand,
   resolveGradeBand, computeStudentResult, DEFAULT_OVERALL_PASS_PCT, lookupGrade,
+  closeMarkEntry, publishExamination,
 } from "../../modules/examination/service";
 
 let inst: string;
@@ -350,12 +351,16 @@ describe("§1.6 finalize = immutable snapshot", () => {
       { studentId: s2, marksObtained: 72, isAbsent: false },
       { studentId: s3, marksObtained: 30, isAbsent: false },
     ]);
-    // Provisional (not yet approved) results can't be finalized.
-    await expect(finalizeExamination(inst, adminAuth, adminUserId, exam.examinationId)).rejects.toThrow(/provisional/);
+    // §migration 0058: archiving (finalize) now requires Published first —
+    // every subject is already entered so the result isn't provisional, but
+    // it still can't be archived before it's been closed + published.
+    await expect(finalizeExamination(inst, adminAuth, adminUserId, exam.examinationId)).rejects.toThrow(/Publish results/);
     await approveAll(exam.es);
     const before = await rawResult(exam.examinationId, s1);
     expect(before!.grade_label).toBe("A");
 
+    await closeMarkEntry(inst, adminAuth, adminUserId, exam.examinationId);
+    await publishExamination(inst, adminAuth, adminUserId, exam.examinationId);
     const { frozen } = await finalizeExamination(inst, adminAuth, adminUserId, exam.examinationId);
     expect(frozen).toBe(3);
     expect((await rawResult(exam.examinationId, s1))!.is_frozen).toBe(true);
