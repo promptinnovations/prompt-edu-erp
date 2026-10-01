@@ -117,6 +117,13 @@ describe("Examination workflow (§28)", () => {
     expect(result.updated).toBe(2);
   });
 
+  it("§'there should be an option for editing marks even after submission with the permission of principal' — the 'management' role has marks.lock, which is what surfaces the marks-entry grid's 'Correct' edit option for non-draft marks (correctMarkAction() gates on marks.lock specifically)", async () => {
+    const principal = await seedDemoUser(await getDbClient(), institutionA, "principal@exam-a.example", "Exam Principal", "management");
+    const principalPerms = await getPermissionsForUser(principal.authUserId, principal.userId, institutionA);
+    expect(() => requirePermission(principalPerms, "marks.lock")).not.toThrow();
+    expect(() => requirePermission(principalPerms, "marks.approve")).not.toThrow();
+  });
+
   it("draft marks can be re-entered (upserted) freely", async () => {
     const result = await enterMarks(institutionA, teacherAuth, teacherUserId, examSubjectId, [
       { studentId: student2, marksObtained: 38, isAbsent: false }, // corrected before submission

@@ -57,6 +57,16 @@ export function examSubjectAppliesToClassSql(es: string, classExpr: string): str
 export interface MarkRow {
   student_id: string; student_name: string; admission_number: string;
   roll_number: number | null; gender: string | null; section_name: string | null;
+  /** §"this (subject) should also be class wise, class should be specified
+   *  on top" — when one exam_subject's scope spans multiple classes
+   *  (several divisions, or several grades via the per-grade subject
+   *  picker), these let the marks-entry grid group students by class and
+   *  show which class each group is, instead of one undifferentiated list.
+   *  Also what sortRoster() needs to actually sort cross-class — without
+   *  them every row compared equal on the class portion of the roster
+   *  order, so students from different classes were interleaved rather
+   *  than grouped. */
+  class_id: string; class_name: string | null; stage: string | null;
   mark_id: string | null; marks_obtained: string | null; is_absent: boolean; entry_status: string | null;
 }
 export interface GradeBandRecord { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null }
@@ -1446,6 +1456,7 @@ export async function getMarksGrid(institutionId: string, authUserId: string, ex
     const { rows } = await scoped.query<MarkRow>(
       `select s.id as student_id, s.full_name as student_name, s.admission_number,
               se.roll_number, s.gender, sec.name as section_name,
+              c.id as class_id, c.name as class_name, c.stage,
               m.id as mark_id, m.marks_obtained, coalesce(m.is_absent, false) as is_absent, m.entry_status
          from exam_subjects es
          join examinations e on e.id = es.examination_id
@@ -1455,13 +1466,15 @@ export async function getMarksGrid(institutionId: string, authUserId: string, ex
               and (ec.section_id is null or se.section_id = ec.section_id) and se.status = 'active'
               and se.academic_year_id = e.academic_year_id
          join students s on s.id = se.student_id and s.status <> 'withdrawn'
+         join classes c on c.id = ec.class_id
          left join sections sec on sec.id = se.section_id
          left join marks m on m.exam_subject_id = es.id and m.student_id = s.id
         where es.id = $1
           -- Only students of grades this subject is set for in this exam
           -- (migration 0056 resolver, same as getMarkEntryStatus()).
           and ${examSubjectAppliesToClassSql("es", "ec.class_id")}
-        group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name, m.id, m.marks_obtained, m.is_absent, m.entry_status`,
+        group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, sec.name,
+                 c.id, c.name, c.stage, m.id, m.marks_obtained, m.is_absent, m.entry_status`,
       [examSubjectId]
     );
     // Division -> roll number order (§users-roles follow-up) -- exam_classes

@@ -103,7 +103,16 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
 
   const roleGrants: Record<string, string[]> = {
     management: [
-      "student.view_all", "marks.view", "marks.approve", "attendance.view", "attendance.edit",
+      // §"there should be an option for editing marks even after submission
+      // with the permission of principal" — correctMark()/correctMarkAction()
+      // already existed and were already wired into the marks-entry grid's
+      // "Correct" link (shown once a mark leaves draft status), but gated on
+      // marks.lock specifically, which this role never had — so the Principal
+      // saw no edit option at all past "submitted". marks.approve alone isn't
+      // enough; correctMarkAction() checks marks.lock on purpose (only
+      // whoever can lock marks may reopen one), so granting marks.lock here
+      // is what actually surfaces the existing "Correct" UI for this role.
+      "student.view_all", "marks.view", "marks.approve", "marks.lock", "attendance.view", "attendance.edit",
       "achievements.verify", "achievements.approve", "skills.approve",
       "discipline.view", "portfolio.view_all", "reports.view", "reports.export", "audit.view",
       "staff.view", "staff.edit", "staff.portion.manage", "staff.observation.manage", "staff.assignment.manage",

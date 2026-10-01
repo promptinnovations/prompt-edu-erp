@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Fragment, useActionState, useState } from "react";
 import {
   saveMarksAction, submitMarksAction, verifyMarksAction, approveMarksAction, lockMarksAction,
   deleteMarkAction, correctMarkAction,
@@ -10,7 +10,19 @@ import { formatMarks } from "../../../../../../services/format/marks";
 
 export interface GridStudent {
   student_id: string; student_name: string; admission_number: string;
+  /** §"this (subject) should also be class wise, class should be specified
+   *  on top" — used to group the grid into per-class sections with their
+   *  own header, when this exam_subject's scope spans more than one class. */
+  class_id: string; class_name: string | null; stage: string | null; section_name: string | null;
   mark_id: string | null; marks_obtained: string | null; is_absent: boolean; entry_status: string | null;
+}
+
+/** "Grade 5 A" style label — stage is left off (it's the institution's own
+ *  grouping vocabulary, already implied by context on this page) so this
+ *  stays compact as a grid section header. */
+function classLabel(s: Pick<GridStudent, "class_name" | "section_name">): string {
+  const parts = [s.class_name, s.section_name].filter((p): p is string => Boolean(p && p.trim()));
+  return parts.length > 0 ? parts.join(" ") : "Unassigned class";
 }
 
 function WorkflowButton({
@@ -109,9 +121,25 @@ export default function MarksGridForm({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {students.map((s) => {
+            {students.map((s, i) => {
               const isDraftOrUnset = s.entry_status === null || s.entry_status === "draft";
+              // §"this (subject) should also be class wise, class should be
+              // specified on the top" — students is already sorted class-
+              // then-division-then-roll (sortRoster(), service.ts), so a
+              // group boundary is just "the label changed from the row
+              // before"; one header row above the first row of each group.
+              const label = classLabel(s);
+              const prevLabel = i > 0 ? classLabel(students[i - 1]) : null;
+              const showHeader = label !== prevLabel;
               return (
+              <Fragment key={s.student_id}>
+              {showHeader ? (
+                <tr key={`${s.class_id}-${s.section_name ?? ""}-header`} className="bg-zinc-50">
+                  <td colSpan={6 + ceComponents.length} className="py-1.5 px-1 text-xs font-semibold uppercase tracking-[0.06em] text-zinc-600">
+                    {label}
+                  </td>
+                </tr>
+              ) : null}
               <tr key={s.student_id}>
                 <td className="py-1.5">
                   <input type="hidden" name="studentId" value={s.student_id} />
@@ -172,6 +200,7 @@ export default function MarksGridForm({
                   ) : null}
                 </td>
               </tr>
+              </Fragment>
               );
             })}
           </tbody>

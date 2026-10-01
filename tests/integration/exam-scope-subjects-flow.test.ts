@@ -160,6 +160,30 @@ describe("saving the plan creates exam_subjects only for ticked (subject, grade)
     expect(lp1Cells.map((c) => c.subject_name).sort()).toEqual(["SC Malayalam", "SC Maths"]);
   });
 
+  it("§'this (subject) should also be class wise, class should be specified on top' — getMarksGrid() carries class_id/class_name/stage for a subject spanning multiple grades, and sortRoster() groups+orders students by class (LP before UP) rather than interleaving them", async () => {
+    const byId = new Map((await listExamSubjects(inst, adminAuth, examId)).map((e) => [e.subject_id, e.id]));
+    // "SC Maths" is the one subject shared by both grades in this plan.
+    const mathsGrid = await getMarksGrid(inst, adminAuth, byId.get(maths)!);
+    expect(mathsGrid.map((r) => r.student_id).sort()).toEqual([...lp1Students, ...up5Students].sort());
+
+    // Every row carries its own class info (what the grid UI groups/headers by).
+    for (const r of mathsGrid) {
+      expect(r.class_id).toBeTruthy();
+      expect(r.class_name).toBeTruthy();
+    }
+    const byStudent = new Map(mathsGrid.map((r) => [r.student_id, r]));
+    for (const sid of lp1Students) expect(byStudent.get(sid)?.class_id).toBe(lp1);
+    for (const sid of up5Students) expect(byStudent.get(sid)?.class_id).toBe(up5);
+
+    // Grouped+ordered: every LP-grade row comes before every UP-grade row
+    // (STAGE_ORDER: LP < UP) — not interleaved by whatever order the join
+    // happened to return.
+    const classIdsInOrder = mathsGrid.map((r) => r.class_id);
+    const firstUpIndex = classIdsInOrder.indexOf(up5);
+    const lastLpIndex = classIdsInOrder.lastIndexOf(lp1);
+    expect(firstUpIndex).toBeGreaterThan(lastLpIndex);
+  });
+
   it("saved (draft, never submitted/verified/locked) marks show in Results immediately, over the grade's own subjects", async () => {
     const byId = new Map((await listExamSubjects(inst, adminAuth, examId)).map((e) => [e.subject_id, e.id]));
     await enterMarksAndRecompute(inst, adminAuth, adminUserId, byId.get(malayalam)!, [
