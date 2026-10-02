@@ -1,13 +1,31 @@
 import { getStudent360 } from "../../../../../modules/portfolio/service";
+import { getPublishedDailyAssessmentResultsForStudent } from "../../../../../modules/examination/service";
 import { requireOwnStudentId, NotLinkedNotice, Card } from "../_lib";
 
+function fmt(n: string | number | null) {
+  if (n === null) return "—";
+  const v = Number(n);
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
+
 /** Exam performance — results, attendance and consolidated score, with the
- *  consolidated score's breakdown_jsonb rendered as a simple bar list. */
+ *  consolidated score's breakdown_jsonb rendered as a simple bar list.
+ *  §"how we will publish daily assessment result" — Daily Assessment
+ *  registers never write to the `results` table getStudent360() reads from
+ *  (they have their own live monthly-consolidated math), so a published
+ *  register is surfaced here as its own section instead of folding into
+ *  latestResult above. Gated on published_at exactly like latestResult is
+ *  (getPublishedDailyAssessmentResultsForStudent() only ever returns
+ *  registers with published_at set). */
 export default async function StudentExamsPage() {
   const { institutionId, authUserId, ownStudentId } = await requireOwnStudentId();
   if (!ownStudentId) return <NotLinkedNotice />;
 
   const summary = await getStudent360(institutionId, authUserId, ownStudentId, 10, undefined, true);
+  const classId = summary.enrollment?.class_id;
+  const dailyAssessments = classId
+    ? await getPublishedDailyAssessmentResultsForStudent(institutionId, authUserId, ownStudentId, classId)
+    : [];
   const breakdown = summary.latestConsolidatedScore?.breakdown_jsonb ?? {};
   const breakdownEntries = Object.entries(breakdown);
   const maxValue = Math.max(1, ...breakdownEntries.map(([, v]) => Number(v) || 0));
@@ -63,6 +81,37 @@ export default async function StudentExamsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </Card>
+      ) : null}
+
+      {dailyAssessments.length > 0 ? (
+        <Card title="Daily Assessment">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
+                <tr>
+                  <th className="py-1.5 pr-4">Register</th>
+                  <th className="py-1.5 pr-4">Latest mark</th>
+                  <th className="py-1.5 pr-4">Cumulative mark</th>
+                  <th className="py-1.5 pr-4">Grade</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {dailyAssessments.map((d) => (
+                  <tr key={d.examination_id}>
+                    <td className="py-1.5 pr-4 text-[var(--foreground)]">{d.examination_name}</td>
+                    <td className="py-1.5 pr-4">{d.latest_marks_obtained !== null ? `${fmt(d.latest_marks_obtained)}/${fmt(d.latest_max_marks)}` : "—"}</td>
+                    <td className="py-1.5 pr-4">{fmt(d.cumulative_marks_obtained)}/{fmt(d.cumulative_max_marks)}</td>
+                    <td className="py-1.5 pr-4">
+                      {d.grade_label ? (
+                        <span className="rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: d.grade_color ?? "#71717a" }}>{d.grade_label}</span>
+                      ) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </Card>
       ) : null}

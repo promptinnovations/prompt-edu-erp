@@ -632,8 +632,16 @@ const createExaminationSchema = z.object({
 export async function listExaminations(institutionId: string, authUserId: string): Promise<ExaminationRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    // §"result is published, still status shows draft, why?" — examinations.status
+    // is a legacy column only ever written by createExamination() (defaults to
+    // "draft") and finalizeExamination() (-> "finalized"); publishExamination()/
+    // closeMarkEntry() never touch it, so a published exam still reads "draft"
+    // here forever. The list's Status column must derive the same way the detail
+    // page does (examinationWorkflowStatus()), hence pulling these three columns
+    // too even though `status` itself is still selected for anything else reading it.
     const { rows } = await scoped.query<ExaminationRecord>(
-      `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id
+      `select id, name, status, exam_type_id, academic_year_id, term_id, start_date, end_date, grade_scale_id,
+              finalized_at::text as finalized_at, published_at::text as published_at, marks_closed_at::text as marks_closed_at
          from examinations order by created_at desc`
     );
     return rows;
@@ -2184,19 +2192,21 @@ async function computeResultsScoped(
  *  stops teachers (marks.enter) from writing any more marks for this
  *  examination (assertMarkEntryOpenForTeachers() in enterMarks()); an
  *  admin/principal can still correct existing marks via correctMark(),
- *  closed or not. Required before publishExamination() per the sequence. */
+ *  closed or not. Required before publishExamination() per the sequence.
+ *  §"how we will publish daily assessment result" — a Daily Assessment
+ *  register shares this same Close/Publish pair with every other exam type
+ *  (it only opts OUT of the final Archive step, in finalizeExamination()
+ *  below, since it has no `results` rows to freeze). */
 export async function closeMarkEntry(
   institutionId: string, authUserId: string, userId: string, examinationId: string
 ): Promise<void> {
   const db = await getDbClient();
   await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: ex } = await scoped.query<{ is_daily_assessment: boolean; closed: boolean }>(
-      `select et.is_daily_assessment, e.marks_closed_at is not null as closed
-         from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`,
+    const { rows: ex } = await scoped.query<{ closed: boolean }>(
+      `select e.marks_closed_at is not null as closed from examinations e where e.id = $1`,
       [examinationId]
     );
     if (!ex[0]) throw new Error("Examination not found.");
-    if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers don't use this mark-entry status.");
     if (ex[0].closed) throw new Error("Mark entry is already closed.");
     await scoped.query(
       "update examinations set marks_closed_at = now(), marks_closed_by = $2, updated_at = now() where id = $1",
@@ -2305,13 +2315,11 @@ export async function publishExamination(
 ): Promise<void> {
   const db = await getDbClient();
   await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: ex } = await scoped.query<{ is_daily_assessment: boolean; closed: boolean }>(
-      `select et.is_daily_assessment, e.marks_closed_at is not null as closed
-         from examinations e join exam_types et on et.id = e.exam_type_id where e.id = $1`,
+    const { rows: ex } = await scoped.query<{ closed: boolean }>(
+      `select e.marks_closed_at is not null as closed from examinations e where e.id = $1`,
       [examinationId]
     );
     if (!ex[0]) throw new Error("Examination not found.");
-    if (ex[0].is_daily_assessment) throw new Error("Daily Assessment registers aren't published this way.");
     if (!ex[0].closed) throw new Error("Close mark entry before publishing.");
     await scoped.query(
       "update examinations set published_at = now(), published_by = $2, updated_at = now() where id = $1",
@@ -3212,6 +3220,40 @@ export async function getDailyAssessmentConsolidatedResult(
     }
     return out;
   });
+}
+
+/** §"how we will publish daily assessment result" — the student/parent
+ *  portal's own view of a Daily Assessment register, one row per PUBLISHED
+ *  register the student's class has data in (a register with no published_at
+ *  is simply absent here, same gate as every other exam type's portal view).
+ *  Deliberately reuses getDailyAssessmentConsolidatedResult()'s whole-class
+ *  query rather than adding a student_id filter to its SQL — it's one row
+ *  per student already and this is called for a single student's own Exams
+ *  page, not a hot path, so the simplicity of "compute the class, keep my
+ *  row" outweighs the extra (unused) rows fetched per call. */
+export interface StudentDailyAssessmentResult extends DailyConsolidatedRow {
+  examination_id: string;
+  examination_name: string;
+}
+export async function getPublishedDailyAssessmentResultsForStudent(
+  institutionId: string, authUserId: string, studentId: string, classId: string
+): Promise<StudentDailyAssessmentResult[]> {
+  const db = await getDbClient();
+  const registers = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; name: string }>(
+      `select e.id, e.name from examinations e join exam_types et on et.id = e.exam_type_id
+        where et.is_daily_assessment and e.published_at is not null
+        order by e.start_date desc nulls last, e.created_at desc`
+    );
+    return rows;
+  });
+  const out: StudentDailyAssessmentResult[] = [];
+  for (const reg of registers) {
+    const rows = await getDailyAssessmentConsolidatedResult(institutionId, authUserId, reg.id, classId);
+    const mine = rows.find((r) => r.student_id === studentId);
+    if (mine) out.push({ ...mine, examination_id: reg.id, examination_name: reg.name });
+  }
+  return out;
 }
 
 export interface StudentDailyAssessmentRow {

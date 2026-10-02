@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { updateExaminationAction, deleteExaminationAction } from "./actions";
 import ConfirmSubmitButton from "../../components/ui/ConfirmSubmitButton";
 
-interface ExaminationRow { id: string; name: string; status: string; academic_year_id: string }
+interface ExaminationRow { id: string; name: string; status: string; academic_year_id: string; workflowStatus: "open" | "closed" | "published" | "archived" }
 interface AcademicYearOption { id: string; name: string; is_current: boolean }
 
 const INIT = { error: null };
@@ -47,7 +47,7 @@ function ExaminationRow({
   return (
     <tr>
       <td className="px-4 py-2">{exam.name}</td>
-      <td className="px-4 py-2 capitalize">{exam.status}</td>
+      <td className="px-4 py-2 capitalize">{exam.workflowStatus}</td>
       <td className="px-4 py-2">
         <div className="flex items-center justify-end gap-3">
           <Link href={`/examinations/${exam.id}`} className="text-sm text-zinc-600 underline">

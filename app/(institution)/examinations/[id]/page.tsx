@@ -42,6 +42,8 @@ export default async function ExaminationDetailPage({
   // per-day, per-class, per-subject shape (see migration 0048's doc
   // comment for why).
   if (examType?.is_daily_assessment) {
+    const workflowStatus = examinationWorkflowStatus(examination);
+    const canManageMarkEntryStatus = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
     const [classes, subjects, classSubjects, entries] = await Promise.all([
       listClasses(institutionId, authUserId),
       listSubjects(institutionId, authUserId),
@@ -69,9 +71,12 @@ export default async function ExaminationDetailPage({
         <Link href="/examinations" className="text-sm text-zinc-500 underline">
           ← Back to examinations
         </Link>
-        <div>
-          <h1 className="text-2xl font-semibold text-[var(--heading)]">{examination.name}</h1>
-          <p className="mt-1 text-sm text-zinc-500">Daily Assessment · {examination.status}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl font-semibold text-[var(--heading)]">{examination.name}</h1>
+            <p className="mt-1 text-sm text-zinc-500">Daily Assessment</p>
+          </div>
+          {canManageMarkEntryStatus ? <MarkEntryStatusControl examinationId={id} status={workflowStatus} /> : null}
         </div>
         <DailyAssessmentSection
           examinationId={id}

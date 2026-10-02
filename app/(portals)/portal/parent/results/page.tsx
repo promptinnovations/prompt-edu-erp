@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { requireOwnParentContext, NotLinkedNotice, Card } from "../_lib";
-import { listStudentResultHistory } from "../../../../../modules/examination/service";
+import { listStudentResultHistory, getPublishedDailyAssessmentResultsForStudent } from "../../../../../modules/examination/service";
 import { getLatestConsolidatedScore } from "../../../../../modules/scoring/service";
+import { getStudent360 } from "../../../../../modules/portfolio/service";
+
+function fmt(n: string | number | null) {
+  if (n === null) return "—";
+  const v = Number(n);
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
 
 /** Detail view behind the parent dashboard's "Results" and "Consolidated
  *  score" stat-card buttons — every computed exam result for this child
@@ -18,10 +25,15 @@ export default async function ParentResultsPage({
   if (!selectedChildId) return <NotLinkedNotice />;
   const child = children.find((c) => c.id === selectedChildId);
 
-  const [results, consolidatedScore] = await Promise.all([
+  const [results, consolidatedScore, summary] = await Promise.all([
     listStudentResultHistory(institutionId, authUserId, selectedChildId),
     getLatestConsolidatedScore(institutionId, authUserId, selectedChildId),
+    getStudent360(institutionId, authUserId, selectedChildId),
   ]);
+  const childClassId = summary.enrollment?.class_id;
+  const dailyAssessments = childClassId
+    ? await getPublishedDailyAssessmentResultsForStudent(institutionId, authUserId, selectedChildId, childClassId)
+    : [];
   const breakdown = consolidatedScore?.breakdown_jsonb ?? {};
   const breakdownEntries = Object.entries(breakdown);
   const maxValue = Math.max(1, ...breakdownEntries.map(([, v]) => Number(v) || 0));
@@ -83,6 +95,19 @@ export default async function ParentResultsPage({
           {results.length === 0 ? <li className="text-zinc-500">No results yet.</li> : null}
         </ul>
       </Card>
+
+      {dailyAssessments.length > 0 ? (
+        <Card title="Daily Assessment">
+          <ul className="space-y-2 text-sm">
+            {dailyAssessments.map((d) => (
+              <li key={d.examination_id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                <span>{d.examination_name}{d.grade_label ? ` — Grade ${d.grade_label}` : ""}</span>
+                <span className="text-zinc-500">{fmt(d.cumulative_marks_obtained)}/{fmt(d.cumulative_max_marks)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
     </div>
   );
 }

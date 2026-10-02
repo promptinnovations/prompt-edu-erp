@@ -24,6 +24,8 @@ import {
   updateDailyAssessment, deleteDailyAssessment, getOrCreateDailyAssessmentSession,
   getDailyAssessmentConsolidatedResult, getStudentDailyAssessmentHistory,
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
+  closeMarkEntry, publishExamination, unpublishExamination, finalizeExamination,
+  getExamination, examinationWorkflowStatus, getPublishedDailyAssessmentResultsForStudent,
 } from "../../modules/examination/service";
 import { getDbClient as getRawDbClient } from "../../services/db/client";
 
@@ -352,6 +354,47 @@ describe("§505 'entered daily assessment should be editable and removable'", ()
     await expect(
       deleteDailyAssessment(institutionA, adminAuth, adminUserId, "00000000-0000-0000-0000-000000000000")
     ).rejects.toThrow(/not found/);
+  });
+});
+
+describe("§'how we will publish daily assessment result' — Daily Assessment shares Close/Publish with every other exam type", () => {
+  it("closeMarkEntry()/publishExamination() no longer refuse a Daily Assessment register (the is_daily_assessment guard was removed)", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId, classId, subjectId, assessmentDate: today, portion: "Publish-flow portion", maxMarks: 20,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [
+      { studentId: student1, marksObtained: 18, isAbsent: false },
+    ]);
+
+    const beforeClose = await getExamination(institutionA, adminAuth, examinationId);
+    expect(examinationWorkflowStatus(beforeClose!)).toBe("open");
+
+    await closeMarkEntry(institutionA, adminAuth, adminUserId, examinationId);
+    let exam = await getExamination(institutionA, adminAuth, examinationId);
+    expect(examinationWorkflowStatus(exam!)).toBe("closed");
+
+    await publishExamination(institutionA, adminAuth, adminUserId, examinationId);
+    exam = await getExamination(institutionA, adminAuth, examinationId);
+    expect(examinationWorkflowStatus(exam!)).toBe("published");
+  });
+
+  it("finalizeExamination() still refuses Daily Assessment (no `results` rows to freeze) — Archive stays unreachable", async () => {
+    await expect(
+      finalizeExamination(institutionA, adminAuth, adminUserId, examinationId)
+    ).rejects.toThrow(/Daily Assessment registers can't be finalized/);
+  });
+
+  it("getPublishedDailyAssessmentResultsForStudent() surfaces the student's own row once published, gated the same way as every other exam's portal view", async () => {
+    const results = await getPublishedDailyAssessmentResultsForStudent(institutionA, adminAuth, student1, classId);
+    const mine = results.find((r) => r.examination_id === examinationId);
+    expect(mine).toBeTruthy();
+    expect(mine!.student_id).toBe(student1);
+    expect(Number(mine!.cumulative_marks_obtained)).toBeGreaterThan(0);
+
+    await unpublishExamination(institutionA, adminAuth, adminUserId, examinationId);
+    const afterUnpublish = await getPublishedDailyAssessmentResultsForStudent(institutionA, adminAuth, student1, classId);
+    expect(afterUnpublish.find((r) => r.examination_id === examinationId)).toBeUndefined();
   });
 });
 

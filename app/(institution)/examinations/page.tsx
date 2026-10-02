@@ -1,7 +1,7 @@
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { can } from "../../../services/permissions/permission-service";
-import { listExamTypes, listExaminations } from "../../../modules/examination/service";
+import { listExamTypes, listExaminations, examinationWorkflowStatus } from "../../../modules/examination/service";
 import { listAcademicYears } from "../../../modules/academic/service";
 import { getInstitution } from "../../../services/institution/institution-service";
 import ExaminationForm from "./ExaminationForm";
@@ -15,12 +15,19 @@ export default async function ExaminationsPage() {
 
   const canManage = can(ctx.permissions, "settings.manage");
 
-  const [examTypes, academicYears, examinations, institution] = await Promise.all([
+  const [examTypes, academicYears, rawExaminations, institution] = await Promise.all([
     listExamTypes(institutionId, authUserId),
     listAcademicYears(institutionId, authUserId),
     listExaminations(institutionId, authUserId),
     getInstitution(institutionId, authUserId),
   ]);
+  // §"result is published, still status shows draft, why?" — the list's
+  // Status column must reflect the same Open/Closed/Published/Archived
+  // state the detail page shows, not the legacy `status` column (which
+  // publishExamination()/closeMarkEntry() never touch). Computed here
+  // (server component) rather than in the client-side ExaminationsTable,
+  // since examinationWorkflowStatus() lives in a server-only module.
+  const examinations = rawExaminations.map((e) => ({ ...e, workflowStatus: examinationWorkflowStatus(e) }));
 
   return (
     <div className="space-y-6">
