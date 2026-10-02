@@ -39,7 +39,7 @@ export default async function StudentDashboardPage() {
   }
 
   const stats = [
-    { label: "Attendance (this year)", value: summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—", href: "/portal/student/exams" },
+    { label: "Attendance (this year)", value: summary.attendanceSummary ? `${summary.attendanceSummary.present_percent}%` : "—", href: "/portal/student/attendance" },
     {
       label: summary.latestResult ? `Latest: ${summary.latestResult.examination_name}` : "No results yet",
       value: summary.latestResult ? `${summary.latestResult.percentage}%` : "—",
@@ -108,7 +108,7 @@ export default async function StudentDashboardPage() {
           className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card transition-colors hover:border-[var(--brand)]"
         >
           <h2 className="text-sm font-semibold text-[var(--heading)]">Exam performance</h2>
-          <p className="mt-1 text-xs text-zinc-500">Results, attendance and consolidated score in detail.</p>
+          <p className="mt-1 text-xs text-zinc-500">Exam-wise results, consolidated marks, report cards and cumulative score.</p>
         </Link>
         <Link
           href="/portal/student/library"

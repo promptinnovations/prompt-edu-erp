@@ -37,6 +37,9 @@ export default async function ParentResultsPage({
   const breakdown = consolidatedScore?.breakdown_jsonb ?? {};
   const breakdownEntries = Object.entries(breakdown);
   const maxValue = Math.max(1, ...breakdownEntries.map(([, v]) => Number(v) || 0));
+  const cumulativePercent = results.length > 0
+    ? results.reduce((a, r) => a + Number(r.percentage), 0) / results.length
+    : null;
 
   return (
     <div className="space-y-6">
@@ -48,12 +51,16 @@ export default async function ParentResultsPage({
         <p className="mt-0.5 text-sm text-zinc-500">Every computed exam result, and the current consolidated score.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-card border bg-white p-5">
           <div className="text-2xl font-semibold text-zinc-900">{results[0] ? `${results[0].percentage}%` : "—"}</div>
           <div className="mt-1 text-sm text-zinc-500">
             {results[0] ? `Latest: ${results[0].examination_name}${results[0].grade_label ? ` · Grade ${results[0].grade_label}` : ""}` : "No results yet"}
           </div>
+        </div>
+        <div className="rounded-card border bg-white p-5">
+          <div className="text-2xl font-semibold text-zinc-900">{cumulativePercent !== null ? `${cumulativePercent.toFixed(2)}%` : "—"}</div>
+          <div className="mt-1 text-sm text-zinc-500">Cumulative marks across {results.length} published exam{results.length === 1 ? "" : "s"}</div>
         </div>
         <div className="rounded-card border bg-white p-5">
           <div className="text-2xl font-semibold text-zinc-900">{consolidatedScore ? consolidatedScore.score : "—"}</div>
@@ -84,15 +91,20 @@ export default async function ParentResultsPage({
         </Card>
       ) : null}
 
-      <Card title="All results">
-        <ul className="space-y-2 text-sm">
+      <Card title="All results" subtitle="Tap an exam for consolidated marks and a printable report card.">
+        <ul className="divide-y text-sm">
           {results.map((r) => (
-            <li key={r.examination_id} className="flex items-center justify-between border-b pb-2 last:border-0">
-              <span>{r.examination_name}{r.grade_label ? ` — Grade ${r.grade_label}` : ""}</span>
-              <span className="text-zinc-500">{r.percentage}%</span>
+            <li key={r.examination_id}>
+              <Link
+                href={`/portal/parent/results/${r.examination_id}?childId=${selectedChildId}`}
+                className="flex items-center justify-between py-2 transition-colors hover:text-[var(--brand)]"
+              >
+                <span>{r.examination_name}{r.grade_label ? ` — Grade ${r.grade_label}` : ""}</span>
+                <span className="text-zinc-500">{r.percentage}% →</span>
+              </Link>
             </li>
           ))}
-          {results.length === 0 ? <li className="text-zinc-500">No results yet.</li> : null}
+          {results.length === 0 ? <li className="py-2 text-zinc-500">No results yet.</li> : null}
         </ul>
       </Card>
 
