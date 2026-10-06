@@ -6,6 +6,7 @@ import {
 } from "../../../../../modules/discipline/service";
 import { listMentoringRecordsForPortal } from "../../../../../modules/mentoring/service";
 import { requireOwnStudentId, NotLinkedNotice, Card } from "../_lib";
+import { EventsCompetitions } from "../../../../components/portal/ProfileSections";
 import SubmitSkillForm from "../SubmitSkillForm";
 import SubmitAchievementForm from "../SubmitAchievementForm";
 
@@ -58,17 +59,7 @@ export default async function StudentPortfolioPage() {
         </ul>
       </Card>
 
-      <Card title="Achievements">
-        <ul className="space-y-2 text-sm">
-          {myAchievements.map((a) => (
-            <li key={a.id} className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-2 last:border-0">
-              <span className="text-[var(--foreground)]">{a.title} <span className="text-zinc-500">({a.category_name} · {a.level_name})</span></span>
-              <span className="shrink-0 text-zinc-500">{a.position ?? ""}</span>
-            </li>
-          ))}
-          {myAchievements.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
-        </ul>
-      </Card>
+      <EventsCompetitions achievements={myAchievements} />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <Card title="Discipline">

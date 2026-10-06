@@ -4,7 +4,6 @@ import { getOwnParentId, listChildrenForParent, isOwnChild } from "../../../../m
 import { getStudent360 } from "../../../../modules/portfolio/service";
 import { listLeaveApplicationsForStudent } from "../../../../modules/attendance/service";
 import { getParentPortalSections } from "../../../../services/institution/institution-service";
-import { listAchievements } from "../../../../modules/achievements/service";
 import { listSkillSubmissions } from "../../../../modules/skills/service";
 import { listReadingRecords } from "../../../../modules/library/service";
 import { listCharacterAssessments, listCharacterRatingLabels } from "../../../../modules/discipline/service";
@@ -18,6 +17,8 @@ import PayFeeForm from "./PayFeeForm";
 import SendMessageForm from "./SendMessageForm";
 import SendKudosForm from "./SendKudosForm";
 import StarOfTheMonthBanner from "../../../components/StarOfTheMonthBanner";
+import { StudentDetailsCard, EventsCompetitions, ProgressCard } from "../../../components/portal/ProfileSections";
+import { loadPortalProfileBundle } from "../../../components/portal/progress-data";
 
 export default async function ParentPortalPage({
   searchParams,
@@ -66,7 +67,7 @@ export default async function ParentPortalPage({
   // every student's.
   const sections = await getParentPortalSections(institutionId, authUserId);
 
-  const [summary, childLeaves, achievements, skillSubmissions, readingRecords, characterAssessments, ratingLabels, mentoringNotes, allInvoices, staffDirectory] = await Promise.all([
+  const [summary, childLeaves, skillSubmissions, readingRecords, characterAssessments, ratingLabels, mentoringNotes, allInvoices, staffDirectory] = await Promise.all([
     // §"publish result of an exam for viewing it in student/parent portal"
     // — onlyPublishedResults=true is what makes the parent dashboard's
     // "latest result" respect that gate.
@@ -74,7 +75,6 @@ export default async function ParentPortalPage({
     can(ctx.permissions, "attendance.leave.apply")
       ? listLeaveApplicationsForStudent(institutionId, authUserId, selectedChildId)
       : Promise.resolve([]),
-    sections.achievements ? listAchievements(institutionId, authUserId, undefined, undefined, selectedChildId) : Promise.resolve([]),
     sections.skills ? listSkillSubmissions(institutionId, authUserId, undefined, undefined, selectedChildId) : Promise.resolve([]),
     sections.library ? listReadingRecords(institutionId, authUserId, undefined, undefined, selectedChildId) : Promise.resolve([]),
     sections.character ? listCharacterAssessments(institutionId, authUserId, selectedChildId) : Promise.resolve([]),
@@ -97,6 +97,7 @@ export default async function ParentPortalPage({
   };
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
+  const bundle = await loadPortalProfileBundle(institutionId, authUserId, selectedChildId);
 
   return (
     <div className="space-y-6">
@@ -245,20 +246,16 @@ export default async function ParentPortalPage({
         </div>
       ) : null}
 
-      {sections.achievements ? (
-        <div className="rounded-card border bg-white p-6">
-          <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Achievements</h2>
-          <ul className="space-y-2 text-sm">
-            {achievements.map((a) => (
-              <li key={a.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-                <span>{a.title} ({a.category_name})</span>
-                <span className="text-zinc-500">{a.position ? `${a.position} · ` : ""}{a.status}</span>
-              </li>
-            ))}
-            {achievements.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
-          </ul>
-        </div>
+      {bundle.profile ? (
+        <StudentDetailsCard student={bundle.profile} classLabel={bundle.classLabel} rollNumber={bundle.rollNumber} guardian={bundle.guardian} />
       ) : null}
+
+      {sections.achievements ? <EventsCompetitions achievements={bundle.achievements} /> : null}
+
+      {sections.results ? (
+        <ProgressCard exams={bundle.progress} reportCardHref={(id) => `/portal/parent/results/${id}?childId=${selectedChildId}`} />
+      ) : null}
+
 
       {sections.skills ? (
         <div className="rounded-card border bg-white p-6">

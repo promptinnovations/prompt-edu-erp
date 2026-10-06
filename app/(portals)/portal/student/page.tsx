@@ -5,6 +5,8 @@ import { listApprovedReviews } from "../../../../modules/library/service";
 import { listClasses, listSections } from "../../../../modules/academic/service";
 import { requireOwnStudentId, NotLinkedNotice, Card } from "./_lib";
 import StarOfTheMonthBanner from "../../../components/StarOfTheMonthBanner";
+import { StudentDetailsCard, EventsCompetitions, ProgressCard } from "../../../components/portal/ProfileSections";
+import { loadPortalProfileBundle } from "../../../components/portal/progress-data";
 
 /** Dashboard — the student portal's landing page (§ student-portal redesign:
  *  "what should be seen primarily is the portfolio, dashboard, exam
@@ -28,6 +30,7 @@ export default async function StudentDashboardPage() {
     listApprovedReviews(institutionId, authUserId, null, ownStudentId),
     listClasses(institutionId, authUserId),
   ]);
+  const bundle = await loadPortalProfileBundle(institutionId, authUserId, ownStudentId);
   const myReviews = approvedReviews.filter((r) => r.student_id === ownStudentId);
 
   const classById = new Map(classes.map((c) => [c.id, c.name]));
@@ -86,6 +89,14 @@ export default async function StudentDashboardPage() {
           </Link>
         ))}
       </div>
+
+      {bundle.profile ? (
+        <StudentDetailsCard student={bundle.profile} classLabel={bundle.classLabel} rollNumber={bundle.rollNumber} guardian={bundle.guardian} />
+      ) : null}
+
+      <EventsCompetitions achievements={bundle.achievements} />
+
+      <ProgressCard exams={bundle.progress} reportCardHref={(id) => `/portal/student/exams/${id}`} />
 
       <Card title="Recent portfolio timeline" subtitle="Your latest 5 entries — see everything on the Portfolio page.">
         <ul className="space-y-2 text-sm">
