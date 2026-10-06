@@ -47,7 +47,7 @@ export function StudentDetailsCard({
         <Field label="Roll No." value={rollNumber != null ? String(rollNumber) : null} />
         <Field label="Admission No." value={student.admission_number} />
         <Field label="Date of Birth" value={dob ? `${formatDateIST(dob)} (${ageFrom(dob)} years)` : null} />
-        <Field label="Gender" value={student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : null} />
+        <Field label="Gender" value={student.gender ? ({ m: "Male", f: "Female" } as Record<string, string>)[student.gender.toLowerCase()] ?? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : null} />
         <Field label="Admission Date" value={student.created_at ? formatDateIST(student.created_at) : null} />
         <Field label="Guardian" value={guardian?.full_name} />
         <Field label="Guardian Phone" value={guardian?.phone} />
