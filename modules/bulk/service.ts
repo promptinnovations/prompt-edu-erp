@@ -569,8 +569,9 @@ const achievementsDefinition: EntityImportDefinition = {
     { key: "title", label: "Title", required: true },
     { key: "position", label: "Position", required: false },
     { key: "points", label: "Points", required: false },
+    { key: "status", label: "Status (leave blank for pending review, or \"approved\" for already-verified results)", required: false },
   ],
-  sampleRow: { studentAdmissionNumber: "2026-001", categoryName: "Sports", levelName: "District", title: "Football tournament runner-up", position: "2nd", points: "10" },
+  sampleRow: { studentAdmissionNumber: "2026-001", categoryName: "Sports", levelName: "District", title: "Football tournament runner-up", position: "2nd", points: "10", status: "" },
   async prepareContext(institutionId, authUserId) {
     const [students, categories, levels] = await Promise.all([
       listStudents(institutionId, authUserId),
@@ -605,10 +606,31 @@ const achievementsDefinition: EntityImportDefinition = {
     if (pointsRaw && Number.isNaN(points)) return { status: "invalid", errors: [`"points" must be a number.`] };
     return {
       status: "valid", dedupeKey: null,
-      data: { studentId, categoryId, levelId, title, position: (raw.position ?? "").trim() || null, points },
+      data: {
+        studentId, categoryId, levelId, title, position: (raw.position ?? "").trim() || null, points,
+        approved: (raw.status ?? "").trim().toLowerCase() === "approved",
+      },
     };
   },
   async insertRow(institutionId, authUserId, userId, data, scoped) {
+    if (data.approved) {
+      // Admin-uploaded results already verified offline (e.g. festival result
+      // sheets): store as approved directly, with the same portfolio timeline
+      // event approveAchievement() writes, so student/parent portals show
+      // them. Points (if any) are NOT fed to the scoring engine here.
+      const { rows } = await scoped.query<{ id: string }>(
+        `insert into achievements (institution_id, student_id, category_id, level_id, title, "position", points, status, verified_by, approved_by)
+         values ($1, $2, $3, $4, $5, $6, $7, 'approved', $8, $8) returning id`,
+        [institutionId, data.studentId, data.categoryId, data.levelId, data.title, data.position ?? null, data.points ?? null, userId]
+      );
+      await scoped.query(
+        `insert into portfolio_events
+           (institution_id, student_id, event_type, module, entity_type, entity_id, event_date, title, description, score, approved_by, status)
+         values ($1, $2, 'achievement_approved', 'achievements', 'achievements', $3, current_date, $4, $5, $6, $7, 'approved')`,
+        [institutionId, data.studentId, rows[0].id, data.title, data.position ?? null, data.points ?? null, userId]
+      );
+      return;
+    }
     await submitAchievement(institutionId, authUserId, userId, {
       studentId: data.studentId as string, categoryId: data.categoryId as string, levelId: data.levelId as string,
       title: data.title as string, position: data.position as string | null, points: data.points as number | null,
