@@ -18,6 +18,7 @@ import PortalRoleToggle from "./PortalRoleToggle";
 const STUDENT_NAV_ITEMS: NavItem[] = [
   { href: "/portal/student", label: "Dashboard" },
   { href: "/portal/student/portfolio", label: "Portfolio" },
+  { href: "/portal/student/record", label: "Learner Record" },
   { href: "/portal/student/exams", label: "Exam performance" },
   { href: "/portal/student/library", label: "Library & reading" },
 ];
@@ -34,6 +35,7 @@ const PARENT_NAV_ITEMS: NavItem[] = [
   { href: "/portal/parent/attendance", label: "Attendance" },
   { href: "/portal/parent/results", label: "Results" },
   { href: "/portal/parent/portfolio", label: "Portfolio" },
+  { href: "/portal/parent/record", label: "Learner Record" },
 ];
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
