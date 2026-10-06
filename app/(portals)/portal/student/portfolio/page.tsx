@@ -1,6 +1,6 @@
 import { getStudent360 } from "../../../../../modules/portfolio/service";
 import { listSkillTypes, listSkillActivities } from "../../../../../modules/skills/service";
-import { listAchievementCategories, listAchievementLevels } from "../../../../../modules/achievements/service";
+import { listAchievementCategories, listAchievementLevels, listAchievements } from "../../../../../modules/achievements/service";
 import {
   listRecentNegativeDisciplineFlags, listCharacterAssessments, listCharacterRatingLabels,
 } from "../../../../../modules/discipline/service";
@@ -16,12 +16,13 @@ export default async function StudentPortfolioPage() {
   const { institutionId, authUserId, ownStudentId } = await requireOwnStudentId();
   if (!ownStudentId) return <NotLinkedNotice />;
 
-  const [summary, skillTypes, achievementCategories, achievementLevels, disciplineFlags, characterAssessments, ratingLabels, mentoringNotes] =
+  const [summary, skillTypes, achievementCategories, achievementLevels, myAchievements, disciplineFlags, characterAssessments, ratingLabels, mentoringNotes] =
     await Promise.all([
       getStudent360(institutionId, authUserId, ownStudentId, 30, undefined, true),
       listSkillTypes(institutionId, authUserId),
       listAchievementCategories(institutionId, authUserId),
       listAchievementLevels(institutionId, authUserId),
+      listAchievements(institutionId, authUserId, "approved", undefined, ownStudentId),
       // "This is your own record" (§357) — same rule as before: a student
       // sees their own discipline/character/mentoring without needing the
       // admin-facing view_all/mentoring.view_all permission.
@@ -54,6 +55,18 @@ export default async function StudentPortfolioPage() {
             </li>
           ))}
           {summary.recentPortfolioEvents.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
+        </ul>
+      </Card>
+
+      <Card title="Achievements">
+        <ul className="space-y-2 text-sm">
+          {myAchievements.map((a) => (
+            <li key={a.id} className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-2 last:border-0">
+              <span className="text-[var(--foreground)]">{a.title} <span className="text-zinc-500">({a.category_name} · {a.level_name})</span></span>
+              <span className="shrink-0 text-zinc-500">{a.position ?? ""}</span>
+            </li>
+          ))}
+          {myAchievements.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
         </ul>
       </Card>
 

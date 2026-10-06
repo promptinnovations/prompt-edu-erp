@@ -252,7 +252,7 @@ export default async function ParentPortalPage({
             {achievements.map((a) => (
               <li key={a.id} className="flex items-center justify-between border-b pb-2 last:border-0">
                 <span>{a.title} ({a.category_name})</span>
-                <span className="text-zinc-500">{a.status}</span>
+                <span className="text-zinc-500">{a.position ? `${a.position} · ` : ""}{a.status}</span>
               </li>
             ))}
             {achievements.length === 0 ? <li className="text-zinc-500">Nothing yet.</li> : null}
