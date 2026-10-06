@@ -7,6 +7,7 @@ import { getStudentAttendanceSummary, type AttendanceSummary } from "../../../mo
 import { listAcademicYears } from "../../../modules/academic/service";
 import { getInstitution } from "../../../services/institution/institution-service";
 import { todayIST } from "../../../services/datetime/ist";
+import { listLearnerEntries, type LearnerEntry } from "../../../modules/learner-record/service";
 
 /** Achievement categories whose name matches this are shown under
  *  "Service, leadership & activities" (IB CAS-style) instead of the
@@ -30,12 +31,13 @@ export interface LearnerRecord {
   character: CharacterMatrix;
   mentoring: MentoringRecordRow[];
   reading: ReadingRecordRow[];
+  entries: LearnerEntry[];
 }
 
 export async function loadLearnerRecord(
   institutionId: string, authUserId: string, studentId: string
 ): Promise<LearnerRecord> {
-  const [bundle, institution, years, skills, assessments, labels, mentoring, reading] = await Promise.all([
+  const [bundle, institution, years, skills, assessments, labels, mentoring, reading, entries] = await Promise.all([
     loadPortalProfileBundle(institutionId, authUserId, studentId),
     getInstitution(institutionId, authUserId),
     listAcademicYears(institutionId, authUserId),
@@ -44,6 +46,7 @@ export async function loadLearnerRecord(
     listCharacterRatingLabels(institutionId, authUserId).catch(() => []),
     listMentoringRecordsForPortal(institutionId, authUserId, studentId).catch(() => [] as MentoringRecordRow[]),
     listReadingRecords(institutionId, authUserId, undefined, undefined, studentId).catch(() => [] as ReadingRecordRow[]),
+    listLearnerEntries(institutionId, authUserId, studentId),
   ]);
 
   const today = todayIST();
@@ -85,6 +88,6 @@ export async function loadLearnerRecord(
     academicYear: current?.name ?? null,
     attendance, strengths, skills,
     character: { periods, rows: [...attrs.values()] },
-    mentoring, reading,
+    mentoring, reading, entries,
   };
 }

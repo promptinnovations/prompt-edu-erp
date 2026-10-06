@@ -1,12 +1,19 @@
+import { headers } from "next/headers";
 import { formatDateIST, todayIST } from "../../../services/datetime/ist";
+import { createRecordToken } from "../../../services/learner-record/verification";
+import { SECTION_META } from "../../../modules/learner-record/meta";
+import type { LearnerEntry, LearnerSection } from "../../../modules/learner-record/service";
 import PrintLetterhead from "../PrintLetterhead";
 import PrintButton from "../PrintButton";
+import RecordQr from "./RecordQr";
 import { StudentDetailsCard } from "./ProfileSections";
 import { ACTIVITY_CATEGORY_RE, type LearnerRecord } from "./learner-record-data";
 import type { AchievementRow } from "../../../modules/achievements/service";
 
 const LEVEL_ORDER = ["International", "National", "State", "District", "Zone", "School"];
 
+/** Every section below renders ONLY when it has data — the portals never show
+ *  an empty box. Staff enter data on the student's Learner Record tab. */
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <section className="break-inside-avoid rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card print:shadow-none">
@@ -15,10 +22,6 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
       {children}
     </section>
   );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-zinc-400">{children}</p>;
 }
 
 function TrendChart({ points }: { points: Array<{ label: string; value: number }> }) {
@@ -49,10 +52,7 @@ function AchievementList({ items }: { items: AchievementRow[] }) {
             <div className="text-xs text-zinc-500">
               {a.category_name} · {a.level_name}
               {a.certificate_file_id ? (
-                <>
-                  {" · "}
-                  <a href={`/api/files/${a.certificate_file_id}`} className="text-[var(--brand)] underline" target="_blank" rel="noreferrer">Evidence</a>
-                </>
+                <>{" · "}<a href={`/api/files/${a.certificate_file_id}`} className="text-[var(--brand)] underline" target="_blank" rel="noreferrer">Evidence</a></>
               ) : null}
             </div>
           </div>
@@ -63,18 +63,70 @@ function AchievementList({ items }: { items: AchievementRow[] }) {
   );
 }
 
-export default function LearnerRecordView({ record, backHref }: { record: LearnerRecord; backHref?: string }) {
+function EntryList({ items, ownDelete }: { items: LearnerEntry[]; ownDelete?: React.ReactNode }) {
+  return (
+    <ul className="space-y-2">
+      {items.map((e) => (
+        <li key={e.id} className="rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-medium text-[var(--foreground)]">{e.title}{e.value ? <span className="font-normal text-zinc-600"> — {e.value}</span> : null}</div>
+              <div className="text-xs text-zinc-500">
+                {formatDateIST(e.entry_date)}{e.period ? ` · ${e.period}` : ""}{e.level ? ` · ${e.level}` : ""}{e.hours ? ` · ${Number(e.hours)} hours` : ""}
+                {e.evidence_file_id ? <>{" · "}<a href={`/api/files/${e.evidence_file_id}`} className="text-[var(--brand)] underline" target="_blank" rel="noreferrer">Evidence</a></> : null}
+              </div>
+              {e.detail ? <p className="mt-1 whitespace-pre-line text-sm text-zinc-700">{e.detail}</p> : null}
+            </div>
+          </div>
+        </li>
+      ))}
+      {ownDelete}
+    </ul>
+  );
+}
+
+export default async function LearnerRecordView({
+  record, backHref, studentForm,
+}: {
+  record: LearnerRecord; backHref?: string;
+  /** Student portal only: node rendered after the record (add a reflection/goal). */
+  studentForm?: React.ReactNode;
+}) {
   const { bundle } = record;
   const name = bundle.profile?.full_name ?? "Learner";
+  const by = (s: LearnerSection) => record.entries.filter((e) => e.section === s);
+
   const approved = bundle.achievements.filter((a) => a.status === "approved");
-  const activities = approved.filter((a) => ACTIVITY_CATEGORY_RE.test(a.category_name));
+  const activityAchievements = approved.filter((a) => ACTIVITY_CATEGORY_RE.test(a.category_name));
   const awards = approved.filter((a) => !ACTIVITY_CATEGORY_RE.test(a.category_name));
   const byLevel = LEVEL_ORDER.map((lvl) => ({ lvl, items: awards.filter((a) => a.level_name === lvl) })).filter((g) => g.items.length > 0);
   const otherLevels = awards.filter((a) => !LEVEL_ORDER.includes(a.level_name));
   const podium = awards.filter((a) => a.position && /^(1st|2nd|3rd)$/i.test(a.position)).length;
+  const activityEntries = by("activity");
+  const serviceHours = activityEntries.reduce((a, e) => a + Number(e.hours ?? 0), 0);
+
   const trend = [...bundle.progress].reverse().map((e) => ({ label: e.examination_name, value: Number(e.percentage) }));
   const overallAvg = bundle.progress.length ? bundle.progress.reduce((a, e) => a + Number(e.percentage), 0) / bundle.progress.length : null;
-  const reference = `${bundle.profile?.admission_number ?? "—"}-${todayIST().replace(/-/g, "")}`;
+  const today = todayIST();
+  const reference = `${bundle.profile?.admission_number ?? "—"}-${today.replace(/-/g, "")}`;
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const verifyUrl = bundle.profile && host ? `${proto}://${host}/verify/${createRecordToken(bundle.profile.id, today)}` : null;
+
+  const tiles = [
+    overallAvg != null ? { v: `${overallAvg.toFixed(1)}%`, l: `Average across ${bundle.progress.length} exam${bundle.progress.length === 1 ? "" : "s"}` } : null,
+    record.attendance && record.attendance.total_days > 0 ? { v: `${record.attendance.present_percent}%`, l: "Attendance this year" } : null,
+    approved.length > 0 ? { v: String(approved.length), l: `Verified achievements · ${podium} on the podium` } : null,
+    serviceHours > 0 ? { v: `${serviceHours}`, l: "Service & activity hours" } : null,
+  ].filter((t): t is { v: string; l: string } => !!t);
+
+  const hasActivities = activityAchievements.length > 0 || activityEntries.length > 0 || record.skills.length > 0;
+  const comments = by("teacher_comment");
+  const goals = by("goal");
+  const reflections = by("reflection");
+  const hasTeacherNotes = record.mentoring.length > 0 || comments.length > 0;
 
   return (
     <div className="space-y-5">
@@ -92,27 +144,23 @@ export default function LearnerRecordView({ record, backHref }: { record: Learne
           </p>
         </header>
 
-        {/* At-a-glance summary */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { v: overallAvg != null ? `${overallAvg.toFixed(1)}%` : "—", l: `Average across ${bundle.progress.length} exam${bundle.progress.length === 1 ? "" : "s"}` },
-            { v: record.attendance ? `${record.attendance.present_percent}%` : "—", l: "Attendance this year" },
-            { v: String(approved.length), l: `Verified achievements · ${podium} on the podium` },
-            { v: String(record.skills.length + activities.length), l: "Skills & activities logged" },
-          ].map((s) => (
-            <div key={s.l} className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-card print:shadow-none">
-              <div className="text-xl font-semibold text-[var(--foreground)]">{s.v}</div>
-              <div className="mt-0.5 text-xs text-zinc-500">{s.l}</div>
-            </div>
-          ))}
-        </div>
+        {tiles.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {tiles.map((t) => (
+              <div key={t.l} className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-4 shadow-card print:shadow-none">
+                <div className="text-xl font-semibold text-[var(--foreground)]">{t.v}</div>
+                <div className="mt-0.5 text-xs text-zinc-500">{t.l}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {bundle.profile ? (
           <StudentDetailsCard student={bundle.profile} classLabel={bundle.classLabel} rollNumber={bundle.rollNumber} guardian={bundle.guardian} />
         ) : null}
 
-        <Section title="Academic record" subtitle="Published exam results and subject strengths.">
-          {bundle.progress.length === 0 ? <Empty>No published results yet.</Empty> : (
+        {bundle.progress.length > 0 ? (
+          <Section title="Academic record" subtitle="Published exam results and subject strengths.">
             <div className="space-y-4">
               <TrendChart points={trend} />
               <div className="overflow-x-auto">
@@ -153,11 +201,24 @@ export default function LearnerRecordView({ record, backHref }: { record: Learne
                 </div>
               ) : null}
             </div>
-          )}
-        </Section>
+          </Section>
+        ) : null}
 
-        <Section title="Awards & recognition" subtitle="Verified results, highest level first.">
-          {awards.length === 0 ? <Empty>No verified awards yet.</Empty> : (
+        {by("quran").length > 0 ? (
+          <Section title={SECTION_META.quran.label} subtitle={SECTION_META.quran.hint}><EntryList items={by("quran")} /></Section>
+        ) : null}
+
+        {by("language").length > 0 || by("certification").length > 0 ? (
+          <Section title="Languages & certificates">
+            <div className="space-y-4">
+              {by("language").length > 0 ? <div><h3 className="mb-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Languages</h3><EntryList items={by("language")} /></div> : null}
+              {by("certification").length > 0 ? <div><h3 className="mb-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Certificates</h3><EntryList items={by("certification")} /></div> : null}
+            </div>
+          </Section>
+        ) : null}
+
+        {awards.length > 0 ? (
+          <Section title="Awards & recognition" subtitle="Verified results, highest level first.">
             <div className="space-y-4">
               {byLevel.map((g) => (
                 <div key={g.lvl}>
@@ -167,15 +228,14 @@ export default function LearnerRecordView({ record, backHref }: { record: Learne
               ))}
               {otherLevels.length > 0 ? <AchievementList items={otherLevels} /> : null}
             </div>
-          )}
-        </Section>
+          </Section>
+        ) : null}
 
-        <Section title="Service, leadership & activities" subtitle="Community service, leadership roles, clubs and co-curricular involvement.">
-          {activities.length === 0 && record.skills.length === 0 ? (
-            <Empty>Nothing logged yet. Entries appear here once a teacher verifies them.</Empty>
-          ) : (
+        {hasActivities ? (
+          <Section title="Service, leadership & activities" subtitle="Community service, leadership roles, clubs and co-curricular involvement.">
             <div className="space-y-4">
-              {activities.length > 0 ? <AchievementList items={activities} /> : null}
+              {activityAchievements.length > 0 ? <AchievementList items={activityAchievements} /> : null}
+              {activityEntries.length > 0 ? <EntryList items={activityEntries} /> : null}
               {record.skills.length > 0 ? (
                 <div>
                   <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">Skills &amp; competencies evidenced</h3>
@@ -185,9 +245,7 @@ export default function LearnerRecordView({ record, backHref }: { record: Learne
                         <span>{s.activity_name}</span>
                         <span className="text-xs text-zinc-500">
                           {s.submitted_at ? formatDateIST(s.submitted_at) : ""}
-                          {s.evidence_file_id ? (
-                            <> · <a href={`/api/files/${s.evidence_file_id}`} className="text-[var(--brand)] underline" target="_blank" rel="noreferrer">Evidence</a></>
-                          ) : null}
+                          {s.evidence_file_id ? <> · <a href={`/api/files/${s.evidence_file_id}`} className="text-[var(--brand)] underline" target="_blank" rel="noreferrer">Evidence</a></> : null}
                         </span>
                       </li>
                     ))}
@@ -195,11 +253,11 @@ export default function LearnerRecordView({ record, backHref }: { record: Learne
                 </div>
               ) : null}
             </div>
-          )}
-        </Section>
+          </Section>
+        ) : null}
 
-        <Section title="Character & values" subtitle="Teacher assessments by term.">
-          {record.character.rows.length === 0 ? <Empty>No character assessments yet.</Empty> : (
+        {record.character.rows.length > 0 ? (
+          <Section title="Character & values" subtitle="Teacher assessments by term.">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -218,38 +276,60 @@ export default function LearnerRecordView({ record, backHref }: { record: Learne
                 </tbody>
               </table>
             </div>
-          )}
-        </Section>
+          </Section>
+        ) : null}
 
-        <Section title="Teacher comments & goals" subtitle="Strengths, challenges and next-step goals from mentoring.">
-          {record.mentoring.length === 0 ? <Empty>No mentoring notes yet.</Empty> : (
-            <ul className="space-y-3">
+        {by("house_points").length > 0 ? (
+          <Section title={SECTION_META.house_points.label} subtitle={SECTION_META.house_points.hint}><EntryList items={by("house_points")} /></Section>
+        ) : null}
+
+        {by("health").length > 0 ? (
+          <Section title={SECTION_META.health.label}><EntryList items={by("health")} /></Section>
+        ) : null}
+
+        {hasTeacherNotes ? (
+          <Section title="Teacher comments & goals" subtitle="Narrative comments, strengths and next-step goals.">
+            <div className="space-y-3">
+              {comments.length > 0 ? <EntryList items={comments} /> : null}
               {record.mentoring.slice(0, 6).map((m) => (
-                <li key={m.id} className="rounded-lg bg-[var(--surface-muted)] p-3 text-sm">
+                <div key={m.id} className="rounded-lg bg-[var(--surface-muted)] p-3 text-sm">
                   <div className="mb-1 text-xs text-zinc-500">{formatDateIST(m.date)} · {m.mentor_name}</div>
                   {m.strengths ? <p><span className="font-medium">Strengths:</span> {m.strengths}</p> : null}
                   {m.challenges ? <p><span className="font-medium">Areas to grow:</span> {m.challenges}</p> : null}
                   {m.goals ? <p><span className="font-medium">Goals:</span> {m.goals}</p> : null}
                   {m.action_plan ? <p><span className="font-medium">Action plan:</span> {m.action_plan}</p> : null}
-                </li>
+                </div>
               ))}
-            </ul>
-          )}
-        </Section>
+            </div>
+          </Section>
+        ) : null}
 
-        <Section title="Reading" subtitle={`${record.reading.length} book${record.reading.length === 1 ? "" : "s"} read`}>
-          {record.reading.length === 0 ? <Empty>No books recorded yet.</Empty> : (
+        {goals.length > 0 ? <Section title="Goals" subtitle={SECTION_META.goal.hint}><EntryList items={goals} /></Section> : null}
+        {reflections.length > 0 ? <Section title="Student reflections" subtitle={SECTION_META.reflection.hint}><EntryList items={reflections} /></Section> : null}
+
+        {record.reading.length > 0 ? (
+          <Section title="Reading" subtitle={`${record.reading.length} book${record.reading.length === 1 ? "" : "s"} read`}>
             <ul className="grid gap-1.5 text-sm sm:grid-cols-2">
               {record.reading.slice(0, 20).map((r) => <li key={r.id} className="rounded-lg bg-[var(--surface-muted)] px-3 py-1.5">{r.book_title}</li>)}
             </ul>
-          )}
-        </Section>
+          </Section>
+        ) : null}
 
-        <footer className="flex items-center justify-between pt-2 text-[10px] uppercase tracking-[0.08em] text-zinc-400">
-          <span>Issued {formatDateIST(todayIST())} · Only teacher-verified entries are shown</span>
-          <span>PROMPT EDU ERP · Prompt Innovations</span>
+        <footer className="flex items-end justify-between gap-4 pt-2 text-[10px] uppercase tracking-[0.08em] text-zinc-400">
+          <div>
+            <div>Issued {formatDateIST(today)} · Only teacher-verified entries are shown</div>
+            <div className="mt-1">PROMPT EDU ERP · Prompt Innovations</div>
+          </div>
+          {verifyUrl ? (
+            <div className="flex items-center gap-2 text-right normal-case tracking-normal">
+              <span className="max-w-[9rem] text-[10px] leading-tight text-zinc-500">Scan to verify this record is genuine</span>
+              <RecordQr url={verifyUrl} size={72} />
+            </div>
+          ) : null}
         </footer>
       </div>
+
+      {studentForm}
     </div>
   );
 }

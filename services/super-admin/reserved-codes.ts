@@ -36,4 +36,6 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   // (since "messages" matched no reserved name), redirecting to
   // /messages/login instead of rendering the Messages page.
   "messages",
+  // Public Learner Record verification page (app/verify/[token]).
+  "verify",
 ]);

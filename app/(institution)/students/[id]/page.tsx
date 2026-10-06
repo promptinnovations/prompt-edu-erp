@@ -25,6 +25,8 @@ import StudentLoginSection from "../StudentLoginSection";
 import PhotoForm from "../PhotoForm";
 import StudentProfileForm from "../StudentProfileForm";
 import ProfileTabs from "./ProfileTabs";
+import LearnerRecordTab from "./LearnerRecordTab";
+import { listLearnerEntries, canEditLearnerRecord } from "../../../../modules/learner-record/service";
 import { MonthlyAttendanceBarChart, ExamSubjectPieChart } from "./ProfileCharts";
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { formatMarks } from "../../../../services/format/marks";
@@ -67,6 +69,10 @@ export default async function StudentDetailPage({
   // flags. Both gated behind discipline.view, same permission the
   // Discipline module page and Classes hub already use.
   const canViewDiscipline = can(ctx.permissions, "discipline.view");
+  const [learnerEntries, canEditLearner] = await Promise.all([
+    listLearnerEntries(institutionId, authUserId, id),
+    canEditLearnerRecord(institutionId, authUserId, ctx.userId, ctx.permissions, id),
+  ]);
   const [
     enrollment, classes, sections, academicYear, parents, enrollmentHistory, student360, examReport,
     approvedAchievements, approvedSkillSubmissions, approvedReadingRecords, allReadingRecords, institution,
@@ -784,6 +790,7 @@ export default async function StudentDetailPage({
           { id: "fees", label: "Student Fees" },
           { id: "portfolio", label: "Student Portfolio" },
           { id: "academics", label: "Academics" },
+          { id: "learner", label: "Learner Record" },
         ]}
         initialTab={tab}
       >
@@ -792,6 +799,7 @@ export default async function StudentDetailPage({
         {feesTab}
         {portfolioTab}
         {academicsTab}
+        <LearnerRecordTab studentId={id} entries={learnerEntries} canEdit={canEditLearner} />
       </ProfileTabs>
     </div>
   );

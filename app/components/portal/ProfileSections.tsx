@@ -77,6 +77,7 @@ function splitTitle(title: string): { main: string; house: string | null; grade:
 
 export function EventsCompetitions({ achievements }: { achievements: AchievementRow[] }) {
   const approved = achievements.filter((a) => a.status === "approved");
+  if (approved.length === 0) return null; // never show an empty section in the portals
   const podium = approved.filter((a) => a.position && /^(1st|2nd|3rd)$/i.test(a.position)).length;
   const groups = new Map<string, AchievementRow[]>();
   for (const a of approved) {
@@ -91,7 +92,6 @@ export function EventsCompetitions({ achievements }: { achievements: Achievement
           {approved.length} entr{approved.length === 1 ? "y" : "ies"} · {podium} on the podium
         </span>
       </div>
-      {approved.length === 0 ? <p className="text-sm text-zinc-500">No events or competitions yet.</p> : null}
       <div className="space-y-4">
         {[...groups.entries()].map(([group, items]) => (
           <div key={group}>
@@ -133,6 +133,7 @@ const GRADE_COLOR: Record<string, string> = {
 };
 
 export function ProgressCard({ exams, reportCardHref }: { exams: StudentProgressExam[]; reportCardHref: (examinationId: string) => string }) {
+  if (exams.length === 0) return null; // never show an empty section in the portals
   return (
     <section className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card">
       <h2 className="text-base font-semibold text-[var(--heading)]">Progress Card</h2>
@@ -189,7 +190,6 @@ export function ProgressCard({ exams, reportCardHref }: { exams: StudentProgress
             </div>
           </details>
         ))}
-        {exams.length === 0 ? <p className="text-sm text-zinc-500">No published results yet.</p> : null}
       </div>
     </section>
   );
