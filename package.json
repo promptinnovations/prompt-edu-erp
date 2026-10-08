@@ -2,7 +2,7 @@
   "name": "prompt-edu-erp",
   "version": "0.1.0",
   "private": true,
-  "description": "PROMPT EDU ERP — a multi-tenant educational technology platform. A product of Prompt Innovations.",
+  "description": "PROMPT EDU ERP \u2014 a multi-tenant educational technology platform. A product of Prompt Innovations.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +16,8 @@
     "check:secrets": "node scripts/check-no-client-secrets.mjs",
     "check:audit": "npm audit --omit=dev --audit-level=high",
     "typecheck": "next typegen && tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint && npm run check:secrets && npm test"
+    "verify": "npm run typecheck && npm run lint && npm run check:secrets && npm test",
+    "build:migrate": "node database/scripts/apply-migration.mjs 0059_learner_record.sql && next build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
