@@ -27,6 +27,13 @@ try {
   }
 } catch (e) {
   try { await c.query("rollback"); } catch {}
+  if (e.code === "42P07") {
+    // Table already exists (migration was applied by hand) -> just record it in the ledger.
+    await c.query("insert into _migrations (filename) values ($1) on conflict do nothing", [file]);
+    console.log(`[apply-migration] ${file} already present in database; recorded in ledger`);
+    await c.end().catch(() => {});
+    process.exit(0);
+  }
   console.log("[apply-migration] FAILED:", e.message);
   process.exit(0); // never block the deploy
 } finally {
