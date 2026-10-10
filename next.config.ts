@@ -4,6 +4,17 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // PDF reports (pdfkit) read their built-in font metrics (Helvetica.afm
+  // etc.) from node_modules/pdfkit/js/data at runtime. When webpack bundles
+  // pdfkit those files are not copied, so /api/reports/*?format=pdf failed on
+  // the standalone Hostinger build with "ENOENT ... chunks/data/Helvetica.afm".
+  // Keep pdfkit external and make sure its data folder is traced into the
+  // standalone output.
+  serverExternalPackages: ["pdfkit"],
+  outputFileTracingIncludes: {
+    "/api/reports/**": ["./node_modules/pdfkit/js/data/**/*"],
+  },
+
   // Bug report: "logo is uploaded, it is not working" -- root cause was
   // Next.js's default 1 MB Server Action request-body limit. Every upload
   // in this app (institution logo, student/staff photos, achievement
