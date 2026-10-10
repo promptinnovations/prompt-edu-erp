@@ -23,15 +23,15 @@ export default async function PrintCenterPage() {
     {
       icon: ResultIcon,
       title: "Report Cards",
-      body: "Per-student printable report cards for any examination.",
-      href: latestExam ? `/results/${latestExam.id}/report-cards` : "/results",
+      body: "Pick an examination, then print any student's report card.",
+      href: "/results",
       visible: enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.approve")),
     },
     {
       icon: ExamIcon,
       title: "Consolidated Marks",
-      body: "Student x subject marks matrix for one examination.",
-      href: latestExam ? `/results/${latestExam.id}/consolidated` : "/results",
+      body: "Pick an examination, then view its student x subject marks matrix.",
+      href: "/results",
       visible: enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.approve")),
     },
     {

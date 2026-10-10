@@ -1,5 +1,12 @@
-"use client";
+import Link from "next/link";
 
+/** §Print/Analytics follow-up "give all exams here as a button so we can
+ *  see results by clicking exam name" — was a <select> + "Load" submit
+ *  button; now every examination is its own pill link (same pattern as the
+ *  Result Analysis tabs and the class-histogram picker further down this
+ *  page), so clicking a name jumps straight to that exam's analytics with
+ *  no extra click needed. Plain <Link>s, not a client component — no local
+ *  state, just URL navigation. */
 export default function ExaminationPicker({
   examinations,
   examinationId,
@@ -15,24 +22,31 @@ export default function ExaminationPicker({
   fromMonth: string;
   toMonth: string;
 }) {
+  function hrefFor(id: string): string {
+    const params = new URLSearchParams({ examinationId: id, trendClassId, trendSectionId, fromMonth, toMonth });
+    return `?${params.toString()}`;
+  }
+
   return (
-    <form method="get" className="flex items-end gap-2">
-      <input type="hidden" name="trendClassId" value={trendClassId} />
-      <input type="hidden" name="trendSectionId" value={trendSectionId} />
-      <input type="hidden" name="fromMonth" value={fromMonth} />
-      <input type="hidden" name="toMonth" value={toMonth} />
-      <div>
-        <label className="mb-1 block text-xs text-zinc-500">Examination</label>
-        <select name="examinationId" defaultValue={examinationId} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
-          <option value="">Select…</option>
+    <div>
+      <label className="mb-1 block text-xs text-zinc-500">Examination</label>
+      {examinations.length === 0 ? (
+        <p className="text-sm text-zinc-500">No examinations yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
           {examinations.map((e) => (
-            <option key={e.id} value={e.id}>{e.name}</option>
+            <Link
+              key={e.id}
+              href={hrefFor(e.id)}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                examinationId === e.id ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              }`}
+            >
+              {e.name}
+            </Link>
           ))}
-        </select>
-      </div>
-      <button type="submit" className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)]">
-        Load
-      </button>
-    </form>
+        </div>
+      )}
+    </div>
   );
 }

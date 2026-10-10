@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { listClasses, listSections } from "../../../modules/academic/service";
-import { listExaminations, PASS_COLOR, FAIL_COLOR } from "../../../modules/examination/service";
+import { listExaminations, examinationWorkflowStatus, PASS_COLOR, FAIL_COLOR } from "../../../modules/examination/service";
 import {
   getSubjectComparison, getSubjectPerformanceIndicators, getExaminationClassification,
   getClassAttendanceTrend, getClassificationRule,
@@ -42,19 +42,31 @@ function fmtPct(v: number | null): string {
 }
 
 /** §Analytics follow-up: "when opens, latest exam should be there as
- *  default, other exams shall be selected from dropdown" — previously
+ *  default, other exams shall be selected from the button row" — previously
  *  `examinationId` defaulted to `""` (nothing selected) until the admin
- *  picked one and pressed Load. Prefers the exam with the latest
- *  `start_date`; an exam with no start_date falls back to `examinations`'
- *  own order (listExaminations() sorts `created_at desc`, so index 0 is
- *  still "most recent" among undated exams). */
-function pickDefaultExaminationId(exams: Array<{ id: string; start_date: string | null }>): string {
+ *  picked one and pressed Load, and even after that it just picked
+ *  whichever exam had the latest `start_date` regardless of whether marks
+ *  had actually been entered for it yet (so a freshly-created future exam
+ *  with zero marks could "win" and the page would open to an empty
+ *  "Students with a result: 0" screen). Now prefers the latest-dated exam
+ *  among those whose mark entry is actually done (examinationWorkflowStatus
+ *  past "open" — i.e. Closed/Published/Archived, meaning the admin closed
+ *  mark entry for it), falling back to the old "latest exam overall" logic
+ *  only when no exam has closed mark entry yet. An exam with no start_date
+ *  falls back to `examinations`' own order (listExaminations() sorts
+ *  `created_at desc`, so index 0 is still "most recent" among undated
+ *  exams) within whichever pool (completed vs. all) is in play. */
+function pickDefaultExaminationId(
+  exams: Array<{ id: string; start_date: string | null; marks_closed_at?: string | null; published_at?: string | null; finalized_at?: string | null }>
+): string {
   if (exams.length === 0) return "";
-  const dated = exams.filter((e) => e.start_date);
+  const completed = exams.filter((e) => examinationWorkflowStatus(e) !== "open");
+  const pool = completed.length > 0 ? completed : exams;
+  const dated = pool.filter((e) => e.start_date);
   if (dated.length > 0) {
     return dated.reduce((latest, e) => (e.start_date! > latest.start_date! ? e : latest)).id;
   }
-  return exams[0].id;
+  return pool[0].id;
 }
 
 function gradeCountsToChart(counts: Record<string, number>): ChartDatum[] {
