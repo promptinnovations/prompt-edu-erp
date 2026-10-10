@@ -2762,6 +2762,163 @@ export async function getStudentExamReport(
 }
 
 // ---------------------------------------------------------------------------
+// Portfolio dashboard — "Academic Performance" table (Subject x each of the
+// academic year's Terms x Final Grade).
+// ---------------------------------------------------------------------------
+export interface AcademicPerformanceCell { percent: number; gradeLabel: string | null }
+export interface AcademicPerformanceColumn { key: string; label: string }
+export interface AcademicPerformanceRow {
+  subjectId: string; subjectName: string;
+  /** Keyed by column key ("final" for the Final column, else the term id). */
+  cells: Record<string, AcademicPerformanceCell | undefined>;
+}
+export interface StudentAcademicPerformanceByTerm {
+  columns: AcademicPerformanceColumn[]; // term columns only, in start_date order
+  rows: AcademicPerformanceRow[];
+}
+
+/** Portfolio dashboard's "Academic Performance" table: one row per subject,
+ *  one column per term in the academic year (reference layout: "Term 1",
+ *  "Term 2", "Term 3", "Final Grade"). The app has no existing concept of
+ *  "the one exam that represents a term" (an institution can run several
+ *  exams with the same term_id, e.g. periodic tests alongside the actual
+ *  term exam), so this picks, per term, the LATEST-by-start_date
+ *  examination in that term that has at least one of this student's marks
+ *  entered — a pragmatic, documented choice, not a fixed workflow concept.
+ *  "Final" is this subject's grade resolved from the simple average of
+ *  whichever term percentages are actually available (schools' common
+ *  "average the terms" convention), using the most recent available term
+ *  exam's own grade_scale_id (§K — never a hard-coded scale) to resolve
+ *  the band; null when no term has data for that subject yet. */
+export async function getStudentAcademicPerformanceByTerm(
+  institutionId: string, authUserId: string, studentId: string, academicYearId: string
+): Promise<StudentAcademicPerformanceByTerm> {
+  const db = await getDbClient();
+  // Raw rows only in this scoped block — grade-band lookups below each open
+  // their own withInstitutionContext (getGradeBands), and nesting one inside
+  // another breaks under the single-connection PGlite test adapter (no
+  // nested `begin`), even though it happens to work against a real pg Pool.
+  // Same reason getStudent360() calls getStudent()/getCurrentEnrollment()
+  // BEFORE opening its own scoped block rather than from inside it.
+  const { termRows, examRows, markRows } = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: termRows } = await scoped.query<{ id: string; name: string }>(
+      `select id, name from terms where academic_year_id = $1 order by start_date`,
+      [academicYearId]
+    );
+    if (termRows.length === 0) return { termRows, examRows: [], markRows: [] };
+
+    // One representative examination per term — the latest (by start_date)
+    // among this academic year's term-linked examinations that has any of
+    // this student's marks entered. No entry_status filter — marks are live
+    // from the moment they're entered (this file's header comment, "Open >
+    // Closed > Published > Archived"); getExaminationMarksMatrix() (the
+    // same function the report card/consolidated marks already render
+    // from) likewise reads `marks` with no entry_status condition, so this
+    // mirrors that rather than the older entry_status in ('approved',
+    // 'locked') filter still in getStudentExamReport() above, which
+    // predates the live-recompute workflow and would show nothing for
+    // today's mark entry.
+    const { rows: examRows } = await scoped.query<{ id: string; term_id: string; grade_scale_id: string | null }>(
+      `select distinct e.id, e.term_id, e.grade_scale_id, e.start_date
+         from examinations e
+        where e.academic_year_id = $1 and e.term_id is not null
+          and exists (
+            select 1 from exam_subjects es join marks m on m.exam_subject_id = es.id
+             where es.examination_id = e.id and m.student_id = $2
+          )
+        order by e.start_date desc nulls last`,
+      [academicYearId, studentId]
+    );
+    const examByTerm = new Map<string, { id: string; grade_scale_id: string | null }>();
+    for (const e of examRows) {
+      if (!examByTerm.has(e.term_id)) examByTerm.set(e.term_id, { id: e.id, grade_scale_id: e.grade_scale_id });
+    }
+    const selectedExamIds = [...examByTerm.values()].map((e) => e.id);
+    if (selectedExamIds.length === 0) return { termRows, examRows, markRows: [] };
+
+    const { rows: markRows } = await scoped.query<{
+      examination_id: string; subject_id: string; subject_name: string;
+      marks_obtained: string | null; max_marks: string; is_absent: boolean;
+    }>(
+      `select es.examination_id, sub.id as subject_id, sub.name as subject_name,
+              m.marks_obtained, es.max_marks, coalesce(m.is_absent, false) as is_absent
+         from exam_subjects es
+         join subjects sub on sub.id = es.subject_id
+         join marks m on m.exam_subject_id = es.id and m.student_id = $2
+        where es.examination_id = any($1)
+        order by sub.name`,
+      [selectedExamIds, studentId]
+    );
+    return { termRows, examRows, markRows };
+  });
+
+  if (termRows.length === 0) return { columns: [], rows: [] };
+  const columns = termRows.map((t) => ({ key: t.id, label: t.name }));
+  if (markRows.length === 0) return { columns, rows: [] };
+
+  const examByTerm = new Map<string, { id: string; grade_scale_id: string | null }>();
+  for (const e of examRows) {
+    if (!examByTerm.has(e.term_id)) examByTerm.set(e.term_id, { id: e.id, grade_scale_id: e.grade_scale_id });
+  }
+
+  // Pre-load grade bands for every distinct grade_scale_id actually in
+  // play (usually 1-3 scales across the selected term exams) — each its
+  // own top-level call, sequenced here rather than nested in the scoped
+  // block above.
+  const scaleIds = [...new Set([...examByTerm.values()].map((e) => e.grade_scale_id).filter((id): id is string => !!id))];
+  const bandsByScale = new Map<string, GradeBandRecord[]>();
+  for (const scaleId of scaleIds) {
+    bandsByScale.set(scaleId, await getGradeBands(institutionId, authUserId, scaleId));
+  }
+  const examIdToTermId = new Map<string, string>();
+  for (const [termId, e] of examByTerm) examIdToTermId.set(e.id, termId);
+
+  const rowsBySubject = new Map<string, AcademicPerformanceRow>();
+  for (const m of markRows) {
+      const termId = examIdToTermId.get(m.examination_id);
+      if (!termId) continue;
+      if (m.is_absent || m.marks_obtained == null) continue; // absent -> no cell, same convention as the report card
+      const max = Number(m.max_marks);
+      if (max <= 0) continue;
+      const percent = (Number(m.marks_obtained) / max) * 100;
+      const scaleId = examByTerm.get(termId)?.grade_scale_id ?? null;
+      const bands = scaleId ? bandsByScale.get(scaleId) ?? [] : [];
+      const gradeLabel = bands.length > 0 ? resolveGradeBand(bands, percent)?.grade_label ?? null : null;
+
+      let row = rowsBySubject.get(m.subject_id);
+      if (!row) {
+        row = { subjectId: m.subject_id, subjectName: m.subject_name, cells: {} };
+        rowsBySubject.set(m.subject_id, row);
+      }
+      row.cells[termId] = { percent, gradeLabel };
+    }
+
+    // "Final" = average of whichever term percentages this subject actually
+    // has, graded against the most recent available term's own scale.
+    // examRows is already ordered start_date desc, so its first entry is
+    // the overall most recent selected term exam.
+    const mostRecentTermId = examRows[0]?.term_id ?? null;
+    for (const row of rowsBySubject.values()) {
+      const available = termRows.map((t) => row.cells[t.id]).filter((c): c is AcademicPerformanceCell => !!c);
+      if (available.length === 0) continue;
+      const avgPercent = available.reduce((sum, c) => sum + c.percent, 0) / available.length;
+      // Most recent term (by the already-desc-ordered examRows) that has a
+      // cell for this subject, so "Final" grades against a scale the
+      // subject actually used.
+      const latestTermWithData = examRows.find((e) => row.cells[e.term_id])?.term_id ?? mostRecentTermId;
+      const scaleId = latestTermWithData ? examByTerm.get(latestTermWithData)?.grade_scale_id ?? null : null;
+      const bands = scaleId ? bandsByScale.get(scaleId) ?? [] : [];
+      const gradeLabel = bands.length > 0 ? resolveGradeBand(bands, avgPercent)?.grade_label ?? null : null;
+      row.cells.final = { percent: avgPercent, gradeLabel };
+    }
+
+  return {
+    columns,
+    rows: [...rowsBySubject.values()].sort((a, b) => a.subjectName.localeCompare(b.subjectName)),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Home page widgets ("Institution-wide Pass rate trend (across exams in %)"
 // and "Marks entry status of recent exam")
 // ---------------------------------------------------------------------------

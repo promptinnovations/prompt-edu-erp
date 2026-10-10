@@ -16,6 +16,7 @@ import {
   linkExistingParentAccountToStudent, linkExistingStudentAccountToParent,
 } from "../../../modules/portal/service";
 import { uploadFile } from "../../../services/storage/file-service";
+import { upsertPortfolioSummary } from "../../../modules/portfolio-summary/service";
 
 /** §Page-3 follow-up "Student Profile ... Photo" — same upload-then-link
  *  shape as the institution logo (app/(institution)/settings/actions.ts's
@@ -484,5 +485,42 @@ export async function resetStudentLoginAction(_prevState: { error: string | null
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to reset the student login password." };
+  }
+}
+
+/** §Portfolio-dashboard follow-up ("the student and parent portal should
+ *  be like this [rich dashboard with a Teacher's Overall Remark /
+ *  Strengths / Areas for Improvement / Future Goals block]") — one
+ *  standing portfolio_summaries row per student per academic year, edited
+ *  here by whoever holds student.edit (the same gate the rest of the
+ *  Student Portfolio tab's edit affordances already use). Strengths/
+ *  areas/goals arrive from plain <textarea> fields, one item per line —
+ *  see modules/portfolio-summary/service.ts for why the column itself is
+ *  newline-separated text rather than a text[] array. */
+export async function upsertPortfolioSummaryAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  try {
+    requirePermission(ctx.permissions, "student.edit");
+    const academicYearId = String(formData.get("academicYearId") ?? "");
+    if (!academicYearId) return { error: "No academic year selected." };
+    const toList = (field: string) =>
+      String(formData.get(field) ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+    const overallRemark = String(formData.get("overallRemark") ?? "").trim();
+    await upsertPortfolioSummary(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      studentId, academicYearId,
+      overallRemark: overallRemark.length > 0 ? overallRemark : null,
+      strengths: toList("strengths"),
+      areasForImprovement: toList("areasForImprovement"),
+      futureGoals: toList("futureGoals"),
+    });
+    revalidatePath(`/students/${studentId}`);
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save the portfolio summary." };
   }
 }

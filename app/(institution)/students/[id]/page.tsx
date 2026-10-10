@@ -7,16 +7,19 @@ import {
 } from "../../../../modules/students/service";
 import { listClasses, listSections, getCurrentAcademicYear } from "../../../../modules/academic/service";
 import { getStudent360 } from "../../../../modules/portfolio/service";
-import { getStudentExamReport, getStudentDailyAssessmentHistory } from "../../../../modules/examination/service";
+import { getStudentExamReport, getStudentDailyAssessmentHistory, getStudentAcademicPerformanceByTerm } from "../../../../modules/examination/service";
 import { getInstitution } from "../../../../services/institution/institution-service";
-import { getStudentMonthlyAttendance } from "../../../../modules/attendance/service";
+import { getStudentMonthlyAttendance, getStudentAttendanceSummary } from "../../../../modules/attendance/service";
 import { listAchievements } from "../../../../modules/achievements/service";
-import { listSkillSubmissions } from "../../../../modules/skills/service";
+import { listSkillSubmissions, listSkillTypes, listSkillActivities } from "../../../../modules/skills/service";
 import { listReadingRecords } from "../../../../modules/library/service";
-import { listDisciplineRecords, listCharacterAssessments } from "../../../../modules/discipline/service";
+import { listDisciplineRecords, listCharacterAssessments, listCharacterRatingLabels } from "../../../../modules/discipline/service";
 import { listStudentFeeInvoices } from "../../../../modules/fees/service";
 import { listKudosForStudent } from "../../../../modules/communication/service";
+import { getPortfolioSummary } from "../../../../modules/portfolio-summary/service";
+import { buildPortfolioDashboardData, ALL_PORTFOLIO_SECTIONS } from "../../../../modules/portfolio/dashboard-service";
 import RichTextContent from "../../../components/RichTextContent";
+import StudentPortfolioDashboard from "../../../components/portfolio/StudentPortfolioDashboard";
 import EnrollForm from "../EnrollForm";
 import ClassEnrollmentSection from "../ClassEnrollmentSection";
 import ParentSection, { ProvisionStudentAccountForm } from "../ParentSection";
@@ -26,6 +29,7 @@ import PhotoForm from "../PhotoForm";
 import StudentProfileForm from "../StudentProfileForm";
 import ProfileTabs from "./ProfileTabs";
 import LearnerRecordTab from "./LearnerRecordTab";
+import PortfolioSummaryEditorForm from "./PortfolioSummaryEditorForm";
 import { listLearnerEntries, canEditLearnerRecord } from "../../../../modules/learner-record/service";
 import { MonthlyAttendanceBarChart, ExamSubjectPieChart } from "./ProfileCharts";
 import { formatDateIST } from "../../../../services/datetime/ist";
@@ -126,6 +130,37 @@ export default async function StudentDetailPage({
     ? `${classById.get(enrollment.class_id) ?? "?"}${currentSection ? ` · Div. ${currentSection.name}` : ""}`
     : "Not enrolled";
   const canManage = can(ctx.permissions, "student.edit");
+
+  // §Portfolio-dashboard follow-up — the handful of extra small fetches
+  // the new StudentPortfolioDashboard needs that this page didn't already
+  // have on hand for its other tabs (everything else below reuses
+  // student360/examReport/approvedAchievements/approvedSkillSubmissions/
+  // disciplineRecords/characterAssessments, already fetched above).
+  const [attendanceSummary, academicPerformance, skillTypes, skillActivities, characterRatingLabels, portfolioSummary] = await Promise.all([
+    academicYear
+      ? getStudentAttendanceSummary(institutionId, authUserId, id, academicYear.start_date, academicYear.end_date)
+      : Promise.resolve({ student_id: id, total_days: 0, present_days: 0, absent_days: 0, late_days: 0, present_percent: 0 }),
+    academicYear
+      ? getStudentAcademicPerformanceByTerm(institutionId, authUserId, id, academicYear.id)
+      : Promise.resolve({ columns: [], rows: [] }),
+    listSkillTypes(institutionId, authUserId),
+    listSkillActivities(institutionId, authUserId),
+    listCharacterRatingLabels(institutionId, authUserId),
+    academicYear ? getPortfolioSummary(institutionId, authUserId, id, academicYear.id) : Promise.resolve(null),
+  ]);
+  // Staff always sees discipline/character gated by discipline.view (same
+  // permission the old "Discipline & character" section used) — every
+  // other section is visible to staff regardless of the parent-portal
+  // config, which only applies to the parent-facing surface.
+  const portfolioDashboardData = buildPortfolioDashboardData({
+    student: profile, enrollment, classLabel: classDivisionLabel, academicYear,
+    latestResult: student360.latestResult, attendanceSummary, academicPerformance,
+    achievements: approvedAchievements, skillSubmissions: approvedSkillSubmissions, skillTypes, skillActivities,
+    characterAssessments, characterRatingLabels,
+    disciplineRecords: canViewDiscipline ? disciplineRecords : null,
+    portfolioSummary,
+    sections: { ...ALL_PORTFOLIO_SECTIONS, discipline: canViewDiscipline, character: canViewDiscipline },
+  });
 
   const personalTab = (
     <div className="space-y-6">
@@ -338,202 +373,29 @@ export default async function StudentDetailPage({
     </div>
   );
 
-  // §384 Complete Student Portfolio — every section below reuses an
-  // existing module's own service getter and existing schema (no new
-  // tables/columns). Achievement categories/skill types are each
-  // institution's own configurable free-text taxonomy (Settings ->
-  // Grading & points), so grouping achievements by their real category
-  // name is what naturally produces institution-specific sections like
-  // "Competitions" or "Certifications" rather than a hardcoded split.
-  const achievementsByCategory = new Map<string, typeof approvedAchievements>();
-  for (const a of approvedAchievements) {
-    const list = achievementsByCategory.get(a.category_name) ?? [];
-    list.push(a);
-    achievementsByCategory.set(a.category_name, list);
-  }
-  const certifiedAchievements = approvedAchievements.filter((a) => a.certificate_file_id);
-
   const portfolioTab = (
     <div className="space-y-6">
       <p className="text-xs text-zinc-500">
         Only approved activities appear here — nothing pending or rejected ever shows up (§L.3). This is the verified record of what {profile.full_name} has achieved and worked on so far.
       </p>
 
-      <section className="rounded-card border bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Academic performance</h2>
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-card border p-3">
-            <div className="text-xs text-zinc-500">Latest result</div>
-            <div className="mt-1 text-lg font-semibold text-zinc-900">
-              {student360.latestResult ? `${Number(student360.latestResult.percentage).toFixed(1)}%` : "—"}
-            </div>
-            {student360.latestResult ? (
-              <div className="text-xs text-zinc-500">
-                {student360.latestResult.examination_name}{student360.latestResult.grade_label ? ` — ${student360.latestResult.grade_label}` : ""}
-              </div>
-            ) : null}
-          </div>
-          <div className="rounded-card border p-3">
-            <div className="text-xs text-zinc-500">Attendance (this year)</div>
-            <div className="mt-1 text-lg font-semibold text-zinc-900">
-              {student360.attendanceSummary ? `${student360.attendanceSummary.present_percent}%` : "—"}
-            </div>
-          </div>
-          <div className="rounded-card border p-3">
-            <div className="text-xs text-zinc-500">Consolidated score</div>
-            <div className="mt-1 text-lg font-semibold text-zinc-900">
-              {student360.latestConsolidatedScore ? student360.latestConsolidatedScore.score : "—"}
-            </div>
-          </div>
-        </div>
-        {examReport ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-                <tr><th className="py-1.5 pr-4">Subject</th><th className="py-1.5 pr-4">Marks</th></tr>
-              </thead>
-              <tbody className="divide-y">
-                {examReport.subjects.map((s) => (
-                  <tr key={s.subject_id}>
-                    <td className="py-1.5 pr-4 text-zinc-900">{s.subject_name}</td>
-                    <td className="py-1.5 pr-4 text-zinc-600">
-                      {s.is_absent ? "Absent" : s.marks_obtained !== null ? `${formatMarks(s.marks_obtained)}/${formatMarks(s.max_marks)}` : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-zinc-500">No exam marks recorded yet. Full report cards are under Academics.</p>
-        )}
-      </section>
-
-      <section className="rounded-card border bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Achievements &amp; awards</h2>
-        <p className="mb-3 text-xs text-zinc-500">Grouped by this institution&apos;s own achievement categories — including competitions, prizes and recognitions.</p>
-        {achievementsByCategory.size === 0 ? (
-          <p className="text-sm text-zinc-500">No approved achievements yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {Array.from(achievementsByCategory.entries()).map(([category, items]) => (
-              <div key={category}>
-                <h3 className="mb-2 section-label">{category}</h3>
-                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {items!.map((a) => (
-                    <li key={a.id} className="flex items-center justify-between rounded-card border p-3 text-sm">
-                      <div>
-                        <div className="text-zinc-900">{a.title}</div>
-                        <div className="text-xs text-zinc-500">
-                          {a.level_name}{a.position ? ` · ${a.position}` : ""}
-                        </div>
-                      </div>
-                      {a.points ? <span className="text-xs font-medium text-zinc-500">{a.points} pts</span> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-card border bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Certifications</h2>
-        <p className="mb-3 text-xs text-zinc-500">Achievements with an uploaded certificate document.</p>
-        {certifiedAchievements.length === 0 ? (
-          <p className="text-sm text-zinc-500">No certificates uploaded yet.</p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {certifiedAchievements.map((a) => (
-              <li key={a.id} className="flex items-center justify-between rounded-card border p-3 text-sm">
-                <div>
-                  <div className="text-zinc-900">{a.title}</div>
-                  <div className="text-xs text-zinc-500">{a.category_name}</div>
-                </div>
-                <a href={`/api/files/${a.certificate_file_id}`} target="_blank" rel="noreferrer" className="text-xs font-medium text-[var(--brand)] underline">
-                  View certificate
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="rounded-card border bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Skills &amp; co-curricular activities</h2>
-        <p className="mb-3 text-xs text-zinc-500">Approved skill/activity submissions — sports, arts, clubs and other co-curricular participation, per this institution&apos;s own configured activities.</p>
-        {approvedSkillSubmissions.length === 0 ? (
-          <p className="text-sm text-zinc-500">No approved skill submissions yet.</p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {approvedSkillSubmissions.map((s) => (
-              <li key={s.id} className="rounded-card border p-3 text-sm">
-                <div className="text-zinc-900">{s.activity_name}</div>
-                {s.submitted_at ? <div className="text-xs text-zinc-500">{formatDate(s.submitted_at)}</div> : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {canViewDiscipline ? (
-        <section className="rounded-card border bg-white p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[var(--heading)]">Discipline &amp; character</h2>
-            <Link href="/discipline" className="text-xs text-indigo-600 underline hover:text-indigo-800">
-              Open Discipline
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <h3 className="mb-2 section-label">
-                Discipline records ({disciplineRecords.length})
-              </h3>
-              {disciplineRecords.length === 0 ? (
-                <p className="text-sm text-zinc-500">No discipline records.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {disciplineRecords.map((d) => (
-                    <li key={d.id} className="rounded-card border p-3 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className={`font-medium ${d.is_positive ? "text-emerald-700" : "text-red-700"}`}>
-                          {d.category_name}
-                        </span>
-                        <span className="text-xs text-zinc-500">{d.date}</span>
-                      </div>
-                      {d.severity ? <div className="mt-0.5 text-xs text-zinc-500">Severity: {d.severity}</div> : null}
-                      {d.description ? <div className="mt-1 text-xs text-zinc-600">{d.description}</div> : null}
-                      {d.action_taken ? <div className="mt-1 text-xs text-zinc-500">Action: {d.action_taken}</div> : null}
-                      {d.follow_up_notes ? <div className="mt-1 text-xs text-zinc-500">Follow-up: {d.follow_up_notes}</div> : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div>
-              <h3 className="mb-2 section-label">
-                Character assessments ({characterAssessments.length})
-              </h3>
-              {characterAssessments.length === 0 ? (
-                <p className="text-sm text-zinc-500">No character assessments.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {characterAssessments.map((c) => (
-                    <li key={c.id} className="flex items-center justify-between rounded-card border p-3 text-sm">
-                      <div>
-                        <div className="text-zinc-900">{c.attribute_name}</div>
-                        <div className="text-xs text-zinc-500">{c.period}{c.notes ? ` — ${c.notes}` : ""}</div>
-                      </div>
-                      <span className="rounded-full bg-[var(--brand)]/10 px-2 py-0.5 text-xs font-medium text-[var(--brand)]">{c.rating}/5</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : null}
+      <StudentPortfolioDashboard
+        data={portfolioDashboardData}
+        remarkEditor={
+          canManage && academicYear ? (
+            <PortfolioSummaryEditorForm
+              studentId={id}
+              academicYearId={academicYear.id}
+              initial={{
+                overallRemark: portfolioSummary?.overall_remark ?? null,
+                strengths: portfolioSummary?.strengths ?? [],
+                areasForImprovement: portfolioSummary?.areas_for_improvement ?? [],
+                futureGoals: portfolioSummary?.future_goals ?? [],
+              }}
+            />
+          ) : undefined
+        }
+      />
 
       <section className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Books read ({allReadingRecords.length})</h2>
