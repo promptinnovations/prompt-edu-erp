@@ -13,7 +13,7 @@ import {
 import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import { getStaffSectionScope } from "../../../services/scope/section-head-scope-service";
 import { getInstitution, institutionNoun } from "../../../services/institution/institution-service";
-import { Donut, BarChart, StackedBarChart, Histogram, StatCard, type ChartDatum, type StackedBarGroup } from "../../components/charts/ResultCharts";
+import { Donut, BarChart, StackedBarChart, Histogram, StatCard, LineTrendChart, type ChartDatum, type StackedBarGroup, type LineSeries } from "../../components/charts/ResultCharts";
 import PrintButton from "../../components/PrintButton";
 import ExaminationPicker from "./ExaminationPicker";
 import AttendanceTrendPicker from "./AttendanceTrendPicker";
@@ -25,6 +25,11 @@ import { formatMarks } from "../../../services/format/marks";
 
 function monthsAgo(n: number): string {
   return monthsAgoIST(n);
+}
+
+function monthLabel(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 const RESULT_TABS = [
@@ -82,15 +87,23 @@ export default async function AnalyticsPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    examinationId?: string; trendClassId?: string; trendSectionId?: string;
-    fromMonth?: string; toMonth?: string; tab?: string; classId?: string;
+    examinationId?: string; trendClassIds?: string; trendSectionId?: string;
+    trendMonths?: string; tab?: string; classId?: string;
   }>;
 }) {
   const {
-    examinationId: examinationIdParam = "", trendClassId = "", trendSectionId = "",
-    fromMonth = monthsAgo(2), toMonth = monthsAgo(0),
+    examinationId: examinationIdParam = "", trendClassIds: trendClassIdsParam = "", trendSectionId = "",
+    trendMonths: trendMonthsParam = "",
     tab: rawTab = "school", classId: selectedClassId = "",
   } = await searchParams;
+  const trendClassIds = trendClassIdsParam ? trendClassIdsParam.split(",").filter(Boolean) : [];
+  // §Attendance-trend-redesign follow-up — default to the last 3 months
+  // (same window the old fromMonth/toMonth default covered) only when the
+  // admin hasn't picked any months yet, so the picker opens pre-populated
+  // with something to look at rather than a blank chart.
+  const trendMonths = trendMonthsParam
+    ? trendMonthsParam.split(",").filter(Boolean)
+    : [monthsAgo(2), monthsAgo(1), monthsAgo(0)];
   const tab: ResultTabKey = RESULT_TABS.some((t) => t.key === rawTab) ? (rawTab as ResultTabKey) : "school";
 
   const ctx = await requireRequestContext();
@@ -183,13 +196,31 @@ export default async function AnalyticsPage({
     ? await getClassMarksHistogram(institutionId, authUserId, examinationId, histogramClassId)
     : [];
 
-  const attendanceTrend = trendClassId && trendSectionId
-    ? await getClassAttendanceTrend(institutionId, authUserId, trendClassId, trendSectionId, fromMonth, toMonth)
+  // §Attendance-trend-redesign follow-up ("all classes, months should be
+  // buttons — selected, details comes") — one getClassAttendanceTrend call
+  // per selected class (sectionId "" means "all divisions" -> null, the
+  // aggregate option), fetched across the min..max of the selected months
+  // so a non-contiguous selection (e.g. Jan + Mar, skipping Feb) still
+  // returns both ends in one query per class, then filtered down to just
+  // the selected months for charting/the table.
+  const sortedTrendMonths = [...trendMonths].sort();
+  const attendanceTrendByClass = trendClassIds.length > 0 && sortedTrendMonths.length > 0
+    ? await Promise.all(
+        trendClassIds.map(async (cid) => {
+          const cls = classes.find((c) => c.id === cid);
+          const rows = await getClassAttendanceTrend(
+            institutionId, authUserId, cid, trendSectionId || null,
+            sortedTrendMonths[0], sortedTrendMonths[sortedTrendMonths.length - 1]
+          );
+          const byMonth = new Map(rows.map((r) => [r.month.slice(0, 7), r]));
+          return { classId: cid, className: cls?.name ?? cid, rows: sortedTrendMonths.map((m) => byMonth.get(m) ?? null) };
+        })
+      )
     : [];
 
   function tabHref(key: string, extra: Record<string, string> = {}): string {
     const params = new URLSearchParams({
-      examinationId, trendClassId, trendSectionId, fromMonth, toMonth, tab: key, ...extra,
+      examinationId, trendClassIds: trendClassIds.join(","), trendSectionId, trendMonths: trendMonths.join(","), tab: key, ...extra,
     });
     return `?${params.toString()}`;
   }
@@ -227,10 +258,9 @@ export default async function AnalyticsPage({
         <ExaminationPicker
           examinations={examinations}
           examinationId={examinationId}
-          trendClassId={trendClassId}
+          trendClassIds={trendClassIds}
           trendSectionId={trendSectionId}
-          fromMonth={fromMonth}
-          toMonth={toMonth}
+          trendMonths={trendMonths}
         />
 
         {examinationId && schoolSummary ? (
@@ -477,28 +507,52 @@ export default async function AnalyticsPage({
         <AttendanceTrendPicker
           classes={classes}
           sections={sections}
-          classId={trendClassId}
+          classIds={trendClassIds}
           sectionId={trendSectionId}
-          fromMonth={fromMonth}
-          toMonth={toMonth}
+          months={trendMonths}
           examinationId={examinationId}
         />
-        {trendClassId && trendSectionId ? (
-          <div className="overflow-x-auto">
-          <table className="mt-4 w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
-              <tr><th className="py-1.5">Month</th><th className="py-1.5">Present days</th><th className="py-1.5">Late days</th><th className="py-1.5">Total days</th><th className="py-1.5">Present %</th></tr>
-            </thead>
-            <tbody className="divide-y">
-              {attendanceTrend.map((t) => (
-                <tr key={t.month}><td className="py-1.5">{t.month}</td><td className="py-1.5">{t.present_days}</td><td className="py-1.5">{t.late_days}</td><td className="py-1.5">{t.total_days}</td><td className="py-1.5">{t.present_percent}%</td></tr>
-              ))}
-              {attendanceTrend.length === 0 ? (<tr><td colSpan={5} className="py-4 text-center text-zinc-500">No attendance data in this range.</td></tr>) : null}
-            </tbody>
-          </table>
+        {attendanceTrendByClass.length > 0 ? (
+          <div className="mt-4 space-y-4">
+            <LineTrendChart
+              series={attendanceTrendByClass.map((c, i): LineSeries => ({
+                label: c.className,
+                color: seriesColor(i),
+                points: c.rows.map((r, ri): { x: string; y: number | null } => ({
+                  x: monthLabel(sortedTrendMonths[ri]),
+                  y: r ? r.present_percent : null,
+                })),
+              }))}
+              xLabels={sortedTrendMonths.map(monthLabel)}
+              height={200}
+              maxY={100}
+              showAxes
+              yAxisSuffix="%"
+            />{/* LineTrendChart already renders its own color-keyed legend below the SVG when there's more than one series. */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
+                  <tr><th className="py-1.5">Class</th><th className="py-1.5">Month</th><th className="py-1.5">Present days</th><th className="py-1.5">Late days</th><th className="py-1.5">Total days</th><th className="py-1.5">Present %</th></tr>
+                </thead>
+                <tbody className="divide-y">
+                  {attendanceTrendByClass.flatMap((c) =>
+                    c.rows.map((r, i) => (
+                      <tr key={`${c.classId}-${sortedTrendMonths[i]}`}>
+                        <td className="py-1.5">{c.className}</td>
+                        <td className="py-1.5">{monthLabel(sortedTrendMonths[i])}</td>
+                        <td className="py-1.5">{r ? r.present_days : "—"}</td>
+                        <td className="py-1.5">{r ? r.late_days : "—"}</td>
+                        <td className="py-1.5">{r ? r.total_days : "—"}</td>
+                        <td className="py-1.5">{r ? `${r.present_percent}%` : "—"}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-500">Select a class and section to see the attendance trend.</p>
+          <p className="mt-4 text-sm text-zinc-500">Select at least one class and month to see the attendance trend.</p>
         )}
       </section>
 

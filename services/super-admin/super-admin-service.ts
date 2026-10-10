@@ -753,7 +753,27 @@ const updateNameSchema = z.object({ name: z.string().trim().min(2).max(200) });
  *  institution (e.g. "B CareExc Science" -> "B CareExc Science Home")
  *  without a direct database edit — exactly what §K says to avoid. Mirrors
  *  updateInstitutionCode's shape (no uniqueness constraint needed here,
- *  since institutions.name isn't unique). */
+ *  since institutions.name isn't unique).
+ *
+ *  §Rename-propagation bugfix — `institutions.app_name` is a SEPARATE
+ *  override column (createInstitution() never sets it — it's left null for
+ *  every institution made through this console — but database/scripts/
+ *  seed.ts does set it for seeded/dev institutions, "B CareExc Science"
+ *  among them), and every display site in the app reads
+ *  `appName || name` (§branding/app-identity.ts, the sidebar, report
+ *  cards, login page, …). Renaming `name` alone therefore silently did
+ *  nothing anywhere app_name was set — exactly what happened when B
+ *  CareExc Science was renamed to B CareExc Science Home: the sidebar/
+ *  Settings/report cards kept showing the stale "B CareExc Science"
+ *  because app_name still held that string. There is no UI anywhere in
+ *  the app that lets anyone set app_name to something deliberately
+ *  different from the institution's name (only seed.ts does, as a
+ *  dev/demo convenience) — so this function now always clears app_name to
+ *  null on every call, which makes `appName || name` fall through to
+ *  whatever `name` is right after. That's also how to retroactively fix an
+ *  institution already stuck like B CareExc Science Home was: re-submit
+ *  its current name from the Super Admin console — even unchanged, that
+ *  clears the leftover app_name. */
 export async function updateInstitutionName(
   authUserId: string,
   institutionId: string,
@@ -761,21 +781,29 @@ export async function updateInstitutionName(
 ): Promise<InstitutionRecord | null> {
   const data = updateNameSchema.parse(input);
   return withSuperAdminContext(authUserId, async (scoped, callerUserId) => {
-    const { rows: before } = await scoped.query<InstitutionRecord>(
-      `select id, code, name, type, board, status, deployment_mode, default_locale, created_at from institutions where id = $1`,
+    const { rows: before } = await scoped.query<InstitutionRecord & { app_name: string | null }>(
+      `select id, code, name, app_name, type, board, status, deployment_mode, default_locale, created_at from institutions where id = $1`,
       [institutionId]
     );
     if (before.length === 0) return null;
-    if (before[0].name === data.name) return before[0]; // no-op, nothing to change or audit
+    // No-op only when the name is unchanged AND there's no stale app_name
+    // left to clear — re-submitting the same name is how the Super Admin
+    // console re-syncs an institution whose app_name got stuck on an old
+    // value before this fix existed (see this function's own comment).
+    if (before[0].name === data.name && before[0].app_name === null) return before[0];
 
     const { rows } = await scoped.query<InstitutionRecord>(
-      `update institutions set name = $1, updated_at = now() where id = $2
+      `update institutions
+          set name = $1,
+              app_name = null,
+              updated_at = now()
+        where id = $2
        returning id, code, name, type, board, status, deployment_mode, default_locale, created_at`,
       [data.name, institutionId]
     );
     await recordPlatformAudit(scoped, {
       actorUserId: callerUserId, institutionId, action: "name_change", entityType: "institutions", entityId: institutionId,
-      before: { name: before[0].name }, after: { name: data.name },
+      before: { name: before[0].name, app_name: before[0].app_name }, after: { name: data.name },
     });
     return rows[0];
   });

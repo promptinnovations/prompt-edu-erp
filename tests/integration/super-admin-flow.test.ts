@@ -280,6 +280,48 @@ describe("updateInstitutionName (rename an institution's display name after crea
     expect(result).toBeNull();
   });
 
+  it("§Rename-propagation bugfix: clears a stale app_name override so the new name actually shows everywhere (B CareExc Science Home's own bug)", async () => {
+    const institution = await createInstitution(superAdminAuth, { code: "appname-school", name: "App Name School", type: "other", defaultLocale: "en", educationMode: "academic" });
+    // Simulate what database/scripts/seed.ts does for seeded institutions
+    // (createInstitution itself never sets app_name) -- a leftover
+    // app_name equal to the pre-rename name, the exact state B CareExc
+    // Science was found in.
+    const db = await getDbClient();
+    await db.withInstitutionContext({ institutionId: institution.id, authUserId: superAdminAuth }, (scoped) =>
+      scoped.query("update institutions set app_name = $1 where id = $2", ["App Name School", institution.id])
+    );
+
+    const updated = await updateInstitutionName(superAdminAuth, institution.id, { name: "App Name School Home" });
+    expect(updated?.name).toBe("App Name School Home");
+
+    const { rows } = await db.withInstitutionContext({ institutionId: institution.id, authUserId: superAdminAuth }, (scoped) =>
+      scoped.query<{ app_name: string | null }>("select app_name from institutions where id = $1", [institution.id])
+    );
+    expect(rows[0].app_name).toBeNull();
+  });
+
+  it("§Rename-propagation bugfix: re-submitting the SAME name still clears a stale app_name (how an already-renamed institution is fixed up after the fact)", async () => {
+    const institution = await createInstitution(superAdminAuth, { code: "appname-resubmit-school", name: "Resubmit School", type: "other", defaultLocale: "en", educationMode: "academic" });
+    const db = await getDbClient();
+    // The institution's `name` was already renamed (by some earlier call),
+    // but app_name is still stuck on the old pre-rename string -- exactly
+    // B CareExc Science Home's real state right now.
+    await db.withInstitutionContext({ institutionId: institution.id, authUserId: superAdminAuth }, (scoped) =>
+      scoped.query("update institutions set app_name = $1 where id = $2", ["Resubmit School (old)", institution.id])
+    );
+
+    const before = (await listPlatformAuditLogs(superAdminAuth)).length;
+    const result = await updateInstitutionName(superAdminAuth, institution.id, { name: "Resubmit School" }); // unchanged name
+    expect(result?.name).toBe("Resubmit School");
+    const after = (await listPlatformAuditLogs(superAdminAuth)).length;
+    expect(after).toBeGreaterThan(before); // not treated as a pure no-op, since app_name needed clearing
+
+    const { rows } = await db.withInstitutionContext({ institutionId: institution.id, authUserId: superAdminAuth }, (scoped) =>
+      scoped.query<{ app_name: string | null }>("select app_name from institutions where id = $1", [institution.id])
+    );
+    expect(rows[0].app_name).toBeNull();
+  });
+
   it("a non-super-admin cannot rename any institution", async () => {
     const institution = await createInstitution(superAdminAuth, { code: "forbidden-name-school", name: "Forbidden Name School", type: "other", defaultLocale: "en", educationMode: "academic" });
     await expect(updateInstitutionName(adminAuth, institution.id, { name: "Whatever" })).rejects.toThrow(/Forbidden/);

@@ -172,6 +172,40 @@ describe("Analytics (§N)", () => {
   });
 });
 
+describe("§Analytics-live-marks bugfix — marks never leave 'draft' under the current UI (no submit/verify/approve path exists any more), so analytics must count them too", () => {
+  it("mv_exam_subject_stats counts draft-only marks (migration 0062; previously always zero, see modules/analytics/service.ts's own comment)", async () => {
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const examination = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: year!.id, name: "Unit Test — draft marks",
+    });
+    await addExamClass(institutionA, adminAuth, examination.id, classId, sectionId);
+    const mathSubject = await addExamSubject(institutionA, adminAuth, adminUserId, { examinationId: examination.id, subjectId: mathId, maxMarks: 100, passMarks: 35 });
+
+    // Only enterMarks — no submitMarks/verifyMarks/approveMarks. This is
+    // exactly what the live UI does today (§"admin will switch mark entry
+    // Open > Closed > Published > Archived, that is enough" — no
+    // approve/lock gate), so every mark stays entry_status='draft'.
+    await enterMarks(institutionA, adminAuth, adminUserId, mathSubject.id, [
+      { studentId: student1, marksObtained: 72, isAbsent: false },
+      { studentId: student2, marksObtained: 40, isAbsent: false },
+      { studentId: student3, marksObtained: 18, isAbsent: false },
+    ]);
+    await refreshAnalyticsViews();
+
+    const stats = await getExamSubjectStats(institutionA, adminAuth, examination.id);
+    const mathStats = stats.find((s) => s.subject_id === mathId)!;
+    expect(mathStats.marked_count).toBe(3);
+    expect(Number(mathStats.avg_marks)).toBeCloseTo((72 + 40 + 18) / 3, 5);
+    expect(mathStats.pass_count).toBe(2); // 72 and 40 pass (>=35), 18 fails
+
+    const comparison = await getSubjectComparison(institutionA, adminAuth, examination.id);
+    const mathComparison = comparison.find((c) => c.subject_id === mathId)!;
+    expect(mathComparison.marked_count).toBe(3);
+  });
+});
+
 describe("Analytics tenant isolation (§N migration note — matviews have no RLS, service-layer filtering is the only gate)", () => {
   it("Institution B's AnalyticsService calls never return Institution A's rows even though the underlying matviews are unpartitioned by RLS", async () => {
     const adminB = await seedDemoUser(await getDbClient(), institutionB, "admin@an-b.example", "Analytics B Admin");

@@ -10,20 +10,20 @@ import Link from "next/link";
 export default function ExaminationPicker({
   examinations,
   examinationId,
-  trendClassId,
+  trendClassIds,
   trendSectionId,
-  fromMonth,
-  toMonth,
+  trendMonths,
 }: {
   examinations: Array<{ id: string; name: string }>;
   examinationId: string;
-  trendClassId: string;
+  trendClassIds: string[];
   trendSectionId: string;
-  fromMonth: string;
-  toMonth: string;
+  trendMonths: string[];
 }) {
   function hrefFor(id: string): string {
-    const params = new URLSearchParams({ examinationId: id, trendClassId, trendSectionId, fromMonth, toMonth });
+    const params = new URLSearchParams({
+      examinationId: id, trendClassIds: trendClassIds.join(","), trendSectionId, trendMonths: trendMonths.join(","),
+    });
     return `?${params.toString()}`;
   }
 

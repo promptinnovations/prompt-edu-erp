@@ -219,6 +219,33 @@ describe("Result Analysis — Teacher wise, via existing Teacher Assignments (§
     const rows = await getResultsByTeacher(institutionA, adminAuth, crypto.randomUUID());
     expect(rows).toHaveLength(0);
   });
+
+  it("§Analytics-live-marks bugfix: counts draft-only marks too — the live UI never submits/verifies/approves marks any more", async () => {
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const examType = examTypes.find((t) => t.code === "academic_main")!;
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const examination = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: examType.id, academicYearId: year!.id, name: "RA Term Exam — draft marks",
+    });
+    await addExamClass(institutionA, adminAuth, examination.id, gradeClassId, null);
+    const mathSubject = await addExamSubject(institutionA, adminAuth, adminUserId, { examinationId: examination.id, subjectId: mathId, maxMarks: 100, passMarks: 35 });
+
+    // enterMarks only — no submit/verify/approve, matching how the live UI
+    // actually enters marks today (§"results are live from the moment
+    // marks are entered"). Before migration 0062 + this fix,
+    // getResultsByTeacher() always saw 0 marks in this state.
+    await enterMarks(institutionA, adminAuth, adminUserId, mathSubject.id, [
+      { studentId: student1, marksObtained: 88, isAbsent: false },
+      { studentId: student2, marksObtained: 44, isAbsent: false },
+    ]);
+
+    const byTeacher = await getResultsByTeacher(institutionA, adminAuth, examination.id);
+    const mathRow = byTeacher.find((t) => t.subject_id === mathId)!;
+    expect(mathRow).toBeTruthy();
+    expect(mathRow.teacher_user_id).toBe(mathTeacherUserId);
+    expect(mathRow.marked_count).toBe(2);
+    expect(Number(mathRow.average_marks)).toBeCloseTo((88 + 44) / 2, 5);
+  });
 });
 
 describe("Consolidated Marks class filter + exam-covered-classes lookup (§Page-6 follow-up 'select exam, class from dropdown')", () => {

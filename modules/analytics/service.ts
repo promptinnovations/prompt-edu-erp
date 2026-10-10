@@ -176,15 +176,20 @@ export async function getStudentAttendanceTrend(
   });
 }
 
+/** §Attendance-trend-redesign follow-up ("all classes should be buttons —
+ *  selected, details come") — `sectionId` is now nullable: null aggregates
+ *  across every division of the class (the page's new "All divisions" pill),
+ *  same convention as getInstitutionAttendanceTrendMonthly's classIds/stages
+ *  nullable-array filters just below. */
 export async function getClassAttendanceTrend(
-  institutionId: string, authUserId: string, classId: string, sectionId: string, fromMonth: string, toMonth: string
+  institutionId: string, authUserId: string, classId: string, sectionId: string | null, fromMonth: string, toMonth: string
 ): Promise<AttendanceTrendRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<{ month: string; present_days: string; late_days: string; total_days: string }>(
       `select month::text as month, sum(present_days) as present_days, sum(late_days) as late_days, sum(total_days) as total_days
          from mv_attendance_monthly
-        where institution_id = $1 and class_id = $2 and section_id = $3 and month between $4::date and $5::date
+        where institution_id = $1 and class_id = $2 and ($3::uuid is null or section_id = $3) and month between $4::date and $5::date
         group by month
         order by month`,
       [institutionId, classId, sectionId, `${fromMonth}-01`, `${toMonth}-01`]
@@ -984,10 +989,18 @@ export async function getTeacherExamReport(
       const maxMarks = Number(examSubjectRows[0].max_marks);
       const passMarks = Number(examSubjectRows[0].pass_marks);
 
+      // §Analytics-live-marks bugfix (sibling of migration 0062's
+      // mv_exam_subject_stats fix): no entry_status filter here either —
+      // a mark is "marked" once it has marks_obtained recorded, same as
+      // everywhere else post-0054. The old `entry_status in ('approved',
+      // 'locked')` filter meant this teacher-wise report always saw zero
+      // marks, since that workflow's later states are no longer reachable
+      // from the UI (see modules/examination/service.ts's own "Mark
+      // workflow (superseded)" comment).
       const { rows: studentRows } = await scoped.query<{ marks_obtained: string | null; is_absent: boolean }>(
         `select m.marks_obtained, coalesce(m.is_absent, false) as is_absent
            from student_enrollments se
-           left join marks m on m.exam_subject_id = $1 and m.student_id = se.student_id and m.entry_status in ('approved','locked')
+           left join marks m on m.exam_subject_id = $1 and m.student_id = se.student_id
           where se.status = 'active' and se.academic_year_id = $2 and se.class_id = $3
                 and ($4::uuid is null or se.section_id = $4)`,
         [examSubjectId, academicYearId, a.class_id, a.section_id]
@@ -1063,7 +1076,9 @@ export async function getTeacherPerformanceTrend(
               and (ta.section_id is null or se.section_id = ta.section_id)
               and se.academic_year_id = e.academic_year_id and se.status = 'active'
          join marks m on m.exam_subject_id = es.id and m.student_id = se.student_id
-              and m.entry_status in ('approved','locked') and m.is_absent = false
+              -- §Analytics-live-marks bugfix — see getResultsByTeacher's
+              -- comment above; same stale entry_status filter removed here.
+              and m.is_absent = false
         where e.institution_id = $2
         group by e.id, e.name, date
         having sum(m.marks_obtained) is not null
