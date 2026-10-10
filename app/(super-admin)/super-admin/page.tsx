@@ -5,6 +5,7 @@ import { listInstitutions, getPlatformUsageOverview } from "../../../services/su
 import CreateInstitutionForm from "../CreateInstitutionForm";
 import InstitutionStatusForm from "../InstitutionStatusForm";
 import InstitutionUrlCell from "../InstitutionUrlCell";
+import InstitutionNameCell from "../InstitutionNameCell";
 
 export default async function SuperAdminOverviewPage() {
   const ctx = await requireSuperAdminContext();
@@ -90,7 +91,9 @@ export default async function SuperAdminOverviewPage() {
                 const u = usageByInstitution.get(inst.id);
                 return (
                   <tr key={inst.id}>
-                    <td className="py-1.5 pr-4 font-medium text-zinc-900">{inst.name}</td>
+                    <td className="py-1.5 pr-4">
+                      <InstitutionNameCell institutionId={inst.id} name={inst.name} />
+                    </td>
                     <td className="py-1.5 pr-4">
                       <InstitutionUrlCell institutionId={inst.id} code={inst.code} baseUrl={baseUrl} />
                     </td>

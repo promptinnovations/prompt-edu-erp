@@ -743,6 +743,44 @@ export async function updateInstitutionCode(
   });
 }
 
+const updateNameSchema = z.object({ name: z.string().trim().min(2).max(200) });
+
+/** Renames an institution's display name (`institutions.name` — shown in
+ *  the sidebar, Settings, report cards, etc. wherever `appName` isn't set)
+ *  after creation. Until this existed, the only name-like field editable
+ *  post-creation was the URL code (updateInstitutionCode above); the name
+ *  itself was create-time-only, with no way to fix a typo or rename an
+ *  institution (e.g. "B CareExc Science" -> "B CareExc Science Home")
+ *  without a direct database edit — exactly what §K says to avoid. Mirrors
+ *  updateInstitutionCode's shape (no uniqueness constraint needed here,
+ *  since institutions.name isn't unique). */
+export async function updateInstitutionName(
+  authUserId: string,
+  institutionId: string,
+  input: z.infer<typeof updateNameSchema>
+): Promise<InstitutionRecord | null> {
+  const data = updateNameSchema.parse(input);
+  return withSuperAdminContext(authUserId, async (scoped, callerUserId) => {
+    const { rows: before } = await scoped.query<InstitutionRecord>(
+      `select id, code, name, type, board, status, deployment_mode, default_locale, created_at from institutions where id = $1`,
+      [institutionId]
+    );
+    if (before.length === 0) return null;
+    if (before[0].name === data.name) return before[0]; // no-op, nothing to change or audit
+
+    const { rows } = await scoped.query<InstitutionRecord>(
+      `update institutions set name = $1, updated_at = now() where id = $2
+       returning id, code, name, type, board, status, deployment_mode, default_locale, created_at`,
+      [data.name, institutionId]
+    );
+    await recordPlatformAudit(scoped, {
+      actorUserId: callerUserId, institutionId, action: "name_change", entityType: "institutions", entityId: institutionId,
+      before: { name: before[0].name }, after: { name: data.name },
+    });
+    return rows[0];
+  });
+}
+
 const updateBoardSchema = z.object({ board: z.enum(EDUCATIONAL_BOARDS) });
 
 /** Sets/changes an existing madrasa institution's educational board — the

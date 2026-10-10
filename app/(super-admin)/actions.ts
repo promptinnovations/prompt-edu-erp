@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSuperAdminContext } from "../../services/request-context";
-import { createInstitution, updateInstitutionStatus, updateInstitutionCode, setPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
+import { createInstitution, updateInstitutionStatus, updateInstitutionCode, updateInstitutionName, setPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
 
 export async function createInstitutionAction(_prevState: { error: string | null }, formData: FormData) {
   const ctx = await requireSuperAdminContext();
@@ -73,5 +73,25 @@ export async function updateInstitutionCodeAction(_prevState: { error: string | 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update institution URL." };
+  }
+}
+
+export async function updateInstitutionNameAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireSuperAdminContext();
+  const institutionId = String(formData.get("institutionId") ?? "");
+  const name = String(formData.get("name") ?? "");
+  try {
+    await updateInstitutionName(ctx.session.authUserId, institutionId, { name });
+    // Same as updateInstitutionCodeAction/updateInstitutionStatusAction
+    // above — only the Super Admin console list itself needs an explicit
+    // revalidatePath. The institution's own pages (under its /<code>/...
+    // prefix, rewritten by middleware.ts to the (institution) route group)
+    // are plain dynamic Server Components reading cookies/headers per
+    // request, not statically cached, so they pick up the new name on
+    // their own next navigation with no extra revalidation call.
+    revalidatePath("/super-admin");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to update institution name." };
   }
 }

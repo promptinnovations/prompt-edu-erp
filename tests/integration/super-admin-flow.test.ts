@@ -16,7 +16,7 @@ import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser, seedSuperAdminUser } from "../../database/scripts/seed";
 import { resolveUserByAuthId } from "../../services/tenant/tenant-service";
 import {
-  listInstitutions, createInstitution, updateInstitutionStatus, updateInstitutionCode,
+  listInstitutions, createInstitution, updateInstitutionStatus, updateInstitutionCode, updateInstitutionName,
   getPlatformUsageOverview, listPlatformAuditLogs,
 } from "../../services/super-admin/super-admin-service";
 import { createStudent } from "../../modules/students/service";
@@ -245,6 +245,44 @@ describe("updateInstitutionCode (§137 follow-up: editable per-institution deep-
   it("a non-super-admin cannot change any institution's code", async () => {
     const institution = await createInstitution(superAdminAuth, { code: "forbidden-code-school", name: "Forbidden Code School", type: "other", defaultLocale: "en", educationMode: "academic" });
     await expect(updateInstitutionCode(adminAuth, institution.id, { code: "whatever" })).rejects.toThrow(/Forbidden/);
+  });
+});
+
+describe("updateInstitutionName (rename an institution's display name after creation — no in-app path existed before)", () => {
+  it("changes the name and records a platform audit entry", async () => {
+    const institution = await createInstitution(superAdminAuth, { code: "name-change-school", name: "Name Change School", type: "other", defaultLocale: "en", educationMode: "academic" });
+    const updated = await updateInstitutionName(superAdminAuth, institution.id, { name: "Name Change School Home" });
+    expect(updated?.name).toBe("Name Change School Home");
+
+    const logs = await listPlatformAuditLogs(superAdminAuth);
+    const nameLog = logs.find((l) => l.action === "name_change" && l.entity_id === institution.id);
+    expect(nameLog).toBeTruthy();
+  });
+
+  it("trims whitespace and rejects a name that's too short", async () => {
+    const institution = await createInstitution(superAdminAuth, { code: "trim-name-school", name: "Trim Name School", type: "other", defaultLocale: "en", educationMode: "academic" });
+    const updated = await updateInstitutionName(superAdminAuth, institution.id, { name: "  Padded Name  " });
+    expect(updated?.name).toBe("Padded Name");
+    await expect(updateInstitutionName(superAdminAuth, institution.id, { name: "A" })).rejects.toThrow();
+  });
+
+  it("is a harmless no-op (no audit entry) when the name doesn't actually change", async () => {
+    const institution = await createInstitution(superAdminAuth, { code: "noop-name-school", name: "No-op Name School", type: "other", defaultLocale: "en", educationMode: "academic" });
+    const before = (await listPlatformAuditLogs(superAdminAuth)).length;
+    const result = await updateInstitutionName(superAdminAuth, institution.id, { name: "No-op Name School" });
+    expect(result?.name).toBe("No-op Name School");
+    const after = (await listPlatformAuditLogs(superAdminAuth)).length;
+    expect(after).toBe(before);
+  });
+
+  it("returns null for a non-existent institution rather than throwing", async () => {
+    const result = await updateInstitutionName(superAdminAuth, "00000000-0000-0000-0000-000000000000", { name: "Ghost School" });
+    expect(result).toBeNull();
+  });
+
+  it("a non-super-admin cannot rename any institution", async () => {
+    const institution = await createInstitution(superAdminAuth, { code: "forbidden-name-school", name: "Forbidden Name School", type: "other", defaultLocale: "en", educationMode: "academic" });
+    await expect(updateInstitutionName(adminAuth, institution.id, { name: "Whatever" })).rejects.toThrow(/Forbidden/);
   });
 });
 
