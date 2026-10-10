@@ -162,7 +162,7 @@ const queryRegistry: Record<string, QueryFn> = {
 // ---------------------------------------------------------------------------
 function renderPdf(institutionName: string, definition: ReportDefinitionRecord, rows: Record<string, unknown>[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const doc = new PDFDocument({ margin: 40, size: "A4", bufferPages: true });
     const chunks: Buffer[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -199,11 +199,12 @@ function renderPdf(institutionName: string, definition: ReportDefinitionRecord, 
     const pageCount = doc.bufferedPageRange().count;
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
+      doc.page.margins.bottom = 0; // footer sits in the bottom margin; avoid auto page-add
       doc.fontSize(8).fillColor("#888888").text(
         `Page ${i + 1} of ${pageCount} — Powered by PROMPT EDU ERP`,
         doc.page.margins.left,
         doc.page.height - doc.page.margins.bottom + 10,
-        { align: "center", width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
+        { align: "center", lineBreak: false, width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
       );
     }
 
