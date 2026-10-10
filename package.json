@@ -17,7 +17,7 @@
     "check:audit": "npm audit --omit=dev --audit-level=high",
     "typecheck": "next typegen && tsc --noEmit",
     "verify": "npm run typecheck && npm run lint && npm run check:secrets && npm test",
-    "build:migrate": "node database/scripts/apply-migration.mjs 0059_learner_record.sql && next build"
+    "build:migrate": "node database/scripts/apply-migration.mjs && next build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
