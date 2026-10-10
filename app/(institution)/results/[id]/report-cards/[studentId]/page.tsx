@@ -5,7 +5,7 @@ import { can } from "../../../../../../services/permissions/permission-service";
 import { getTeacherClassScope } from "../../../../../../services/scope/teacher-scope-service";
 import { getInstitution } from "../../../../../../services/institution/institution-service";
 import {
-  getExamination, getExaminationMarksMatrix, getResults, PASS_COLOR, FAIL_COLOR,
+  getExamination, getExaminationMarksMatrix, getResults, getGradeBands, resolveGradeBand,
 } from "../../../../../../modules/examination/service";
 import { getStudent, getCurrentEnrollment } from "../../../../../../modules/students/service";
 import { listAcademicYears } from "../../../../../../modules/academic/service";
@@ -16,19 +16,32 @@ import PrintButton from "../../../../../components/PrintButton";
 import PrintLetterhead from "../../../../../components/PrintLetterhead";
 
 /** "Result > Report Cards" — one student's printable Progress Report:
- *  photo + identity block, subject-by-subject marks with a pass/fail
- *  badge per subject (§K: pass_marks is always institution-configured
- *  per exam_subject, never a literal here), an attendance-during-the-year
- *  line, and the overall total/percentage/grade/rank/result summary (from
- *  the same computed `results` row every other results view reads) —
- *  all on the institution's own letterhead, with signature blocks for
- *  printing. §491 "executive design" follow-up — the user explicitly
- *  authorized building this from good design judgment against the data
- *  actually in the schema rather than matching a specific unseen
- *  reference image. §CE (migration 0055): when the exam has Continuous
- *  Evaluation enabled, CE is shown as extra columns (with a per-component
- *  breakdown under the subject name in Components mode) from the same
- *  getExaminationMarksMatrix() rows — no parallel CE renderer. */
+ *  photo + identity block, a subject-by-subject TE/CE marks table with a
+ *  per-subject Grade (resolved against the exam's own grade_scale_id, same
+ *  bands Settings > Grading edits — never a literal cutoff here), an
+ *  attendance-during-the-year line, and the overall total/percentage/grade
+ *  summary (from the same computed `results` row every other results view
+ *  reads) — all on the institution's own letterhead, with signature blocks
+ *  for printing.
+ *  §Report-card-redesign follow-up (reference layout + explicit column
+ *  list: "subject, TE, Total TE, CE, Total CE, Grade ... CE/Total CE only
+ *  for term examinations"): columns are now TE (the written/terminal marks
+ *  obtained — previously labelled "Written"/"Marks Obtained"), Total TE
+ *  (that portion's max marks — previously "Max Marks"), CE/Total CE
+ *  (obtained/max continuous-evaluation marks — previously CE was shown but
+ *  its own max wasn't a separate column), and a per-subject Grade in place
+ *  of the old per-subject Pass/Fail badge. CE/Total CE still only render
+ *  when `hasCe` (this exam has CE components) — in practice that's exactly
+ *  "term examinations", since Daily Assessment / non-CE exam types never
+ *  populate ce_components, so no separate periodicity check is needed.
+ *  Rank and the old per-subject/overall Pass-Fail badges were dropped from
+ *  this layout (not in the requested field list); Total Marks/Total
+ *  Percentage/Total Grade/Attendance now live together in one summary
+ *  block at the bottom instead of split between the identity block and a
+ *  separate total row. The Grade → performance-descriptor legend
+ *  (grade_bands.description, migration 0060) is intentionally NOT printed
+ *  here — it's institution reference data for Settings > Grading, not
+ *  part of the report card per the explicit ask. */
 export default async function ReportCardPage({ params }: { params: Promise<{ id: string; studentId: string }> }) {
   const { id, studentId } = await params;
   const ctx = await requireRequestContext();
@@ -74,11 +87,14 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
   }
   const overall = results.find((r) => r.student_id === studentId);
   const first = studentRows[0];
-  // EXAMINATION_SPEC §1.5/§8: the overall verdict is the STORED results.is_pass
-  // (no failed subject AND overall % >= the exam's threshold) — never
-  // re-derived here from percentage alone.
-  const overallPassed = overall ? overall.is_pass : null;
   const hasCe = studentRows.some((r) => r.ce_components.length > 0);
+  // Per-subject Grade column — resolved against the same grade_scale_id/
+  // grade_bands the exam itself (and the overall grade below) uses, never
+  // a hardcoded cutoff (§K). No grade_scale_id configured -> empty bands,
+  // every subject's Grade cell falls back to "—".
+  const gradeBands = examination.grade_scale_id
+    ? await getGradeBands(institutionId, authUserId, examination.grade_scale_id)
+    : [];
 
   const academicYear = academicYears.find((y) => y.id === examination.academic_year_id) ?? null;
   const attendance = academicYear
@@ -110,47 +126,31 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
           </p>
         </div>
 
-        <div className="mb-6 flex items-start justify-between gap-6 rounded-xl border bg-zinc-50 p-4">
-          <div className="flex items-start gap-4">
-            {student?.photo_file_id ? (
-              // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
-              <img
-                src={`/api/files/${student.photo_file_id}`}
-                alt=""
-                className="h-20 w-20 rounded-xl border object-cover"
-              />
-            ) : (
-              <span className="flex h-20 w-20 items-center justify-center rounded-xl border bg-white text-2xl font-semibold text-zinc-400">
-                {first.student_name.charAt(0).toUpperCase()}
-              </span>
-            )}
-            <div className="text-sm">
-              <div className="text-base font-semibold text-zinc-900">{first.student_name}</div>
-              <div className="text-zinc-500">Admission No: {first.admission_number}</div>
-              <div className="text-zinc-500">
-                Class: {first.class_name ?? "—"}{first.section_name ? ` - ${first.section_name}` : ""}
-                {first.roll_number != null ? ` · Roll No: ${first.roll_number}` : ""}
-              </div>
-              {student?.gender || student?.date_of_birth ? (
-                <div className="text-zinc-500">
-                  {student.gender ? `Gender: ${student.gender}` : ""}
-                  {student.gender && student.date_of_birth ? " · " : ""}
-                  {student.date_of_birth ? `DOB: ${formatDateIST(student.date_of_birth)}` : ""}
-                </div>
-              ) : null}
+        <div className="mb-6 flex items-start gap-4 rounded-xl border bg-zinc-50 p-4">
+          {student?.photo_file_id ? (
+            // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
+            <img
+              src={`/api/files/${student.photo_file_id}`}
+              alt=""
+              className="h-20 w-20 rounded-xl border object-cover"
+            />
+          ) : (
+            <span className="flex h-20 w-20 items-center justify-center rounded-xl border bg-white text-2xl font-semibold text-zinc-400">
+              {first.student_name.charAt(0).toUpperCase()}
+            </span>
+          )}
+          <div className="text-sm">
+            <div className="text-base font-semibold text-zinc-900">{first.student_name}</div>
+            <div className="text-zinc-500">Admission No: {first.admission_number}</div>
+            <div className="text-zinc-500">
+              Class: {first.class_name ?? "—"}{first.section_name ? ` - ${first.section_name}` : ""}
+              {first.roll_number != null ? ` · Roll No: ${first.roll_number}` : ""}
             </div>
-          </div>
-          <div className="shrink-0 text-right text-sm">
-            {overall ? (
-              <>
-                <div className="text-zinc-500">Rank: <span className="font-medium text-zinc-900">{overall.rank ?? "—"}</span></div>
-                <div className="text-zinc-500">Grade: <span className="font-medium text-zinc-900">{overall.grade_label ?? "—"}</span></div>
-              </>
-            ) : null}
-            {attendance ? (
+            {student?.gender || student?.date_of_birth ? (
               <div className="text-zinc-500">
-                Attendance: <span className="font-medium text-zinc-900">{attendance.present_percent}%</span>
-                <span className="text-xs"> ({attendance.present_days}/{attendance.total_days} days)</span>
+                {student.gender ? `Gender: ${student.gender}` : ""}
+                {student.gender && student.date_of_birth ? " · " : ""}
+                {student.date_of_birth ? `DOB: ${formatDateIST(student.date_of_birth)}` : ""}
               </div>
             ) : null}
           </div>
@@ -160,19 +160,18 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
           <thead>
             <tr className="border-b text-left text-zinc-500">
               <th className="py-1.5">Subject</th>
-              <th className="py-1.5 text-right">Max Marks</th>
-              <th className="py-1.5 text-right">Pass Marks</th>
-              <th className="py-1.5 text-right">{hasCe ? "Written" : "Marks Obtained"}</th>
+              <th className="py-1.5 text-right">TE</th>
+              <th className="py-1.5 text-right">Total TE</th>
               {hasCe ? <th className="py-1.5 text-right">CE</th> : null}
-              {hasCe ? <th className="py-1.5 text-right">Total</th> : null}
-              <th className="py-1.5 text-right">Result</th>
+              {hasCe ? <th className="py-1.5 text-right">Total CE</th> : null}
+              <th className="py-1.5 text-right">Grade</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {studentRows.map((r) => {
               // Per-subject display applies the same unit rules as
               // computeStudentResult(): absent units drop out of numerator
-              // and denominator; pass is judged as a percentage of pass_marks/max.
+              // and denominator.
               const units = [
                 { max: Number(r.max_marks), obtained: r.marks_obtained, absent: r.is_absent },
                 ...r.ce_components.map((c) => ({ max: Number(c.max_marks), obtained: c.marks_obtained, absent: c.is_absent })),
@@ -180,9 +179,8 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
               const sat = units.filter((u) => !u.absent && u.obtained != null);
               const satObtained = sat.reduce((a, u) => a + Number(u.obtained), 0);
               const satMax = units.filter((u) => !u.absent).reduce((a, u) => a + u.max, 0);
-              const subjectPassed = sat.length > 0 && satMax > 0 && Number(r.max_marks) > 0
-                ? (satObtained / satMax) * 100 >= (Number(r.pass_marks) / Number(r.max_marks)) * 100
-                : null;
+              const subjectPct = sat.length > 0 && satMax > 0 ? (satObtained / satMax) * 100 : null;
+              const subjectGrade = subjectPct != null ? resolveGradeBand(gradeBands, subjectPct) : null;
               const ceMax = r.ce_components.reduce((a, c) => a + Number(c.max_marks), 0);
               const ceSat = r.ce_components.filter((c) => !c.is_absent && c.marks_obtained != null);
               const ceText = r.ce_components.length === 0 ? "—"
@@ -199,23 +197,11 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
                       </div>
                     ) : null}
                   </td>
-                  <td className="py-1.5 text-right">{formatMarks(hasCe ? Number(r.max_marks) + ceMax : r.max_marks)}</td>
-                  <td className="py-1.5 text-right">{formatMarks(r.pass_marks)}</td>
                   <td className="py-1.5 text-right">{r.is_absent ? "Absent" : r.marks_obtained ? formatMarks(r.marks_obtained) : "—"}</td>
-                  {hasCe ? <td className="py-1.5 text-right">{ceText === "—" || ceText === "Absent" ? ceText : ceText.split("/").map(formatMarks).join("/")}</td> : null}
-                  {hasCe ? <td className="py-1.5 text-right">{sat.length > 0 ? `${formatMarks(satObtained)}/${formatMarks(satMax)}` : "—"}</td> : null}
-                  <td className="py-1.5 text-right">
-                    {subjectPassed == null ? (
-                      "—"
-                    ) : (
-                      <span
-                        className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                        style={{ backgroundColor: subjectPassed ? PASS_COLOR : FAIL_COLOR }}
-                      >
-                        {subjectPassed ? "Pass" : "Fail"}
-                      </span>
-                    )}
-                  </td>
+                  <td className="py-1.5 text-right">{formatMarks(r.max_marks)}</td>
+                  {hasCe ? <td className="py-1.5 text-right">{ceText === "—" || ceText === "Absent" ? ceText : formatMarks(ceSat.reduce((a, c) => a + Number(c.marks_obtained), 0))}</td> : null}
+                  {hasCe ? <td className="py-1.5 text-right">{formatMarks(ceMax)}</td> : null}
+                  <td className="py-1.5 text-right font-medium text-zinc-900">{subjectGrade?.grade_label ?? "—"}</td>
                 </tr>
               );
             })}
@@ -223,22 +209,25 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
         </table>
 
         {overall ? (
-          <div className="mt-6 flex items-center justify-between rounded-xl border bg-zinc-50 p-4 text-sm">
-            <div>
-              <span className="font-medium text-zinc-900">Total: </span>
-              {formatMarks(overall.total_marks)} / {formatMarks(overall.max_total_marks)} ({Number(overall.percentage).toFixed(2)}%)
+          <div className="mt-6 space-y-1.5 rounded-xl border bg-zinc-50 p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500">Total Marks</span>
+              <span className="font-medium text-zinc-900">{formatMarks(overall.total_marks)} / {formatMarks(overall.max_total_marks)}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="font-medium text-zinc-900">Overall Result:</span>
-              {overallPassed != null ? (
-                <span
-                  className="rounded-full px-3 py-1 text-xs font-semibold text-white"
-                  style={{ backgroundColor: overallPassed ? PASS_COLOR : FAIL_COLOR }}
-                >
-                  {overallPassed ? "PASS" : "FAIL"}
-                </span>
-              ) : "—"}
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500">Total Percentage</span>
+              <span className="font-medium text-zinc-900">{Number(overall.percentage).toFixed(1)}%</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500">Total Grade</span>
+              <span className="font-medium text-zinc-900">{overall.grade_label ?? "—"}</span>
+            </div>
+            {attendance ? (
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Attendance</span>
+                <span className="font-medium text-zinc-900">{attendance.present_days} / {attendance.total_days} days ({attendance.present_percent}%)</span>
+              </div>
+            ) : null}
           </div>
         ) : (
           <p className="mt-6 text-sm text-zinc-500">

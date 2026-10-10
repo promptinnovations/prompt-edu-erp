@@ -8,7 +8,7 @@ import {
 } from "./actions";
 import ConfirmSubmitButton from "../../../components/ui/ConfirmSubmitButton";
 
-interface GradeBand { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null }
+interface GradeBand { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null; description?: string | null }
 interface GradeScale { id: string; name: string; is_default: boolean }
 
 const INIT: GradingActionState = { error: null };
@@ -29,6 +29,7 @@ function GradeBandRow({ band, canManage }: { band: GradeBand; canManage: boolean
           <input autoComplete="off" name="maxPercent" type="number" step="0.01" defaultValue={band.max_percent} className="w-20 rounded-full border px-2 py-1 text-xs" placeholder="Max %" />
           <input autoComplete="off" name="gradePoint" type="number" step="0.01" defaultValue={band.grade_point ?? ""} className="w-16 rounded-full border px-2 py-1 text-xs" placeholder="GP" />
           <input autoComplete="off" name="color" type="color" defaultValue={band.color ?? "#94a3b8"} className="h-7 w-9 rounded border p-0.5" title="Band color" />
+          <input autoComplete="off" name="description" defaultValue={band.description ?? ""} className="min-w-[10rem] flex-1 rounded-full border px-2 py-1 text-xs" placeholder="Performance descriptor, e.g. Outstanding" />
           <button type="submit" className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
         </form>
@@ -44,6 +45,7 @@ function GradeBandRow({ band, canManage }: { band: GradeBand; canManage: boolean
         <strong className="text-zinc-900">{band.grade_label}</strong>{" "}
         <span className="text-zinc-500">{band.min_percent}%–{band.max_percent}%</span>
         {band.grade_point ? <span className="text-zinc-500"> · GP {band.grade_point}</span> : null}
+        {band.description ? <span className="text-zinc-500"> · {band.description}</span> : null}
       </span>
       {canManage ? (
         <span className="flex items-center gap-2">
@@ -128,6 +130,10 @@ function GradeScaleCard({ scale, bands, canManage }: { scale: GradeScale; bands:
           <div>
             <label className="mb-1 block text-xs text-zinc-500">Color</label>
             <input autoComplete="off" name="color" type="color" defaultValue="#4f46e5" className="h-8 w-10 rounded border p-0.5" />
+          </div>
+          <div className="min-w-[12rem] flex-1">
+            <label className="mb-1 block text-xs text-zinc-500">Performance descriptor</label>
+            <input autoComplete="off" name="description" placeholder="e.g. Outstanding" className="w-full rounded-full border px-2 py-1.5 text-sm" />
           </div>
           <button type="submit" className="rounded-full bg-gradient-to-r from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Add band

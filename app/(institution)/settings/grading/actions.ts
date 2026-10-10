@@ -105,6 +105,7 @@ export async function createGradeBandAction(_prev: GradingActionState, formData:
   try {
     requirePermission(ctx.permissions, "settings.manage");
     const color = String(formData.get("color") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
     await createGradeBand(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
       gradeScaleId: String(formData.get("gradeScaleId") ?? ""),
       minPercent: num(formData, "minPercent") ?? 0,
@@ -112,6 +113,7 @@ export async function createGradeBandAction(_prev: GradingActionState, formData:
       gradeLabel: String(formData.get("gradeLabel") ?? ""),
       gradePoint: num(formData, "gradePoint") ?? null,
       color: color || null,
+      description: description || null,
     });
     revalidatePath(PATH);
     return OK;
@@ -165,12 +167,14 @@ export async function updateGradeBandAction(_prev: GradingActionState, formData:
   try {
     requirePermission(ctx.permissions, "settings.manage");
     const colorRaw = formData.get("color");
+    const descriptionRaw = formData.get("description");
     await updateGradeBand(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("gradeBandId") ?? ""), {
       minPercent: num(formData, "minPercent"),
       maxPercent: num(formData, "maxPercent"),
       gradeLabel: String(formData.get("gradeLabel") ?? "") || undefined,
       gradePoint: num(formData, "gradePoint") ?? null,
       color: colorRaw !== null && String(colorRaw).trim() !== "" ? String(colorRaw).trim() : null,
+      description: descriptionRaw !== null && String(descriptionRaw).trim() !== "" ? String(descriptionRaw).trim() : null,
     });
     revalidatePath(PATH);
     return OK;

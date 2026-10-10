@@ -103,7 +103,16 @@ export interface MarkRow {
   class_id: string; class_name: string | null; stage: string | null;
   mark_id: string | null; marks_obtained: string | null; is_absent: boolean; entry_status: string | null;
 }
-export interface GradeBandRecord { id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null }
+export interface GradeBandRecord {
+  id: string; min_percent: string; max_percent: string; grade_label: string; grade_point: string | null; color: string | null;
+  // Migration 0060 — one-line performance descriptor for this band (e.g.
+  // "Outstanding" for an A+), institution-editable in Settings > Grading
+  // like every other grade_bands column (§K). Never a fixed in-app legend;
+  // blank until an institution fills it in. Only populated by getGradeBands()
+  // / createGradeBand() / updateGradeBand() (same convention as the other
+  // migration-added columns on sibling records in this file).
+  description?: string | null;
+}
 export interface ResultRow {
   student_id: string; student_name: string; total_marks: string; max_total_marks: string;
   percentage: string; grade_label: string | null; rank: number | null;
@@ -267,7 +276,7 @@ export async function getGradeBands(institutionId: string, authUserId: string, g
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<GradeBandRecord>(
-      "select id, min_percent, max_percent, grade_label, grade_point, color from grade_bands where grade_scale_id = $1 order by min_percent desc",
+      "select id, min_percent, max_percent, grade_label, grade_point, color, description from grade_bands where grade_scale_id = $1 order by min_percent desc",
       [gradeScaleId]
     );
     return rows;
@@ -381,6 +390,9 @@ const createGradeBandSchema = z.object({
   // Optional here so admins can set it later via updateGradeBand(); presets
   // (provisionGradingPreset()) always populate it up front.
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  // Migration 0060 — one-line performance descriptor ("Outstanding",
+  // "Needs Improvement", ...). Free text, institution's own wording (§K).
+  description: z.string().max(200).nullable().optional(),
 });
 
 export async function createGradeBand(
@@ -391,9 +403,9 @@ export async function createGradeBand(
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<GradeBandRecord>(
-      `insert into grade_bands (institution_id, grade_scale_id, min_percent, max_percent, grade_label, grade_point, color)
-       values ($1, $2, $3, $4, $5, $6, $7) returning id, min_percent, max_percent, grade_label, grade_point, color`,
-      [institutionId, data.gradeScaleId, data.minPercent, data.maxPercent, data.gradeLabel, data.gradePoint ?? null, data.color ?? null]
+      `insert into grade_bands (institution_id, grade_scale_id, min_percent, max_percent, grade_label, grade_point, color, description)
+       values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, min_percent, max_percent, grade_label, grade_point, color, description`,
+      [institutionId, data.gradeScaleId, data.minPercent, data.maxPercent, data.gradeLabel, data.gradePoint ?? null, data.color ?? null, data.description ?? null]
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "examination", entityType: "grade_bands", entityId: rows[0].id, after: rows[0] });
     return rows[0];
@@ -406,6 +418,7 @@ const updateGradeBandSchema = z.object({
   gradeLabel: z.string().min(1).max(20).optional(),
   gradePoint: z.number().nullable().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  description: z.string().max(200).nullable().optional(),
 });
 
 export async function updateGradeBand(
@@ -420,11 +433,13 @@ export async function updateGradeBand(
          max_percent = coalesce($3, max_percent),
          grade_label = coalesce($4, grade_label),
          grade_point = case when $5 then $6 else grade_point end,
-         color = case when $7 then $8 else color end
-       where id = $1 returning id, min_percent, max_percent, grade_label, grade_point, color`,
+         color = case when $7 then $8 else color end,
+         description = case when $9 then $10 else description end
+       where id = $1 returning id, min_percent, max_percent, grade_label, grade_point, color, description`,
       [gradeBandId, data.minPercent ?? null, data.maxPercent ?? null, data.gradeLabel ?? null,
         Object.prototype.hasOwnProperty.call(data, "gradePoint"), data.gradePoint ?? null,
-        Object.prototype.hasOwnProperty.call(data, "color"), data.color ?? null]
+        Object.prototype.hasOwnProperty.call(data, "color"), data.color ?? null,
+        Object.prototype.hasOwnProperty.call(data, "description"), data.description ?? null]
     );
     if (!rows[0]) throw new Error("Grade band not found.");
     if (Number(rows[0].min_percent) > Number(rows[0].max_percent)) throw new Error("Minimum percent cannot exceed maximum percent.");
