@@ -18,7 +18,11 @@ export default function NavLinks({ items }: { items: NavItem[] }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 text-sm">
       {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        // Longest matching href wins, so a parent entry ("/portal/student",
+        // the dashboard) isn't also highlighted on every child page.
+        const matches = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+        const active = matches(item.href)
+          && !items.some((o) => o.href.length > item.href.length && o.href.startsWith(`${item.href}/`) && matches(o.href));
         return (
           <Link
             key={item.href}

@@ -58,7 +58,7 @@ export default async function StudentExamDetailPage({ params }: { params: Promis
   return (
     <div className="space-y-4">
       <Link href="/portal/student/exams" className="no-print text-sm text-zinc-500 underline">
-        ← Back to exam performance
+        ← Back to Academics
       </Link>
       <div className="no-print flex justify-end">
         <PrintButton />

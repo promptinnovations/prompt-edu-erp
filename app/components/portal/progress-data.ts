@@ -5,9 +5,7 @@ import {
 import { listClasses, listSections } from "../../../modules/academic/service";
 import { listAchievements, type AchievementRow } from "../../../modules/achievements/service";
 
-import {
-  listStudentResultHistory, getExaminationMarksMatrix, getResults,
-} from "../../../modules/examination/service";
+import { getAcademicInsights } from "../../../modules/portal/student-insights";
 
 export interface StudentProgressSubject {
   subject_name: string; obtained: string | null; max: string; absent: boolean;
@@ -26,28 +24,26 @@ export interface StudentProgressExam {
 export async function getStudentProgress(
   institutionId: string, authUserId: string, studentId: string
 ): Promise<StudentProgressExam[]> {
-  const history = await listStudentResultHistory(institutionId, authUserId, studentId);
-  const out: StudentProgressExam[] = [];
-  for (const h of history) {
-    const [matrix, results] = await Promise.all([
-      getExaminationMarksMatrix(institutionId, authUserId, h.examination_id),
-      getResults(institutionId, authUserId, h.examination_id),
-    ]);
-    const r = results.find((x) => x.student_id === studentId);
-    out.push({
-      examination_id: h.examination_id,
-      examination_name: h.examination_name,
-      total_marks: r?.total_marks ?? "0",
-      max_total_marks: r?.max_total_marks ?? "0",
-      percentage: r?.percentage ?? h.percentage,
-      grade_label: r?.grade_label ?? h.grade_label,
-      is_pass: r?.is_pass ?? null,
-      subjects: matrix
-        .filter((m) => m.student_id === studentId)
-        .map((m) => ({ subject_name: m.subject_name, obtained: m.marks_obtained, max: m.max_marks, absent: m.is_absent })),
-    });
-  }
-  return out;
+  // §Perf: built from getAcademicInsights() — this one student's published
+  // results and subject marks in a single transaction. It used to load the
+  // WHOLE institution's mark matrix and results list for every exam, one
+  // exam after another, just to keep this student's rows.
+  const { exams } = await getAcademicInsights(institutionId, authUserId, studentId);
+  return [...exams].reverse().map((e) => ({
+    examination_id: e.examination_id,
+    examination_name: e.name,
+    total_marks: String(e.total),
+    max_total_marks: String(e.max_total),
+    percentage: String(e.percent),
+    grade_label: e.grade_label,
+    is_pass: e.is_pass,
+    subjects: e.subjects.map((s) => ({
+      subject_name: s.subject_name,
+      obtained: s.obtained != null ? String(s.obtained) : null,
+      max: String(s.max),
+      absent: s.absent,
+    })),
+  }));
 }
 
 

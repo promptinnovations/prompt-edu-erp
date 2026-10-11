@@ -15,12 +15,18 @@ import { signOutAction, exitSuperAdminViewAction, exitSamplePortalAction } from 
 import { getOwnStudentId, getOwnParentId } from "../../../modules/portal/service";
 import PortalRoleToggle from "./PortalRoleToggle";
 
+// §Student-portal-visual-redesign — one page per area, each with its own
+// visuals and no data repeated from another page: Dashboard (at a glance +
+// to-dos), Academics, Attendance, Growth & conduct, Achievements & activities,
+// Library & reading, and the printable Learner Record.
 const STUDENT_NAV_ITEMS: NavItem[] = [
   { href: "/portal/student", label: "Dashboard" },
-  { href: "/portal/student/portfolio", label: "Portfolio" },
-  { href: "/portal/student/record", label: "Learner Record" },
-  { href: "/portal/student/exams", label: "Exam performance" },
+  { href: "/portal/student/exams", label: "Academics" },
+  { href: "/portal/student/attendance", label: "Attendance" },
+  { href: "/portal/student/growth", label: "Growth & conduct" },
+  { href: "/portal/student/portfolio", label: "Achievements" },
   { href: "/portal/student/library", label: "Library & reading" },
+  { href: "/portal/student/record", label: "Learner Record" },
 ];
 
 // §"Parent & Student portal side panel + app download button" — the parent

@@ -5,6 +5,10 @@ import PreBookSection from "../PreBookSection";
 import MyPendingReviews from "../MyPendingReviews";
 import ReviewCorner from "../ReviewCorner";
 import LibraryCatalogueGrid from "../../../../(institution)/library/LibraryCatalogueGrid";
+import { getReadingInsights } from "../../../../../modules/portal/student-insights";
+import { PageHeader } from "../../../../components/portal/viz/blocks";
+import ReadingStats from "../../../../components/portal/student/ReadingStats";
+import { AREA } from "../../../../components/portal/student/areas";
 
 /** Library & reading — the catalogue (same card-grid UI as the admin
  *  Library page, §"use the catalogue UI everywhere when catalogue is
@@ -22,20 +26,27 @@ export default async function StudentLibraryPage() {
   const { institutionId, authUserId, ownStudentId } = await requireOwnStudentId();
   if (!ownStudentId) return <NotLinkedNotice />;
 
-  const [books, myHolds, myLoans, pendingReviews, approvedReviews] = await Promise.all([
+  const [books, myHolds, myLoans, pendingReviews, approvedReviews, reading] = await Promise.all([
     listBooks(institutionId, authUserId),
     listMyHolds(institutionId, authUserId, ownStudentId),
     listIssuedBooks(institutionId, authUserId, ownStudentId),
     listReadingRecords(institutionId, authUserId, "pending", undefined, ownStudentId),
     listApprovedReviews(institutionId, authUserId, null, ownStudentId),
+    getReadingInsights(institutionId, authUserId, ownStudentId),
   ]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-[var(--heading)]">Library &amp; reading</h1>
-        <p className="mt-0.5 text-sm text-zinc-500">Tap any book to see its details, availability and reviews — and to take or pre-book it.</p>
-      </div>
+      <PageHeader
+        title="Library & reading"
+        subtitle="Your reading so far — then tap any book below for details, availability and reviews."
+        icon={AREA.reading.icon}
+        color={AREA.reading.color}
+      />
+
+      {/* §Student-portal-visual-redesign — the reading picture (books read,
+          reviews, likes, genres; books per month; genre mix). */}
+      <ReadingStats data={reading} />
 
       {myLoans.length > 0 || myHolds.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2">
