@@ -294,6 +294,55 @@ body {
   }
 }
 
+/* §Report-card-A4 ("it should fill an a4 page completely ... it should look
+ * professional"). Report cards print as true A4 sheets rather than through
+ * the generic `.print-area` overlay above, for two reasons:
+ *
+ *  1. `.print-area` is `position:absolute; inset:0` — fine for a single
+ *     printable, but on the whole-class route every card is its own
+ *     print-area, so they all landed on top of each other on page 1. Sheets
+ *     stay in normal flow and break after each one instead.
+ *  2. A named page (`page: report-card`) lets the card own the whole sheet
+ *     (zero browser margin, so no browser header/footer either) WITHOUT
+ *     changing the margins of every other printout in the app, which a
+ *     bare `@page` rule would.
+ *
+ * On screen `.report-sheet` is an A4-proportioned page (210mm wide, at
+ * least 297mm tall, growing if a card has unusually many subjects), so the
+ * preview is what prints. `min-height` rather than `height` in print for
+ * the same reason: a card that genuinely needs more room flows onto a
+ * second sheet instead of having its signatures clipped. 296mm, not 297,
+ * so sub-pixel rounding never spills an empty page after each card. */
+@page report-card {
+  size: A4 portrait;
+  margin: 0;
+}
+.report-sheet {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+@media print {
+  main:has(.report-sheet) {
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .report-sheet {
+    page: report-card;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 296mm;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    break-after: page;
+    break-inside: auto;
+  }
+  .report-sheet:last-of-type {
+    break-after: auto;
+  }
+}
+
 /* Data-table polish (plain rgba, not color-mix() — same old-Android
  * compatibility reasoning as the rest of this file). Hover is a navy tint. */
 table tbody tr:nth-child(even) {
