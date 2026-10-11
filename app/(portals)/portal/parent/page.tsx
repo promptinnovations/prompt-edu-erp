@@ -19,6 +19,8 @@ import SendKudosForm from "./SendKudosForm";
 import StarOfTheMonthBanner from "../../../components/StarOfTheMonthBanner";
 import { StudentDetailsCard, EventsCompetitions, ProgressCard } from "../../../components/portal/ProfileSections";
 import { loadPortalProfileBundle } from "../../../components/portal/progress-data";
+import PortalPhotoUploader from "../../../components/portal/PortalPhotoUploader";
+import { uploadChildPhotoAction } from "./actions";
 
 export default async function ParentPortalPage({
   searchParams,
@@ -105,18 +107,16 @@ export default async function ParentPortalPage({
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          {summary.student?.photo_file_id ? (
-            // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
-            <img
-              src={`/api/files/${summary.student.photo_file_id}`}
-              alt=""
-              className="h-14 w-14 rounded-full object-cover ring-2 ring-zinc-100"
-            />
-          ) : (
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-lg font-medium text-zinc-500 ring-2 ring-zinc-100">
-              {(selectedChild?.full_name ?? "?").charAt(0).toUpperCase()}
-            </span>
-          )}
+          {/* §Portal-photo — the parent can add/change the child's photo;
+              uploadChildPhotoAction re-checks the child is theirs. */}
+          <PortalPhotoUploader
+            key={selectedChildId ?? "none"}
+            photoFileId={summary.student?.photo_file_id ?? null}
+            name={selectedChild?.full_name ?? "?"}
+            action={uploadChildPhotoAction}
+            studentId={selectedChildId}
+            sizeClass="h-14 w-14 text-lg"
+          />
           <div>
             <h1 className="text-2xl font-semibold text-[var(--heading)]">{selectedChild?.full_name ?? "My children"}</h1>
             {summary.student?.admission_number ? (

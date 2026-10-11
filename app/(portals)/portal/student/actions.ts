@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requirePermission } from "../../../../services/permissions/permission-service";
 import { getOwnStudentId } from "../../../../modules/portal/service";
+import { setStudentPhotoFromPortal } from "../../../../modules/portal/student-photo";
 import { createSkillSubmission, submitSkillSubmission } from "../../../../modules/skills/service";
 import { submitAchievement } from "../../../../modules/achievements/service";
 import { submitOwnReadingReview, reactToReview, placeHold, cancelHold } from "../../../../modules/library/service";
@@ -138,5 +139,24 @@ export async function cancelOwnHoldAction(_prevState: { error: string | null }, 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to cancel." };
+  }
+}
+
+/** §Portal-photo — the signed-in student sets their own photo. The target
+ *  is always their OWN record (getOwnStudentId); nothing in the form can
+ *  point it at another student. */
+export async function uploadOwnPhotoAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    const ownStudentId = await getOwnStudentId(ctx.institutionId, ctx.session.authUserId, ctx.userId);
+    if (!ownStudentId) return { error: "No student record is linked to your account." };
+    const photo = formData.get("photo");
+    if (!(photo instanceof File)) return { error: "Choose a photo to upload." };
+    await setStudentPhotoFromPortal(ctx.institutionId, ctx.session.authUserId, ctx.userId, ownStudentId, photo);
+    revalidatePath("/portal", "layout");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to upload the photo." };
   }
 }

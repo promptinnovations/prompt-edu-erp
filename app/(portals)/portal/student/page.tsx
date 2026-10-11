@@ -7,6 +7,8 @@ import { requireOwnStudentId, NotLinkedNotice, Card } from "./_lib";
 import StarOfTheMonthBanner from "../../../components/StarOfTheMonthBanner";
 import { StudentDetailsCard, EventsCompetitions, ProgressCard } from "../../../components/portal/ProfileSections";
 import { loadPortalProfileBundle } from "../../../components/portal/progress-data";
+import PortalPhotoUploader from "../../../components/portal/PortalPhotoUploader";
+import { uploadOwnPhotoAction } from "./actions";
 
 /** Dashboard — the student portal's landing page (§ student-portal redesign:
  *  "what should be seen primarily is the portfolio, dashboard, exam
@@ -57,18 +59,12 @@ export default async function StudentDashboardPage() {
       <StarOfTheMonthBanner institutionId={institutionId} authUserId={authUserId} />
 
       <div className="flex flex-wrap items-center gap-4 rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] p-6 shadow-card">
-        {summary.student?.photo_file_id ? (
-          // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
-          <img
-            src={`/api/files/${summary.student.photo_file_id}`}
-            alt=""
-            className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--surface-muted)]"
-          />
-        ) : (
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-muted)] text-xl font-medium text-zinc-500 ring-2 ring-[var(--surface-muted)]">
-            {(summary.student?.full_name ?? "?").charAt(0).toUpperCase()}
-          </span>
-        )}
+        {/* §Portal-photo — tap the camera to add/change the photo. */}
+        <PortalPhotoUploader
+          photoFileId={summary.student?.photo_file_id ?? null}
+          name={summary.student?.full_name ?? "?"}
+          action={uploadOwnPhotoAction}
+        />
         <div>
           <h1 className="text-2xl font-semibold text-[var(--heading)]">{summary.student?.full_name ?? "My profile"}</h1>
           <p className="mt-0.5 text-sm text-zinc-500">

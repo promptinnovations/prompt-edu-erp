@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requirePermission } from "../../../../services/permissions/permission-service";
 import { getOwnParentId, isOwnChild } from "../../../../modules/portal/service";
+import { setStudentPhotoFromPortal } from "../../../../modules/portal/student-photo";
 import { applyForLeave } from "../../../../modules/attendance/service";
 import { submitParentFeePayment } from "../../../../modules/fees/service";
 import { sendParentMessage, sendKudos } from "../../../../modules/communication/service";
@@ -126,5 +127,28 @@ export async function sendKudosAction(_prevState: { error: string | null; okAt?:
     return { error: null, okAt: Date.now() };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to send kudos." };
+  }
+}
+
+/** §Portal-photo — a parent sets their child's photo. Same §Z rule as every
+ *  other parent action: the posted studentId is honoured only once
+ *  isOwnChild() confirms the child is linked to this parent. */
+export async function uploadChildPhotoAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const studentId = String(formData.get("studentId") ?? "");
+  try {
+    const ownParentId = await getOwnParentId(ctx.institutionId, ctx.session.authUserId, ctx.userId);
+    if (!ownParentId) return { error: "Your account isn't linked to a parent/guardian record yet." };
+    if (!studentId || !(await isOwnChild(ctx.institutionId, ctx.session.authUserId, ownParentId, studentId))) {
+      return { error: "You can only change your own child's photo." };
+    }
+    const photo = formData.get("photo");
+    if (!(photo instanceof File)) return { error: "Choose a photo to upload." };
+    await setStudentPhotoFromPortal(ctx.institutionId, ctx.session.authUserId, ctx.userId, studentId, photo);
+    revalidatePath("/portal", "layout");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to upload the photo." };
   }
 }
