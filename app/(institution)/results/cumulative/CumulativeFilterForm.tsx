@@ -10,14 +10,20 @@ export default function CumulativeFilterForm({
   classes,
   academicYearId,
   classId,
+  track,
 }: {
   academicYears: Array<{ id: string; name: string }>;
   classes: Array<{ id: string; name: string }>;
   academicYearId: string;
   classId: string;
+  /** §Cumulative-track follow-up — carried through as a hidden field so
+   *  changing the year/class keeps the Academic/Islamic split you were
+   *  looking at (a GET form replaces the whole query string). */
+  track?: "academic" | "islamic" | null;
 }) {
   return (
     <form method="get" className="flex flex-wrap items-end gap-2">
+      {track ? <input type="hidden" name="track" value={track} /> : null}
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Academic Year</label>
         <select

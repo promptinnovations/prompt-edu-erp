@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
 import { can } from "../../../../services/permissions/permission-service";
-import { getInstitution } from "../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../services/institution/institution-service";
 import { listExaminations } from "../../../../modules/examination/service";
 import {
   listExamRooms, listSeatingRoster, getSeatingPlan,
@@ -107,7 +107,7 @@ export default async function SeatingArrangementPage({
           chart={chart}
           examinationName={selectedExam.name}
           examinationId={selectedExam.id}
-          institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+          institutionName={institutionReportName(institution)}
           logoCode={institution?.logoFileId ? institution.code : null}
         />
       ) : null}

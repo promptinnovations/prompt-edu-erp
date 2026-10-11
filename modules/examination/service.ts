@@ -2200,6 +2200,43 @@ async function computeResultsScoped(
     );
     computed++;
   }
+
+  // §Consolidated-marks follow-up ("compute rank and give") — `results.rank`
+  // (migration 0005) existed but was never written, so every Rank cell read
+  // "—". Ranked WITHIN THE STUDENT'S CLASS, not across the whole
+  // examination: an exam routinely spans several grades whose papers differ,
+  // so a cross-grade ordering would be meaningless, and a class teacher's
+  // consolidated sheet is exactly where rank is read. Standard competition
+  // ranking (1, 2, 2, 4) on percentage descending. Provisional results
+  // (some subject not entered yet) are deliberately left unranked — their
+  // percentage is computed over fewer subjects, so ranking them against
+  // complete ones would be wrong, and they re-rank automatically on the
+  // next compute once entry finishes. Frozen rows are left alone, matching
+  // the `where results.is_frozen = false` guard on the upsert above.
+  await scoped.query(
+    `with ranked as (
+       select r.id,
+              rank() over (
+                partition by coalesce(se.class_id, '00000000-0000-0000-0000-000000000000'::uuid)
+                order by r.percentage desc
+              ) as computed_rank
+         from results r
+         join examinations e on e.id = r.examination_id
+         left join student_enrollments se on se.student_id = r.student_id
+              and se.status = 'active' and se.academic_year_id = e.academic_year_id
+        where r.examination_id = $1 and r.is_provisional = false and r.is_frozen = false
+     )
+     update results set rank = ranked.computed_rank
+       from ranked where results.id = ranked.id`,
+    [examinationId]
+  );
+  // Anything still provisional keeps no rank rather than a stale one from a
+  // previous compute.
+  await scoped.query(
+    "update results set rank = null where examination_id = $1 and is_provisional = true and is_frozen = false",
+    [examinationId]
+  );
+
   return { computed, skippedIncomplete: 0 };
 }
 
@@ -2604,6 +2641,13 @@ export interface CumulativeMarksheetRow {
    *  different shape of "cumulative" entirely -- see that section's own
    *  doc comment). */
   average_percentage: number | null;
+  /** §Cumulative-track follow-up ("instead of result use Grade there") —
+   *  the grade the AVERAGE percentage falls into, resolved against the
+   *  institution's default grade scale (an average spans many exams, so no
+   *  single exam's own scale can own it). Null when there's no average, or
+   *  when the institution has no default scale configured (§K — never a
+   *  hardcoded cutoff). */
+  average_grade_label: string | null;
 }
 export interface CumulativeMarksheetResult {
   /** Column headers, in chronological order (undated examinations last). */
@@ -2611,11 +2655,181 @@ export interface CumulativeMarksheetResult {
   rows: CumulativeMarksheetRow[];
 }
 
+/** §Cumulative-track follow-up ("cumulative must be separate for academic &
+ *  islamic subjects, give a toggle or button to switch").
+ *
+ *  `results` rows are whole-examination totals across every subject, so a
+ *  track-split sheet can't read them — it has to recompute each exam from
+ *  the marks of that track's subjects only. That's exactly what
+ *  modules/analytics' getTrackWiseSummary() already does for ONE exam, with
+ *  the same primitives (loadResultSubjectDefs / loadStudentApplicableSubjects
+ *  / computeStudentResult), so a track-filtered cumulative sheet never
+ *  disagrees with the Result Analysis track cards. One pass per examination
+ *  — a year holds a handful of exams, so the extra queries are acceptable
+ *  for a report that is read, not polled.
+ *
+ *  Only ever called for `education_mode = 'both'` institutions (the toggle
+ *  is hidden otherwise); subjects with a null track simply belong to
+ *  neither side and drop out of both columns. */
+async function getCumulativeMarksheetByTrack(
+  scoped: DbClient, institutionId: string, academicYearId: string, classId: string | null,
+  track: "academic" | "islamic"
+): Promise<CumulativeMarksheetResult> {
+  const { rows: instRow } = await scoped.query<{ pass_pct: string }>(
+    "select pass_pct from institutions where id = $1", [institutionId]
+  );
+  const subjectPassPct = Number(instRow[0]?.pass_pct ?? 35);
+
+  const { rows: exams } = await scoped.query<{ id: string; name: string; overall_pass_pct: string | null }>(
+    `select e.id, e.name, e.overall_pass_pct
+       from examinations e
+       join exam_types et on et.id = e.exam_type_id and et.is_daily_assessment = false
+      where e.academic_year_id = $1
+      order by e.start_date nulls last, e.created_at`,
+    [academicYearId]
+  );
+
+  const { rows: roster } = await scoped.query<{
+    student_id: string; student_name: string; admission_number: string;
+    roll_number: number | null; gender: string | null; section_name: string | null; class_name: string | null;
+  }>(
+    `select s.id as student_id, s.full_name as student_name, s.admission_number,
+            se.roll_number, s.gender, sec.name as section_name, c.name as class_name
+       from student_enrollments se
+       join students s on s.id = se.student_id and s.status <> 'withdrawn'
+       left join sections sec on sec.id = se.section_id
+       left join classes c on c.id = se.class_id
+      where se.academic_year_id = $1 and se.status = 'active'
+        and ($2::uuid is null or se.class_id = $2)`,
+    [academicYearId, classId || null]
+  );
+  const byStudentId = new Map<string, CumulativeMarksheetRow>();
+  for (const r of roster) {
+    byStudentId.set(r.student_id, {
+      student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
+      roll_number: r.roll_number, gender: r.gender, section_name: r.section_name, class_name: r.class_name,
+      exams: [], average_percentage: null, average_grade_label: null,
+    });
+  }
+
+  const examOrder: Array<{ id: string; name: string }> = [];
+  for (const exam of exams) {
+    const { rows: tracked } = await scoped.query<{ id: string }>(
+      `select es.id from exam_subjects es join subjects sub on sub.id = es.subject_id
+        where es.examination_id = $1 and sub.track = $2`,
+      [exam.id, track]
+    );
+    if (tracked.length === 0) continue;
+    const trackIds = new Set(tracked.map((t) => t.id));
+
+    const { subjects: allDefs } = await loadResultSubjectDefs(scoped, exam.id);
+    const trackDefs = allDefs.filter((d) => trackIds.has(d.id));
+    if (trackDefs.length === 0) continue;
+
+    const { rows: unitRows } = await scoped.query<{ student_id: string; unit_key: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }>(
+      `select student_id, 'm:' || exam_subject_id as unit_key, marks_obtained, is_absent, entry_status
+         from marks where exam_subject_id = any($1::uuid[])
+       union all
+       select student_id, 'ce:' || ce_component_id as unit_key, marks_obtained, is_absent, entry_status
+         from ce_marks where ce_component_id = any($2::uuid[])`,
+      [trackDefs.map((d) => d.id), trackDefs.flatMap((d) => d.ceComponentIds)]
+    );
+    const entriesByStudent = new Map<string, Map<string, ResultUnitEntry>>();
+    for (const m of unitRows) {
+      if (!entriesByStudent.has(m.student_id)) entriesByStudent.set(m.student_id, new Map());
+      entriesByStudent.get(m.student_id)!.set(m.unit_key, {
+        key: m.unit_key, marksObtained: m.marks_obtained == null ? null : Number(m.marks_obtained),
+        isAbsent: m.is_absent, entryStatus: m.entry_status,
+      });
+    }
+    const applicable = await loadStudentApplicableSubjects(scoped, exam.id);
+    const bands = await loadGradeBandsForExamination(scoped, exam.id);
+    const overallPassPct = exam.overall_pass_pct == null ? DEFAULT_OVERALL_PASS_PCT : Number(exam.overall_pass_pct);
+
+    let anyScore = false;
+    for (const [studentId, entries] of entriesByStudent) {
+      const row = byStudentId.get(studentId);
+      if (!row) continue; // not in the selected class / not currently enrolled
+      const mine = applicable.get(studentId);
+      const subjects = mine ? trackDefs.filter((d) => mine.has(d.id)) : trackDefs;
+      if (subjects.length === 0) continue;
+      const r = computeStudentResult({ subjects, entries, subjectPassPct, overallPassPct });
+      if (r.subjectsEntered === 0 || r.maxTotal <= 0) continue;
+      const band = resolveGradeBand(bands, r.percentage);
+      row.exams.push({
+        examination_id: exam.id, examination_name: exam.name,
+        percentage: String(r.percentage), grade_label: band?.grade_label ?? null,
+      });
+      anyScore = true;
+    }
+    if (anyScore) examOrder.push({ id: exam.id, name: exam.name });
+  }
+
+  const defaultBands = await loadDefaultGradeBands(scoped);
+  const rows: CumulativeMarksheetRow[] = [];
+  for (const row of byStudentId.values()) {
+    if (row.exams.length === 0) continue;
+    const pcts = row.exams.map((e) => Number(e.percentage)).filter((x) => Number.isFinite(x));
+    row.average_percentage = pcts.length > 0
+      ? Math.round((pcts.reduce((a, b) => a + b, 0) / pcts.length) * 100) / 100
+      : null;
+    row.average_grade_label = row.average_percentage != null
+      ? resolveGradeBand(defaultBands, row.average_percentage)?.grade_label ?? null
+      : null;
+    rows.push(row);
+  }
+  return {
+    examinations: examOrder,
+    rows: sortRoster(rows.map((r) => ({ ...r, full_name: r.student_name }))),
+  };
+}
+
+/** The bands of an examination's OWN grade scale (grade_scale_id) — empty
+ *  when the exam has none configured, which leaves that exam's per-track
+ *  grade blank rather than inventing a cutoff (§K). */
+async function loadGradeBandsForExamination(scoped: DbClient, examinationId: string): Promise<GradeBandRecord[]> {
+  const { rows: ex } = await scoped.query<{ grade_scale_id: string | null }>(
+    "select grade_scale_id from examinations where id = $1", [examinationId]
+  );
+  const scaleId = ex[0]?.grade_scale_id ?? null;
+  if (!scaleId) return [];
+  const { rows } = await scoped.query<GradeBandRecord>(
+    `select id, grade_label, min_percent, max_percent, grade_point, color, description
+       from grade_bands where grade_scale_id = $1 order by min_percent desc`,
+    [scaleId]
+  );
+  return rows;
+}
+
+/** The institution's default grade scale's bands — the only scale that can
+ *  sensibly grade a figure spanning many examinations (each exam's own
+ *  grade_scale_id governs only that exam). Empty when none is configured,
+ *  which simply leaves the Grade column blank (§K: never a fallback
+ *  cutoff invented in code). */
+async function loadDefaultGradeBands(scoped: DbClient): Promise<GradeBandRecord[]> {
+  const { rows: scale } = await scoped.query<{ id: string }>(
+    "select id from grade_scales where is_default = true limit 1"
+  );
+  if (!scale[0]) return [];
+  const { rows } = await scoped.query<GradeBandRecord>(
+    `select id, grade_label, min_percent, max_percent, grade_point, color, description
+       from grade_bands where grade_scale_id = $1 order by min_percent desc`,
+    [scale[0].id]
+  );
+  return rows;
+}
+
 export async function getCumulativeMarksheet(
-  institutionId: string, authUserId: string, academicYearId: string, classId?: string | null
+  institutionId: string, authUserId: string, academicYearId: string, classId?: string | null,
+  /** §Cumulative-track follow-up — null/omitted keeps the all-subjects
+   *  sheet read straight from `results`; "academic"/"islamic" recomputes
+   *  each exam from that track's subjects only (see
+   *  getCumulativeMarksheetByTrack). */
+  track?: "academic" | "islamic" | null
 ): Promise<CumulativeMarksheetResult> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    if (track) return getCumulativeMarksheetByTrack(scoped, institutionId, academicYearId, classId || null, track);
     const { rows } = await scoped.query<{
       student_id: string; student_name: string; admission_number: string;
       roll_number: number | null; gender: string | null; section_name: string | null; class_name: string | null;
@@ -2652,7 +2866,7 @@ export async function getCumulativeMarksheet(
         student = {
           student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
           roll_number: r.roll_number, gender: r.gender, section_name: r.section_name, class_name: r.class_name,
-          exams: [], average_percentage: null,
+          exams: [], average_percentage: null, average_grade_label: null,
         };
         studentMap.set(r.student_id, student);
       }
@@ -2662,10 +2876,14 @@ export async function getCumulativeMarksheet(
       });
     }
 
+    const defaultBands = await loadDefaultGradeBands(scoped);
     for (const student of studentMap.values()) {
       const pcts = student.exams.map((e) => Number(e.percentage)).filter((n) => Number.isFinite(n));
       student.average_percentage = pcts.length > 0
         ? Math.round((pcts.reduce((a, b) => a + b, 0) / pcts.length) * 100) / 100
+        : null;
+      student.average_grade_label = student.average_percentage != null
+        ? resolveGradeBand(defaultBands, student.average_percentage)?.grade_label ?? null
         : null;
     }
 
@@ -3552,5 +3770,112 @@ export async function getDailyAssessmentStudentAnalysis(
         avg_percent: maxTotal > 0 ? Math.round((Number(r.cumulative_marks_obtained) / maxTotal) * 1000) / 10 : 0,
       };
     });
+  });
+}
+
+/** §Daily-assessment-report-card ("for daily assessments report card must be
+ *  cumulative report card of that child of that month — subjects, TE, Total
+ *  TE, grade, Descriptor").
+ *
+ *  A Daily Assessment register writes to daily_assessments /
+ *  daily_assessment_marks, never to exam_subjects / marks / results, so the
+ *  ordinary report card (built on getExaminationMarksMatrix + results) is
+ *  structurally empty for one. This is its equivalent: one row per subject
+ *  for ONE student in ONE monthly register, with TE = the marks they
+ *  actually earned across every completed session of that subject and
+ *  Total TE = the matching maximum. Absent sessions drop out of BOTH sides,
+ *  exactly as getDailyAssessmentConsolidatedResult() already treats them,
+ *  so the report card and the register's consolidated view always agree. */
+export interface DailyAssessmentSubjectTotalRow {
+  subject_id: string; subject_name: string;
+  sessions: number; obtained: number; max: number;
+}
+export async function getDailyAssessmentStudentSubjectTotals(
+  institutionId: string, authUserId: string, examinationId: string, studentId: string
+): Promise<DailyAssessmentSubjectTotalRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ subject_id: string; subject_name: string; sessions: string; obtained: string; max: string }>(
+      `select sub.id as subject_id, sub.name as subject_name,
+              count(dam.id) filter (where not dam.is_absent and dam.marks_obtained is not null)::text as sessions,
+              coalesce(sum(dam.marks_obtained) filter (where not dam.is_absent), 0)::text as obtained,
+              coalesce(sum(da.max_marks) filter (where not dam.is_absent and dam.marks_obtained is not null), 0)::text as max
+         from daily_assessments da
+         join subjects sub on sub.id = da.subject_id
+         join daily_assessment_marks dam on dam.daily_assessment_id = da.id and dam.student_id = $2
+        where da.examination_id = $1 and da.status = 'completed'
+        group by sub.id, sub.name
+        having count(dam.id) filter (where not dam.is_absent and dam.marks_obtained is not null) > 0
+        order by sub.name`,
+      [examinationId, studentId]
+    );
+    return rows.map((r) => ({
+      subject_id: r.subject_id, subject_name: r.subject_name,
+      sessions: Number(r.sessions), obtained: Number(r.obtained), max: Number(r.max),
+    }));
+  });
+}
+
+/** Every student who has at least one mark in a Daily Assessment register —
+ *  the roster the register's Report Cards list page iterates (getResults()
+ *  returns nothing for a DA register, see above). Ordered by the house
+ *  roster order, with each student's cumulative total so the list can show
+ *  the same Total/% columns the ordinary report-card list shows. */
+export interface DailyAssessmentReportCardRow {
+  student_id: string; student_name: string; admission_number: string;
+  roll_number: number | null; gender: string | null; class_name: string | null; section_name: string | null;
+  obtained: number; max: number; percentage: number | null;
+}
+export async function listDailyAssessmentReportCardRows(
+  institutionId: string, authUserId: string, examinationId: string, allowedClassIds?: string[] | null
+): Promise<DailyAssessmentReportCardRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      student_id: string; student_name: string; admission_number: string; roll_number: number | null;
+      gender: string | null; class_name: string | null; section_name: string | null; obtained: string; max: string;
+    }>(
+      `select s.id as student_id, s.full_name as student_name, s.admission_number, se.roll_number, s.gender,
+              c.name as class_name, sec.name as section_name,
+              coalesce(sum(dam.marks_obtained) filter (where not dam.is_absent), 0)::text as obtained,
+              coalesce(sum(da.max_marks) filter (where not dam.is_absent and dam.marks_obtained is not null), 0)::text as max
+         from daily_assessments da
+         join daily_assessment_marks dam on dam.daily_assessment_id = da.id
+         join students s on s.id = dam.student_id and s.status <> 'withdrawn'
+         left join student_enrollments se on se.student_id = s.id and se.status = 'active'
+         left join classes c on c.id = se.class_id
+         left join sections sec on sec.id = se.section_id
+        where da.examination_id = $1 and da.status = 'completed'
+          and ($2::uuid[] is null or da.class_id = any($2::uuid[]))
+        group by s.id, s.full_name, s.admission_number, se.roll_number, s.gender, c.name, sec.name`,
+      [examinationId, allowedClassIds ?? null]
+    );
+    const ordered = sortRoster(rows.map((r) => ({ ...r, full_name: r.student_name })));
+    return ordered.map((r) => {
+      const max = Number(r.max);
+      return {
+        student_id: r.student_id, student_name: r.student_name, admission_number: r.admission_number,
+        roll_number: r.roll_number, gender: r.gender, class_name: r.class_name, section_name: r.section_name,
+        obtained: Number(r.obtained), max,
+        percentage: max > 0 ? Math.round((Number(r.obtained) / max) * 1000) / 10 : null,
+      };
+    });
+  });
+}
+
+/** Is this examination a Daily Assessment monthly register? One cheap
+ *  lookup the report-card routes branch on, rather than threading the flag
+ *  through getExamination()'s shared row shape. */
+export async function isDailyAssessmentExamination(
+  institutionId: string, authUserId: string, examinationId: string
+): Promise<boolean> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ is_daily_assessment: boolean }>(
+      `select et.is_daily_assessment from examinations e
+         join exam_types et on et.id = e.exam_type_id where e.id = $1`,
+      [examinationId]
+    );
+    return rows[0]?.is_daily_assessment ?? false;
   });
 }

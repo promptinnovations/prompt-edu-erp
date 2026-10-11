@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
-import { getInstitution } from "../../../../services/institution/institution-service";
-import { getCumulativeMarksheet, isPass, PASS_COLOR, FAIL_COLOR } from "../../../../modules/examination/service";
+import { getInstitution, institutionReportName } from "../../../../services/institution/institution-service";
+import { getCumulativeMarksheet } from "../../../../modules/examination/service";
 import { listAcademicYears, getCurrentAcademicYear, listClasses } from "../../../../modules/academic/service";
 import { sortClasses } from "../../../../services/academic/roster-order";
 import PrintButton from "../../../components/PrintButton";
@@ -23,14 +23,14 @@ import CumulativeFilterForm from "./CumulativeFilterForm";
 export default async function CumulativeMarksheetPage({
   searchParams,
 }: {
-  searchParams: Promise<{ academicYearId?: string; classId?: string }>;
+  searchParams: Promise<{ academicYearId?: string; classId?: string; track?: string }>;
 }) {
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "examination");
 
-  const { academicYearId: requestedYearId = "", classId = "" } = await searchParams;
+  const { academicYearId: requestedYearId = "", classId = "", track: requestedTrack = "" } = await searchParams;
 
   const [institution, academicYears, currentYear, classesRaw] = await Promise.all([
     getInstitution(institutionId, authUserId),
@@ -40,11 +40,24 @@ export default async function CumulativeMarksheetPage({
   ]);
   const classes = sortClasses(classesRaw);
   const academicYearId = requestedYearId || currentYear?.id || academicYears[0]?.id || "";
-  const passPct = institution?.passPct != null ? Number(institution.passPct) : 35;
+
+  // §Cumulative-track follow-up ("cumulative must be separate for academic &
+  // islamic subjects, give a toggle or button to switch"). Only a
+  // both-tracks institution gets the toggle — an academic-only or
+  // islamic-only institution has exactly one track, so splitting it would
+  // just hide half the page behind a pointless switch. Track order follows
+  // the institution's own configured `track_order` (§K), never a
+  // hardcoded academic-first assumption.
+  const showTrackToggle = institution?.educationMode === "both";
+  const trackOrder = institution?.trackOrder ?? ["academic", "islamic"];
+  const track = showTrackToggle && (requestedTrack === "academic" || requestedTrack === "islamic")
+    ? requestedTrack
+    : null;
 
   const marksheet = academicYearId
-    ? await getCumulativeMarksheet(institutionId, authUserId, academicYearId, classId || null)
+    ? await getCumulativeMarksheet(institutionId, authUserId, academicYearId, classId || null, track)
     : { examinations: [], rows: [] };
+  const trackLabel = track === "academic" ? "Academic" : track === "islamic" ? "Islamic" : "All subjects";
 
   return (
     <div className="space-y-6">
@@ -55,22 +68,49 @@ export default async function CumulativeMarksheetPage({
       </div>
       <p className="text-sm text-zinc-500">
         Every computed examination result in the selected academic year, side by side, with an average across all of them.
+        {track ? ` Showing ${trackLabel.toLowerCase()} subjects only — each examination is recomputed from that track's subjects alone.` : ""}
       </p>
 
-      <div className="no-print">
+      <div className="no-print space-y-3">
         <CumulativeFilterForm
           academicYears={academicYears.map((y) => ({ id: y.id, name: y.name }))}
           classes={classes.map((c) => ({ id: c.id, name: c.name }))}
           academicYearId={academicYearId}
           classId={classId}
+          track={track}
         />
+        {showTrackToggle ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-xs text-zinc-500">Subjects</span>
+            {[
+              { value: "", label: "All subjects" },
+              ...trackOrder.map((t) => ({ value: t, label: t === "academic" ? "Academic" : "Islamic" })),
+            ].map((opt) => {
+              const params = new URLSearchParams({ academicYearId, classId });
+              if (opt.value) params.set("track", opt.value);
+              const active = (track ?? "") === opt.value;
+              return (
+                <Link
+                  key={opt.value || "all"}
+                  href={`?${params.toString()}`}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                    active ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                  }`}
+                >
+                  {opt.label}
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       <section className="print-area overflow-hidden rounded-2xl border bg-white">
         <div className="p-4 pb-0">
           <PrintLetterhead
-            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            institutionName={institutionReportName(institution)}
             logoCode={institution?.logoFileId ? institution.code : null}
+            titleLines={["Cumulative Mark Sheet", track ? `${trackLabel} subjects` : "All subjects"]}
           />
         </div>
         <div className="overflow-x-auto">
@@ -83,12 +123,11 @@ export default async function CumulativeMarksheetPage({
                   <th key={e.id} className="px-3 py-2 text-center">{e.name}</th>
                 ))}
                 <th className="px-3 py-2 text-center">Average</th>
-                <th className="px-3 py-2 text-center">Result</th>
+                <th className="px-3 py-2 text-center">Grade</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {marksheet.rows.map((row) => {
-                const passed = row.average_percentage != null ? isPass(row.average_percentage, passPct) : null;
                 const examById = new Map(row.exams.map((e) => [e.examination_id, e]));
                 return (
                   <tr key={row.student_id}>
@@ -114,17 +153,12 @@ export default async function CumulativeMarksheetPage({
                     <td className="px-3 py-2 text-center font-medium">
                       {row.average_percentage != null ? `${row.average_percentage.toFixed(1)}%` : "—"}
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      {passed == null ? (
-                        "—"
-                      ) : (
-                        <span
-                          className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                          style={{ backgroundColor: passed ? PASS_COLOR : FAIL_COLOR }}
-                        >
-                          {passed ? "Pass" : "Fail"}
-                        </span>
-                      )}
+                    {/* §Cumulative-track follow-up: "instead of result use
+                        Grade there" — the grade the average percentage earns
+                        under the institution's default grade scale, replacing
+                        the old Pass/Fail badge. */}
+                    <td className="px-3 py-2 text-center font-medium text-zinc-900">
+                      {row.average_grade_label ?? "—"}
                     </td>
                   </tr>
                 );

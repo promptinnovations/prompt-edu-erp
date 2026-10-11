@@ -26,6 +26,7 @@ import {
   getDailyAssessmentSubjectAnalysis, getDailyAssessmentClassAnalysis, getDailyAssessmentStudentAnalysis,
   closeMarkEntry, publishExamination, unpublishExamination, finalizeExamination,
   getExamination, examinationWorkflowStatus, getPublishedDailyAssessmentResultsForStudent,
+  getDailyAssessmentStudentSubjectTotals, listDailyAssessmentReportCardRows, isDailyAssessmentExamination,
 } from "../../modules/examination/service";
 import { getDbClient as getRawDbClient } from "../../services/db/client";
 import { getDailyAssessmentAnalysis, listDailyAssessmentYears } from "../../modules/analytics/service";
@@ -468,5 +469,73 @@ describe("§Daily-assessment-analytics — the Result Analysis 'Daily assessment
     const yearA = await getCurrentAcademicYear(institutionA, adminAuth);
     const rows = await getDailyAssessmentAnalysis(institutionB, other.authUserId, yearA!.id);
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("§Daily-assessment-report-card — the monthly register's own report card", () => {
+  it("isDailyAssessmentExamination() distinguishes a register from an ordinary examination", async () => {
+    expect(await isDailyAssessmentExamination(institutionA, adminAuth, examinationId)).toBe(true);
+
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const ordinary = examTypes.find((t) => !t.is_daily_assessment)!;
+    const term = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: ordinary.id, academicYearId: year!.id, name: "DA-adjacent Term Exam",
+    });
+    expect(await isDailyAssessmentExamination(institutionA, adminAuth, term.id)).toBe(false);
+  });
+
+  it("builds per-subject cumulative TE / Total TE for one child in one month, excluding absent sessions", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const dailyType = examTypes.find((t) => t.is_daily_assessment)!;
+    const march = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: dailyType.id, academicYearId: year!.id, name: "ignored", forDate: "2026-03-01",
+    });
+
+    const d1 = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId: march.id, classId, subjectId, assessmentDate: "2026-03-03", portion: "Algebra", maxMarks: 20,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, d1.id, [
+      { studentId: student1, marksObtained: 18, isAbsent: false },
+      { studentId: student2, marksObtained: 10, isAbsent: false },
+    ]);
+    const d2 = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId: march.id, classId, subjectId, assessmentDate: "2026-03-04", portion: "Geometry", maxMarks: 10,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, d2.id, [
+      { studentId: student1, marksObtained: 7, isAbsent: false },
+      { studentId: student2, marksObtained: 0, isAbsent: true }, // absent: out of BOTH sides
+    ]);
+
+    const s1 = await getDailyAssessmentStudentSubjectTotals(institutionA, adminAuth, march.id, student1);
+    expect(s1).toHaveLength(1);
+    expect(s1[0].sessions).toBe(2);
+    expect(s1[0].obtained).toBe(25); // 18 + 7
+    expect(s1[0].max).toBe(30);      // 20 + 10
+
+    const s2 = await getDailyAssessmentStudentSubjectTotals(institutionA, adminAuth, march.id, student2);
+    expect(s2[0].sessions).toBe(1);
+    expect(s2[0].obtained).toBe(10);
+    expect(s2[0].max).toBe(20); // the absent 10-mark session is excluded
+
+    // The report-card LIST reads the same numbers (getResults() is empty
+    // for a register, which is why this exists at all).
+    const roster = await listDailyAssessmentReportCardRows(institutionA, adminAuth, march.id);
+    const row1 = roster.find((r) => r.student_id === student1)!;
+    expect(row1.obtained).toBe(25);
+    expect(row1.max).toBe(30);
+    expect(row1.percentage).toBeCloseTo(83.3, 1);
+    const row2 = roster.find((r) => r.student_id === student2)!;
+    expect(row2.percentage).toBeCloseTo(50, 1);
+  });
+
+  it("is tenant-scoped: another institution sees no rows for this register", async () => {
+    const db = await getRawDbClient();
+    const other = await seedDemoInstitution(db, "da-reportcard-other");
+    const otherAdmin = await seedDemoUser(db, other, "admin@da-rc-other.example", "Other RC Admin", "institution_admin");
+    expect(await listDailyAssessmentReportCardRows(other, otherAdmin.authUserId, examinationId)).toHaveLength(0);
+    expect(await getDailyAssessmentStudentSubjectTotals(other, otherAdmin.authUserId, examinationId, student1)).toHaveLength(0);
+    expect(await isDailyAssessmentExamination(other, otherAdmin.authUserId, examinationId)).toBe(false);
   });
 });

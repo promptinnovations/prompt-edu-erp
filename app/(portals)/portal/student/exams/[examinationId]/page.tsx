@@ -7,7 +7,7 @@ import {
 import { getStudent } from "../../../../../../modules/students/service";
 import { listAcademicYears } from "../../../../../../modules/academic/service";
 import { getStudentAttendanceSummary } from "../../../../../../modules/attendance/service";
-import { getInstitution } from "../../../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../../../services/institution/institution-service";
 import { formatDateIST, todayIST } from "../../../../../../services/datetime/ist";
 import { formatMarks } from "../../../../../../services/format/marks";
 import PrintButton from "../../../../../components/PrintButton";
@@ -67,7 +67,7 @@ export default async function StudentExamDetailPage({ params }: { params: Promis
       <section className="print-area mx-auto max-w-3xl rounded-card border bg-white p-8">
         <div className="mb-6 text-center">
           <PrintLetterhead
-            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            institutionName={institutionReportName(institution)}
             logoCode={institution?.logoFileId ? institution.code : null}
           />
           <p className="mt-2 text-lg font-semibold uppercase tracking-[0.08em] text-[var(--heading)]">Progress Report</p>

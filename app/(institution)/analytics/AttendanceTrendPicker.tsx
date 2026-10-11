@@ -1,28 +1,30 @@
-import Link from "next/link";
 import { monthsAgoIST } from "../../../services/datetime/ist";
 
-/** §Attendance-trend-redesign follow-up ("all classes, months should be
- *  buttons here in two sides, selected, details comes") — was a Class
- *  <select>, a Division <select>, and two native "YYYY-MM" date inputs
- *  ("From month"/"To month") behind a single-selection form. Replaced with
- *  the same pill-<Link> pattern ExaminationPicker.tsx already uses on this
- *  page: classes and months are each their own toggle-able button group
- *  (two columns — "two sides"), both multi-select, so comparing several
- *  classes across a handful of (not necessarily contiguous) months is a
- *  few clicks instead of repeated single-range submits. Division stays a
- *  single-choice row (comparing divisions isn't what was asked for) with
- *  an explicit "All divisions" option that aggregates every division of
- *  each selected class (see getClassAttendanceTrend's nullable sectionId).
- *  Plain Links, not a client component — selection lives entirely in the
- *  URL, consistent with the rest of this page. */
+/** §Attendance-trend-redesign, revised ("give a load button here for loading
+ *  after selecting required areas — months and classes should not be
+ *  buttons, default latest must be open first").
+ *
+ *  The previous version made every class and month a pill <Link>, so each
+ *  toggle was its own page navigation — picking three classes across four
+ *  months meant seven round trips. This is a plain GET form instead:
+ *  checkbox groups for the (multi-select) classes and months, a radio group
+ *  for the single-choice division, and ONE "Load trend" submit. Checkboxes
+ *  rather than a native <select multiple>, which is close to unusable on a
+ *  phone — these stay touch-friendly and show every option at a glance.
+ *  Still no client component: it posts to the same `trendClassIds` /
+ *  `trendSectionId` / `trendMonths` query params the page already reads, so
+ *  a loaded trend is still a shareable, printable URL.
+ *
+ *  `examinationId` and `tab` ride along as hidden fields so loading a trend
+ *  doesn't reset the examination or Result Analysis tab selected above (a
+ *  GET form replaces the whole query string). */
 function monthLabel(ym: string): string {
   const [y, m] = ym.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
-function toggle(list: string[], value: string): string[] {
-  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
-}
+const CHECKBOX_LABEL =
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 has-[:checked]:border-[var(--brand)] has-[:checked]:bg-[var(--brand)]/5 has-[:checked]:font-medium has-[:checked]:text-[var(--brand)]";
 
 export default function AttendanceTrendPicker({
   classes,
@@ -31,6 +33,7 @@ export default function AttendanceTrendPicker({
   sectionId,
   months,
   examinationId,
+  tab,
 }: {
   classes: Array<{ id: string; name: string }>;
   sections: Array<{ id: string; class_id: string; name: string }>;
@@ -38,94 +41,81 @@ export default function AttendanceTrendPicker({
   sectionId: string;
   months: string[];
   examinationId: string;
+  tab: string;
 }) {
-  // Last 12 months, most recent first, as the button pool — a plain,
-  // predictable window rather than trying to discover "every month that
-  // has any attendance data" with an extra query just for button labels.
+  // Last 12 months, most recent first — a plain, predictable window rather
+  // than an extra query just to discover which months hold data.
   const availableMonths = Array.from({ length: 12 }, (_, i) => monthsAgoIST(i));
-  const filteredSections = sections.filter((s) => classIds.length === 0 || classIds.some((cid) => cid === s.class_id));
-
-  function hrefFor(next: { classIds?: string[]; sectionId?: string; months?: string[] }): string {
-    const params = new URLSearchParams({
-      examinationId,
-      trendClassIds: (next.classIds ?? classIds).join(","),
-      trendSectionId: next.sectionId ?? sectionId,
-      trendMonths: (next.months ?? months).join(","),
-    });
-    return `?${params.toString()}`;
-  }
+  const selectedClasses = new Set(classIds);
+  const selectedMonths = new Set(months);
+  const filteredSections = sections.filter((s) => classIds.length === 0 || classIds.includes(s.class_id));
 
   return (
-    <div className="space-y-4">
+    <form method="get" className="space-y-4">
+      <input type="hidden" name="examinationId" value={examinationId} />
+      <input type="hidden" name="tab" value={tab} />
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-xs text-zinc-500">Classes</label>
+        <fieldset>
+          <legend className="mb-1.5 text-xs text-zinc-500">Classes</legend>
           <div className="flex flex-wrap gap-1.5">
             {classes.length === 0 ? <p className="text-sm text-zinc-500">No classes yet.</p> : null}
-            {classes.map((c) => {
-              const active = classIds.includes(c.id);
-              return (
-                <Link
-                  key={c.id}
-                  href={hrefFor({ classIds: toggle(classIds, c.id) })}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                    active ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                  }`}
-                >
-                  {c.name}
-                </Link>
-              );
-            })}
+            {classes.map((c) => (
+              <label key={c.id} className={CHECKBOX_LABEL}>
+                <input
+                  type="checkbox"
+                  name="trendClassIds"
+                  value={c.id}
+                  defaultChecked={selectedClasses.has(c.id)}
+                  className="h-3.5 w-3.5 accent-[var(--brand)]"
+                />
+                {c.name}
+              </label>
+            ))}
           </div>
-        </div>
-        <div>
-          <label className="mb-1.5 block text-xs text-zinc-500">Months</label>
+        </fieldset>
+
+        <fieldset>
+          <legend className="mb-1.5 text-xs text-zinc-500">Months</legend>
           <div className="flex flex-wrap gap-1.5">
-            {availableMonths.map((m) => {
-              const active = months.includes(m);
-              return (
-                <Link
-                  key={m}
-                  href={hrefFor({ months: toggle(months, m) })}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                    active ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                  }`}
-                >
-                  {monthLabel(m)}
-                </Link>
-              );
-            })}
+            {availableMonths.map((m) => (
+              <label key={m} className={CHECKBOX_LABEL}>
+                <input
+                  type="checkbox"
+                  name="trendMonths"
+                  value={m}
+                  defaultChecked={selectedMonths.has(m)}
+                  className="h-3.5 w-3.5 accent-[var(--brand)]"
+                />
+                {monthLabel(m)}
+              </label>
+            ))}
           </div>
-        </div>
+        </fieldset>
       </div>
 
-      <div>
-        <label className="mb-1.5 block text-xs text-zinc-500">Division</label>
+      <fieldset>
+        <legend className="mb-1.5 text-xs text-zinc-500">Division</legend>
         <div className="flex flex-wrap gap-1.5">
-          <Link
-            href={hrefFor({ sectionId: "" })}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-              sectionId === "" ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-            }`}
-          >
+          <label className={CHECKBOX_LABEL}>
+            <input type="radio" name="trendSectionId" value="" defaultChecked={sectionId === ""} className="h-3.5 w-3.5 accent-[var(--brand)]" />
             All divisions
-          </Link>
-          {filteredSections.map((s) => {
-            const active = sectionId === s.id;
-            return (
-              <Link
-                key={s.id}
-                href={hrefFor({ sectionId: s.id })}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                  active ? "bg-[var(--brand)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                }`}
-              >
-                {s.name}
-              </Link>
-            );
-          })}
+          </label>
+          {filteredSections.map((s) => (
+            <label key={s.id} className={CHECKBOX_LABEL}>
+              <input type="radio" name="trendSectionId" value={s.id} defaultChecked={sectionId === s.id} className="h-3.5 w-3.5 accent-[var(--brand)]" />
+              {s.name}
+            </label>
+          ))}
         </div>
-      </div>
-    </div>
+      </fieldset>
+
+      <button
+        type="submit"
+        className="rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
+      >
+        Load trend
+      </button>
+    </form>
   );
 }

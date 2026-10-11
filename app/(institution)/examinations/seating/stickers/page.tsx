@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../../services/modules/module-service";
 import { can } from "../../../../../services/permissions/permission-service";
-import { getInstitution } from "../../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../../services/institution/institution-service";
 import { getExamination } from "../../../../../modules/examination/service";
 import { listSeatingStickers, type SeatingStickerRow } from "../../../../../modules/examination/seating-service";
 import PrintButton from "../../../../components/PrintButton";
@@ -77,7 +77,7 @@ export default async function SeatingStickersPage({
       ) : (
         <section className="print-area rounded-card border bg-white p-5">
           <PrintLetterhead
-            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            institutionName={institutionReportName(institution)}
             logoCode={institution?.logoFileId ? institution.code : null}
           />
           <p className="mb-4 text-center text-xs text-zinc-500">

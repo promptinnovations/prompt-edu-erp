@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireOwnParentContext } from "../../_lib";
 import { can } from "../../../../../../services/permissions/permission-service";
-import { getInstitution } from "../../../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../../../services/institution/institution-service";
 import { listStudentFeeInvoices, listFeePaymentsForInvoice } from "../../../../../../modules/fees/service";
 import PrintButton from "../../../../../components/PrintButton";
 import PrintLetterhead from "../../../../../components/PrintLetterhead";
@@ -54,7 +54,7 @@ export default async function ParentInvoicePage({
       <section className="print-area mx-auto max-w-2xl rounded-card border bg-white p-8">
         <div className="mb-6 text-center">
           <PrintLetterhead
-            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            institutionName={institutionReportName(institution)}
             logoCode={institution?.logoFileId ? institution.code : null}
           />
           <p className="mt-1 text-sm text-zinc-500">Fee Invoice</p>
@@ -120,7 +120,7 @@ export default async function ParentInvoicePage({
         ) : null}
 
         <p className="mt-10 text-center text-[10px] uppercase tracking-[0.08em] text-zinc-500">
-          {institution?.appName || institution?.name || "PROMPT EDU ERP"} · Generated {new Date().toLocaleDateString("en-IN")}
+          {institutionReportName(institution)} · Generated {new Date().toLocaleDateString("en-IN")}
         </p>
       </section>
     </div>

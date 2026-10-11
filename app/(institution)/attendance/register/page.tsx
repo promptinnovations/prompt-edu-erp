@@ -1,6 +1,6 @@
 import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
-import { getInstitution } from "../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../services/institution/institution-service";
 import { listClasses, listSections } from "../../../../modules/academic/service";
 import { listAttendanceStatuses, getMonthlyAttendanceRegister } from "../../../../modules/attendance/service";
 import { listCalendarEvents } from "../../../../modules/calendar/service";
@@ -39,10 +39,6 @@ export default async function MonthlyRegisterPage({
 
   const hasUnrestrictedEdit = can(ctx.permissions, "attendance.edit");
   const teacherScope = hasUnrestrictedEdit ? null : await getTeacherClassScope(institutionId, authUserId, ctx.userId);
-  const classInScope = !teacherScope || teacherScope.classIds.has(classId);
-  const sectionInScope = !teacherScope || !sectionId || scopeIncludesSection(teacherScope, classId, sectionId);
-  const effectiveClassId = classInScope ? classId : "";
-  const effectiveSectionId = classInScope && sectionInScope ? sectionId : "";
 
   const [allClasses, allSections] = await Promise.all([
     listClasses(institutionId, authUserId),
@@ -52,6 +48,22 @@ export default async function MonthlyRegisterPage({
   const sections = teacherScope
     ? allSections.filter((s) => scopeIncludesSection(teacherScope, s.class_id, s.id))
     : allSections;
+
+  // §Register-default follow-up ("default - latest of the first class should
+  // be open here") — landing on this page with no query string used to show
+  // an empty "Select a class, division, and month" prompt. It now opens on
+  // the first class the viewer can see, that class's first division, and
+  // the current (latest) month, so the register a teacher most likely wants
+  // is already on screen. An explicit (and in-scope) selection always wins;
+  // `effectiveMonth` above already defaults to the current month.
+  const classInScope = !teacherScope || teacherScope.classIds.has(classId);
+  const resolvedClassId = (classInScope && classId) || classes[0]?.id || "";
+  const sectionsOfClass = sections.filter((x) => x.class_id === resolvedClassId);
+  const requestedSectionInScope =
+    sectionId !== "" && sectionsOfClass.some((x) => x.id === sectionId) &&
+    (!teacherScope || scopeIncludesSection(teacherScope, resolvedClassId, sectionId));
+  const effectiveClassId = resolvedClassId;
+  const effectiveSectionId = requestedSectionInScope ? sectionId : (sectionsOfClass[0]?.id ?? "");
 
   const monthStartDate = `${effectiveMonth}-01`;
   const monthEndDate = `${effectiveMonth}-${String(daysInMonth).padStart(2, "0")}`;
@@ -135,7 +147,7 @@ export default async function MonthlyRegisterPage({
       {register ? (
         <section className="print-area rounded-card border bg-white p-5">
           <PrintLetterhead
-            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            institutionName={institutionReportName(institution)}
             logoCode={institution?.logoFileId ? institution.code : null}
           />
           <div className="mb-3 flex items-center justify-between">
@@ -219,7 +231,13 @@ export default async function MonthlyRegisterPage({
         </section>
       ) : (
         <p className="text-sm text-zinc-500">
-          {teacherScope && classId && !classInScope ? "You're not assigned to that class." : "Select a class, division, and month to load the register."}
+          {teacherScope && classId && !classInScope
+            ? "You're not assigned to that class."
+            : classes.length === 0
+              ? "No classes are available to you yet."
+              : effectiveSectionId === ""
+                ? "This class has no divisions yet — add one under Academic structure."
+                : "No attendance has been recorded for this class and month yet."}
         </p>
       )}
     </div>

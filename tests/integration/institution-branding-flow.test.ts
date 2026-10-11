@@ -11,12 +11,13 @@
  * rename/rework unchanged).
  */
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 process.env.PGLITE_DATA_DIR = ":memory:";
 
 import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser, seedSuperAdminUser } from "../../database/scripts/seed";
-import { getInstitution, updateInstitutionTheme } from "../../services/institution/institution-service";
+import { getInstitution, updateInstitutionTheme, institutionReportName } from "../../services/institution/institution-service";
 import { getPlatformDefaultPalette, setPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
 import { THEME_PALETTES, DEFAULT_PALETTE_ID, getPalette } from "../../services/branding/palettes";
 
@@ -122,5 +123,43 @@ describe("getPalette (pure helper, no DB)", () => {
       expect(p.vars.brand.toLowerCase()).not.toBe("#000000");
       expect(p.vars.brand.toLowerCase()).not.toBe("#18181b");
     }
+  });
+});
+
+describe("§Reports-institution-name — printed documents carry the institution's real full name", () => {
+  it("institutionReportName() uses `name`, never the app_name shell override", () => {
+    // A report, mark sheet or report card is an official document ABOUT the
+    // institution, so it carries the registered name even if the app shell
+    // is branded differently — this is what stopped renamed institutions
+    // (B CareExc Science Home) printing their old name.
+    expect(institutionReportName({ name: "B CareExc Science Home" })).toBe("B CareExc Science Home");
+    expect(institutionReportName({ name: "  Padded Name  " })).toBe("Padded Name");
+    expect(institutionReportName(null)).toBe("PROMPT EDU ERP");
+    expect(institutionReportName({ name: "" })).toBe("PROMPT EDU ERP");
+  });
+
+  it("migration 0064 clears every stale app_name override", async () => {
+    const db = await getDbClient();
+    // seedDemoInstitution() deliberately writes a DIFFERENT app_name
+    // ("<code> Portal") from the name ("<code> Institute") — the exact
+    // shape that left renamed production institutions printing their old
+    // name, since nothing in the app can ever set or clear app_name.
+    const { rows: before } = await db.query<{ n: number }>(
+      "select count(*)::int as n from institutions where app_name is not null"
+    );
+    expect(before[0].n).toBeGreaterThan(0);
+
+    // Run the migration's own SQL (it is idempotent, and already recorded
+    // in the ledger from applyMigrations() above, so this is the only way
+    // to exercise it against rows seeded afterwards).
+    const sql = readFileSync(
+      new URL("../../database/migrations/0064_clear_stale_app_name.sql", import.meta.url), "utf8"
+    );
+    await db.execRaw(sql);
+
+    const { rows: after } = await db.query<{ n: number }>(
+      "select count(*)::int as n from institutions where app_name is not null"
+    );
+    expect(after[0].n).toBe(0);
   });
 });

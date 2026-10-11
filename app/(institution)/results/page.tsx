@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
-import { listExaminations } from "../../../modules/examination/service";
+import { listExaminations, listExamTypes } from "../../../modules/examination/service";
 import { formatDateIST } from "../../../services/datetime/ist";
 
 function formatDate(d: string | null): string {
@@ -24,6 +24,12 @@ export default async function ResultsPage() {
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "examination");
 
+  const examTypes = await listExamTypes(institutionId, authUserId);
+  // §Daily-assessment-analytics — a Daily Assessment register has no rows
+  // on the exam-centric Result Analysis page (its marks never reach
+  // `results`), so its Analysis link goes to the month-wise Daily
+  // Assessments page instead of an exam pill that isn't there.
+  const dailyTypeIds = new Set(examTypes.filter((t) => t.is_daily_assessment).map((t) => t.id));
   const examinations = [...await listExaminations(institutionId, authUserId)].sort((a, b) => {
     if (!a.start_date && !b.start_date) return 0;
     if (!a.start_date) return 1;
@@ -66,7 +72,12 @@ export default async function ResultsPage() {
                       <Link href={`/examinations/${e.id}`} className="text-sm text-zinc-600 underline">Results</Link>
                       <Link href={`/results/${e.id}/consolidated`} className="text-sm text-zinc-600 underline">Consolidated marks</Link>
                       <Link href={`/results/${e.id}/report-cards`} className="text-sm text-zinc-600 underline">Report cards</Link>
-                      <Link href={`/analytics?examinationId=${e.id}`} className="text-sm text-zinc-600 underline">Analysis</Link>
+                      <Link
+                        href={dailyTypeIds.has(e.exam_type_id) ? "/analytics/daily-assessments" : `/analytics?examinationId=${e.id}`}
+                        className="text-sm text-zinc-600 underline"
+                      >
+                        Analysis
+                      </Link>
                     </div>
                   </td>
                 </tr>

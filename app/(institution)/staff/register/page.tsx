@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../../services/modules/module-service";
 import { can } from "../../../../services/permissions/permission-service";
-import { getInstitution } from "../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../services/institution/institution-service";
 import { listAttendanceStatuses } from "../../../../modules/attendance/service";
 import { getMonthlyStaffAttendanceRegister } from "../../../../modules/staff/service";
 import PrintButton from "../../../components/PrintButton";
@@ -60,7 +60,7 @@ export default async function StaffMonthlyRegisterPage({
 
       <section className="print-area rounded-card border bg-white p-5">
         <PrintLetterhead
-          institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+          institutionName={institutionReportName(institution)}
           logoCode={institution?.logoFileId ? institution.code : null}
         />
         <div className="mb-3 flex items-center justify-between">

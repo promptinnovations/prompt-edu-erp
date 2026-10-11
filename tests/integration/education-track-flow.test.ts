@@ -20,7 +20,7 @@ import { createStudent } from "../../modules/students/service";
 import {
   listExamTypes, createExamination, addExamClass, addExamSubject,
   enterMarks, submitMarks, verifyMarks, approveMarks, computeResults,
-  getStudentExamReport,
+  getStudentExamReport, getCumulativeMarksheet, getResults,
 } from "../../modules/examination/service";
 import { getTrackWiseSummary } from "../../modules/analytics/service";
 import { getInstitution, updateInstitutionTrackOrder } from "../../services/institution/institution-service";
@@ -209,5 +209,48 @@ describe("Result Analysis — track-separated summary (§411, verbatim ask: 'the
     });
     const summaries = await getTrackWiseSummary(otherInstitution, otherAdmin.authUserId, examination.id);
     expect(summaries).toEqual([]);
+  });
+});
+
+describe("§Cumulative-track follow-up — getCumulativeMarksheet(track) and computed rank", () => {
+  it("splits the cumulative sheet by track: each exam is recomputed from that track's subjects only", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+
+    // Academic track = Mathematics alone. student1 90/100, student2 20/100.
+    const academic = await getCumulativeMarksheet(institutionA, adminAuth, year!.id, null, "academic");
+    expect(academic.examinations.map((e) => e.name)).toEqual(["ET Term Exam"]);
+    const a1 = academic.rows.find((r) => r.student_id === student1)!;
+    const a2 = academic.rows.find((r) => r.student_id === student2)!;
+    expect(Number(a1.exams[0].percentage)).toBeCloseTo(90, 1);
+    expect(a1.average_percentage).toBeCloseTo(90, 1);
+    expect(Number(a2.exams[0].percentage)).toBeCloseTo(20, 1);
+
+    // Islamic track = Arabic + Quran. student1 (80+80)/200, student2 (90+10)/200.
+    const islamic = await getCumulativeMarksheet(institutionA, adminAuth, year!.id, null, "islamic");
+    const i1 = islamic.rows.find((r) => r.student_id === student1)!;
+    const i2 = islamic.rows.find((r) => r.student_id === student2)!;
+    expect(Number(i1.exams[0].percentage)).toBeCloseTo(80, 1);
+    expect(Number(i2.exams[0].percentage)).toBeCloseTo(50, 1);
+
+    // ...and the untracked sheet is still the combined whole-exam result
+    // read straight from `results` (250/300 and 120/300).
+    const combined = await getCumulativeMarksheet(institutionA, adminAuth, year!.id, null);
+    const c1 = combined.rows.find((r) => r.student_id === student1)!;
+    expect(c1.average_percentage).toBeCloseTo(83.33, 1);
+    // Every shape carries the new average Grade field, even when no default
+    // grade scale is configured (then it is simply null, never invented).
+    expect("average_grade_label" in c1).toBe(true);
+  });
+
+  it("§Consolidated-marks follow-up: computeResults() writes a class rank, best percentage first", async () => {
+    const results = await getResults(institutionA, adminAuth, examinationId);
+    const r1 = results.find((r) => r.student_id === student1)!;
+    const r2 = results.find((r) => r.student_id === student2)!;
+    // student1 250/300 (83.3%) ranks above student2 120/300 (40%).
+    expect(r1.rank).toBe(1);
+    expect(r2.rank).toBe(2);
+    // failed_subject_count is what the consolidated sheet's new column reads.
+    expect(r1.failed_subject_count).toBe(0);
+    expect(r2.failed_subject_count).toBeGreaterThan(0);
   });
 });

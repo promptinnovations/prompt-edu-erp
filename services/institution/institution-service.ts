@@ -11,6 +11,20 @@ import { getDbClient } from "../db/client";
 import { recordAudit } from "../audit/audit-service";
 import { PALETTE_IDS } from "../branding/palettes";
 
+/** §Reports-institution-name ("in all reports give full name of the
+ *  institution") — the name a PRINTED document must carry. Deliberately
+ *  the institution's registered `name`, never the `app_name` shell
+ *  override: a report, mark sheet or report card is an official document
+ *  about the institution, so it carries the institution's real full name
+ *  even if the app chrome is branded differently. (Migration 0064 also
+ *  cleared every stale app_name, so in practice the two now agree —
+ *  this keeps reports correct regardless.) */
+export function institutionReportName(
+  institution: { name?: string | null } | null | undefined
+): string {
+  return institution?.name?.trim() || "PROMPT EDU ERP";
+}
+
 export interface InstitutionSummary {
   id: string;
   code: string;

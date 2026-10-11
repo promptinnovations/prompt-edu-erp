@@ -5,7 +5,7 @@ import { listMentoringRecordsForPortal, type MentoringRecordRow } from "../../..
 import { listReadingRecords, type ReadingRecordRow } from "../../../modules/library/service";
 import { getStudentAttendanceSummary, type AttendanceSummary } from "../../../modules/attendance/service";
 import { listAcademicYears } from "../../../modules/academic/service";
-import { getInstitution } from "../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../services/institution/institution-service";
 import { todayIST } from "../../../services/datetime/ist";
 import { listLearnerEntries, type LearnerEntry } from "../../../modules/learner-record/service";
 
@@ -83,7 +83,7 @@ export async function loadLearnerRecord(
 
   return {
     bundle,
-    institutionName: institution?.appName || institution?.name || "PROMPT EDU ERP",
+    institutionName: institutionReportName(institution),
     logoCode: institution?.logoFileId ? institution.code : null,
     academicYear: current?.name ?? null,
     attendance, strengths, skills,

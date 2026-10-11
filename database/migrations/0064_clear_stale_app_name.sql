@@ -1,0 +1,31 @@
+-- =============================================================================
+-- PROMPT EDU ERP — Migration 0064: clear stale institutions.app_name.
+--
+-- §Reports-institution-name ("in all reports give full name of the
+-- institution, still it shows the old name of B CareExc Science Home,
+-- revise it").
+--
+-- `institutions.app_name` is an override that every display site prefers
+-- over `institutions.name` (`appName || name`). Nothing in the application
+-- can SET it — only database/scripts/seed.ts does, for seeded/dev
+-- institutions — so once an institution is renamed through the Super Admin
+-- console, a leftover app_name keeps the OLD name showing in the sidebar,
+-- on the login page and, most visibly, on printed report headers. That is
+-- exactly what happened to "B CareExc Science Home", which still printed as
+-- "B CareExc Science".
+--
+-- updateInstitutionName() was already fixed to clear app_name on every
+-- rename, but that only helps institutions renamed AFTER that change
+-- shipped (and only once someone re-submits the name). This clears every
+-- row already stuck in that state, in one pass:
+--
+--   * app_name equal to name -> redundant, drop it (same result either way).
+--   * app_name different from name -> stale leftover from seeding, drop it
+--     so the institution's real registered name is what shows everywhere.
+--
+-- No institution loses a deliberately-chosen app name, because no UI has
+-- ever been able to choose one. Idempotent: a second run matches no rows.
+-- =============================================================================
+
+update institutions set app_name = null, updated_at = now()
+ where app_name is not null;

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requirePermission } from "../../../../services/permissions/permission-service";
-import { getInstitution } from "../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../services/institution/institution-service";
 import { generateReport } from "../../../../modules/reporting/service";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ reportType: string }> }) {
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       reportType,
       format,
       parameters,
-      institutionName: institution?.appName || institution?.name || "PROMPT EDU ERP",
+      institutionName: institutionReportName(institution),
     });
 
     return new NextResponse(new Uint8Array(report.buffer), {

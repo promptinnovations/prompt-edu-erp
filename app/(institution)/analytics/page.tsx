@@ -88,22 +88,28 @@ export default async function AnalyticsPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    examinationId?: string; trendClassIds?: string; trendSectionId?: string;
-    trendMonths?: string; tab?: string; classId?: string;
+    examinationId?: string; trendClassIds?: string | string[]; trendSectionId?: string;
+    trendMonths?: string | string[]; tab?: string; classId?: string;
   }>;
 }) {
   const {
-    examinationId: examinationIdParam = "", trendClassIds: trendClassIdsParam = "", trendSectionId = "",
-    trendMonths: trendMonthsParam = "",
+    examinationId: examinationIdParam = "", trendClassIds: trendClassIdsParam, trendSectionId = "",
+    trendMonths: trendMonthsParam,
     tab: rawTab = "school", classId: selectedClassId = "",
   } = await searchParams;
-  const trendClassIds = trendClassIdsParam ? trendClassIdsParam.split(",").filter(Boolean) : [];
+  // The trend picker is a GET form with checkbox groups, so these arrive as
+  // REPEATED params (?trendClassIds=a&trendClassIds=b -> string[]); links
+  // elsewhere on this page still build them comma-joined. Accept both.
+  const toList = (v: string | string[] | undefined): string[] =>
+    (Array.isArray(v) ? v : v ? v.split(",") : []).map((x) => x.trim()).filter(Boolean);
+  const requestedTrendClassIds = toList(trendClassIdsParam);
   // §Attendance-trend-redesign follow-up — default to the last 3 months
   // (same window the old fromMonth/toMonth default covered) only when the
   // admin hasn't picked any months yet, so the picker opens pre-populated
   // with something to look at rather than a blank chart.
-  const trendMonths = trendMonthsParam
-    ? trendMonthsParam.split(",").filter(Boolean)
+  const requestedTrendMonths = toList(trendMonthsParam);
+  const trendMonths = requestedTrendMonths.length > 0
+    ? requestedTrendMonths
     : [monthsAgo(2), monthsAgo(1), monthsAgo(0)];
   const tab: ResultTabKey = RESULT_TABS.some((t) => t.key === rawTab) ? (rawTab as ResultTabKey) : "school";
 
@@ -155,6 +161,14 @@ export default async function AnalyticsPage({
   const dailyTypeIds = new Set(examTypes.filter((t) => t.is_daily_assessment).map((t) => t.id));
   const examinations = allExaminations.filter((e) => !dailyTypeIds.has(e.exam_type_id));
   const dailyYear = dailyYears.find((y) => y.is_current) ?? dailyYears[0] ?? null;
+  // §Attendance-trend revision ("default latest must be open first") — with
+  // nothing selected the trend used to render an empty "select at least one
+  // class" prompt; it now opens on the first class (the months already
+  // default to the latest three above), so the section is useful on arrival
+  // and the Load button is for CHANGING that, not for seeing anything at all.
+  const trendClassIds = requestedTrendClassIds.length > 0
+    ? requestedTrendClassIds
+    : (classes[0] ? [classes[0].id] : []);
   const dailyAssessmentsLink = dailyYear
     ? { label: `Daily assessments ${dailyYear.name}`, href: `/analytics/daily-assessments?academicYearId=${encodeURIComponent(dailyYear.id)}` }
     : null;
@@ -528,6 +542,7 @@ export default async function AnalyticsPage({
           sectionId={trendSectionId}
           months={trendMonths}
           examinationId={examinationId}
+          tab={tab}
         />
         {attendanceTrendByClass.length > 0 ? (
           <div className="mt-4 space-y-4">

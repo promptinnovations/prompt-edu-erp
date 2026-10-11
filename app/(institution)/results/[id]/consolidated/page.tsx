@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../services/request-context";
 import { can } from "../../../../../services/permissions/permission-service";
-import { getInstitution } from "../../../../../services/institution/institution-service";
+import { getInstitution, institutionReportName } from "../../../../../services/institution/institution-service";
 import { getTeacherClassScope } from "../../../../../services/scope/teacher-scope-service";
 import {
   getExamination, getExaminationMarksMatrix, getResults, listClassesForExamination, PASS_COLOR, FAIL_COLOR,
@@ -92,14 +92,18 @@ export default async function ConsolidatedMarksPage({
         <PrintButton />
       </div>
 
-      <div className="no-print">
+      <div className="no-print space-y-1">
         <ClassFilterForm classes={classOptions} classId={validSelectedClassId} showAllOption={!teacherScope} />
+        <p className="text-xs text-zinc-500">
+          Rank is each student&rsquo;s position within their own class, by percentage. It is written when results are
+          computed — recompute an examination after correcting marks to refresh it.
+        </p>
       </div>
 
       <section className="print-area overflow-hidden rounded-2xl border bg-white">
         <div className="p-4 pb-0">
           <PrintLetterhead
-            institutionName={institution?.appName || institution?.name || "PROMPT EDU ERP"}
+            institutionName={institutionReportName(institution)}
             logoCode={institution?.logoFileId ? institution.code : null}
           />
         </div>
@@ -112,9 +116,11 @@ export default async function ConsolidatedMarksPage({
                   <th key={s.id} className="px-3 py-2 text-center">{s.name}<div className="normal-case font-normal">/{formatMarks(s.maxMarks)}</div></th>
                 ))}
                 <th className="px-3 py-2 text-center">Total</th>
+                <th className="px-3 py-2 text-center">%</th>
                 <th className="px-3 py-2 text-center">Grade</th>
+                <th className="px-3 py-2 text-center">Failed<div className="normal-case font-normal">subjects</div></th>
                 <th className="px-3 py-2 text-center">Result</th>
-                <th className="px-3 py-2 text-center">Rank</th>
+                <th className="px-3 py-2 text-center">Rank<div className="normal-case font-normal">in class</div></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -150,7 +156,24 @@ export default async function ConsolidatedMarksPage({
                     <td className="px-3 py-2 text-center font-medium">
                       {overall ? `${formatMarks(overall.total_marks)}/${formatMarks(overall.max_total_marks)}` : formatMarks(total)}
                     </td>
+                    {/* §Consolidated-marks follow-up: "Add total percentage,
+                        Failed Subjects ..., compute rank and give" — all three
+                        come straight off the stored `results` row (percentage,
+                        failed_subject_count, rank), never re-derived here, so
+                        this sheet can't disagree with Report Cards. */}
+                    <td className="px-3 py-2 text-center">
+                      {overall ? `${Number(overall.percentage).toFixed(1)}%` : "—"}
+                    </td>
                     <td className="px-3 py-2 text-center">{overall?.grade_label ?? "—"}</td>
+                    <td className="px-3 py-2 text-center">
+                      {overall ? (
+                        overall.failed_subject_count > 0 ? (
+                          <span className="font-medium" style={{ color: FAIL_COLOR }}>{overall.failed_subject_count}</span>
+                        ) : (
+                          <span className="text-zinc-400">0</span>
+                        )
+                      ) : "—"}
+                    </td>
                     <td className="px-3 py-2 text-center">
                       {overallPassed == null ? (
                         "—"
@@ -168,7 +191,7 @@ export default async function ConsolidatedMarksPage({
                 );
               })}
               {studentOrder.length === 0 ? (
-                <tr><td colSpan={subjectList.length + 5} className="px-4 py-6 text-center text-zinc-500">
+                <tr><td colSpan={subjectList.length + 7} className="px-4 py-6 text-center text-zinc-500">
                   No students/subjects configured for this examination yet.
                 </td></tr>
               ) : null}
