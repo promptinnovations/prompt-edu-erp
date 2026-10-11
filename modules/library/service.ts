@@ -27,6 +27,9 @@ export interface ShelfRecord { id: string; name: string; location: string | null
 export interface BookRecord {
   id: string; isbn: string | null; title: string; subtitle: string | null;
   author_id: string | null; publisher_id: string | null; category_id: string | null; shelf_id: string | null; status: string;
+  // §Library-workflow (migration 0063) — book-page detail fields.
+  language: string | null; edition: string | null;
+  publication_year: number | null; original_language: string | null; description: string | null;
 }
 export interface BookRow extends BookRecord {
   author_name: string | null; publisher_name: string | null; category_name: string | null; shelf_name: string | null;
@@ -37,7 +40,7 @@ export interface BookIssueRecord {
   id: string; book_copy_id: string; student_id: string; issue_date: string; due_date: string; status: string;
 }
 export interface BookIssueRow extends BookIssueRecord {
-  book_title: string; student_name: string; is_overdue: boolean;
+  book_id: string; book_title: string; student_name: string; is_overdue: boolean;
 }
 export interface ReadingRecordRow {
   id: string; student_id: string; student_name: string; book_id: string; book_title: string;
@@ -174,6 +177,10 @@ const createBookSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
   shelfId: z.string().uuid().nullable().optional(),
   language: z.string().max(30).nullable().optional(),
+  edition: z.string().max(60).nullable().optional(),
+  publicationYear: z.number().int().min(1000).max(2200).nullable().optional(),
+  originalLanguage: z.string().max(30).nullable().optional(),
+  description: z.string().max(4000).nullable().optional(),
   copyCount: z.number().int().nonnegative().default(1),
 });
 
@@ -187,10 +194,13 @@ export async function createBook(
   const data = createBookSchema.parse(input);
   const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<BookRecord>(
-      `insert into books (institution_id, title, subtitle, isbn, author_id, publisher_id, category_id, shelf_id, language)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       returning id, isbn, title, subtitle, author_id, publisher_id, category_id, shelf_id, status`,
-      [institutionId, data.title, data.subtitle ?? null, data.isbn ?? null, data.authorId ?? null, data.publisherId ?? null, data.categoryId ?? null, data.shelfId ?? null, data.language ?? null]
+      `insert into books (institution_id, title, subtitle, isbn, author_id, publisher_id, category_id, shelf_id, language,
+                          edition, publication_year, original_language, description)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       returning id, isbn, title, subtitle, author_id, publisher_id, category_id, shelf_id, status,
+                 language, edition, publication_year, original_language, description`,
+      [institutionId, data.title, data.subtitle ?? null, data.isbn ?? null, data.authorId ?? null, data.publisherId ?? null, data.categoryId ?? null, data.shelfId ?? null, data.language ?? null,
+       data.edition ?? null, data.publicationYear ?? null, data.originalLanguage ?? null, data.description ?? null]
     );
     const book = rows[0];
     for (let i = 1; i <= data.copyCount; i++) {
@@ -207,25 +217,106 @@ export async function createBook(
   return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
+/** One shared projection for every "book with its names + copy counts"
+ *  read (listBooks, getBookDetail) so the two can never drift apart on
+ *  which columns they expose. Grouping by b.id alone is enough because
+ *  `books.id` is the primary key (Postgres functional dependency), so the
+ *  other b.* columns need not be repeated in GROUP BY. */
+const BOOK_ROW_SELECT = `
+      select b.id, b.isbn, b.title, b.subtitle, b.author_id, b.publisher_id, b.category_id, b.shelf_id, b.status,
+             b.language, b.edition, b.publication_year, b.original_language, b.description,
+             a.name as author_name, p.name as publisher_name, c.name as category_name, s.name as shelf_name,
+             count(bc.id) filter (where bc.status = 'available')::int as available_copies,
+             count(bc.id)::int as total_copies
+        from books b
+        left join authors a on a.id = b.author_id
+        left join publishers p on p.id = b.publisher_id
+        left join book_categories c on c.id = b.category_id
+        left join shelves s on s.id = b.shelf_id
+        left join book_copies bc on bc.book_id = b.id`;
+
+function normalizeBookRow(r: BookRow): BookRow {
+  return {
+    ...r,
+    available_copies: Number(r.available_copies), total_copies: Number(r.total_copies),
+    publication_year: r.publication_year === null || r.publication_year === undefined ? null : Number(r.publication_year),
+  };
+}
+
+/** §Library-workflow — everything the student-portal book page shows for
+ *  ONE book in one call: the book + names + copy counts, plus (when a
+ *  `viewerStudentId` is given) that student's own relationship to it:
+ *  their active hold (pending = waiting / notified = ready to collect),
+ *  the copy currently issued to them, and a returned-but-unreviewed
+ *  reading record they can write a review against. Reviews themselves
+ *  come from listApprovedReviews(bookId) — same query the Review Corner
+ *  uses, just narrowed. Returns null for an unknown/withdrawn book or one
+ *  in another institution (RLS makes those indistinguishable, by design). */
+export interface BookDetail {
+  book: BookRow;
+  myHold: { id: string; status: string } | null;
+  myIssue: { id: string; issue_date: string; due_date: string; is_overdue: boolean } | null;
+  myPendingReview: { reading_record_id: string } | null;
+  timesRead: number; // this student's completed reads of this book
+}
+export async function getBookDetail(
+  institutionId: string, authUserId: string, bookId: string, viewerStudentId?: string | null
+): Promise<BookDetail | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<BookRow>(
+      `${BOOK_ROW_SELECT}
+        where b.id = $1 and b.status = 'active'
+        group by b.id, a.name, p.name, c.name, s.name`,
+      [bookId]
+    );
+    if (!rows[0]) return null;
+    const book = normalizeBookRow(rows[0]);
+    if (!viewerStudentId) return { book, myHold: null, myIssue: null, myPendingReview: null, timesRead: 0 };
+
+    const [{ rows: holdRows }, { rows: issueRows }, { rows: reviewRows }, { rows: readRows }] = await Promise.all([
+      scoped.query<{ id: string; status: string }>(
+        `select id, status from book_holds where book_id = $1 and student_id = $2 and status in ('pending', 'notified')
+          order by requested_at desc limit 1`,
+        [bookId, viewerStudentId]
+      ),
+      scoped.query<{ id: string; issue_date: string; due_date: string; is_overdue: boolean }>(
+        `select bi.id, bi.issue_date::text as issue_date, bi.due_date::text as due_date, (bi.due_date < current_date) as is_overdue
+           from book_issues bi join book_copies bc on bc.id = bi.book_copy_id
+          where bc.book_id = $1 and bi.student_id = $2 and bi.status = 'issued'
+          order by bi.issue_date desc limit 1`,
+        [bookId, viewerStudentId]
+      ),
+      scoped.query<{ id: string }>(
+        `select id from reading_records where book_id = $1 and student_id = $2 and review_status = 'pending'
+          order by created_at desc limit 1`,
+        [bookId, viewerStudentId]
+      ),
+      scoped.query<{ n: string }>(
+        "select count(*)::text as n from reading_records where book_id = $1 and student_id = $2",
+        [bookId, viewerStudentId]
+      ),
+    ]);
+    return {
+      book,
+      myHold: holdRows[0] ?? null,
+      myIssue: issueRows[0] ?? null,
+      myPendingReview: reviewRows[0] ? { reading_record_id: reviewRows[0].id } : null,
+      timesRead: Number(readRows[0]?.n ?? 0),
+    };
+  });
+}
+
 export async function listBooks(institutionId: string, authUserId: string): Promise<BookRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<BookRow>(
-      `select b.id, b.isbn, b.title, b.subtitle, b.author_id, b.publisher_id, b.category_id, b.shelf_id, b.status,
-              a.name as author_name, p.name as publisher_name, c.name as category_name, s.name as shelf_name,
-              count(bc.id) filter (where bc.status = 'available') as available_copies,
-              count(bc.id) as total_copies
-         from books b
-         left join authors a on a.id = b.author_id
-         left join publishers p on p.id = b.publisher_id
-         left join book_categories c on c.id = b.category_id
-         left join shelves s on s.id = b.shelf_id
-         left join book_copies bc on bc.book_id = b.id
+      `${BOOK_ROW_SELECT}
         where b.status = 'active'
-        group by b.id, b.isbn, b.title, b.subtitle, b.author_id, b.publisher_id, b.category_id, b.shelf_id, b.status, a.name, p.name, c.name, s.name
+        group by b.id, a.name, p.name, c.name, s.name
         order by b.title`
     );
-    return rows;
+    return rows.map(normalizeBookRow);
   });
 }
 
@@ -286,7 +377,7 @@ export async function listIssuedBooks(institutionId: string, authUserId: string,
     const { rows } = studentId
       ? await scoped.query<BookIssueRow>(
           `select bi.id, bi.book_copy_id, bi.student_id, bi.issue_date, bi.due_date, bi.status,
-                  b.title as book_title, s.full_name as student_name,
+                  bc.book_id, b.title as book_title, s.full_name as student_name,
                   (bi.status = 'issued' and bi.due_date < current_date) as is_overdue
              from book_issues bi
              join book_copies bc on bc.id = bi.book_copy_id
@@ -298,7 +389,7 @@ export async function listIssuedBooks(institutionId: string, authUserId: string,
         )
       : await scoped.query<BookIssueRow>(
           `select bi.id, bi.book_copy_id, bi.student_id, bi.issue_date, bi.due_date, bi.status,
-                  b.title as book_title, s.full_name as student_name,
+                  bc.book_id, b.title as book_title, s.full_name as student_name,
                   (bi.status = 'issued' and bi.due_date < current_date) as is_overdue
              from book_issues bi
              join book_copies bc on bc.id = bi.book_copy_id
@@ -428,22 +519,36 @@ export async function placeHold(
       "select count(*)::text as available from book_copies where book_id = $1 and status = 'available'",
       [bookId]
     );
-    if (Number(availRows[0]?.available ?? 0) > 0) {
-      throw new Error("This book has an available copy right now — issue it directly instead of pre-booking.");
-    }
+    // §Library-workflow ("then should be able to take by clicking book, if
+    // available directly go to library and take, if not once it is
+    // returned, those booked should get a notification"): a hold on a book
+    // that HAS a free copy used to be refused. Now it's accepted and born
+    // 'notified' (= "ready to collect", notified_at = now) — the student's
+    // "Take this book" click from the book page — so the librarian's
+    // waitlist shows who is on their way to collect what, and issueBook()
+    // closes it as 'fulfilled' exactly as it already does for a
+    // returned-and-notified hold. A book with no free copy still gets the
+    // original 'pending' hold that returnBook() promotes + notifies.
+    const isAvailableNow = Number(availRows[0]?.available ?? 0) > 0;
     const { rows: existing } = await scoped.query<{ id: string }>(
       "select id from book_holds where book_id = $1 and student_id = $2 and status in ('pending', 'notified')",
       [bookId, studentId]
     );
-    if (existing.length > 0) throw new Error("You already have an active pre-booking for this book.");
+    if (existing.length > 0) throw new Error("You already have an active booking for this book.");
+    const { rows: issuedToMe } = await scoped.query<{ id: string }>(
+      `select bi.id from book_issues bi join book_copies bc on bc.id = bi.book_copy_id
+        where bc.book_id = $1 and bi.student_id = $2 and bi.status = 'issued' limit 1`,
+      [bookId, studentId]
+    );
+    if (issuedToMe.length > 0) throw new Error("You already have this book with you.");
 
     const { rows } = await scoped.query<{
       id: string; book_id: string; student_id: string; status: string; requested_at: string; notified_at: string | null;
     }>(
-      `insert into book_holds (institution_id, book_id, student_id)
-       values ($1, $2, $3)
+      `insert into book_holds (institution_id, book_id, student_id, status, notified_at)
+       values ($1, $2, $3, $4, $5)
        returning id, book_id, student_id, status, requested_at, notified_at`,
-      [institutionId, bookId, studentId]
+      [institutionId, bookId, studentId, isAvailableNow ? "notified" : "pending", isAvailableNow ? new Date().toISOString() : null]
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "library", entityType: "book_holds", entityId: rows[0].id, after: rows[0] });
 

@@ -69,8 +69,25 @@ export default function AddBookForm({
       </div>
 
       <div>
+        <label className="mb-1 block text-xs text-zinc-500">Year of publishing</label>
+        <input autoComplete="off" name="publicationYear" type="number" min={1000} max={2200} placeholder="e.g. 2018" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-zinc-500">Original language</label>
+        <input autoComplete="off" name="originalLanguage" placeholder="If this is a translation" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-zinc-500">Edition</label>
+        <input autoComplete="off" name="edition" placeholder="e.g. 2nd" className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      </div>
+      <div>
         <label className="mb-1 block text-xs text-zinc-500">Copies</label>
         <input autoComplete="off" name="copyCount" type="number" min={1} defaultValue={1} className="w-full rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      </div>
+
+      <div className="sm:col-span-2 lg:col-span-4">
+        <label className="mb-1 block text-xs text-zinc-500">About this book (shown to students on the book page)</label>
+        <textarea name="description" rows={3} maxLength={4000} placeholder="A short blurb — what is it about, who would enjoy it?" className="w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
 
       <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">

@@ -79,6 +79,7 @@ export async function submitOwnReadingReviewAction(_prevState: { error: string |
       String(formData.get("readingRecordId") ?? ""), reviewText
     );
     revalidatePath("/portal/student");
+    revalidatePath("/portal/student/library", "layout"); // §Library-workflow — the per-book page too
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to submit review." };
@@ -98,6 +99,7 @@ export async function reactToReviewAction(_prevState: { error: string | null }, 
     if (reaction !== "like" && reaction !== "dislike") return { error: "Invalid reaction." };
     await reactToReview(ctx.institutionId, ctx.session.authUserId, ownStudentId, String(formData.get("readingRecordId") ?? ""), reaction);
     revalidatePath("/portal/student");
+    revalidatePath("/portal/student/library", "layout");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to react." };
@@ -116,9 +118,10 @@ export async function placeHoldAction(_prevState: { error: string | null }, form
 
     await placeHold(ctx.institutionId, ctx.session.authUserId, ctx.userId, ownStudentId, String(formData.get("bookId") ?? ""));
     revalidatePath("/portal/student");
+    revalidatePath("/portal/student/library", "layout");
     return { error: null };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to pre-book this book." };
+    return { error: err instanceof Error ? err.message : "Failed to book this book." };
   }
 }
 
@@ -131,6 +134,7 @@ export async function cancelOwnHoldAction(_prevState: { error: string | null }, 
     if (!ownStudentId) return { error: "No student record is linked to your account." };
     await cancelHold(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("holdId") ?? ""), ownStudentId);
     revalidatePath("/portal/student");
+    revalidatePath("/portal/student/library", "layout");
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to cancel." };

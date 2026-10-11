@@ -35,13 +35,17 @@ export default function HoldsWaitlist({ holds }: { holds: HoldRow[] }) {
           {holds.map((h) => (
             <tr key={h.id}>
               <td className="py-1.5">{h.book_title}</td>
-              <td className="py-1.5">{h.student_name}</td>
-              <td className="py-1.5 capitalize">{h.status === "notified" ? "Notified — ready to collect" : "Waiting"}</td>
+              <td className="py-1.5">{h.student_name} <span className="text-xs text-zinc-400">· {new Date(h.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span></td>
+              <td className="py-1.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs ${h.status === "notified" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                  {h.status === "notified" ? "Ready to collect" : "Waiting for a return"}
+                </span>
+              </td>
               <td className="py-1.5"><CancelButton holdId={h.id} /></td>
             </tr>
           ))}
           {holds.length === 0 ? (
-            <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No pre-bookings right now.</td></tr>
+            <tr><td colSpan={4} className="py-4 text-center text-zinc-500">No bookings right now.</td></tr>
           ) : null}
         </tbody>
       </table>

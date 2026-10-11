@@ -18,7 +18,7 @@ import {
   createBook, listAvailableCopies, issueBook, returnBook,
   placeHold, cancelHold, listMyHolds, listPendingHolds,
   submitOwnReadingReview, listApprovedReviews, reactToReview,
-  reviewReadingRecord, listReadingRecords,
+  reviewReadingRecord, listReadingRecords, getBookDetail,
 } from "../../modules/library/service";
 
 let institutionA: string;
@@ -87,9 +87,51 @@ describe("Scoring: library folded into getNormalizedScore() (§K.5, §Page-7 fol
 });
 
 describe("Pre-booking / holds (§Page-8 follow-up)", () => {
-  it("refuses a hold when the book still has an available copy", async () => {
+  it("§Library-workflow 'Take this book': a hold on a book WITH a free copy is accepted and born 'notified' (ready to collect), and issuing closes it as fulfilled", async () => {
     const book = await createBook(institutionA, adminAuth, adminUserId, { title: "Always Available Book", copyCount: 1 });
-    await expect(placeHold(institutionA, librarianAuth, librarianUserId, student1, book.id)).rejects.toThrow(/available copy/);
+    const hold = await placeHold(institutionA, librarianAuth, librarianUserId, student1, book.id);
+    expect(hold.status).toBe("notified");
+    expect(hold.notified_at).not.toBeNull();
+    // Librarian sees it on the waitlist as ready-to-collect.
+    const pending = await listPendingHolds(institutionA, librarianAuth);
+    expect(pending.find((h) => h.id === hold.id)?.status).toBe("notified");
+    // The student's own book page reflects it.
+    const detail = await getBookDetail(institutionA, librarianAuth, book.id, student1);
+    expect(detail?.myHold?.id).toBe(hold.id);
+    expect(detail?.myIssue).toBeNull();
+    // Issuing a copy fulfils the booking; the page now shows the loan instead.
+    const copies = await listAvailableCopies(institutionA, librarianAuth, book.id);
+    await issueBook(institutionA, librarianAuth, librarianUserId, student1, copies[0].id);
+    const after = await getBookDetail(institutionA, librarianAuth, book.id, student1);
+    expect(after?.myHold).toBeNull();
+    expect(after?.myIssue?.is_overdue).toBe(false);
+    // ...and a second booking while they already hold the book is refused.
+    await expect(placeHold(institutionA, librarianAuth, librarianUserId, student1, book.id)).rejects.toThrow(/already have this book/);
+  });
+
+  it("§Library-workflow getBookDetail(): returns the 0063 detail fields, copy counts, and a returned-but-unreviewed reading record for the viewer", async () => {
+    const book = await createBook(institutionA, adminAuth, adminUserId, {
+      title: "Detail Fields Book", publicationYear: 1998, originalLanguage: "Malayalam", language: "English",
+      edition: "2nd", description: "A translated classic.", copyCount: 2,
+    });
+    const anon = await getBookDetail(institutionA, librarianAuth, book.id);
+    expect(anon?.book.publication_year).toBe(1998);
+    expect(anon?.book.original_language).toBe("Malayalam");
+    expect(anon?.book.edition).toBe("2nd");
+    expect(anon?.book.description).toBe("A translated classic.");
+    expect(anon?.book.available_copies).toBe(2);
+    expect(anon?.book.total_copies).toBe(2);
+    expect(anon?.myHold).toBeNull();
+
+    const copies = await listAvailableCopies(institutionA, librarianAuth, book.id);
+    const issue = await issueBook(institutionA, librarianAuth, librarianUserId, student2, copies[0].id);
+    await returnBook(institutionA, librarianAuth, librarianUserId, { bookIssueId: issue.id, conditionOnReturn: "good" });
+    const d = await getBookDetail(institutionA, librarianAuth, book.id, student2);
+    expect(d?.myPendingReview?.reading_record_id).toBeTruthy();
+    expect(d?.timesRead).toBe(1);
+    expect(d?.book.available_copies).toBe(2);
+
+    expect(await getBookDetail(institutionA, librarianAuth, "00000000-0000-0000-0000-000000000000")).toBeNull();
   });
 
   it("succeeds once every copy is issued out, and refuses a duplicate active hold from the same student", async () => {
@@ -101,7 +143,7 @@ describe("Pre-booking / holds (§Page-8 follow-up)", () => {
     expect(hold.status).toBe("pending");
     expect(hold.book_id).toBe(book.id);
 
-    await expect(placeHold(institutionA, librarianAuth, librarianUserId, student1, book.id)).rejects.toThrow(/already have an active pre-booking/);
+    await expect(placeHold(institutionA, librarianAuth, librarianUserId, student1, book.id)).rejects.toThrow(/already have an active booking/);
 
     const myHolds = await listMyHolds(institutionA, librarianAuth, student1);
     expect(myHolds.some((h) => h.id === hold.id)).toBe(true);
@@ -246,6 +288,10 @@ describe("Tenant isolation (§E) across every new Page 7/8 function", () => {
 
     const reviewsB = await listApprovedReviews(institutionB, adminB.authUserId);
     expect(reviewsB).toHaveLength(0);
+
+    // §Library-workflow — a book page requested with another tenant's id is a null (404), not a leak.
+    const tenantAOnlyBook = await createBook(institutionA, adminAuth, adminUserId, { title: "Tenant A Only Book", copyCount: 1 });
+    expect(await getBookDetail(institutionB, adminB.authUserId, tenantAOnlyBook.id, studentB.id)).toBeNull();
 
     const scoreB = await getNormalizedScore(institutionB, adminB.authUserId, "library", studentB.id, "2000-01-01", "2100-01-01");
     expect(scoreB).toBe(0);

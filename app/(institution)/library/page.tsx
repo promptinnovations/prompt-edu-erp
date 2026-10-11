@@ -115,9 +115,10 @@ export default async function LibraryPage() {
       </section>
 
       <section id="pre-bookings" className="rounded-card border bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Pre-bookings (waitlist)</h2>
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Bookings &amp; waitlist</h2>
         <p className="mb-3 text-xs text-zinc-500">
-          A student is notified automatically (in-app + WhatsApp) the moment a copy of a held book is returned.
+          &ldquo;Ready to collect&rdquo; = a student tapped <em>Take this book</em> in their portal and is on their way — issue them a copy and the booking closes itself.
+          &ldquo;Waiting&rdquo; = every copy was out; they&rsquo;re notified automatically (in-app + WhatsApp) the moment one is returned.
         </p>
         <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at }))} />
       </section>

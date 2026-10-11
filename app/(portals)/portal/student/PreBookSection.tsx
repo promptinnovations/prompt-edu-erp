@@ -38,29 +38,40 @@ function CancelHoldButton({ holdId }: { holdId: string }) {
  *  the caller to available_copies === 0 (placeHold() itself also refuses
  *  the opposite case, so this is a UX convenience, not the only guard). */
 export default function PreBookSection({
-  holdableBooks, myHolds,
+  holdableBooks, myHolds, showHoldableList = true,
 }: {
   holdableBooks: HoldableBook[];
   myHolds: MyHoldRow[];
+  /** §Library-workflow — the student Library page now books from each
+   *  book's own page, so it passes false and this renders only "My
+   *  bookings"; the original list-based pre-booking stays available for
+   *  any other caller. */
+  showHoldableList?: boolean;
 }) {
   return (
     <div className="space-y-4">
       {myHolds.length > 0 ? (
         <div>
-          <p className="mb-2 section-label">My pre-bookings</p>
+          <p className="mb-2 section-label">My bookings</p>
           <ul className="space-y-1">
             {myHolds.map((h) => (
-              <li key={h.id} className="flex items-center justify-between text-sm">
+              <li key={h.id} className="flex items-center justify-between gap-2 text-sm">
                 <span className="text-zinc-700">
-                  {h.book_title} <span className="text-xs text-zinc-500">({h.status === "notified" ? "ready to collect!" : "waiting"})</span>
+                  {h.book_title}{" "}
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${h.status === "notified" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                    {h.status === "notified" ? "Ready — collect at the library" : "Waiting for return"}
+                  </span>
                 </span>
                 <CancelHoldButton holdId={h.id} />
               </li>
             ))}
           </ul>
         </div>
-      ) : null}
+      ) : showHoldableList ? null : (
+        <p className="text-sm text-zinc-500">No bookings yet — open any book in the catalogue to take or pre-book it.</p>
+      )}
 
+      {showHoldableList ? (
       <div>
         <p className="mb-2 section-label">Fully issued — pre-book one</p>
         {holdableBooks.length === 0 ? (
@@ -76,6 +87,7 @@ export default function PreBookSection({
           </ul>
         )}
       </div>
+      ) : null}
     </div>
   );
 }

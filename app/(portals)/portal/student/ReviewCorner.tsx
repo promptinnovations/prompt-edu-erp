@@ -38,7 +38,7 @@ function ReactButton({ readingRecordId, reaction, label, active }: { readingReco
  *  student record (e.g. this component were ever reused outside the
  *  student portal) — buttons still render but are visually disabled-ish
  *  via the action's own "No student record linked" error surfaced inline. */
-export default function ReviewCorner({ reviews }: { reviews: ApprovedReviewProps[] }) {
+export default function ReviewCorner({ reviews, showBookTitle = true }: { reviews: ApprovedReviewProps[]; showBookTitle?: boolean }) {
   if (reviews.length === 0) {
     return <p className="text-sm text-zinc-500">No reviews yet — be the first to post one after finishing a book!</p>;
   }
@@ -46,10 +46,22 @@ export default function ReviewCorner({ reviews }: { reviews: ApprovedReviewProps
     <div className="space-y-4">
       {reviews.map((r) => (
         <div key={r.id} className="rounded-card border p-4 shadow-card">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold text-zinc-800">{r.book_title}</p>
-            <span className="text-xs text-zinc-500">by {r.student_name}</span>
-          </div>
+          {/* §Library-workflow "at the top of each review there should be
+              name of child who submitted that" — on the book page the book
+              is already the heading, so the reviewer's name leads instead. */}
+          {showBookTitle ? (
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-semibold text-zinc-800">{r.book_title}</p>
+              <span className="text-xs text-zinc-500">by {r.student_name}</span>
+            </div>
+          ) : (
+            <div className="mb-2 flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--brand)]/10 text-xs font-semibold text-[var(--brand)]" aria-hidden="true">
+                {r.student_name.trim().charAt(0).toUpperCase()}
+              </span>
+              <p className="text-sm font-semibold text-zinc-800">{r.student_name}</p>
+            </div>
+          )}
           <RichTextContent html={r.review_text} className="mb-3" />
           <div className="flex items-center gap-2">
             <ReactButton readingRecordId={r.id} reaction="like" label={`👍 ${r.like_count}`} active={r.my_reaction === "like"} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 export interface CatalogueBook {
   id: string;
@@ -34,7 +35,15 @@ function colorForCategory(name: string | null): string {
  *  hash, same category = same colour every time) — plus client-side
  *  search/filter, since the catalogue is exactly the kind of list a
  *  librarian scans and searches, not just reads top to bottom. */
-export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[] }) {
+/** §Library-workflow — `hrefBase`, when given, makes every card a link to
+ *  `${hrefBase}/${book.id}` (the student portal passes
+ *  "/portal/student/library"; the staff Library page omits it and keeps the
+ *  cards static). A string, not a function: this is a client component, and
+ *  functions can't cross the server→client prop boundary. The
+ *  availability badge is now explicitly green ("Available") vs red ("All
+ *  copies out"), not green vs grey — per the ask "availability also (taken
+ *  or available with green and red colour)". */
+export default function LibraryCatalogueGrid({ books, hrefBase }: { books: CatalogueBook[]; hrefBase?: string }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
@@ -92,11 +101,9 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
           {filtered.map((b) => {
             const spine = colorForCategory(b.category_name);
             const isAvailable = b.available_copies > 0;
-            return (
-              <div
-                key={b.id}
-                className="group overflow-hidden rounded-xl border bg-white shadow-card transition-shadow hover:shadow-raised"
-              >
+            const cardClass = "group block overflow-hidden rounded-xl border bg-white shadow-card transition-shadow hover:shadow-raised focus:outline-none focus:ring-2 focus:ring-[var(--brand)]";
+            const inner = (
+              <>
                 <div className="h-2" style={{ backgroundColor: spine }} />
                 <div className="p-3">
                   <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-zinc-900">
@@ -115,19 +122,29 @@ export default function LibraryCatalogueGrid({ books }: { books: CatalogueBook[]
                       </span>
                     ) : null}
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         isAvailable
                           ? "bg-emerald-100 text-emerald-700"
-                          : "bg-zinc-100 text-zinc-500"
+                          : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {b.available_copies}/{b.total_copies} available
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${isAvailable ? "bg-emerald-500" : "bg-red-500"}`} aria-hidden="true" />
+                      {isAvailable ? `Available · ${b.available_copies}/${b.total_copies}` : `Taken · 0/${b.total_copies}`}
                     </span>
                   </div>
                   {b.shelf_name ? (
                     <div className="mt-1.5 text-[11px] text-zinc-500">Shelf: {b.shelf_name}</div>
                   ) : null}
                 </div>
+              </>
+            );
+            return hrefBase ? (
+              <Link key={b.id} href={`${hrefBase}/${b.id}`} className={cardClass} aria-label={`${b.title} — open book details`}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={b.id} className={cardClass}>
+                {inner}
               </div>
             );
           })}

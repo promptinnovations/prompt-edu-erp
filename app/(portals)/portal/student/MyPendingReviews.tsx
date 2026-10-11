@@ -10,12 +10,15 @@ export interface PendingReviewRow { id: string; book_title: string }
  *  rich-text input (bold/italic/underline, alignment) with a comfortably
  *  large writing area, reusing the same submitOwnReadingReviewAction and
  *  reading_records.review_text column. */
-function ReviewForm({ readingRecordId }: { readingRecordId: string }) {
+/** §Library-workflow "review writing space should be spacious enough to
+ *  comfortably type and format" — 8rem → 16rem minimum, and exported so
+ *  the book page can offer the same form right under the book. */
+export function ReviewForm({ readingRecordId }: { readingRecordId: string }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(submitOwnReadingReviewAction, { error: null });
   return (
     <form action={formAction} className="space-y-2">
       <input type="hidden" name="readingRecordId" value={readingRecordId} />
-      <RichTextEditor name="reviewText" placeholder="What did you think of this book?" minHeightClassName="min-h-[8rem]" />
+      <RichTextEditor name="reviewText" placeholder="What did you think of this book?" minHeightClassName="min-h-[16rem]" />
       <div className="flex items-center gap-2">
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-4 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
           Post review

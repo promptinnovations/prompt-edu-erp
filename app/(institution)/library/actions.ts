@@ -61,6 +61,10 @@ export async function createBookAction(_prevState: { error: string | null }, for
       categoryId,
       shelfId,
       language: nonEmpty(formData.get("language")) ?? null,
+      edition: nonEmpty(formData.get("edition")) ?? null,
+      publicationYear: nonEmpty(formData.get("publicationYear")) ? Number(formData.get("publicationYear")) : null,
+      originalLanguage: nonEmpty(formData.get("originalLanguage")) ?? null,
+      description: nonEmpty(formData.get("description")) ?? null,
       copyCount: Number(formData.get("copyCount") ?? 1),
     });
     revalidatePath("/library");
