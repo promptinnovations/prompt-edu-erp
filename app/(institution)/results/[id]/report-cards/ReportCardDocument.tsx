@@ -31,41 +31,59 @@ import type { ReportCardData, ReportCardContext } from "./report-card-data";
  *    (flex-1), so the signatures always sit at the foot of the page
  *    instead of the card ending mid-sheet. Signatures are Class Teacher,
  *    Parent/Guardian and Principal.
- *  - Row density steps down for long subject lists (11+ and 15+ subjects)
- *    so a full card still fits one sheet; a genuinely oversized card
- *    flows onto a second sheet rather than clipping its signatures. */
-type Density = "normal" | "compact" | "tight";
+ *  - Row density steps down for long subject lists (9+, 13+ and 15+
+ *    subjects, a typed remark counting as extra rows)
+ *    — tiers cut from measured row heights, not guesses — so a full card
+ *    still fits one sheet; a genuinely oversized card (16+ subjects) flows
+ *    onto a second sheet rather than clipping its signatures. */
+type Density = "normal" | "compact" | "tight" | "dense";
 
 function densityFor(rows: number): Density {
-  if (rows >= 15) return "tight";
-  if (rows >= 11) return "compact";
+  if (rows >= 15) return "dense";
+  if (rows >= 13) return "tight";
+  if (rows >= 9) return "compact";
   return "normal";
 }
 
 const CELL_Y: Record<Density, string> = {
-  normal: "py-[2.4mm]",
-  compact: "py-[1.4mm]",
-  tight: "py-[0.9mm]",
+  normal: "py-[1.9mm]",
+  compact: "py-[1.2mm]",
+  tight: "py-[0.8mm]",
+  dense: "py-[0.4mm]",
 };
 const BODY_TEXT: Record<Density, string> = {
   normal: "text-[10.5pt]",
   compact: "text-[9.5pt]",
   tight: "text-[9pt]",
+  dense: "text-[8.5pt] leading-[1.25]",
 };
 const REMARKS_MIN: Record<Density, string> = {
   normal: "min-h-[24mm]",
   compact: "min-h-[16mm]",
   tight: "min-h-[10mm]",
+  dense: "min-h-[10mm]",
 };
 
-/** Ruled lines for the remarks box — an inline style rather than a Tailwind
- *  arbitrary value, since a gradient's commas and theme colours don't
- *  survive arbitrary-value parsing cleanly. */
-const RULED_LINES: React.CSSProperties = {
-  backgroundImage:
-    "repeating-linear-gradient(to bottom, transparent 0, transparent 7.2mm, #d4d4d8 7.2mm, #d4d4d8 calc(7.2mm + 0.6pt))",
-  backgroundPositionY: "9mm",
-};
+/** Writing lines for the remarks box. Real bordered rows, not a
+ *  repeating-gradient background: a sub-pixel gradient hard stop is dropped
+ *  by Chromium's print rasteriser, so the lines silently vanished on paper.
+ *  The rows sit in an absolutely-positioned, overflow-clipped layer so they
+ *  contribute NO height to the page's flex column — the remarks box takes
+ *  whatever space is left (that is what makes the card fill the sheet) and
+ *  is ruled down to its bottom edge, however tall that turns out to be.
+ *  As in-flow rows they instead made the column grow past 297mm. */
+const REMARK_LINES = 16;
+/** Rule pitch = remark line-height, per density, so typed text always sits
+ *  on the rules. */
+const RULE_H: Record<Density, string> = { normal: "h-[7.5mm]", compact: "h-[6.5mm]", tight: "h-[6mm]", dense: "h-[5.5mm]" };
+const REMARK_LEADING: Record<Density, string> = { normal: "leading-[7.5mm]", compact: "leading-[6.5mm]", tight: "leading-[6mm]", dense: "leading-[5.5mm]" };
+
+/** Rough printed line count of a remark (~90 characters per line across the
+ *  box at 10.5pt; every typed line break starts a new line). */
+function remarkLineCount(remark: string | null | undefined): number {
+  if (!remark) return 0;
+  return remark.split("\n").reduce((n, para) => n + Math.max(1, Math.ceil(para.length / 90)), 0);
+}
 
 function InfoField({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) {
   return (
@@ -103,7 +121,10 @@ export default function ReportCardDocument({
    *  `.report-sheet` print rules (break after every sheet but the last). */
   breakAfter?: boolean;
 }) {
-  const density = densityFor(card.rows.length);
+  // A typed remark needs room in the remarks box; each line beyond the
+  // first counts as one more table row when choosing the density, so the
+  // table tightens and the card still fits one sheet.
+  const density = densityFor(card.rows.length + Math.max(0, remarkLineCount(card.remark) - 1));
   const cellY = CELL_Y[density];
   const numCell = `border border-zinc-300 px-[2mm] ${cellY} text-center tabular-nums`;
   const headCell =
@@ -137,12 +158,12 @@ export default function ReportCardDocument({
         </header>
 
         {/* ── Student details ───────────────────────────────────────── */}
-        <section className="mt-[6mm] flex items-start gap-[6mm]">
-          <dl className="grid flex-1 grid-cols-2 gap-x-[8mm] gap-y-[3.5mm]">
+        <section className="mt-[5mm] flex items-start gap-[6mm]">
+          <dl className="grid flex-1 grid-cols-3 gap-x-[6mm] gap-y-[2.8mm]">
             <InfoField
               label="Student name"
               value={<span className="text-[13pt] font-bold">{card.student_name}</span>}
-              className="col-span-2"
+              className="col-span-3"
             />
             <InfoField label="Admission no." value={card.admission_number} />
             <InfoField label="Class & division" value={classLine} />
@@ -165,7 +186,7 @@ export default function ReportCardDocument({
         </section>
 
         {/* ── Marks ─────────────────────────────────────────────────── */}
-        <section className="mt-[6mm]">
+        <section className="mt-[5mm]">
           <table className={`w-full table-fixed border-collapse ${BODY_TEXT[density]} text-zinc-900`}>
             <colgroup>
               <col />
@@ -218,7 +239,7 @@ export default function ReportCardDocument({
         </section>
 
         {/* ── Overall summary ───────────────────────────────────────── */}
-        <section className="mt-[6mm]">
+        <section className="mt-[5mm]">
           {card.summary ? (
             <div className={`grid gap-[3mm] ${card.attendance ? "grid-cols-4" : "grid-cols-3"}`}>
               <SummaryTile
@@ -249,11 +270,26 @@ export default function ReportCardDocument({
         </section>
 
         {/* ── Remarks (absorbs the remaining height) ────────────────── */}
-        <section className={`mt-[6mm] flex flex-1 flex-col rounded-[1.5mm] border border-zinc-300 ${REMARKS_MIN[density]}`}>
-          <p className="px-[4mm] pt-[2.5mm] text-[8pt] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+        <section className={`relative mt-[5mm] flex-1 rounded-[1.5mm] border border-zinc-300 ${REMARKS_MIN[density]}`}>
+          {/* Fixed 8.5mm label band so typed text below starts exactly where
+              the first ruled line does. */}
+          <p className="h-[8.5mm] px-[4mm] pt-[2.5mm] text-[8pt] font-semibold uppercase tracking-[0.12em] text-zinc-500">
             Class teacher&rsquo;s remarks
           </p>
-          <div className="mx-[4mm] mb-[3mm] flex-1" style={RULED_LINES} />
+          <div className="absolute inset-x-[4mm] bottom-[2mm] top-[8.5mm] overflow-hidden" aria-hidden="true">
+            {Array.from({ length: REMARK_LINES }, (_, i) => (
+              <div key={i} className={`${RULE_H[density]} border-b border-zinc-300`} />
+            ))}
+          </div>
+          {/* §Report-card-remark — the class teacher's typed remark, written
+              on the rules (line-height = rule pitch; nudged 1mm down so the
+              glyphs sit on the line rather than float between two). In
+              flow, so a long remark grows the box instead of being cut. */}
+          {card.remark ? (
+            <p className={`relative top-[1mm] mx-[4mm] mb-[2.5mm] whitespace-pre-wrap break-words text-[10.5pt] text-zinc-900 ${REMARK_LEADING[density]}`}>
+              {card.remark}
+            </p>
+          ) : null}
         </section>
 
         {/* ── Signatures ────────────────────────────────────────────── */}

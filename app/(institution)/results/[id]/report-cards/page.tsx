@@ -107,6 +107,21 @@ export default async function ReportCardsListPage({
         </section>
       ) : null}
 
+      {/* §Report-card-remark — class teachers type each student's remark
+          here; it prints in the card's remarks box. */}
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-card border bg-white p-5">
+        <div>
+          <h2 className="text-sm font-semibold text-[var(--heading)]">Class teacher&rsquo;s remarks</h2>
+          <p className="text-xs text-zinc-500">Type a remark for each student in your class — it prints on their report card.</p>
+        </div>
+        <Link
+          href={`/results/${id}/report-cards/remarks`}
+          className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
+        >
+          Write remarks
+        </Link>
+      </section>
+
       <section className="overflow-hidden rounded-2xl border bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

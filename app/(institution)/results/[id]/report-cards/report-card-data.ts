@@ -7,6 +7,7 @@ import { listAcademicYears } from "../../../../../modules/academic/service";
 import { getStudentAttendanceSummary } from "../../../../../modules/attendance/service";
 import { todayIST } from "../../../../../services/datetime/ist";
 import { formatMarks } from "../../../../../services/format/marks";
+import { getReportCardRemarks } from "../../../../../modules/report-card-remarks/service";
 
 /** §Report-card-print-all + §Daily-assessment-report-card — the one place
  *  report-card CONTENT is assembled, shared by the single-student route
@@ -63,6 +64,9 @@ export interface ReportCardData {
   hasCe: boolean;
   summary: ReportCardSummary | null;
   attendance: { present_days: number; total_days: number; present_percent: number } | null;
+  /** §Report-card-remark — the class teacher's remark for this exam
+   *  (migration 0065); printed in the remarks box. Absent = none yet. */
+  remark?: string | null;
 }
 
 export interface ReportCardContext {
@@ -116,6 +120,12 @@ export async function loadReportCards(
 
   const wanted = opts.studentIds ? new Set(opts.studentIds) : null;
 
+  const withRemarks = async (cards: ReportCardData[]): Promise<ReportCardData[]> => {
+    if (cards.length === 0) return cards;
+    const remarks = await getReportCardRemarks(institutionId, authUserId, examinationId, cards.map((c) => c.student_id));
+    return cards.map((c) => ({ ...c, remark: remarks.get(c.student_id) ?? null }));
+  };
+
   if (isDaily) {
     const roster = await listDailyAssessmentReportCardRows(
       institutionId, authUserId, examinationId,
@@ -162,7 +172,7 @@ export async function loadReportCards(
         attendance,
       });
     }
-    return { context, cards };
+    return { context, cards: await withRemarks(cards) };
   }
 
   const [matrix, results] = await Promise.all([
@@ -239,5 +249,5 @@ export async function loadReportCards(
       attendance,
     });
   }
-  return { context, cards };
+  return { context, cards: await withRemarks(cards) };
 }
