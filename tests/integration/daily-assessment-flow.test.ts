@@ -28,6 +28,7 @@ import {
   getExamination, examinationWorkflowStatus, getPublishedDailyAssessmentResultsForStudent,
 } from "../../modules/examination/service";
 import { getDbClient as getRawDbClient } from "../../services/db/client";
+import { getDailyAssessmentAnalysis, listDailyAssessmentYears } from "../../modules/analytics/service";
 
 let institutionA: string;
 let adminAuth: string, adminUserId: string;
@@ -398,3 +399,74 @@ describe("§'how we will publish daily assessment result' — Daily Assessment s
   });
 });
 
+
+describe("§Daily-assessment-analytics — the Result Analysis 'Daily assessments <year>' page (getDailyAssessmentAnalysis / listDailyAssessmentYears)", () => {
+  it("lists only academic years that actually have a Daily Assessment register, with the register count", async () => {
+    const years = await listDailyAssessmentYears(institutionA, adminAuth);
+    const current = await getCurrentAcademicYear(institutionA, adminAuth);
+    expect(years.length).toBeGreaterThanOrEqual(1);
+    const cur = years.find((y) => y.id === current!.id)!;
+    expect(cur).toBeTruthy();
+    expect(cur.is_current).toBe(true);
+    // The fixture register + the July register created in the earlier test.
+    expect(cur.register_count).toBeGreaterThanOrEqual(2);
+  });
+
+  it("returns one row per (register, class, subject) with live sums across every completed session — never through `results`/mv_exam_subject_stats, which Daily Assessment marks never reach", async () => {
+    const year = await getCurrentAcademicYear(institutionA, adminAuth);
+    const examTypes = await listExamTypes(institutionA, adminAuth);
+    const dailyType = examTypes.find((t) => t.is_daily_assessment)!;
+    // A fresh past-month register so this test's numbers are isolated from
+    // whatever earlier tests entered into the current-month fixture.
+    const may = await createExamination(institutionA, adminAuth, adminUserId, {
+      examTypeId: dailyType.id, academicYearId: year!.id, name: "ignored", forDate: "2026-05-01",
+    });
+    const d1 = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId: may.id, classId, subjectId, assessmentDate: "2026-05-04", portion: "Fractions", maxMarks: 20,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, d1.id, [
+      { studentId: student1, marksObtained: 16, isAbsent: false },
+      { studentId: student2, marksObtained: 8, isAbsent: false },
+    ]);
+    const d2 = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId: may.id, classId, subjectId, assessmentDate: "2026-05-05", portion: "Decimals", maxMarks: 10,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, d2.id, [
+      { studentId: student1, marksObtained: 9, isAbsent: false },
+      { studentId: student2, marksObtained: 0, isAbsent: true }, // absent: excluded from both numerator and denominator
+    ]);
+    // A pending (no marks) session must not count at all.
+    await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId: may.id, classId, subjectId, assessmentDate: "2026-05-06", portion: "Not yet taken", maxMarks: 20,
+    });
+
+    const rows = await getDailyAssessmentAnalysis(institutionA, adminAuth, year!.id);
+    const mayRows = rows.filter((r) => r.examination_id === may.id);
+    expect(mayRows).toHaveLength(1); // one class × one subject
+    const r = mayRows[0];
+    expect(r.examination_name).toBe("Daily Assessment — May 2026");
+    expect(r.class_id).toBe(classId);
+    expect(r.subject_id).toBe(subjectId);
+    expect(r.sessions).toBe(2);            // d1 + d2 completed; the pending one is ignored
+    expect(r.marks_count).toBe(3);         // 16, 8, 9 — the absent row is not a mark
+    expect(r.students_assessed).toBe(2);
+    expect(r.total_obtained).toBe(33);     // 16 + 8 + 9
+    expect(r.total_max).toBe(50);          // 20 + 20 + 10 — NOT 60: the absent student's 10 is excluded
+
+    // Registers come back newest month first (the page lists latest on top).
+    const order = Array.from(new Set(rows.map((x) => x.start_date)));
+    const sorted = [...order].sort().reverse();
+    expect(order).toEqual(sorted);
+  });
+
+  it("is tenant-scoped: another institution sees none of these registers", async () => {
+    const db = await getRawDbClient();
+    const institutionB = await seedDemoInstitution(db, "daily-assessment-other");
+    const other = await seedDemoUser(db, institutionB, "admin@da-other.example", "Other Admin", "institution_admin");
+    const years = await listDailyAssessmentYears(institutionB, other.authUserId);
+    expect(years).toHaveLength(0);
+    const yearA = await getCurrentAcademicYear(institutionA, adminAuth);
+    const rows = await getDailyAssessmentAnalysis(institutionB, other.authUserId, yearA!.id);
+    expect(rows).toHaveLength(0);
+  });
+});

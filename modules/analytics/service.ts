@@ -1318,3 +1318,93 @@ export async function getClassMarksHistogram(institutionId: string, authUserId: 
     () => getClassMarksHistogramImpl(institutionId, authUserId, examinationId, classId),
   );
 }
+
+// ---------------------------------------------------------------------------
+// Daily Assessment analysis (§Daily-assessment-analytics — "daily assessments
+// are not still shown in the result analytics... only a button with the title
+// Daily assessments 2026-27, if clicked it will take to the page where all
+// daily assessments' results are available month-wise, latest on top... a
+// chart that shows growth and fall")
+//
+// Daily Assessment registers (migration 0048) never write to `marks` /
+// `results` / mv_exam_subject_stats — their marks live in
+// daily_assessment_marks, keyed per (date, class, subject) session — so every
+// read on this page's Result Analysis tabs was structurally 0 for them, not
+// just stale. Rather than bolt them into the exam-centric rollups, they get
+// their own page fed by this one live query: one row per (monthly register,
+// class, subject) with the raw sums, and the page aggregates up to month /
+// class / subject in TS so teacher-scope filtering (allowedClassIds) can be
+// applied at row level exactly as the main Analytics page does. No
+// unstable_cache: the register's own pages already read these tables live
+// ("automatically update... as marks are entered"), and this must agree with
+// them to the minute.
+// ---------------------------------------------------------------------------
+export interface DailyAssessmentAnalysisRow {
+  examination_id: string; examination_name: string; start_date: string | null;
+  class_id: string; class_name: string; subject_id: string; subject_name: string;
+  sessions: number;            // completed (date, class, subject) sessions
+  marks_count: number;         // non-absent marks entered
+  students_assessed: number;   // distinct students with ≥1 non-absent mark
+  total_obtained: number;
+  total_max: number;           // sum of each session's max_marks, once per non-absent mark
+}
+
+export async function getDailyAssessmentAnalysis(
+  institutionId: string, authUserId: string, academicYearId: string
+): Promise<DailyAssessmentAnalysisRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{
+      examination_id: string; examination_name: string; start_date: string | null;
+      class_id: string; class_name: string; subject_id: string; subject_name: string;
+      sessions: string; marks_count: string; students_assessed: string; total_obtained: string; total_max: string;
+    }>(
+      `select e.id as examination_id, e.name as examination_name, e.start_date::text as start_date,
+              da.class_id, c.name as class_name, da.subject_id, sub.name as subject_name,
+              count(distinct da.id) as sessions,
+              count(dam.id) filter (where not dam.is_absent and dam.marks_obtained is not null) as marks_count,
+              count(distinct dam.student_id) filter (where not dam.is_absent and dam.marks_obtained is not null) as students_assessed,
+              coalesce(sum(dam.marks_obtained) filter (where not dam.is_absent), 0) as total_obtained,
+              coalesce(sum(da.max_marks) filter (where dam.id is not null and not dam.is_absent and dam.marks_obtained is not null), 0) as total_max
+         from examinations e
+         join exam_types et on et.id = e.exam_type_id and et.is_daily_assessment
+         join daily_assessments da on da.examination_id = e.id and da.status = 'completed'
+         join classes c on c.id = da.class_id
+         join subjects sub on sub.id = da.subject_id
+         left join daily_assessment_marks dam on dam.daily_assessment_id = da.id
+        where e.institution_id = $1 and e.academic_year_id = $2
+        group by e.id, e.name, e.start_date, da.class_id, c.name, da.subject_id, sub.name
+        order by e.start_date desc nulls last, e.created_at desc, c.name, sub.name`,
+      [institutionId, academicYearId]
+    );
+    return rows.map((r) => ({
+      examination_id: r.examination_id, examination_name: r.examination_name, start_date: r.start_date,
+      class_id: r.class_id, class_name: r.class_name, subject_id: r.subject_id, subject_name: r.subject_name,
+      sessions: Number(r.sessions), marks_count: Number(r.marks_count), students_assessed: Number(r.students_assessed),
+      total_obtained: Number(r.total_obtained), total_max: Number(r.total_max),
+    }));
+  });
+}
+
+/** The academic years that have at least one Daily Assessment register —
+ *  the page's year picker only offers those, so "Daily assessments 2026-27"
+ *  is never a button to an empty page. Ordered newest first, `is_current`
+ *  carried so the page can default to the current year. */
+export async function listDailyAssessmentYears(
+  institutionId: string, authUserId: string
+): Promise<Array<{ id: string; name: string; is_current: boolean; register_count: number }>> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string; name: string; is_current: boolean; register_count: string }>(
+      `select ay.id, ay.name, ay.is_current, count(e.id) as register_count
+         from academic_years ay
+         join examinations e on e.academic_year_id = ay.id
+         join exam_types et on et.id = e.exam_type_id and et.is_daily_assessment
+        where ay.institution_id = $1
+        group by ay.id, ay.name, ay.is_current, ay.start_date
+        order by ay.start_date desc`,
+      [institutionId]
+    );
+    return rows.map((r) => ({ id: r.id, name: r.name, is_current: r.is_current, register_count: Number(r.register_count) }));
+  });
+}

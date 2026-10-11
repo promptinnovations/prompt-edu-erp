@@ -2,12 +2,13 @@ import Link from "next/link";
 import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { listClasses, listSections } from "../../../modules/academic/service";
-import { listExaminations, examinationWorkflowStatus, PASS_COLOR, FAIL_COLOR } from "../../../modules/examination/service";
+import { listExaminations, listExamTypes, examinationWorkflowStatus, PASS_COLOR, FAIL_COLOR } from "../../../modules/examination/service";
 import {
   getSubjectComparison, getSubjectPerformanceIndicators, getExaminationClassification,
   getClassAttendanceTrend, getClassificationRule,
   getResultSchoolSummary, getResultsBySection, getResultsByClass, getResultsByTeacher,
   getResultsByStage, getSubjectWiseByGrade, getClassMarksHistogram, getTrackWiseSummary,
+  listDailyAssessmentYears,
   type ResultGroupRow, type TeacherResultRow, type SubjectGradeGroupRow, type TrackResultSummary,
 } from "../../../modules/analytics/service";
 import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
@@ -135,13 +136,28 @@ export default async function AnalyticsPage({
     hasBroadResultAccess ? null : getStaffSectionScope(institutionId, authUserId, ctx.userId),
   ]);
 
-  const [classes, sections, examinations, rule, institution] = await Promise.all([
+  const [classes, sections, allExaminations, examTypes, dailyYears, rule, institution] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSections(institutionId, authUserId),
     listExaminations(institutionId, authUserId),
+    listExamTypes(institutionId, authUserId),
+    listDailyAssessmentYears(institutionId, authUserId),
     getClassificationRule(institutionId, authUserId),
     getInstitution(institutionId, authUserId),
   ]);
+  // §Daily-assessment-analytics — Daily Assessment registers never write to
+  // `results` (their marks live in daily_assessment_marks), so every tab on
+  // this page is structurally empty for them; worse, pickDefaultExaminationId
+  // was happily defaulting to one ("Daily Assessment — August 2026 ... Students
+  // with a result: 0"). They're removed from the pill row and the default
+  // pick, and replaced by ONE "Daily assessments <year>" button that opens
+  // their own month-wise page (/analytics/daily-assessments).
+  const dailyTypeIds = new Set(examTypes.filter((t) => t.is_daily_assessment).map((t) => t.id));
+  const examinations = allExaminations.filter((e) => !dailyTypeIds.has(e.exam_type_id));
+  const dailyYear = dailyYears.find((y) => y.is_current) ?? dailyYears[0] ?? null;
+  const dailyAssessmentsLink = dailyYear
+    ? { label: `Daily assessments ${dailyYear.name}`, href: `/analytics/daily-assessments?academicYearId=${encodeURIComponent(dailyYear.id)}` }
+    : null;
   // §"if a tenant type is Madrasa, use madrasa everywhere ... if it is a
   // college, use college instead ... for school, school only" — the word
   // this page uses in place of the generic "School" in tab/stat labels.
@@ -261,6 +277,7 @@ export default async function AnalyticsPage({
           trendClassIds={trendClassIds}
           trendSectionId={trendSectionId}
           trendMonths={trendMonths}
+          dailyAssessmentsLink={dailyAssessmentsLink}
         />
 
         {examinationId && schoolSummary ? (
