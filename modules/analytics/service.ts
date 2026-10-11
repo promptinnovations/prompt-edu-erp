@@ -23,6 +23,7 @@ import { getDbClient } from "../../services/db/client";
 import type { AttendanceScope } from "../attendance/service";
 import { isPass, PASS_COLOR, FAIL_COLOR, resolveGradeBand, computeStudentResult, loadResultSubjectDefs, loadStudentApplicableSubjects, examSubjectAppliesToClassSql, DEFAULT_OVERALL_PASS_PCT, type ResultUnitEntry } from "../examination/service";
 import { resultAnalysisTag, classificationTag, ANALYTICS_VIEWS_TAG, safeRevalidateTag } from "../../services/cache/tags";
+import { runCoalesced } from "../../services/runtime/background";
 
 /**
  * Result Analysis caching (per Muhsin's cost-minimization rule — Vercel/
@@ -69,8 +70,14 @@ export type AchieverBand = "high_achiever" | "middle_achiever" | "low_achiever";
  *  the views span every institution, so this is a whole-database maintenance
  *  action, not a per-tenant one. */
 export async function refreshAnalyticsViews(): Promise<void> {
-  const db = await getDbClient();
-  await db.execRaw("select refresh_analytics_views();");
+  // §Perf: whole-database refresh, so coalesced process-wide — saves from
+  // several schools at once share one refresh instead of queueing one
+  // each. Migration 0066 also makes the refresh CONCURRENTLY, so readers
+  // are never locked out while it runs.
+  await runCoalesced("analytics-matviews", async () => {
+    const db = await getDbClient();
+    await db.execRaw("select refresh_analytics_views();");
+  });
   safeRevalidateTag(ANALYTICS_VIEWS_TAG);
 }
 

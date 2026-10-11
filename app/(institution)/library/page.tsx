@@ -3,7 +3,7 @@ import { requireModuleEnabledOrRedirect } from "../../../services/modules/module
 import { can } from "../../../services/permissions/permission-service";
 import { listStudents } from "../../../modules/students/service";
 import {
-  listBooks, listAvailableCopies, listIssuedBooks, listReadingRecords,
+  listBooks, listAvailableCopies, listAvailableCopiesByBook, listIssuedBooks, listReadingRecords,
   listAuthors, listPublishers, listBookCategories, listShelves,
   listPendingHolds, listApprovedReviews,
 } from "../../../modules/library/service";
@@ -34,10 +34,10 @@ export default async function LibraryPage() {
     listApprovedReviews(institutionId, authUserId),
   ]);
 
+  // One query for every book's available copies (was one per book).
+  const allCopies = await listAvailableCopiesByBook(institutionId, authUserId);
   const copiesByBook: Record<string, Awaited<ReturnType<typeof listAvailableCopies>>> = {};
-  for (const b of books) {
-    copiesByBook[b.id] = await listAvailableCopies(institutionId, authUserId, b.id);
-  }
+  for (const b of books) copiesByBook[b.id] = allCopies[b.id] ?? [];
 
   const canManage = can(ctx.permissions, "library.manage");
   const canIssue = can(ctx.permissions, "library.issue");

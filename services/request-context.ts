@@ -5,6 +5,7 @@
  * institution, with which permissions" — nothing downstream re-derives or
  * overrides institution_id from client input.
  */
+import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { getAuthService } from "./auth/auth-service";
 import { resolveActiveInstitution, resolveUserByAuthId, getMembershipsForUser } from "./tenant/tenant-service";
@@ -54,7 +55,14 @@ export function resolveInstitutionBlockedReason(
   return institutionStatus === "suspended" ? "suspended" : "inactive";
 }
 
-export async function getRequestContext(): Promise<RequestContext | null> {
+/** §Perf: memoised per request with React cache(). The root layout's
+ *  metadata, the institution layout, the page and its components each
+ *  call this; before, every call repeated the Supabase Auth round trip
+ *  plus 4-5 DB transactions — 3-4x per page view. Outside a React render
+ *  (route handlers, tests) cache() simply calls through. */
+export const getRequestContext = cache(getRequestContextUncached);
+
+async function getRequestContextUncached(): Promise<RequestContext | null> {
   const auth = await getAuthService();
   const session = await auth.getSession();
   if (!session) return null;
@@ -65,10 +73,10 @@ export async function getRequestContext(): Promise<RequestContext | null> {
   const cookieStore = await cookies();
   const requestedCode = cookieStore.get(ACTIVE_INSTITUTION_COOKIE)?.value ?? null;
 
-  const [active, memberships] = await Promise.all([
-    resolveActiveInstitution(session.authUserId, resolvedUser.userId, requestedCode),
-    getMembershipsForUser(session.authUserId, resolvedUser.userId),
-  ]);
+  // Memberships are fetched once and handed to resolveActiveInstitution
+  // (it used to fetch the very same rows again in parallel).
+  const memberships = await getMembershipsForUser(session.authUserId, resolvedUser.userId);
+  const active = await resolveActiveInstitution(session.authUserId, resolvedUser.userId, requestedCode, memberships);
 
   // §W / SECURITY.md "institution deactivation has no cascading effect" —
   // now enforced here, the one place every server action/route handler's

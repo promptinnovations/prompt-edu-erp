@@ -37,6 +37,7 @@ import { recordAudit } from "../../services/audit/audit-service";
 import { sortRoster, sortClasses } from "../../services/academic/roster-order";
 import { resultAnalysisTag, safeRevalidateTag } from "../../services/cache/tags";
 import { resolveGradeBand } from "./grading";
+import { runAfterResponse, runCoalesced } from "../../services/runtime/background";
 
 export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null; periodicity: string | null; is_daily_assessment: boolean }
 export interface ExaminationRecord {
@@ -1751,15 +1752,22 @@ async function recomputeExaminationResults(institutionId: string, authUserId: st
     return rows[0]?.examination_id ?? null;
   });
   if (!examinationId) return;
-  await computeResults(institutionId, authUserId, examinationId);
-  try {
-    const { refreshAnalyticsViews } = await import("../analytics/service");
-    await refreshAnalyticsViews();
-  } catch {
-    // Matview refresh is best-effort here; results table (the live source
-    // of truth for School/Section/Grade/Class-wise reports) is already
-    // correct regardless.
-  }
+  // §Perf: after the response, and coalesced per examination (see
+  // services/runtime/background.ts) — the teacher no longer waits for the
+  // recompute, and a burst of saves costs at most two recomputes.
+  await runAfterResponse("recompute-results", () =>
+    runCoalesced(`results:${examinationId}`, async () => {
+      await computeResults(institutionId, authUserId, examinationId);
+      try {
+        const { refreshAnalyticsViews } = await import("../analytics/service");
+        await refreshAnalyticsViews();
+      } catch {
+        // Matview refresh is best-effort here; results table (the live source
+        // of truth for School/Section/Grade/Class-wise reports) is already
+        // correct regardless.
+      }
+    })
+  );
 }
 
 /** Corrects a mark of any status, preserving history (§28 "correction history").

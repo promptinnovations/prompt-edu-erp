@@ -16,6 +16,7 @@ import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
 import { listAttendanceStatuses } from "../../modules/attendance/service";
+import { todayIST } from "../../services/datetime/ist";
 import {
   createStaffMember, getStaffAttendanceGrid, markStaffAttendance,
   markOwnStaffAttendance, getOwnStaffAttendanceToday,
@@ -25,7 +26,9 @@ let institutionA: string;
 let adminAuth: string, adminUserId: string;
 let staffId: string;
 let presentStatusId: string, absentStatusId: string;
-const today = new Date().toISOString().slice(0, 10);
+// The service's "today" is India time; a UTC date made this fail every
+// evening between 18:30 and 24:00 UTC.
+const today = todayIST();
 
 beforeAll(async () => {
   __resetDbClientForTests();

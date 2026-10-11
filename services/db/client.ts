@@ -105,7 +105,18 @@ async function createPgAdapter(connectionString: string): Promise<DbClient> {
   types.setTypeParser(types.builtins.TIMESTAMP, (val) => val);
   types.setTypeParser(types.builtins.TIMESTAMPTZ, (val) => val);
 
-  const pool = new Pool({ connectionString });
+  // §Perf: pg's defaults (max 10, 10s idle timeout) made a busy page queue
+  // for connections and made the first request after any 10s lull pay a
+  // fresh TLS + auth handshake to Supabase. Keep connections warm longer,
+  // allow a few more, and fail fast instead of hanging if the DB is
+  // unreachable. DB_POOL_MAX lets production tune it to the plan's limit.
+  const pool = new Pool({
+    connectionString,
+    max: Number(process.env.DB_POOL_MAX) || 15,
+    idleTimeoutMillis: 120_000,
+    connectionTimeoutMillis: 20_000,
+    keepAlive: true,
+  });
 
   const adapter: DbClient = {
     async query(sql, params = []) {
@@ -119,11 +130,9 @@ async function createPgAdapter(connectionString: string): Promise<DbClient> {
       const client = await pool.connect();
       try {
         await client.query("begin");
-        await client.query("set local role app_user");
-        await applySessionContext(
-          (sql: string, params: unknown[]) => client.query(sql, params).then((r) => ({ rows: r.rows })),
-          ctx
-        );
+        // Role + every tenant setting in ONE round trip (was 5+).
+        const sc = sessionContextQuery(ctx);
+        await client.query(sc.sql, sc.params);
         const scoped: DbClient = {
           query: (sql, params = []) => client.query(sql, params as unknown[]).then((r) => ({ rows: r.rows as never[] })),
           execRaw: (sql) => client.query(sql).then(() => undefined),
@@ -169,8 +178,8 @@ function wrapPglite(db: any): DbClient {
     async withInstitutionContext(ctx, fn) {
       await db.exec("begin");
       try {
-        await db.exec("set local role app_user");
-        await applySessionContext((sql: string, params: unknown[]) => db.query(sql, params).then((r: { rows: unknown[] }) => ({ rows: r.rows })), ctx);
+        const sc = sessionContextQuery(ctx);
+        await db.query(sc.sql, sc.params);
         const result = await fn(adapter);
         await db.exec("commit");
         return result;
@@ -186,16 +195,29 @@ function wrapPglite(db: any): DbClient {
   return adapter;
 }
 
-async function applySessionContext(
-  run: (sql: string, params: unknown[]) => Promise<{ rows: unknown[] }>,
+/** One statement that switches to the RLS-bound `app_user` role and sets
+ *  every tenant setting for the current transaction.
+ *
+ *  `set_config(..., true)` = transaction-local (same as `set local`). The
+ *  old code passed `false`, which is SESSION-level despite its comment: the
+ *  values outlived the transaction and stayed on the pooled connection
+ *  for whichever request borrowed it next — harmless only because every
+ *  transaction overwrote all three, and incompatible with a transaction
+ *  pooler (Supabase Supavisor :6543). `set_config('role', …, true)` is
+ *  exactly `set local role`. */
+export function sessionContextQuery(
   ctx: { institutionId: string | null; authUserId?: string | null; isSuperAdmin?: boolean; flags?: Record<string, boolean> }
-) {
-  // set_config(..., false) => visible for the rest of the current transaction,
-  // which is exactly the lifetime we want (one request = one transaction).
-  await run("select set_config('app.current_institution_id', $1, false)", [ctx.institutionId ?? ""]);
-  await run("select set_config('app.current_auth_user_id', $1, false)", [ctx.authUserId ?? ""]);
-  await run("select set_config('app.is_super_admin', $1, false)", [ctx.isSuperAdmin ? "true" : "false"]);
+): { sql: string; params: unknown[] } {
+  const params: unknown[] = [ctx.institutionId ?? "", ctx.authUserId ?? "", ctx.isSuperAdmin ? "true" : "false"];
+  const parts = [
+    "set_config('role', 'app_user', true)",
+    "set_config('app.current_institution_id', $1, true)",
+    "set_config('app.current_auth_user_id', $2, true)",
+    "set_config('app.is_super_admin', $3, true)",
+  ];
   for (const [flag, value] of Object.entries(ctx.flags ?? {})) {
-    await run(`select set_config($1, $2, false)`, [`app.${flag}`, value ? "true" : "false"]);
+    params.push(`app.${flag}`, value ? "true" : "false");
+    parts.push(`set_config($${params.length - 1}, $${params.length}, true)`);
   }
+  return { sql: `select ${parts.join(", ")}`, params };
 }

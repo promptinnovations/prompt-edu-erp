@@ -351,13 +351,17 @@ export async function middleware(request: NextRequest) {
         },
       }
     );
-    // getUser() (not getSession()) for the same reason
-    // supabase-auth-provider.ts's getSession() does — revalidates against
-    // the Supabase Auth server rather than trusting a local cookie. As a
-    // side effect, this is exactly what triggers @supabase/ssr's cookie
-    // rotation above when the access token has expired but the refresh
-    // token hasn't — the fix this whole block exists for.
-    await supabase.auth.getUser();
+    // §Perf: getSession(), not getUser(). This call exists ONLY to make
+    // @supabase/ssr rotate the cookies above when the access token has
+    // expired but the refresh token hasn't; its result is not used for any
+    // authorization decision here. getSession() refreshes an expired token
+    // exactly the same way but makes NO network call while the token is
+    // still fresh, whereas getUser() called the Supabase Auth server on
+    // every single request — page loads, every sidebar-link prefetch,
+    // every /api/files image. The authoritative check is unchanged:
+    // services/request-context.ts → supabase-auth-provider.ts still
+    // verifies the user with the Auth server (now once per request).
+    await supabase.auth.getSession();
   }
 
   response.headers.set("Content-Security-Policy", csp);
@@ -370,5 +374,7 @@ export const config = {
   // limiter's own RULES above still narrow which specific paths actually
   // get rate-limited, and resolveInstitutionRouting() above narrows
   // which paths participate in institution URL routing.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // `icons/` (PWA icons in public/) are static files that need neither a
+  // CSP nonce nor a session refresh.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons/).*)"],
 };

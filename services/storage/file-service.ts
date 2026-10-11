@@ -182,6 +182,22 @@ export async function getDownloadUrl(institutionId: string, authUserId: string, 
   return provider.getDownloadUrl(file.storage_file_id);
 }
 
+/** §Perf: what the /api/files/[fileId] route needs, in ONE files lookup.
+ *  Local-provider files come back as bytes to stream; every other provider
+ *  as its signed download URL to redirect to — WITHOUT downloading the
+ *  object first. (The route used to download every Supabase file in full
+ *  and then throw the bytes away before redirecting: a student list with
+ *  40 photos meant 40 full downloads plus 40 redirects per page view.) */
+export async function resolveFileForServing(
+  institutionId: string, authUserId: string, fileId: string
+): Promise<{ file: FileRecord; bytes: Buffer } | { file: FileRecord; url: string } | null> {
+  const file = await getFile(institutionId, authUserId, fileId);
+  if (!file) return null;
+  const provider = getStorageProviderByName(file.storage_provider as "local" | "supabase");
+  if (file.storage_provider === "local") return { file, bytes: await provider.download(file.storage_file_id) };
+  return { file, url: await provider.getDownloadUrl(file.storage_file_id) };
+}
+
 /** Used by the /api/files/[fileId] route to stream local-provider bytes
  *  directly (and by moveFile()'s byte-verified copy below). */
 export async function downloadFileBytes(institutionId: string, authUserId: string, fileId: string): Promise<{ bytes: Buffer; file: FileRecord } | null> {

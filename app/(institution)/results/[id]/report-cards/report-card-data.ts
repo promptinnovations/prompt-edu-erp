@@ -8,6 +8,7 @@ import { getStudentAttendanceSummary } from "../../../../../modules/attendance/s
 import { todayIST } from "../../../../../services/datetime/ist";
 import { formatMarks } from "../../../../../services/format/marks";
 import { getReportCardRemarks } from "../../../../../modules/report-card-remarks/service";
+import { mapLimit } from "../../../../../services/runtime/map-limit";
 
 /** §Report-card-print-all + §Daily-assessment-report-card — the one place
  *  report-card CONTENT is assembled, shared by the single-student route
@@ -137,12 +138,15 @@ export async function loadReportCards(
       return true;
     });
     const cards: ReportCardData[] = [];
-    for (const r of picked) {
-      const [subjectTotals, student, attendance] = await Promise.all([
-        getDailyAssessmentStudentSubjectTotals(institutionId, authUserId, examinationId, r.student_id),
-        getStudent(institutionId, authUserId, r.student_id),
-        attendanceFor(r.student_id),
-      ]);
+    // §Perf: per-student lookups 5 at a time instead of strictly one after
+    // another (a 40-student class print was 120 sequential round trips).
+    const perStudent = await mapLimit(picked, 5, (r) => Promise.all([
+      getDailyAssessmentStudentSubjectTotals(institutionId, authUserId, examinationId, r.student_id),
+      getStudent(institutionId, authUserId, r.student_id),
+      attendanceFor(r.student_id),
+    ]));
+    for (const [i, r] of picked.entries()) {
+      const [subjectTotals, student, attendance] = perStudent[i];
       const rows: ReportCardSubjectRow[] = subjectTotals.map((t) => {
         const pct = t.max > 0 ? (t.obtained / t.max) * 100 : null;
         const band = pct != null ? resolveGradeBand(gradeBands, pct) : null;
@@ -190,12 +194,14 @@ export async function loadReportCards(
   }
 
   const cards: ReportCardData[] = [];
-  for (const [studentId, studentRows] of byStudent) {
+  const studentEntries = [...byStudent];
+  const perStudent = await mapLimit(studentEntries, 5, ([studentId]) => Promise.all([
+    getStudent(institutionId, authUserId, studentId),
+    attendanceFor(studentId),
+  ]));
+  for (const [i, [studentId, studentRows]] of studentEntries.entries()) {
     const first = studentRows[0];
-    const [student, attendance] = await Promise.all([
-      getStudent(institutionId, authUserId, studentId),
-      attendanceFor(studentId),
-    ]);
+    const [student, attendance] = perStudent[i];
     const hasCe = studentRows.some((r) => r.ce_components.length > 0);
     const rows: ReportCardSubjectRow[] = studentRows.map((r) => {
       // Per-subject display applies the same unit rules as

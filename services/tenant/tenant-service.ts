@@ -202,9 +202,11 @@ export async function getMembershipsForUser(authUserId: string, userId: string):
 export async function resolveActiveInstitution(
   authUserId: string,
   userId: string,
-  requestedInstitutionCode?: string | null
+  requestedInstitutionCode?: string | null,
+  /** Already-fetched memberships for this user, to skip a second query. */
+  knownMemberships?: InstitutionMembership[]
 ): Promise<InstitutionMembership | null> {
-  const memberships = await getMembershipsForUser(authUserId, userId);
+  const memberships = knownMemberships ?? await getMembershipsForUser(authUserId, userId);
   if (memberships.length === 0) return null;
 
   if (requestedInstitutionCode) {

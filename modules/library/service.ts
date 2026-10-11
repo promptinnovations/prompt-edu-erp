@@ -320,6 +320,21 @@ export async function listBooks(institutionId: string, authUserId: string): Prom
   });
 }
 
+/** §Perf: every available copy of every book in ONE query, grouped by
+ *  book_id — the library page used to call listAvailableCopies() once per
+ *  book, sequentially (a 500-book catalogue = 500 transactions per view). */
+export async function listAvailableCopiesByBook(institutionId: string, authUserId: string): Promise<Record<string, BookCopyRecord[]>> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<BookCopyRecord>(
+      "select id, book_id, copy_code, condition, status from book_copies where status = 'available' order by book_id, copy_code"
+    );
+    const byBook: Record<string, BookCopyRecord[]> = {};
+    for (const r of rows) (byBook[r.book_id] ??= []).push(r);
+    return byBook;
+  });
+}
+
 export async function listAvailableCopies(institutionId: string, authUserId: string, bookId: string): Promise<BookCopyRecord[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {

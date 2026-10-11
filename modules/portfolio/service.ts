@@ -115,11 +115,11 @@ export async function getStudent360(
   // every existing call site.
   onlyPublishedResults = false
 ): Promise<Student360Record> {
-  const student = await getStudent(institutionId, authUserId, studentId);
-  const enrollment = await getCurrentEnrollment(institutionId, authUserId, studentId);
-
+  // §Perf: these lookups are independent, so they run in parallel (they
+  // used to run one after another — ~9 sequential transactions on every
+  // student/parent portal page view).
   const db = await getDbClient();
-  const latestResult = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const latestResultPromise = db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<LatestResultSummary>(
       `select e.name as examination_name, r.percentage, gb.grade_label, r.computed_at
          from results r
@@ -137,23 +137,24 @@ export async function getStudent360(
   // Attendance summary window: the current academic year to date, since
   // Student 360 is meant to reflect "this year, so far" rather than an
   // arbitrary caller-supplied range (§L.4 doesn't specify one).
-  const academicYear = await getCurrentAcademicYear(institutionId, authUserId);
-  const attendanceSummary = academicYear
-    ? await getStudentAttendanceSummary(institutionId, authUserId, studentId, academicYear.start_date, academicYear.end_date)
-    : null;
-
-  const latestConsolidatedScore = await getLatestConsolidatedScore(institutionId, authUserId, studentId);
-  const recentPortfolioEvents = await listPortfolioTimeline(institutionId, authUserId, studentId, recentEventLimit);
-
-  const openMentoringGoals = scope?.mentoring
-    ? await listOpenMentoringGoals(institutionId, authUserId, scope.mentoring, studentId)
-    : null;
-  const activeDisciplineFlags = scope?.canViewDiscipline
-    ? await listRecentNegativeDisciplineFlags(
-        institutionId, authUserId, studentId,
-        academicYear?.start_date ?? "1900-01-01"
-      )
-    : null;
+  const academicYearPromise = getCurrentAcademicYear(institutionId, authUserId);
+  const [student, enrollment, latestResult, academicYear, latestConsolidatedScore, recentPortfolioEvents, openMentoringGoals] = await Promise.all([
+    getStudent(institutionId, authUserId, studentId),
+    getCurrentEnrollment(institutionId, authUserId, studentId),
+    latestResultPromise,
+    academicYearPromise,
+    getLatestConsolidatedScore(institutionId, authUserId, studentId),
+    listPortfolioTimeline(institutionId, authUserId, studentId, recentEventLimit),
+    scope?.mentoring ? listOpenMentoringGoals(institutionId, authUserId, scope.mentoring, studentId) : Promise.resolve(null),
+  ]);
+  const [attendanceSummary, activeDisciplineFlags] = await Promise.all([
+    academicYear
+      ? getStudentAttendanceSummary(institutionId, authUserId, studentId, academicYear.start_date, academicYear.end_date)
+      : Promise.resolve(null),
+    scope?.canViewDiscipline
+      ? listRecentNegativeDisciplineFlags(institutionId, authUserId, studentId, academicYear?.start_date ?? "1900-01-01")
+      : Promise.resolve(null),
+  ]);
 
   return {
     student: student ? { id: student.id, full_name: student.full_name, admission_number: student.admission_number, status: student.status, photo_file_id: student.photo_file_id ?? null } : null,
