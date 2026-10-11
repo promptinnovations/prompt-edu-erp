@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, type FormEvent } from "react";
 import { saveDailyAssessmentMarksAction } from "../../../actions";
 import { formatMarks } from "../../../../../../services/format/marks";
+import LiveGradeChip, { parseMarkInput, type LiveGradeBand } from "../../../../../components/exam/LiveGradeChip";
 
 export interface DailyGridStudent {
   student_id: string; student_name: string; admission_number: string;
@@ -17,19 +18,35 @@ export interface DailyGridStudent {
  *  session's own date (server-side in enterDailyAssessmentMarks() too) --
  *  editable is now just "does this person have the permission". */
 export default function DailyMarksGridForm({
-  students, examinationId, dailyAssessmentId, canEnter, maxMarks,
+  students, examinationId, dailyAssessmentId, canEnter, maxMarks, gradeBands = [],
 }: {
   students: DailyGridStudent[];
   examinationId: string;
   dailyAssessmentId: string;
   canEnter: boolean;
   maxMarks: string;
+  /** The register's grade scale; empty -> no Grade column. */
+  gradeBands?: LiveGradeBand[];
 }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(saveDailyAssessmentMarksAction, { error: null });
   const editable = canEnter;
+  const showGrade = gradeBands.length > 0;
+  // Mirror of the (still uncontrolled) inputs so the Grade column updates
+  // as marks are typed — see MarksGridForm for the same pattern.
+  const [values, setValues] = useState<Record<string, { te: string; absent: boolean }>>(() =>
+    Object.fromEntries(students.map((s) => [s.student_id, { te: formatMarks(s.marks_obtained), absent: s.is_absent }]))
+  );
+  function onGridChange(e: FormEvent<HTMLFormElement>) {
+    const t = e.target as HTMLInputElement;
+    const [kind, studentId] = (t.name ?? "").split("_");
+    if ((kind !== "marks" && kind !== "absent") || !studentId) return;
+    setValues((prev) => prev[studentId]
+      ? { ...prev, [studentId]: kind === "marks" ? { ...prev[studentId], te: t.value } : { ...prev[studentId], absent: t.checked } }
+      : prev);
+  }
 
   return (
-    <form action={formAction}>
+    <form action={formAction} onChange={onGridChange}>
       <input type="hidden" name="examinationId" value={examinationId} />
       <input type="hidden" name="dailyAssessmentId" value={dailyAssessmentId} />
       <div className="overflow-x-auto">
@@ -40,6 +57,7 @@ export default function DailyMarksGridForm({
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Marks (of {formatMarks(maxMarks)})</th>
               <th className="py-1.5">Absent</th>
+              {showGrade ? <th className="py-1.5">Grade</th> : null}
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -63,6 +81,14 @@ export default function DailyMarksGridForm({
                 <td className="py-1.5">
                   <input autoComplete="off" name={`absent_${s.student_id}`} type="checkbox" defaultChecked={s.is_absent} disabled={!editable} />
                 </td>
+                {showGrade ? (
+                  <td className="py-1.5">
+                    <LiveGradeChip
+                      units={[{ max: Number(maxMarks), obtained: parseMarkInput(values[s.student_id]?.te ?? ""), absent: values[s.student_id]?.absent ?? false }]}
+                      bands={gradeBands}
+                    />
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../../services/request-context";
 import { can } from "../../../../../../services/permissions/permission-service";
-import { getExamination, listExamSubjects, getMarksGrid, getCeMarksGrid } from "../../../../../../modules/examination/service";
+import { getExamination, listExamSubjects, getMarksGrid, getCeMarksGrid, getGradeBands } from "../../../../../../modules/examination/service";
 import { listSubjects } from "../../../../../../modules/academic/service";
 import { assertMarkEntryScope } from "../../../../../../services/scope/teacher-scope-service";
 import { formatMarks } from "../../../../../../services/format/marks";
@@ -39,9 +39,10 @@ export default async function MarksEntryPage({
     notFound();
   }
 
-  const [grid, ce] = await Promise.all([
+  const [grid, ce, gradeBands] = await Promise.all([
     getMarksGrid(institutionId, authUserId, examSubjectId),
     getCeMarksGrid(institutionId, authUserId, examSubjectId),
+    examination.grade_scale_id ? getGradeBands(institutionId, authUserId, examination.grade_scale_id) : Promise.resolve([]),
   ]);
   const ceMax = ce.components.reduce((a, c) => a + Number(c.max_marks), 0);
 
@@ -66,6 +67,8 @@ export default async function MarksEntryPage({
           examSubjectId={examSubjectId}
           ceComponents={ce.components.map((c) => ({ id: c.id, name: c.name, maxMarks: c.max_marks }))}
           ceMarks={ce.marks}
+          maxMarks={examSubject.max_marks}
+          gradeBands={gradeBands.map((b) => ({ min_percent: b.min_percent, max_percent: b.max_percent, grade_label: b.grade_label, color: b.color }))}
           canEnter={can(ctx.permissions, "marks.enter") && !examination.finalized_at}
           examinationClosed={Boolean(examination.marks_closed_at)}
           canCorrect={(ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage")) && !examination.finalized_at}

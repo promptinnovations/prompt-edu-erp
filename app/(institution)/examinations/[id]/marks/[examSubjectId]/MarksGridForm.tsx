@@ -1,9 +1,11 @@
 "use client";
 
-import { Fragment, useActionState, useState } from "react";
+import { Fragment, useActionState, useState, type FormEvent } from "react";
 import { saveMarksAction, deleteMarkAction, correctMarkAction } from "../../../actions";
 import ConfirmSubmitButton from "../../../../../components/ui/ConfirmSubmitButton";
 import { formatMarks } from "../../../../../../services/format/marks";
+import type { GradeUnit } from "../../../../../../modules/examination/grading";
+import LiveGradeChip, { parseMarkInput, type LiveGradeBand } from "../../../../../components/exam/LiveGradeChip";
 
 export interface GridStudent {
   student_id: string; student_name: string; admission_number: string;
@@ -62,9 +64,27 @@ function CorrectMarkRow({
 export interface GridCeComponent { id: string; name: string; maxMarks: string }
 export interface GridCeMark { student_id: string; ce_component_id: string; marks_obtained: string | null; is_absent: boolean; entry_status: string }
 
+export type GridGradeBand = LiveGradeBand;
+
+/** Live values of one row's inputs — the inputs stay uncontrolled (the
+ *  form still posts them exactly as before); this mirror only exists so the
+ *  Grade column can re-resolve on every keystroke. */
+interface RowValues { te: string; absent: boolean; ce: Record<string, { v: string; ab: boolean }> }
+
+/** The subject grade for one row: TE + every CE component (LiveGradeChip). */
+function GradeCell({
+  row, maxMarks, ceComponents, bands,
+}: { row: RowValues; maxMarks: string; ceComponents: GridCeComponent[]; bands: GridGradeBand[] }) {
+  const units: GradeUnit[] = [
+    { max: Number(maxMarks), obtained: parseMarkInput(row.te), absent: row.absent },
+    ...ceComponents.map((c) => ({ max: Number(c.maxMarks), obtained: parseMarkInput(row.ce[c.id]?.v ?? ""), absent: row.ce[c.id]?.ab ?? false })),
+  ];
+  return <LiveGradeChip units={units} bands={bands} />;
+}
+
 export default function MarksGridForm({
   students, examinationId, examSubjectId, canEnter, canCorrect, examinationClosed,
-  ceComponents = [], ceMarks = [],
+  ceComponents = [], ceMarks = [], maxMarks, gradeBands = [],
 }: {
   students: GridStudent[];
   examinationId: string;
@@ -81,14 +101,52 @@ export default function MarksGridForm({
    *  the same Save marks submit. */
   ceComponents?: GridCeComponent[];
   ceMarks?: GridCeMark[];
+  /** This exam subject's TE maximum — the Grade column's denominator. */
+  maxMarks: string;
+  /** The examination's grade scale; empty -> the Grade column is hidden. */
+  gradeBands?: GridGradeBand[];
 }) {
   const ceByKey = new Map(ceMarks.map((m) => [`${m.ce_component_id}:${m.student_id}`, m]));
+  const showGrade = gradeBands.length > 0;
+  const [values, setValues] = useState<Record<string, RowValues>>(() =>
+    Object.fromEntries(students.map((s) => [s.student_id, {
+      te: formatMarks(s.marks_obtained),
+      absent: s.is_absent,
+      ce: Object.fromEntries(ceComponents.map((c) => {
+        const m = ceByKey.get(`${c.id}:${s.student_id}`);
+        return [c.id, { v: formatMarks(m?.marks_obtained), ab: m?.is_absent ?? false }];
+      })),
+    }]))
+  );
+  // One delegated listener instead of an onChange per input: the input
+  // names already encode what changed (marks_<student>, absent_<student>,
+  // ce_<component>_<student>, ceabsent_<component>_<student>).
+  function onGridChange(e: FormEvent<HTMLFormElement>) {
+    const t = e.target as HTMLInputElement;
+    const parts = (t.name ?? "").split("_");
+    const kind = parts[0];
+    const studentId = parts[parts.length - 1];
+    if (!["marks", "absent", "ce", "ceabsent"].includes(kind) || !studentId) return;
+    setValues((prev) => {
+      const row = prev[studentId];
+      if (!row) return prev;
+      const next: RowValues = { ...row, ce: { ...row.ce } };
+      if (kind === "marks") next.te = t.value;
+      else if (kind === "absent") next.absent = t.checked;
+      else {
+        const compId = parts[1];
+        const cur = next.ce[compId] ?? { v: "", ab: false };
+        next.ce[compId] = kind === "ce" ? { ...cur, v: t.value } : { ...cur, ab: t.checked };
+      }
+      return { ...prev, [studentId]: next };
+    });
+  }
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(saveMarksAction, { error: null });
   const [, deleteAction] = useActionState<{ error: string | null }, FormData>(deleteMarkAction, { error: null });
 
   return (
     <div className="space-y-4">
-      <form action={formAction}>
+      <form action={formAction} onChange={onGridChange}>
         <input type="hidden" name="examinationId" value={examinationId} />
         <input type="hidden" name="examSubjectId" value={examSubjectId} />
         {ceComponents.map((c) => <input key={c.id} type="hidden" name="ceComponentId" value={c.id} />)}
@@ -103,6 +161,7 @@ export default function MarksGridForm({
               {ceComponents.map((c) => (
                 <th key={c.id} className="py-1.5">{c.name} <span className="normal-case">/{formatMarks(c.maxMarks)}</span></th>
               ))}
+              {showGrade ? <th className="py-1.5">Grade</th> : null}
               <th className="py-1.5" />
             </tr>
           </thead>
@@ -126,7 +185,7 @@ export default function MarksGridForm({
               <Fragment key={s.student_id}>
               {showHeader ? (
                 <tr key={`${s.class_id}-${s.section_name ?? ""}-header`} className="bg-zinc-50">
-                  <td colSpan={5 + ceComponents.length} className="py-1.5 px-1 text-xs font-semibold uppercase tracking-[0.06em] text-zinc-600">
+                  <td colSpan={5 + ceComponents.length + (showGrade ? 1 : 0)} className="py-1.5 px-1 text-xs font-semibold uppercase tracking-[0.06em] text-zinc-600">
                     {label}
                   </td>
                 </tr>
@@ -174,7 +233,13 @@ export default function MarksGridForm({
                     </td>
                   );
                 })}
+                {showGrade ? (
+                  <td className="py-1.5">
+                    <GradeCell row={values[s.student_id]} maxMarks={maxMarks} ceComponents={ceComponents} bands={gradeBands} />
+                  </td>
+                ) : null}
                 <td className="py-1.5 text-right whitespace-nowrap">
+                  <div className="inline-flex items-center justify-end gap-3">
                   {teacherCanEdit && s.mark_id ? (
                     <form action={deleteAction} className="inline">
                       <input type="hidden" name="examinationId" value={examinationId} />
@@ -188,6 +253,7 @@ export default function MarksGridForm({
                   {canCorrect && s.mark_id ? (
                     <CorrectMarkRow student={s} examinationId={examinationId} examSubjectId={examSubjectId} />
                   ) : null}
+                  </div>
                 </td>
               </tr>
               </Fragment>

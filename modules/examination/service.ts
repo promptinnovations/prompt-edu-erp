@@ -36,6 +36,7 @@ import { getDbClient, type DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { sortRoster, sortClasses } from "../../services/academic/roster-order";
 import { resultAnalysisTag, safeRevalidateTag } from "../../services/cache/tags";
+import { resolveGradeBand } from "./grading";
 
 export interface ExamTypeRecord { id: string; code: string; name: string; category: string | null; periodicity: string | null; is_daily_assessment: boolean }
 export interface ExaminationRecord {
@@ -519,24 +520,9 @@ export const FAIL_COLOR = "#dc2626";
 /** Platform default for examinations.overall_pass_pct when unset. */
 export const DEFAULT_OVERALL_PASS_PCT = 50;
 
-export interface GradeBandLike { min_percent: string | number; max_percent: string | number }
-
-/** Resolves a percentage to a band, treating bands as half-open intervals
- *  [min_percent, next band's min_percent): the band with the greatest
- *  min_percent <= pct wins. This closes the gap an inclusive
- *  `pct between min and max` match leaves between stored boundaries like
- *  [80, 89.99] and [90, 100] (89.995 matched nothing). pct is first rounded
- *  to 2dp — the precision results.percentage is stored at — so the grade
- *  always agrees with the percentage printed next to it. Returns null only
- *  when pct is below every band's minimum (or there are no bands). */
-export function resolveGradeBand<T extends GradeBandLike>(bands: readonly T[], pct: number): T | null {
-  const p = Math.round(pct * 100) / 100;
-  let best: T | null = null;
-  for (const b of bands) {
-    if (p >= Number(b.min_percent) && (best == null || Number(b.min_percent) > Number(best.min_percent))) best = b;
-  }
-  return best;
-}
+// resolveGradeBand() lives in ./grading (pure, client-safe) — re-exported
+// here so every existing `from "../examination/service"` import still works.
+export { resolveGradeBand, subjectPercentFromUnits, type GradeBandLike, type GradeUnit } from "./grading";
 
 /** One gradable unit of a subject: the written/main paper (a `marks` row)
  *  or one CE component (a `ce_marks` row). §CE: a CE component is just

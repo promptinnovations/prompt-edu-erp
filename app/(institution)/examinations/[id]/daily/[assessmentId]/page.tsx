@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRequestContext } from "../../../../../../services/request-context";
 import { can } from "../../../../../../services/permissions/permission-service";
-import { getExamination, getDailyAssessment, getDailyAssessmentMarksGrid } from "../../../../../../modules/examination/service";
+import { getExamination, getDailyAssessment, getDailyAssessmentMarksGrid, getGradeBands } from "../../../../../../modules/examination/service";
 import { getTeacherClassScope, scopeIncludesSubjectInClass } from "../../../../../../services/scope/teacher-scope-service";
 import DailyMarksGridForm from "./DailyMarksGridForm";
 import { formatDateIST } from "../../../../../../services/datetime/ist";
@@ -32,7 +32,10 @@ export default async function DailyAssessmentMarksPage({
     if (!scopeIncludesSubjectInClass(scope, entry.class_id, entry.subject_id)) notFound();
   }
 
-  const grid = await getDailyAssessmentMarksGrid(institutionId, authUserId, assessmentId);
+  const [grid, gradeBands] = await Promise.all([
+    getDailyAssessmentMarksGrid(institutionId, authUserId, assessmentId),
+    examination.grade_scale_id ? getGradeBands(institutionId, authUserId, examination.grade_scale_id) : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -51,6 +54,7 @@ export default async function DailyAssessmentMarksPage({
           dailyAssessmentId={assessmentId}
           canEnter={can(ctx.permissions, "marks.enter")}
           maxMarks={entry.max_marks}
+          gradeBands={gradeBands.map((b) => ({ min_percent: b.min_percent, max_percent: b.max_percent, grade_label: b.grade_label, color: b.color }))}
         />
       </section>
     </div>
