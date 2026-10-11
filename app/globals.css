@@ -366,3 +366,87 @@ table tbody tr:nth-child(even) {
 table tbody tr:hover {
   background-color: rgba(11, 31, 58, 0.04);
 }
+
+/* §Staff-app-visual-layer ("work on every page — same visual style — it
+ * should not affect anything negatively"). A purely visual layer over the
+ * patterns every staff page already uses, so the whole app picks up the
+ * portal look with NO markup or logic change:
+ *   - page titles (h1 in the heading colour) get a brand-gradient accent;
+ *   - white content panels get a coloured top edge, cycling through the
+ *     chart palette so a page reads as distinct colourful blocks, and their
+ *     first heading a matching marker;
+ *   - table header rows get a soft tinted band;
+ *   - stat-card grids get coloured accents.
+ * Scoped to the staff app's <main class="staff-app">, screen only (print is
+ * untouched), and declared in the `components` layer so any utility class
+ * already on an element still wins — nothing that was explicitly styled
+ * changes. Print-only blocks (.print-area, .report-sheet) are excluded. */
+@media screen {
+  @layer components {
+    .staff-app h1[class*="text-[var(--heading)]"] {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .staff-app h1[class*="text-[var(--heading)]"]::before {
+      content: "";
+      flex: none;
+      width: 0.45rem;
+      height: 1.65rem;
+      border-radius: 9999px;
+      background: linear-gradient(180deg, var(--brand-from, var(--brand)), var(--brand-to, var(--brand)));
+    }
+
+    .staff-app section.rounded-card.border.bg-white:not(.print-area),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area) {
+      /* Inset shadow, not border-top: the element's own `border` utility
+         (utilities layer) would override a border width set here. Setting
+         --tw-inset-shadow also keeps the accent when a shadow-* utility is
+         present, since Tailwind composes it into box-shadow. */
+      --panel-accent: var(--color-chart-1);
+      --tw-inset-shadow: inset 0 3px 0 0 var(--panel-accent);
+      box-shadow: var(--tw-inset-shadow), var(--shadow-card);
+    }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 2),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 2) { --panel-accent: var(--color-chart-2); }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 3),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 3) { --panel-accent: var(--color-chart-3); }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 4),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 4) { --panel-accent: var(--color-chart-4); }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 5),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 5) { --panel-accent: var(--color-chart-5); }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 6),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 6) { --panel-accent: var(--color-chart-6); }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 7),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 7) { --panel-accent: var(--color-chart-7); }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 8),
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 8) { --panel-accent: var(--color-chart-8); }
+    .staff-app section.rounded-card.border.bg-white:not(.print-area) > h2:first-child::before,
+    .staff-app section.rounded-card.border.bg-white:not(.print-area) > div:first-child > h2:first-child::before {
+      content: "";
+      display: inline-block;
+      width: 0.4rem;
+      height: 0.9rem;
+      margin-right: 0.5rem;
+      border-radius: 9999px;
+      vertical-align: -0.1rem;
+      background: var(--panel-accent);
+    }
+
+    .staff-app thead[class*="tracking-[0.08em]"] tr {
+      background-color: var(--surface-muted);
+    }
+    .staff-app thead[class*="tracking-[0.08em]"] th:first-child { border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem; padding-left: 0.5rem; }
+    .staff-app thead[class*="tracking-[0.08em]"] th:last-child { border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
+
+    .staff-app .grid > div.rounded-card.border.bg-white {
+      --stat-accent: var(--color-chart-1);
+      --tw-inset-shadow: inset 4px 0 0 0 var(--stat-accent);
+      box-shadow: var(--tw-inset-shadow), var(--shadow-card);
+      background-image: linear-gradient(135deg, color-mix(in srgb, var(--stat-accent) 8%, transparent), transparent 60%);
+    }
+    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 2) { --stat-accent: var(--color-chart-2); }
+    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 3) { --stat-accent: var(--color-chart-3); }
+    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 4) { --stat-accent: var(--color-chart-4); }
+  }
+}
