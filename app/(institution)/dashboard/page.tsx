@@ -26,6 +26,11 @@ import ConsecutiveAbsenteesList from "../../components/ConsecutiveAbsenteesList"
 import PassRateStageTrendChart from "../../components/PassRateStageTrendChart";
 import { todayIST, formatDateIST } from "../../../services/datetime/ist";
 import StarOfTheMonthBanner from "../../components/StarOfTheMonthBanner";
+import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
+import { getMyRoleNames, getLibrarySnapshot, getFeeSnapshot } from "../../../services/home/dashboard-insights";
+import { Panel, StatTile, EmptyNote } from "../../components/portal/viz/blocks";
+import { RingGauge, HBars, Timeline, ColumnBars } from "../../components/portal/viz/charts";
+import { seriesColor, tint } from "../../components/portal/viz/palette";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -120,6 +125,18 @@ export default async function DashboardPage() {
       : Promise.resolve([]),
   ]);
 
+  // §Staff-dashboard-visual-redesign — greeting + role-specific snapshots
+  // (library for librarians, fee collection for fees/accounts roles). Pure
+  // reads, gated by the same module/permission codes the pages use.
+  const hasLibraryDesk = enabledModules.has("library") && (can(ctx.permissions, "library.issue") || can(ctx.permissions, "library.manage"));
+  const hasFeeDesk = enabledModules.has("fees") && (can(ctx.permissions, "fees.manage") || can(ctx.permissions, "fees.collect") || can(ctx.permissions, "fees.view"));
+  const [viewer, roleNames, librarySnapshot, feeSnapshot] = await Promise.all([
+    getUserDisplayInfo(authUserId, ctx.userId).catch(() => null),
+    getMyRoleNames(institutionId, authUserId, ctx.userId).catch(() => [] as string[]),
+    hasLibraryDesk ? getLibrarySnapshot(institutionId, authUserId).catch(() => null) : Promise.resolve(null),
+    hasFeeDesk ? getFeeSnapshot(institutionId, authUserId).catch(() => null) : Promise.resolve(null),
+  ]);
+
   const markExpected = markEntryStatus.reduce((sum, r) => sum + r.expected, 0);
   const markEntered = markEntryStatus.reduce((sum, r) => sum + r.entered, 0);
 
@@ -157,27 +174,62 @@ export default async function DashboardPage() {
   // the same "reports.view" permission the page itself requires.
   const hasResultAnalysisAccess = can(ctx.permissions, "reports.view");
 
-  const statCards: Array<[string, number]> = [
-    [t("classes"), stats.classes],
-    ["Divisions", stats.divisions],
-    [t("students"), stats.students],
-    ["Teachers", stats.teachers],
-    ["Staff", stats.staff],
+  // §Staff-dashboard-visual-redesign — same widgets, same permission gates
+  // as before; only the presentation changed (coloured tiles, rings, bars,
+  // timeline) plus the role snapshots fetched above.
+  const statCards: Array<{ label: string; value: number; icon: string }> = [
+    { label: t("classes"), value: stats.classes, icon: "🏫" },
+    { label: "Divisions", value: stats.divisions, icon: "🧩" },
+    { label: t("students"), value: stats.students, icon: "🎒" },
+    { label: "Teachers", value: stats.teachers, icon: "👩‍🏫" },
+    { label: "Staff", value: stats.staff, icon: "🧑‍💼" },
   ];
+
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Asia/Kolkata" }).format(new Date()));
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = (viewer?.fullName ?? "").trim().split(/\s+/)[0] ?? "";
+  const studentPct = attendanceToday && attendanceToday.studentsMarked > 0
+    ? Math.round((attendanceToday.studentsPresent / attendanceToday.studentsMarked) * 1000) / 10 : null;
+  const staffPct = attendanceToday && attendanceToday.staffMarked > 0
+    ? Math.round((attendanceToday.staffPresent / attendanceToday.staffMarked) * 1000) / 10 : null;
+
+  // Mark entry progress per class (rows are per class × subject).
+  const markByClass = new Map<string, { expected: number; entered: number }>();
+  for (const r of markEntryStatus) {
+    const c = markByClass.get(r.class_name) ?? { expected: 0, entered: 0 };
+    c.expected += r.expected; c.entered += r.entered;
+    markByClass.set(r.class_name, c);
+  }
+  const markPct = markExpected > 0 ? Math.round((markEntered / markExpected) * 1000) / 10 : null;
+  const monthLabel = (ym: string) => new Date(`${ym}-01T00:00:00Z`).toLocaleString("en", { month: "short", timeZone: "UTC" });
+  const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-card bg-[var(--brand)] p-6 text-white shadow-float sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
-        <div className="relative">
-          <div className="text-xs font-medium uppercase tracking-[0.08em] text-white/70">{t("institution")}</div>
-          <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">{institution?.appName || institution?.name}</h1>
-          <p className="mt-2 max-w-lg text-sm text-white/80">{t("title")}</p>
+      <section className="relative overflow-hidden rounded-card p-6 text-white shadow-float sm:p-8" style={{ background: "linear-gradient(120deg, var(--brand-from, var(--brand)), var(--brand-via, var(--brand)) 55%, var(--brand-to, var(--brand)))" }}>
+        <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-[14rem]">
+            <div className="text-xs font-medium uppercase tracking-[0.08em] text-white/70">{t("institution")}</div>
+            <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">{institution?.appName || institution?.name}</h1>
+            <p className="mt-2 text-sm text-white/85">
+              {greeting}{firstName ? `, ${firstName}` : ""}{roleNames.length > 0 ? ` · ${roleNames.join(", ")}` : ""}
+            </p>
+          </div>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+            {formatDateIST(today, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </span>
         </div>
-      </div>
+      </section>
 
       <StarOfTheMonthBanner institutionId={institutionId} authUserId={authUserId} />
+
+      <section aria-label="Institution at a glance" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {statCards.map((s, i) => (
+          <StatTile key={s.label} label={s.label} value={s.value} icon={s.icon} color={seriesColor(i)} />
+        ))}
+      </section>
 
       {hasResultAnalysisAccess ? (
         <Link
@@ -197,211 +249,199 @@ export default async function DashboardPage() {
       ) : null}
 
       {quickButtons.length > 0 ? (
-        // Grid, not a horizontally-scrolling row (§ follow-up: "instead of
-        // making it scrolling right & left, arrange them in 3-4 rows") —
-        // wraps into however many rows the button count needs, all visible
-        // at once with no side-scroll gesture required.
+        // Grid, not a horizontally-scrolling row (§ follow-up: "arrange them
+        // in 3-4 rows") — every button visible at once.
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {quickButtons.map((b) => (
-            <Link
-              key={b.label}
-              href={b.href}
-              className="flex flex-col items-center gap-1.5 rounded-full border bg-white px-3 py-3 text-center shadow-card transition-colors hover:border-[var(--brand)]"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
-                {b.icon}
-              </span>
-              <span className="text-xs font-medium text-zinc-700">{b.label}</span>
-            </Link>
-          ))}
+          {quickButtons.map((b, i) => {
+            const c = seriesColor(i % 8);
+            return (
+              <Link
+                key={b.label}
+                href={b.href}
+                className="flex flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-center shadow-card transition-all hover:-translate-y-0.5 hover:shadow-raised"
+                style={{ borderColor: tint(c, 0.3), background: `linear-gradient(180deg, ${tint(c, 0.12)}, var(--surface))` }}
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl text-white" style={{ backgroundColor: c }}>
+                  {b.icon}
+                </span>
+                <span className="text-xs font-medium text-zinc-700">{b.label}</span>
+              </Link>
+            );
+          })}
         </div>
       ) : null}
 
       {canSeeChecklist ? <OnboardingChecklist items={checklist} /> : null}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {statCards.map(([label, value]) => (
-          <div key={label} className="rounded-card border bg-white p-4 shadow-card">
-            <div className="text-2xl font-semibold text-zinc-900">{value}</div>
-            <div className="mt-1 text-sm text-zinc-500">{label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-[var(--heading)]">Dashboard</h2>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {attendanceToday ? (
-            <section className="rounded-card border bg-white p-5">
-              <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Today&apos;s attendance</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-zinc-500">Students</p>
-                  <p className="text-xl font-semibold text-zinc-900">
-                    {attendanceToday.studentsPresent}<span className="text-sm font-normal text-zinc-500">/{attendanceToday.studentsEnrolled}</span>
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    {attendanceToday.studentsMarked > 0 ? `${attendanceToday.studentsAbsent} absent` : "Not marked yet"}
-                  </p>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {attendanceToday ? (
+          <Panel title="Today's attendance" subtitle={formatDateIST(today)} color={seriesColor(2)}>
+            <div className="grid grid-cols-2 gap-4">
+              {([
+                ["Students", studentPct, attendanceToday.studentsPresent, attendanceToday.studentsMarked, attendanceToday.studentsEnrolled, attendanceToday.studentsAbsent, seriesColor(2)],
+                ["Staff", staffPct, attendanceToday.staffPresent, attendanceToday.staffMarked, attendanceToday.staffTotal, attendanceToday.staffAbsent, seriesColor(0)],
+              ] as const).map(([label, pct, present, marked, total, absent, color]) => (
+                <div key={label} className="flex flex-col items-center gap-1 text-center">
+                  <RingGauge value={pct} color={color} size={112} stroke={12} sub={label.toLowerCase()} title={`${label}: ${pct ?? "—"}% present`} />
+                  <p className="text-sm font-medium text-[var(--foreground)]">{present}<span className="font-normal text-zinc-500">/{total} present</span></p>
+                  <p className="text-xs text-zinc-500">{marked > 0 ? `${absent} absent · ${marked} marked` : "Not marked yet"}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-zinc-500">Staff</p>
-                  <p className="text-xl font-semibold text-zinc-900">
-                    {attendanceToday.staffPresent}<span className="text-sm font-normal text-zinc-500">/{attendanceToday.staffTotal}</span>
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    {attendanceToday.staffMarked > 0 ? `${attendanceToday.staffAbsent} absent` : "Not marked yet"}
-                  </p>
+              ))}
+            </div>
+          </Panel>
+        ) : null}
+
+        <Panel title="To do list" color={seriesColor(7)}>
+          <TodoWidget todos={todos} />
+        </Panel>
+
+        {librarySnapshot ? (
+          <Panel title="Library desk" subtitle="Live loans, holds and reviews." color={seriesColor(3)} action={<Link href="/library" className="text-xs text-[var(--brand)] underline">Open library →</Link>}>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {([
+                ["On loan", librarySnapshot.issuedNow, "📚", seriesColor(3)],
+                ["Overdue", librarySnapshot.overdue, "⏰", seriesColor(7)],
+                ["Holds", librarySnapshot.holdsWaiting + librarySnapshot.holdsReady, "📦", seriesColor(0)],
+                ["Reviews to check", librarySnapshot.reviewsPending, "✍️", seriesColor(4)],
+              ] as const).map(([label, n, icon, c]) => (
+                <div key={label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tint(c, 0.1) }}>
+                  <div aria-hidden className="text-lg">{icon}</div>
+                  <div className="text-xl font-bold text-[var(--foreground)]">{n}</div>
+                  <div className="text-xs text-zinc-600">{label}</div>
                 </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <p className="mb-1 text-xs text-zinc-500">Books issued per month · {librarySnapshot.books} titles, {librarySnapshot.copiesAvailable} copies on the shelf</p>
+              <ColumnBars unit="" color={seriesColor(3)} height={170} max={Math.max(5, ...librarySnapshot.issuesByMonth.map((m) => m.issues))}
+                items={librarySnapshot.issuesByMonth.map((m) => ({ label: monthLabel(m.month), value: m.issues, tip: `${monthLabel(m.month)}: ${m.issues} issued` }))} />
+            </div>
+          </Panel>
+        ) : null}
+
+        {feeSnapshot ? (
+          <Panel title="Fee collection" subtitle={feeSnapshot.yearName ? `Academic year ${feeSnapshot.yearName}` : undefined} color={seriesColor(6)} action={<Link href="/fees" className="text-xs text-[var(--brand)] underline">Open fees →</Link>}>
+            <div className="flex flex-wrap items-center gap-5">
+              <RingGauge value={feeSnapshot.due > 0 ? Math.round((feeSnapshot.collected / feeSnapshot.due) * 1000) / 10 : null} color={seriesColor(6)} size={120} stroke={13} sub="collected" />
+              <div className="grid flex-1 grid-cols-2 gap-2 text-sm">
+                <div><div className="text-xs text-zinc-500">Collected</div><div className="font-semibold text-[var(--foreground)]">{rupees(feeSnapshot.collected)}</div></div>
+                <div><div className="text-xs text-zinc-500">Outstanding</div><div className="font-semibold text-[var(--foreground)]">{rupees(Math.max(0, feeSnapshot.due - feeSnapshot.collected))}</div></div>
+                <div><div className="text-xs text-zinc-500">Invoices paid / part / pending</div><div className="font-semibold text-[var(--foreground)]">{feeSnapshot.paid} / {feeSnapshot.partial} / {feeSnapshot.pending}</div></div>
+                <div><div className="text-xs text-zinc-500">Overdue</div><div className={`font-semibold ${feeSnapshot.overdue > 0 ? "text-rose-700" : "text-[var(--foreground)]"}`}>{feeSnapshot.overdue}</div></div>
               </div>
-            </section>
-          ) : null}
+            </div>
+            <div className="mt-4">
+              <p className="mb-1 text-xs text-zinc-500">Collected per month (₹)</p>
+              <ColumnBars unit="" color={seriesColor(6)} height={170} max={Math.max(1, ...feeSnapshot.collectedByMonth.map((m) => m.amount))}
+                items={feeSnapshot.collectedByMonth.map((m) => ({ label: monthLabel(m.month), value: m.amount, tip: `${monthLabel(m.month)}: ${rupees(m.amount)}` }))} />
+            </div>
+          </Panel>
+        ) : null}
 
-          <section className="rounded-card border bg-white p-5">
-            <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">To do list</h3>
-            <TodoWidget todos={todos} />
-          </section>
-
-          {canSeeMarkEntryStatus && recentExam ? (
-            <section className="rounded-card border bg-white p-5">
-              <h3 className="mb-1 text-sm font-semibold text-[var(--heading)]">Mark entry status</h3>
-              <p className="mb-3 text-xs text-zinc-500">{recentExam.name}</p>
-              {markExpected === 0 ? (
-                <p className="text-sm text-zinc-500">No students/subjects configured yet.</p>
-              ) : (
-                <>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-                    <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.min(100, (markEntered / markExpected) * 100)}%` }} />
-                  </div>
-                  <p className="mt-2 text-sm text-zinc-600">{markEntered} / {markExpected} marks entered</p>
-                </>
-              )}
-              <Link href="/examinations/status" className="mt-2 inline-block text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">View full status →</Link>
-            </section>
-          ) : null}
-
-          {canSeeOpenMarkEntry ? (
-            <section className="rounded-card border bg-white p-5 lg:col-span-2">
-              <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Mark Entry</h3>
-              {openMarkEntry.length === 0 ? (
-                <p className="text-sm text-zinc-500">Nothing open for entry right now.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-zinc-500">
-                        <th className="pb-2 font-medium">Exam</th>
-                        <th className="pb-2 font-medium">Class</th>
-                        <th className="pb-2 font-medium">Subject</th>
-                        <th className="pb-2 font-medium">Status</th>
-                        <th className="pb-2 font-medium"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {openMarkEntry.map((r) => (
-                        <tr key={`${r.examSubjectId}-${r.classId}`} className="border-b">
-                          <td className="py-2 text-zinc-900">{r.examinationName}</td>
-                          <td className="py-2 text-zinc-500">{r.className}</td>
-                          <td className="py-2 text-zinc-500">{r.subjectName}</td>
-                          <td className="py-2 text-zinc-500">{r.status === "not_started" ? "Not started" : "In progress"}</td>
-                          <td className="py-2 text-right">
-                            <Link
-                              href={`/examinations/${r.examinationId}/marks/${r.examSubjectId}`}
-                              className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]"
-                            >
-                              {r.status === "not_started" ? "Enter marks" : "Continue"} →
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          ) : null}
-
-          {hasExaminationAccess && passRateTrendByStage.length > 0 ? (
-            <section className="rounded-card border bg-white p-5">
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--heading)]">Pass rate trend</h3>
-                <Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
-              </div>
-              <PassRateStageTrendChart points={passRateTrendByStage} />
-            </section>
-          ) : null}
-
-          {isSectionOrAbove && attendanceTrendByStage.length > 0 ? (
-            <section className="rounded-card border bg-white p-5">
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--heading)]">Attendance trend</h3>
-                <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
-              </div>
-              <p className="mb-1 text-xs text-zinc-500">{attendanceVisibility.label} · last 15 days</p>
-              <AttendanceStageTrendChart points={attendanceTrendByStage} />
-            </section>
-          ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
-            <section className="rounded-card border bg-white p-5">
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--heading)]">Attendance trend</h3>
-                <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
-              </div>
-              <p className="mb-1 text-xs text-zinc-500">{attendanceVisibility.label}</p>
-              <AttendanceTrendChart points={attendanceTrend} compact />
-            </section>
-          ) : null}
-
-          {isSectionOrAbove && consecutiveAbsentees.length > 0 ? (
-            <section className="rounded-card border bg-white p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--heading)]">Chronic absentees (3+ days)</h3>
-                <Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>
-              </div>
-              <ConsecutiveAbsenteesList rows={consecutiveAbsentees} />
-            </section>
-          ) : null}
-
-          {hasUnrestrictedLeaveReview || hasScopedLeaveReview ? (
-            <section className="rounded-card border bg-white p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--heading)]">Pending leave requests</h3>
-                <Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>
-              </div>
-              {pendingLeave.length === 0 ? (
-                <p className="text-sm text-zinc-500">Nothing pending.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {pendingLeave.map((l) => (
-                    <li key={l.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate text-zinc-700">
-                        {l.applicant_name} <span className="text-xs text-zinc-500 capitalize">({l.applicant_type})</span>
-                      </span>
-                      <span className="shrink-0 text-xs text-zinc-500">{l.start_date} → {l.end_date}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ) : null}
-
-          <section className="rounded-card border bg-white p-5">
-            <h3 className="mb-3 text-sm font-semibold text-[var(--heading)]">Upcoming calendar</h3>
-            {upcoming.length === 0 ? (
-              <p className="text-sm text-zinc-500">Nothing scheduled.</p>
+        {canSeeMarkEntryStatus && recentExam ? (
+          <Panel title="Mark entry status" subtitle={recentExam.name} color={seriesColor(0)} action={<Link href="/examinations/status" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">View full status →</Link>}>
+            {markExpected === 0 ? (
+              <EmptyNote>No students/subjects configured yet.</EmptyNote>
             ) : (
-              <ul className="space-y-2">
-                {upcoming.map((u) => (
-                  <li key={u.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate text-zinc-700">{u.title}</span>
-                    <span className="shrink-0 text-xs text-zinc-500">
-                      {formatDate(u.date)}{u.endDate ? ` – ${formatDate(u.endDate)}` : ""}
-                    </span>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <RingGauge value={markPct} color={seriesColor(0)} size={96} stroke={11} />
+                  <p className="text-sm text-zinc-600"><b className="text-[var(--foreground)]">{markEntered}</b> of {markExpected} marks entered</p>
+                </div>
+                <HBars rows={[...markByClass.entries()].map(([name, c]) => ({
+                  label: name, value: c.expected > 0 ? Math.round((c.entered / c.expected) * 1000) / 10 : null,
+                  color: c.entered >= c.expected ? seriesColor(2) : seriesColor(0), note: `${c.entered}/${c.expected}`,
+                }))} />
+              </div>
+            )}
+          </Panel>
+        ) : null}
+
+        {canSeeOpenMarkEntry ? (
+          <Panel title="Mark Entry" subtitle="Exams open for your classes and subjects." color={seriesColor(0)} className="lg:col-span-2">
+            {openMarkEntry.length === 0 ? (
+              <EmptyNote>Nothing open for entry right now.</EmptyNote>
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {openMarkEntry.map((r) => (
+                  <li key={`${r.examSubjectId}-${r.classId}`}>
+                    <Link
+                      href={`/examinations/${r.examinationId}/marks/${r.examSubjectId}`}
+                      className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] p-3 transition-all hover:-translate-y-0.5 hover:shadow-raised"
+                      style={{ borderLeft: `4px solid ${r.status === "not_started" ? seriesColor(1) : seriesColor(0)}` }}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-[var(--foreground)]">{r.subjectName} · {r.className}</span>
+                        <span className="block truncate text-xs text-zinc-500">{r.examinationName}</span>
+                      </span>
+                      <span className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: tint(r.status === "not_started" ? seriesColor(1) : seriesColor(0), 0.14), color: "var(--foreground)" }}>
+                        {r.status === "not_started" ? "Enter marks" : "Continue"} →
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>
             )}
-          </section>
-        </div>
+          </Panel>
+        ) : null}
+
+        {hasExaminationAccess && passRateTrendByStage.length > 0 ? (
+          <Panel title="Pass rate trend" color={seriesColor(1)} action={<Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+            <PassRateStageTrendChart points={passRateTrendByStage} />
+          </Panel>
+        ) : null}
+
+        {isSectionOrAbove && attendanceTrendByStage.length > 0 ? (
+          <Panel title="Attendance trend" subtitle={`${attendanceVisibility.label} · last 15 days`} color={seriesColor(2)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+            <AttendanceStageTrendChart points={attendanceTrendByStage} />
+          </Panel>
+        ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
+          <Panel title="Attendance trend" subtitle={attendanceVisibility.label} color={seriesColor(2)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+            <AttendanceTrendChart points={attendanceTrend} compact />
+          </Panel>
+        ) : null}
+
+        {isSectionOrAbove && consecutiveAbsentees.length > 0 ? (
+          <Panel title="Chronic absentees (3+ days)" color={seriesColor(7)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+            <ConsecutiveAbsenteesList rows={consecutiveAbsentees} />
+          </Panel>
+        ) : null}
+
+        {hasUnrestrictedLeaveReview || hasScopedLeaveReview ? (
+          <Panel title="Pending leave requests" color={seriesColor(4)} action={<Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>}>
+            {pendingLeave.length === 0 ? (
+              <EmptyNote>Nothing pending.</EmptyNote>
+            ) : (
+              <ul className="space-y-2">
+                {pendingLeave.map((l) => (
+                  <li key={l.id} className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-subtle)] px-3 py-2 text-sm">
+                    <span className="truncate text-zinc-700">
+                      {l.applicant_name} <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[11px] capitalize text-zinc-600">{l.applicant_type}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-zinc-500">{l.start_date} → {l.end_date}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        ) : null}
+
+        <Panel title="Upcoming calendar" color={seriesColor(6)}>
+          {upcoming.length === 0 ? (
+            <EmptyNote>Nothing scheduled.</EmptyNote>
+          ) : (
+            <Timeline
+              items={upcoming.map((u) => ({
+                key: `${u.kind}-${u.id}`,
+                date: `${formatDate(u.date)}${u.endDate ? ` – ${formatDate(u.endDate)}` : ""}`,
+                title: u.title,
+                meta: u.kind === "exam" ? "Examination" : u.subKind ? u.subKind.charAt(0).toUpperCase() + u.subKind.slice(1) : undefined,
+                color: u.kind === "exam" ? seriesColor(0) : u.subKind === "holiday" ? "#c7bda9" : seriesColor(6),
+                icon: u.kind === "exam" ? "✎" : u.subKind === "holiday" ? "☀" : "★",
+              }))}
+            />
+          )}
+        </Panel>
       </div>
     </div>
   );

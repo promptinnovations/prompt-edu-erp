@@ -49,7 +49,7 @@ export default function ReadingStats({ data }: { data: ReadingInsights }) {
               items={perMonth.map((m) => ({ label: m.label, value: m.value, tip: `${m.label}: ${m.value} book${m.value === 1 ? "" : "s"}` }))}
             />
           </Panel>
-          <Panel title="What you read" subtitle="By genre." color={AREA.reading.color} className="xl:col-span-2">
+          <Panel title="Genres" subtitle="What has been read, by genre." color={AREA.reading.color} className="xl:col-span-2">
             <DonutChart center={data.books.length} sub="books" segments={group((b) => b.category)} />
           </Panel>
         </div>
