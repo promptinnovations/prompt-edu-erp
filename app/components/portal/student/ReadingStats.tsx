@@ -33,17 +33,17 @@ export default function ReadingStats({ data }: { data: ReadingInsights }) {
       <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatTile label="Books read" icon="📚" color={AREA.reading.color} value={distinct} />
         <StatTile label="Reviews published" icon="✍️" color={seriesColor(1)} value={reviewed} />
-        <StatTile label="Likes on your reviews" icon="👍" color={seriesColor(4)} value={data.likesReceived} />
+        <StatTile label="Likes on reviews" icon="👍" color={seriesColor(4)} value={data.likesReceived} />
         <StatTile label="Genres explored" icon="🧭" color={seriesColor(2)} value={new Set(data.books.map((b) => b.category).filter(Boolean)).size} />
       </section>
 
       {data.books.length === 0 ? (
-        <Panel title="Your reading" color={AREA.reading.color}>
-          <EmptyNote>Borrow a book from the catalogue below — your reading chart starts with the first one you return.</EmptyNote>
+        <Panel title="Reading" color={AREA.reading.color}>
+          <EmptyNote>The reading chart starts with the first book returned to the library.</EmptyNote>
         </Panel>
       ) : (
         <div className="grid gap-6 xl:grid-cols-5">
-          <Panel title="Books per month" subtitle="Books you returned in the last 12 months." color={AREA.reading.color} className="xl:col-span-3">
+          <Panel title="Books per month" subtitle="Books returned in the last 12 months." color={AREA.reading.color} className="xl:col-span-3">
             <ColumnBars
               unit="" color={AREA.reading.color} max={Math.max(4, ...perMonth.map((m) => m.value))}
               items={perMonth.map((m) => ({ label: m.label, value: m.value, tip: `${m.label}: ${m.value} book${m.value === 1 ? "" : "s"}` }))}

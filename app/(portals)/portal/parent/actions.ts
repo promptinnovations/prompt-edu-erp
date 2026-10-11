@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { requireRequestContext } from "../../../../services/request-context";
 import { requirePermission } from "../../../../services/permissions/permission-service";
 import { getOwnParentId, isOwnChild } from "../../../../modules/portal/service";
@@ -151,4 +152,19 @@ export async function uploadChildPhotoAction(_prevState: { error: string | null 
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to upload the photo." };
   }
+}
+
+/** §Parent-portal-visual-redesign — remember which child the parent is
+ *  viewing (see PARENT_CHILD_COOKIE in ./_lib). Set only after isOwnChild()
+ *  confirms the child is linked to this parent. */
+export async function selectChildAction(childId: string): Promise<{ error: string | null }> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  const ownParentId = await getOwnParentId(ctx.institutionId, ctx.session.authUserId, ctx.userId);
+  if (!ownParentId || !(await isOwnChild(ctx.institutionId, ctx.session.authUserId, ownParentId, childId))) {
+    return { error: "You can only view your own children." };
+  }
+  (await cookies()).set("perp_parent_child", childId, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 180 });
+  revalidatePath("/portal/parent", "layout");
+  return { error: null };
 }

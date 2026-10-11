@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { AcademicInsights, ExamOutcome } from "../../../../modules/portal/student-insights";
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, StatTile, EmptyNote } from "../viz/blocks";
@@ -14,7 +15,7 @@ function avg(xs: number[]): number | null {
  *  performance, and only here. Progress line across exams, subject bars
  *  (latest vs previous), a strengths radar, grade distribution, a subject
  *  × exam heat table, daily assessments and the consolidated score. */
-export default function AcademicsView({ data, reportCardHref }: { data: AcademicInsights; reportCardHref: (examinationId: string) => string }) {
+export default function AcademicsView({ data, reportCardHref, headerExtra }: { data: AcademicInsights; reportCardHref: (examinationId: string) => string; headerExtra?: ReactNode }) {
   const exams = data.exams;
   const latest: ExamOutcome | null = exams[exams.length - 1] ?? null;
   const previous: ExamOutcome | null = exams.length > 1 ? exams[exams.length - 2] : null;
@@ -38,11 +39,11 @@ export default function AcademicsView({ data, reportCardHref }: { data: Academic
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Academics" subtitle="How you are doing in every exam and subject." icon={AREA.academics.icon} color={AREA.academics.color} />
+      <PageHeader title="Academics" subtitle="Performance in every published exam and subject." icon={AREA.academics.icon} color={AREA.academics.color}>{headerExtra}</PageHeader>
 
       {exams.length === 0 ? (
         <Panel title="No published results yet" color={AREA.academics.color}>
-          <EmptyNote>Your results will appear here as soon as your school publishes them.</EmptyNote>
+          <EmptyNote>Results will appear here as soon as the school publishes them.</EmptyNote>
         </Panel>
       ) : (
         <>

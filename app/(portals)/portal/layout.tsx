@@ -14,6 +14,8 @@ import NavLinks, { type NavItem } from "../../components/NavLinks";
 import { signOutAction, exitSuperAdminViewAction, exitSamplePortalAction } from "../../(institution)/actions";
 import { getOwnStudentId, getOwnParentId } from "../../../modules/portal/service";
 import PortalRoleToggle from "./PortalRoleToggle";
+import { getParentPortalSections } from "../../../services/institution/institution-service";
+import { can } from "../../../services/permissions/permission-service";
 
 // §Student-portal-visual-redesign — one page per area, each with its own
 // visuals and no data repeated from another page: Dashboard (at a glance +
@@ -36,13 +38,27 @@ const STUDENT_NAV_ITEMS: NavItem[] = [
 // the parent's primary child when no ?childId= is present, so a bare href
 // here (no query string) still lands on the right child — see
 // app/(portals)/portal/parent/_lib.tsx.
-const PARENT_NAV_ITEMS: NavItem[] = [
-  { href: "/portal/parent", label: "Dashboard" },
-  { href: "/portal/parent/attendance", label: "Attendance" },
-  { href: "/portal/parent/results", label: "Results" },
-  { href: "/portal/parent/portfolio", label: "Portfolio" },
-  { href: "/portal/parent/record", label: "Learner Record" },
-];
+// §Parent-portal-visual-redesign — one page per area, mirroring the student
+// portal, plus Fees and Contact school. Each entry appears only when the
+// school shares that section with parents (Settings → parent portal
+// sections) or the parent holds the permission for it.
+function parentNavItems(
+  s: Awaited<ReturnType<typeof getParentPortalSections>>,
+  perms: Parameters<typeof can>[0],
+): NavItem[] {
+  const items: (NavItem | null)[] = [
+    { href: "/portal/parent", label: "Dashboard" },
+    s.results ? { href: "/portal/parent/results", label: "Academics" } : null,
+    s.attendance || can(perms, "attendance.leave.apply") ? { href: "/portal/parent/attendance", label: s.attendance ? "Attendance & leave" : "Leave" } : null,
+    s.character || s.mentoring || s.portfolio || s.discipline ? { href: "/portal/parent/growth", label: "Growth & conduct" } : null,
+    s.achievements || s.skills ? { href: "/portal/parent/portfolio", label: "Achievements" } : null,
+    s.library ? { href: "/portal/parent/reading", label: "Reading" } : null,
+    can(perms, "fees.pay_own") ? { href: "/portal/parent/fees", label: "Fees" } : null,
+    can(perms, "messages.send_to_staff") || can(perms, "kudos.send") ? { href: "/portal/parent/contact", label: "Contact school" } : null,
+    { href: "/portal/parent/record", label: "Learner Record" },
+  ];
+  return items.filter((i): i is NavItem => i !== null);
+}
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   let ctx;
@@ -202,7 +218,7 @@ export default async function PortalLayout({ children }: { children: React.React
               </div>
             </div>
           ) : null}
-          <NavLinks items={isParentSide ? PARENT_NAV_ITEMS : STUDENT_NAV_ITEMS} />
+          <NavLinks items={isParentSide ? parentNavItems(await getParentPortalSections(ctx.institutionId, ctx.session.authUserId), ctx.permissions) : STUDENT_NAV_ITEMS} />
         </ResponsiveSidebar>
         <div className="flex min-w-0 flex-1 flex-col">
           {header}

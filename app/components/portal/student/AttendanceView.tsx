@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { AttendanceInsights } from "../../../../modules/portal/student-insights";
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, StatTile, EmptyNote, CalendarHeatmap } from "../viz/blocks";
@@ -20,7 +21,12 @@ function streaks(days: AttendanceInsights["days"]): { current: number; best: num
 /** §Student-portal-visual-redesign — Attendance: the only place with the
  *  day-level picture. Ring + status counts, streak badge, calendar heatmap,
  *  month-by-month bars, which weekdays get missed, and leave history. */
-export default function AttendanceView({ data }: { data: AttendanceInsights }) {
+export default function AttendanceView({ data, headerExtra, leaveSlot }: {
+  data: AttendanceInsights; headerExtra?: ReactNode;
+  /** Replaces the read-only leave list (the parent portal passes its
+   *  apply-for-leave form, which lists the applications itself). */
+  leaveSlot?: ReactNode;
+}) {
   const present = data.days.filter((d) => d.status === "present").length;
   const late = data.days.filter((d) => d.status === "late").length;
   const absent = data.days.filter((d) => d.status === "absent").length;
@@ -50,11 +56,11 @@ export default function AttendanceView({ data }: { data: AttendanceInsights }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Attendance" subtitle={data.yearName ? `Academic year ${data.yearName}, day by day.` : "Your attendance, day by day."} icon={AREA.attendance.icon} color={AREA.attendance.color} />
+      <PageHeader title="Attendance" subtitle={data.yearName ? `Academic year ${data.yearName}, day by day.` : "Attendance, day by day."} icon={AREA.attendance.icon} color={AREA.attendance.color}>{headerExtra}</PageHeader>
 
       {total === 0 ? (
         <Panel title="No attendance marked yet" color={AREA.attendance.color}>
-          <EmptyNote>Once your teacher starts taking attendance this year, it will show up here.</EmptyNote>
+          <EmptyNote>Attendance will show up here once the school starts taking it this year.</EmptyNote>
         </Panel>
       ) : (
         <>
@@ -106,6 +112,7 @@ export default function AttendanceView({ data }: { data: AttendanceInsights }) {
         </>
       )}
 
+      {leaveSlot ?? (
       <Panel title="Leave applications" color={AREA.attendance.color}>
         {data.leaves.length === 0 ? (
           <EmptyNote>No leave applications.</EmptyNote>
@@ -131,6 +138,7 @@ export default function AttendanceView({ data }: { data: AttendanceInsights }) {
           </ul>
         )}
       </Panel>
+      )}
     </div>
   );
 }

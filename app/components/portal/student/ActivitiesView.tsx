@@ -39,7 +39,7 @@ const STATUS_CHIP: Record<string, { text: string; bg: string; fg: string }> = {
  *  badge collection, what kinds of things the student takes part in and at
  *  what level, a dated timeline, the certificate gallery, co-curricular
  *  activity submissions with their approval status, and the submit forms. */
-export default function ActivitiesView({ data, forms }: { data: ActivityInsights; forms?: ReactNode }) {
+export default function ActivitiesView({ data, forms, headerExtra }: { data: ActivityInsights; forms?: ReactNode; headerExtra?: ReactNode }) {
   const a = data.achievements;
   const podium = a.filter((x) => medal(x.position).icon !== "🏅").length;
   const certificates = a.filter((x) => x.certificate_file_id);
@@ -52,7 +52,7 @@ export default function ActivitiesView({ data, forms }: { data: ActivityInsights
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Achievements & activities" subtitle="Awards, competitions and everything you take part in." icon={AREA.achievements.icon} color={AREA.achievements.color} />
+      <PageHeader title="Achievements & activities" subtitle="Awards, competitions and everything you take part in." icon={AREA.achievements.icon} color={AREA.achievements.color}>{headerExtra}</PageHeader>
 
       <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatTile label="Awards" icon="🏆" color={AREA.achievements.color} value={a.length} sub={points > 0 ? `${points} points earned` : undefined} />
@@ -63,7 +63,7 @@ export default function ActivitiesView({ data, forms }: { data: ActivityInsights
 
       <Panel title="Badge collection" subtitle="Every approved award. Hover a badge for details." color={AREA.achievements.color}>
         {a.length === 0 ? (
-          <EmptyNote>Your first badge is waiting — submit an achievement below once you win or take part in something.</EmptyNote>
+          <EmptyNote>Approved awards will collect here as badges.</EmptyNote>
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {a.map((x) => {
@@ -143,9 +143,9 @@ export default function ActivitiesView({ data, forms }: { data: ActivityInsights
         </Panel>
       ) : null}
 
-      <Panel title="Co-curricular activities" subtitle="Activities you've submitted and where they stand." color={seriesColor(2)}>
+      <Panel title="Co-curricular activities" subtitle="Activities submitted and where each one stands." color={seriesColor(2)}>
         {data.activities.length === 0 ? (
-          <EmptyNote>No activities submitted yet — use the form below.</EmptyNote>
+          <EmptyNote>No activities submitted yet.</EmptyNote>
         ) : (
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="lg:col-span-2">

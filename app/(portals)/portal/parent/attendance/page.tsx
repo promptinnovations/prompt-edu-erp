@@ -1,78 +1,46 @@
-import Link from "next/link";
-import { requireOwnParentContext, NotLinkedNotice, Card } from "../_lib";
-import { getCurrentAcademicYear } from "../../../../../modules/academic/service";
-import { getStudentAttendanceSummary, getStudentMonthlyAttendance, listLeaveApplicationsForStudent } from "../../../../../modules/attendance/service";
-import { MonthlyAttendanceBarChart } from "../../../../(institution)/students/[id]/ProfileCharts";
+import { can } from "../../../../../services/permissions/permission-service";
+import { getParentPortalSections } from "../../../../../services/institution/institution-service";
+import { getAttendanceInsights } from "../../../../../modules/portal/student-insights";
+import { requireOwnParentContext, NotLinkedNotice, NotEnabledNotice } from "../_lib";
+import ChildPicker from "../ChildPicker";
+import ApplyLeaveForm from "../ApplyLeaveForm";
+import AttendanceView from "../../../../components/portal/student/AttendanceView";
+import { PageHeader } from "../../../../components/portal/viz/blocks";
+import { AREA } from "../../../../components/portal/student/areas";
 
-/** Detail view behind the parent dashboard's "Attendance" stat-card button
- *  — the monthly present/absent breakdown + leave history, same shape as
- *  the Student Profile page's Summary tab, just scoped to whichever child
- *  the parent has selected instead of the signed-in student themself. */
-export default async function ParentAttendancePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ childId?: string }>;
-}) {
+/** Parent → Attendance — §Parent-portal-visual-redesign. The visual
+ *  attendance page for the selected child, with the apply-for-leave form
+ *  (which also lists the applications) in place of the read-only list when
+ *  the parent may apply. */
+export default async function ParentAttendancePage({ searchParams }: { searchParams: Promise<{ childId?: string }> }) {
   const { childId } = await searchParams;
-  const { institutionId, authUserId, children, selectedChildId } = await requireOwnParentContext(childId);
+  const { ctx, institutionId, authUserId, children, selectedChildId } = await requireOwnParentContext(childId);
   if (!selectedChildId) return <NotLinkedNotice />;
+  const sections = await getParentPortalSections(institutionId, authUserId);
+  const canLeave = can(ctx.permissions, "attendance.leave.apply");
+  if (!sections.attendance && !canLeave) return <NotEnabledNotice what="Attendance" />;
+  const data = await getAttendanceInsights(institutionId, authUserId, selectedChildId);
   const child = children.find((c) => c.id === selectedChildId);
-
-  const academicYear = await getCurrentAcademicYear(institutionId, authUserId);
-  const [summary, monthly, leaves] = await Promise.all([
-    academicYear
-      ? getStudentAttendanceSummary(institutionId, authUserId, selectedChildId, academicYear.start_date, academicYear.end_date)
-      : Promise.resolve(null),
-    academicYear
-      ? getStudentMonthlyAttendance(institutionId, authUserId, selectedChildId, academicYear.start_date, academicYear.end_date)
-      : Promise.resolve([]),
-    listLeaveApplicationsForStudent(institutionId, authUserId, selectedChildId),
-  ]);
-
+  if (!sections.attendance) {
+    // Attendance itself isn't shared with parents here — leave only.
+    return (
+      <div id="leave" className="space-y-6">
+        <PageHeader title="Leave" subtitle="Apply for leave and see the school's replies." icon={AREA.attendance.icon} color={AREA.attendance.color}>
+          <ChildPicker options={children} selectedChildId={selectedChildId} />
+        </PageHeader>
+        <ApplyLeaveForm studentId={selectedChildId} studentName={child?.full_name ?? "your child"} leaves={data.leaves} />
+      </div>
+    );
+  }
   return (
-    <div className="space-y-6">
-      <div>
-        <Link href={`/portal/parent?childId=${selectedChildId}`} className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">
-          ← Back to {child?.full_name ?? "overview"}
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">Attendance — {child?.full_name}</h1>
-        <p className="mt-0.5 text-sm text-zinc-500">This academic year, month by month, plus leave history.</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-card border bg-white p-5">
-          <div className="text-2xl font-semibold text-zinc-900">{summary ? `${summary.present_percent}%` : "—"}</div>
-          <div className="mt-1 text-sm text-zinc-500">Present (this year)</div>
+    <AttendanceView
+      data={data}
+      headerExtra={<ChildPicker options={children} selectedChildId={selectedChildId} />}
+      leaveSlot={canLeave ? (
+        <div id="leave" className="scroll-mt-6">
+          <ApplyLeaveForm studentId={selectedChildId} studentName={child?.full_name ?? "your child"} leaves={data.leaves} />
         </div>
-        <div className="rounded-card border bg-white p-5">
-          <div className="text-2xl font-semibold text-zinc-900">{summary?.present_days ?? "—"}</div>
-          <div className="mt-1 text-sm text-zinc-500">Present days</div>
-        </div>
-        <div className="rounded-card border bg-white p-5">
-          <div className="text-2xl font-semibold text-zinc-900">{summary?.absent_days ?? "—"}</div>
-          <div className="mt-1 text-sm text-zinc-500">Absent days</div>
-        </div>
-        <div className="rounded-card border bg-white p-5">
-          <div className="text-2xl font-semibold text-zinc-900">{summary?.total_days ?? "—"}</div>
-          <div className="mt-1 text-sm text-zinc-500">Total marked</div>
-        </div>
-      </div>
-
-      <Card title="Monthly attendance">
-        <MonthlyAttendanceBarChart points={monthly} />
-      </Card>
-
-      <Card title="Leave applications">
-        <ul className="space-y-2 text-sm">
-          {leaves.map((l) => (
-            <li key={l.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-              <span>{l.start_date} → {l.end_date}{l.reason ? ` — ${l.reason}` : ""}</span>
-              <span className="text-zinc-500 capitalize">{l.status}</span>
-            </li>
-          ))}
-          {leaves.length === 0 ? <li className="text-zinc-500">No leave applications yet.</li> : null}
-        </ul>
-      </Card>
-    </div>
+      ) : undefined}
+    />
   );
 }

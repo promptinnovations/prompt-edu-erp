@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { GrowthInsights } from "../../../../modules/portal/student-insights";
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, EmptyNote } from "../viz/blocks";
@@ -13,7 +14,7 @@ const RECOGNITION_ICONS = ["🌟", "🤝", "💡", "🎖️", "💪", "🌈", "�
  *  positive recognitions as badges, the teacher's summary (remark,
  *  strengths, areas to work on, goals) and mentoring notes. Negative
  *  discipline records are deliberately not shown here. */
-export default function GrowthView({ data }: { data: GrowthInsights }) {
+export default function GrowthView({ data, headerExtra, schoolNotes }: { data: GrowthInsights; headerExtra?: ReactNode; schoolNotes?: ReactNode }) {
   const latest = data.periods[data.periods.length - 1] ?? null;
   const previous = data.periods.length > 1 ? data.periods[data.periods.length - 2] : null;
   const label = (r: number) => data.ratingLabels.find((l) => l.rating === Math.round(r))?.label ?? `${r}/5`;
@@ -24,7 +25,7 @@ export default function GrowthView({ data }: { data: GrowthInsights }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Growth & conduct" subtitle="Your character, habits and the progress your teachers see." icon={AREA.growth.icon} color={AREA.growth.color} />
+      <PageHeader title="Growth & conduct" subtitle="Character, habits and the progress teachers see." icon={AREA.growth.icon} color={AREA.growth.color}>{headerExtra}</PageHeader>
 
       {summary?.overall_remark ? (
         <figure className="rounded-card border border-[var(--border-subtle)] p-6 shadow-card" style={{ background: `linear-gradient(135deg, ${tint(AREA.growth.color, 0.14)}, var(--surface) 70%)` }}>
@@ -96,7 +97,7 @@ export default function GrowthView({ data }: { data: GrowthInsights }) {
         </>
       ) : (
         <Panel title="Character profile" color={AREA.growth.color}>
-          <EmptyNote>Your teachers haven&rsquo;t recorded a character assessment yet.</EmptyNote>
+          <EmptyNote>No character assessment has been recorded yet.</EmptyNote>
         </Panel>
       )}
 
@@ -143,6 +144,8 @@ export default function GrowthView({ data }: { data: GrowthInsights }) {
           </ul>
         )}
       </Panel>
+
+      {schoolNotes}
 
       {data.mentoring.length > 0 ? (
         <Panel title="Mentoring" subtitle="Notes from your mentor sessions." color={seriesColor(6)}>
