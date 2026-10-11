@@ -1,6 +1,7 @@
 import { formatDateIST, todayIST } from "../../../../../services/datetime/ist";
 import { formatMarks } from "../../../../../services/format/marks";
 import type { ReportCardData, ReportCardContext } from "./report-card-data";
+import FitToPage from "./FitToPage";
 
 /** §Report-card-print-all — the printable card itself, shared by the
  *  single-student route and the whole-class print route so they render
@@ -33,9 +34,10 @@ import type { ReportCardData, ReportCardContext } from "./report-card-data";
  *    Parent/Guardian and Principal.
  *  - Row density steps down for long subject lists (9+, 13+ and 15+
  *    subjects, a typed remark counting as extra rows)
- *    — tiers cut from measured row heights, not guesses — so a full card
- *    still fits one sheet; a genuinely oversized card (16+ subjects) flows
- *    onto a second sheet rather than clipping its signatures. */
+ *    — tiers cut from measured row heights, not guesses.
+ *  - A card NEVER runs onto a second page: if the content is still too tall
+ *    after the tiers (very many subjects, a very long remark), FitToPage
+ *    scales the whole body down until it fits the sheet. */
 type Density = "normal" | "compact" | "tight" | "dense";
 
 function densityFor(rows: number): Density {
@@ -135,6 +137,9 @@ export default function ReportCardDocument({
   return (
     <article className="report-sheet mx-auto w-full max-w-[210mm] bg-white p-[4mm] shadow-raised sm:min-h-[297mm] sm:p-[10mm] print:p-[10mm]">
       <div className="flex flex-col border-[1.2pt] border-zinc-800 p-[4mm] sm:min-h-[276mm] sm:p-[8mm] print:min-h-[276mm] print:p-[8mm]">
+        {/* FitToPage: the one-page guarantee — if the content is still too
+            tall after the density tiers, the body is zoomed down to fit. */}
+        <FitToPage className="flex flex-1 flex-col">
         {/* ── Letterhead ─────────────────────────────────────────────── */}
         <header className="flex items-center gap-[5mm] border-b-[3pt] border-double border-zinc-800 pb-[4mm]">
           {logoCode ? (
@@ -303,6 +308,7 @@ export default function ReportCardDocument({
           <span>Printed on {formatDateIST(todayIST())}</span>
           <span>Powered by PROMPT EDU ERP &middot; &copy; Prompt Innovations</span>
         </footer>
+        </FitToPage>
       </div>
     </article>
   );

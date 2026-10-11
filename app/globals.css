@@ -309,10 +309,8 @@ body {
  *
  * On screen `.report-sheet` is an A4-proportioned page (210mm wide, at
  * least 297mm tall, growing if a card has unusually many subjects), so the
- * preview is what prints. `min-height` rather than `height` in print for
- * the same reason: a card that genuinely needs more room flows onto a
- * second sheet instead of having its signatures clipped. 296mm, not 297,
- * so sub-pixel rounding never spills an empty page after each card. */
+ * preview is what prints. In print each card is exactly one sheet — an
+ * oversized card is scaled to fit (FitToPage), never continued. */
 @page report-card {
   size: A4 portrait;
   margin: 0;
@@ -320,6 +318,18 @@ body {
 .report-sheet {
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+}
+/* FitToPage (fit-report-sheet.ts) sets --fit-zoom only when the card body
+ * is taller than the frame. Zoom shrinks the layout box as well as the
+ * glyphs, so width/min-height are divided by it to keep the body filling
+ * the 173 x 259mm frame. Phones (<640px) show the unzoomed card. */
+@media (min-width: 640px), print {
+  .report-fit[style*="--fit-zoom"] {
+    zoom: var(--fit-zoom);
+    flex: none;
+    width: calc(173mm / var(--fit-zoom));
+    min-height: calc(259mm / var(--fit-zoom));
+  }
 }
 @media print {
   main:has(.report-sheet) {
@@ -330,7 +340,12 @@ body {
     page: report-card;
     width: 100% !important;
     max-width: none !important;
-    min-height: 296mm;
+    /* Exactly one sheet, always (§Report-card-one-page): FitToPage zooms
+       an oversized body down to fit, and this clip is the last-resort
+       backstop so nothing can ever spill onto a second page. 296mm, not
+       297, so sub-pixel rounding never adds an empty page. */
+    height: 296mm;
+    overflow: hidden;
     margin: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
