@@ -19,6 +19,7 @@ import {
   enterMarks, submitMarks, verifyMarks, approveMarks, computeResults,
 } from "../../modules/examination/service";
 import { listAttendanceStatuses, markAttendance } from "../../modules/attendance/service";
+import { daysAgoIST, todayIST } from "../../services/datetime/ist";
 import {
   listSkillTypes, listSkillActivities, createSkillSubmission, submitSkillSubmission, reviewSkillSubmission,
 } from "../../modules/skills/service";
@@ -97,7 +98,12 @@ beforeAll(async () => {
   const statuses = await listAttendanceStatuses(institutionA, adminAuth);
   const present = statuses.find((s) => s.code === "present")!.id;
   const absent = statuses.find((s) => s.code === "absent")!.id;
-  const dates = ["2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06"];
+  // §Test-fixture-date-drift: these used to be hardcoded March 2026 dates,
+  // which silently fell outside computeStarOfTheMonth()'s 30-day lookback
+  // once real time moved past them, so the suite started failing on a
+  // calendar boundary rather than on a code change. Anchored to "now"
+  // instead (daysAgoIST), the same way the window they must land inside is.
+  const dates = [5, 4, 3, 2, 1].map((n) => daysAgoIST(n));
   for (let i = 0; i < dates.length; i++) {
     await markAttendance(institutionA, adminAuth, adminUserId, {
       classId, sectionId, date: dates[i],
@@ -237,13 +243,13 @@ describe("Star of the Month (§9 follow-up)", () => {
       );
     });
 
-    // monthStart chosen so the 30-day lookback covers student1's seeded
-    // attendance dates (2026-03-02..06, 80% present) -- student2 has no
+    // monthStart is today, so the 30-day lookback covers student1's seeded
+    // attendance dates (the last five days, 80% present) -- student2 has no
     // attendance rows in that window at all, so student1 must win even if
     // the academic/skills/achievements components (which key off
     // computed_at, i.e. real test-run time, not these fixture dates) land
     // outside the window for both students.
-    const monthStart = "2026-03-15";
+    const monthStart = todayIST();
     const winners = await computeStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
     expect(winners.length).toBeGreaterThan(0);
     const winner = winners.find((w) => w.month_start === monthStart)!;
@@ -269,7 +275,7 @@ describe("Star of the Month (§9 follow-up)", () => {
   });
 
   it("announceStarOfTheMonth publishes a draft to the banner; re-announcing the same month is a no-op", async () => {
-    const monthStart = "2026-04-15";
+    const monthStart = todayIST();
     await computeStarOfTheMonth(institutionA, adminAuth, adminUserId, monthStart);
     expect((await getCurrentStarOfTheMonth(institutionA, adminAuth)).find((w) => w.month_start === monthStart)).toBeUndefined();
 

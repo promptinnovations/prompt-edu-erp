@@ -22,6 +22,8 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 process.env.PGLITE_DATA_DIR = ":memory:";
 
+import { daysAgoIST } from "../../services/datetime/ist";
+
 import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
@@ -51,7 +53,9 @@ let kgSectionId: string, hsSectionId: string;
 let kgStudent: string, hsStudent: string;
 let presentStatusId: string, absentStatusId: string;
 
-const DAY = "2026-09-01";
+// §Test-fixture-date-drift — see attendance-page4: a fixed date eventually
+// leaves getInstitutionAttendanceTrend()'s 30-day window.
+const DAY = daysAgoIST(1);
 
 beforeAll(async () => {
   __resetDbClientForTests();

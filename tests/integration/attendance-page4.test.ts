@@ -11,6 +11,8 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 process.env.PGLITE_DATA_DIR = ":memory:";
 
+import { daysAgoIST } from "../../services/datetime/ist";
+
 import { getDbClient, __resetDbClientForTests } from "../../services/db/client";
 import { applyMigrations } from "../../database/scripts/migrate";
 import { applyPlatformSeeds, seedDemoInstitution, seedDemoUser } from "../../database/scripts/seed";
@@ -33,9 +35,14 @@ let classId: string, sectionId: string;
 let student1: string;
 let presentStatusId: string, absentStatusId: string;
 
-const DAY1 = "2026-09-01";
-const DAY2 = "2026-09-02";
-const DAY3 = "2026-09-03";
+// §Test-fixture-date-drift: hardcoded September 2026 dates fell out of
+// getInstitutionAttendanceTrend()'s 30-day window as real time moved on,
+// failing the suite on the calendar rather than on a code change. Three
+// recent consecutive days instead — DAY2 still deliberately has no
+// attendance taken.
+const DAY1 = daysAgoIST(3);
+const DAY2 = daysAgoIST(2);
+const DAY3 = daysAgoIST(1);
 
 async function mintAuthFor(db: Awaited<ReturnType<typeof getDbClient>>, userId: string): Promise<string> {
   const authId = crypto.randomUUID();
