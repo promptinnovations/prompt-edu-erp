@@ -42,7 +42,7 @@ export default async function SuperAdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-[var(--sidebar-bg-2)] via-[var(--sidebar-bg)] to-[var(--sidebar-bg)] p-6 text-white shadow-float sm:p-8">
+      <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] p-6 text-white shadow-float sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/20 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-white/5 blur-2xl" />
         <div className="relative">

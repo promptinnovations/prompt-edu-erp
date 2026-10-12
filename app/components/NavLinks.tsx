@@ -30,12 +30,12 @@ export default function NavLinks({ items }: { items: NavItem[] }) {
             aria-current={active ? "page" : undefined}
             className={[
               "relative rounded-lg px-3 py-2 pl-4 transition-colors",
-              item.separated ? "mt-2 border border-zinc-800" : "",
+              item.separated ? "mt-2 border border-[var(--sidebar-border)]" : "",
               active
-                ? "bg-white/10 font-medium text-white before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-accent-500"
+                ? "bg-[var(--sidebar-active)] font-medium text-[var(--sidebar-active-text)] before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-[var(--accent-teal)]"
                 : item.muted
-                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                  : "text-zinc-300 hover:bg-zinc-800 hover:text-white",
+                  ? "text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)]/60 hover:text-[var(--sidebar-text)]"
+                  : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60 hover:text-[var(--sidebar-strong)]",
             ].join(" ")}
           >
             {item.label}

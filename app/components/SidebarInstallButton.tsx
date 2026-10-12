@@ -22,7 +22,7 @@ export default function SidebarInstallButton() {
     </svg>
   );
   const buttonClass =
-    "flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--sidebar-border)] px-3 py-2 text-xs font-medium text-[var(--sidebar-text-muted)] transition-colors hover:bg-[var(--sidebar-active)] hover:text-white";
+    "flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--sidebar-border)] px-3 py-2 text-xs font-medium text-[var(--sidebar-text-muted)] transition-colors hover:bg-[var(--sidebar-active)] hover:text-[var(--sidebar-strong)]";
 
   if (manifestMismatch) {
     return (

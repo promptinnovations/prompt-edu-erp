@@ -13,7 +13,7 @@ import { tint } from "./palette";
 
 const INK_MUTED = "#657087";
 const INK_BODY = "#4a5464";
-const GRID = "#e2dbcc";
+const GRID = "var(--color-zinc-300)";
 
 function fmt(n: number, digits = 1): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(digits);
@@ -130,7 +130,7 @@ export function RadarChart({ axes, series, max = 100, rings = 4, unit = "" }: {
         {Array.from({ length: rings }, (_, k) => {
           const f = (k + 1) / rings;
           const d = axes.map((_, i) => { const p = pt(i, max * f); return `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`; }).join(" ") + " Z";
-          return <path key={k} d={d} fill={k % 2 === 0 ? "#fbf9f5" : "none"} stroke={GRID} strokeWidth={1} />;
+          return <path key={k} d={d} fill={k % 2 === 0 ? "var(--color-zinc-50)" : "none"} stroke={GRID} strokeWidth={1} />;
         })}
         {axes.map((a, i) => {
           const end = pt(i, max);

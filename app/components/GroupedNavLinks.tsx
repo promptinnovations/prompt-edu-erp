@@ -70,7 +70,7 @@ export default function GroupedNavLinks({ items }: { items: NavEntry[] }) {
     [
       "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left font-medium transition-colors",
       active
-        ? "bg-[var(--sidebar-active)] text-white"
+        ? "bg-[var(--sidebar-active)] text-[var(--sidebar-active-text)] [&_svg]:text-[var(--sidebar-active-text)]"
         : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60",
     ].join(" ");
 
@@ -113,7 +113,7 @@ export default function GroupedNavLinks({ items }: { items: NavEntry[] }) {
                       className={[
                         "rounded-lg px-2.5 py-1.5 text-[13px] transition-colors",
                         active
-                          ? "bg-[var(--sidebar-active)] font-medium text-white"
+                          ? "bg-[var(--sidebar-active)] font-medium text-[var(--sidebar-active-text)]"
                           : "text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)]/50 hover:text-[var(--sidebar-text)]",
                       ].join(" ")}
                     >

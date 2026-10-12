@@ -13,7 +13,7 @@ export interface FeeInvoiceLite {
 const STATUS: Record<string, { text: string; bg: string; fg: string }> = {
   paid: { text: "Paid", bg: "#e6f4ec", fg: "#1f7a4d" },
   partial: { text: "Part paid", bg: "#fdf1dc", fg: "#8a5b0c" },
-  pending: { text: "Pending", bg: "#f7f4ee", fg: "#4a5464" },
+  pending: { text: "Pending", bg: "var(--color-zinc-100)", fg: "var(--color-zinc-700)" },
   overdue: { text: "Overdue", bg: "#fbeaec", fg: "#a72f3a" },
   waived: { text: "Waived", bg: "#e4f1f6", fg: "#1f6f8c" },
 };
@@ -104,7 +104,7 @@ export default function FeesView({ invoices, payForm, invoiceHref, headerExtra }
           <Panel title="All invoices" color={FEES_COLOR}>
             <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {invoices.map((i) => {
-                const s = STATUS[statusOf(i)] ?? { text: i.status, bg: "#f7f4ee", fg: "#4a5464" };
+                const s = STATUS[statusOf(i)] ?? { text: i.status, bg: "var(--color-zinc-100)", fg: "var(--color-zinc-700)" };
                 const pct = Number(i.amount_due) > 0 ? Math.min(100, (Number(i.amount_paid) / Number(i.amount_due)) * 100) : 0;
                 return (
                   <li key={i.id} className="rounded-xl border border-[var(--border-subtle)] p-3">

@@ -64,7 +64,7 @@ export default function ResponsiveSidebar({
     <>
       <div
         data-app-shell
-        className="flex items-center gap-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-4 py-3 text-white md:hidden"
+        className="flex items-center gap-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] px-4 py-3 text-[var(--sidebar-strong)] md:hidden"
       >
         <button
           type="button"
@@ -107,7 +107,7 @@ export default function ResponsiveSidebar({
 
         <div className="mb-6 hidden items-center gap-2.5 md:flex">
           {badge("flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-sm shadow-float")}
-          <div className="min-w-0 truncate text-base font-semibold text-white">{brandLabel}</div>
+          <div className="min-w-0 truncate text-base font-semibold text-[var(--sidebar-strong)]">{brandLabel}</div>
         </div>
 
         {children}

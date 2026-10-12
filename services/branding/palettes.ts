@@ -53,10 +53,110 @@ export interface ThemePalette {
     sidebarText: string;
     sidebarTextMuted: string;
     sidebarIcon: string;
+    /** Brand name and other strong text on the sidebar. Optional —
+     *  white (the dark-rail palettes) when omitted. */
+    sidebarStrong?: string;
+    /** Text of the active nav item. Optional — white when omitted. */
+    sidebarActiveText?: string;
   };
+  /** §Modern-palettes — optional full colour system. When present it
+   *  re-points the Tailwind families the whole app is written in (zinc
+   *  neutrals + text tones, indigo/primary brand steps, card shadows) at
+   *  this palette, so every page follows it, not just the shell. Palettes
+   *  without it keep the original warm-sand neutrals and navy steps
+   *  (globals.css fallbacks), exactly as before. */
+  system?: PaletteSystem;
 }
 
+type Steps = "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | "950";
+export interface PaletteSystem {
+  /** Brand scale, 50 (lightest) → 950. 600+ carries white text. */
+  brand: Record<Steps, string>;
+  /** Neutral fills/borders: 50 lifted surface, 100 ground, 200 subtle
+   *  fill, 300 border, 400 heavy divider. */
+  neutral: Record<"50" | "100" | "200" | "300" | "400", string>;
+  /** Text tones: muted (captions, ≥4.5:1 on white), body, ink (headings). */
+  text: { muted: string; body: string; ink: string };
+  /** "r, g, b" of the shadow tint. */
+  shadowRgb: string;
+}
+
+// Cool, neutral grey ramp shared by the modern palettes (the grey scale
+// most current SaaS products use): white cards on an off-white canvas,
+// hairline borders, slate-blue text tones. Muted text is 4.97:1 on white.
+const MODERN_NEUTRAL: Pick<PaletteSystem, "neutral" | "text" | "shadowRgb"> = {
+  neutral: { "50": "#f9fafb", "100": "#f2f4f7", "200": "#eaecf0", "300": "#e4e7ec", "400": "#98a2b3" },
+  text: { muted: "#667085", body: "#475467", ink: "#1d2939" },
+  shadowRgb: "16, 24, 40",
+};
+
 export const THEME_PALETTES: ThemePalette[] = [
+  // §Modern-palettes ("change the colour of the website — use the best of
+  // modern web apps"): the current SaaS look — off-white canvas, white
+  // cards with hairline borders, a light sidebar with a tinted active pill,
+  // one vivid brand colour and a soft gradient for heroes. All text pairs
+  // are WCAG AA (white on brand ≥ 5.4:1, active nav text ≥ 5.2:1).
+  {
+    id: "modern-indigo",
+    label: "Modern Indigo",
+    swatch: ["#ffffff", "#4f46e5", "#a21caf"],
+    vars: {
+      background: "#f9fafb", foreground: "#1d2939", heading: "#1d2939", surface: "#ffffff", surfaceMuted: "#f9fafb", borderSubtle: "#eaecf0",
+      brand: "#4f46e5", brandHover: "#4338ca", brandFrom: "#4f46e5", brandVia: "#7c3aed", brandTo: "#a21caf",
+      accentTeal: "#7c3aed", accentTealHover: "#6d28d9",
+      sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#eef2ff", sidebarBorder: "#eaecf0",
+      sidebarText: "#344054", sidebarTextMuted: "#667085", sidebarIcon: "#667085",
+      sidebarStrong: "#1d2939", sidebarActiveText: "#4338ca",
+    },
+    system: {
+      ...MODERN_NEUTRAL,
+      brand: {
+        "50": "#eef2ff", "100": "#e0e7ff", "200": "#c7d2fe", "300": "#a5b4fc", "400": "#818cf8", "500": "#6366f1",
+        "600": "#4f46e5", "700": "#4338ca", "800": "#3730a3", "900": "#312e81", "950": "#1e1b4b",
+      },
+    },
+  },
+  {
+    id: "modern-teal",
+    label: "Modern Teal",
+    swatch: ["#ffffff", "#0f766e", "#1d4ed8"],
+    vars: {
+      background: "#f9fafb", foreground: "#1d2939", heading: "#1d2939", surface: "#ffffff", surfaceMuted: "#f9fafb", borderSubtle: "#eaecf0",
+      brand: "#0f766e", brandHover: "#115e59", brandFrom: "#0f766e", brandVia: "#0e7490", brandTo: "#1d4ed8",
+      accentTeal: "#0e7490", accentTealHover: "#155e75",
+      sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f0fdfa", sidebarBorder: "#eaecf0",
+      sidebarText: "#344054", sidebarTextMuted: "#667085", sidebarIcon: "#667085",
+      sidebarStrong: "#1d2939", sidebarActiveText: "#0f766e",
+    },
+    system: {
+      ...MODERN_NEUTRAL,
+      // Shifted one step darker than the stock teal ramp so 600 (the step
+      // the app puts white text on) still passes AA.
+      brand: {
+        "50": "#f0fdfa", "100": "#ccfbf1", "200": "#99f6e4", "300": "#5eead4", "400": "#2dd4bf", "500": "#0d9488",
+        "600": "#0f766e", "700": "#115e59", "800": "#134e4a", "900": "#123f3c", "950": "#042f2e",
+      },
+    },
+  },
+  {
+    id: "modern-midnight",
+    label: "Midnight Blue",
+    swatch: ["#1e293b", "#2563eb", "#7c3aed"],
+    vars: {
+      background: "#f9fafb", foreground: "#1d2939", heading: "#1d2939", surface: "#ffffff", surfaceMuted: "#f9fafb", borderSubtle: "#eaecf0",
+      brand: "#2563eb", brandHover: "#1d4ed8", brandFrom: "#2563eb", brandVia: "#4f46e5", brandTo: "#7c3aed",
+      accentTeal: "#4f46e5", accentTealHover: "#4338ca",
+      sidebarBg: "#1e293b", sidebarBg2: "#1e293b", sidebarActive: "#334155", sidebarBorder: "#2c3a50",
+      sidebarText: "#e2e8f0", sidebarTextMuted: "#94a3b8", sidebarIcon: "#a5b4c8",
+    },
+    system: {
+      ...MODERN_NEUTRAL,
+      brand: {
+        "50": "#eff6ff", "100": "#dbeafe", "200": "#bfdbfe", "300": "#93c5fd", "400": "#60a5fa", "500": "#3b82f6",
+        "600": "#2563eb", "700": "#1d4ed8", "800": "#1e40af", "900": "#1e3a8a", "950": "#172554",
+      },
+    },
+  },
   {
     id: "navy-teal",
     label: "Navy & Teal",
@@ -175,7 +275,7 @@ export const THEME_PALETTES: ThemePalette[] = [
 // (platform_settings.default_theme_palette) — it's only the fallback when
 // that row is missing. To roll a palette out to institutions that never
 // chose one, change the platform default in the Super Admin console.
-export const DEFAULT_PALETTE_ID = "navy-teal";
+export const DEFAULT_PALETTE_ID = "modern-indigo";
 export const PALETTE_IDS = THEME_PALETTES.map((p) => p.id);
 
 export function getPalette(id: string | null | undefined): ThemePalette {
@@ -198,6 +298,21 @@ export function paletteCssVars(palette: ThemePalette): string {
     `--accent-teal:${v.accentTeal};--accent-teal-hover:${v.accentTealHover};` +
     `--sidebar-bg:${v.sidebarBg};--sidebar-bg-2:${v.sidebarBg2};--sidebar-active:${v.sidebarActive};` +
     `--sidebar-border:${v.sidebarBorder};--sidebar-text:${v.sidebarText};` +
-    `--sidebar-text-muted:${v.sidebarTextMuted};--sidebar-icon:${v.sidebarIcon};`
+    `--sidebar-text-muted:${v.sidebarTextMuted};--sidebar-icon:${v.sidebarIcon};` +
+    `--sidebar-strong:${v.sidebarStrong ?? "#ffffff"};--sidebar-active-text:${v.sidebarActiveText ?? "#ffffff"};` +
+    systemCssVars(palette.system)
   );
+}
+
+/** The optional full colour system as custom properties. globals.css's
+ *  @theme points zinc/indigo/primary/ink/body/muted/shadows at these with
+ *  the original values as fallbacks, so a palette without a system emits
+ *  nothing here and renders exactly as it always has. */
+function systemCssVars(s: PaletteSystem | undefined): string {
+  if (!s) return "";
+  let out = "";
+  for (const [k, v] of Object.entries(s.brand)) out += `--sys-brand-${k}:${v};`;
+  for (const [k, v] of Object.entries(s.neutral)) out += `--sys-neutral-${k}:${v};`;
+  out += `--sys-muted:${s.text.muted};--sys-body:${s.text.body};--sys-ink:${s.text.ink};--sys-shadow-rgb:${s.shadowRgb};`;
+  return out;
 }

@@ -153,7 +153,7 @@ export default function ActivitiesView({ data, forms, headerExtra }: { data: Act
             </div>
             <ul className="space-y-2 lg:col-span-3">
               {data.activities.slice(0, 12).map((x) => {
-                const chip = STATUS_CHIP[x.status] ?? { text: x.status, bg: "#f7f4ee", fg: "#4a5464" };
+                const chip = STATUS_CHIP[x.status] ?? { text: x.status, bg: "var(--color-zinc-100)", fg: "var(--color-zinc-700)" };
                 return (
                   <li key={x.id} className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] px-3 py-2 text-sm">
                     <span aria-hidden className="h-8 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: typeColor(x.type) }} />

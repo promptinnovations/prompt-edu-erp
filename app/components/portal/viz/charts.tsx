@@ -140,7 +140,7 @@ export function DonutChart({ segments, size = 168, stroke = 26, center, sub }: {
   return (
     <div className="flex flex-wrap items-center gap-5">
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={segments.map((s) => `${s.label} ${s.value}`).join(", ")}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#efeae0" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-zinc-200)" strokeWidth={stroke} />
         {total > 0 ? segments.filter((s) => s.value > 0).map((s) => {
           const len = (s.value / total) * c;
           const el = (
