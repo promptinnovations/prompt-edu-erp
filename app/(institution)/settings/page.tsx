@@ -6,7 +6,6 @@ import { getInstitution, getParentPortalSections } from "../../../services/insti
 import LogoForm from "./LogoForm";
 import InstallAppButton from "./InstallAppButton";
 import ParentPortalSectionsForm from "./ParentPortalSectionsForm";
-import ThemePaletteForm from "./ThemePaletteForm";
 import SeatingGenderRuleForm from "./SeatingGenderRuleForm";
 
 export default async function SettingsPage() {
@@ -49,15 +48,6 @@ export default async function SettingsPage() {
           appName={institution?.appName || institution?.name || "This institution"}
           logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null}
         />
-      </section>
-
-      <section className="rounded-card border bg-white p-5">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Appearance</h2>
-        <p className="mb-3 text-sm text-zinc-500">
-          Choose a colour combination for {institution?.appName || institution?.name} — applies everywhere for
-          everyone signed in to this institution (sidebar, buttons, login screen).
-        </p>
-        <ThemePaletteForm currentId={institution?.themePalette ?? null} />
       </section>
 
       <section className="rounded-card border bg-white p-5">

@@ -1,8 +1,7 @@
 import { cookies, headers } from "next/headers";
 import LoginForm from "./LoginForm";
 import { getInstitutionPublicSummaryByCode } from "../../../services/institution/institution-service";
-import { getPlatformDefaultPalette } from "../../../services/super-admin/super-admin-service";
-import { getPalette, paletteCssVars } from "../../../services/branding/palettes";
+import { APP_PALETTE, paletteCssVars } from "../../../services/branding/palettes";
 import { ACTIVE_INSTITUTION_COOKIE } from "../../../services/tenant/institution-cookie";
 
 /**
@@ -17,16 +16,11 @@ import { ACTIVE_INSTITUTION_COOKIE } from "../../../services/tenant/institution-
 export default async function LoginPage() {
   const store = await cookies();
   const code = store.get(ACTIVE_INSTITUTION_COOKIE)?.value ?? null;
-  const [institution, platformDefaultPalette] = await Promise.all([
-    code ? getInstitutionPublicSummaryByCode(code).catch(() => null) : Promise.resolve(null),
-    getPlatformDefaultPalette(),
-  ]);
+  const institution = code ? await getInstitutionPublicSummaryByCode(code).catch(() => null) : null;
   const institutionName = institution?.appName || institution?.name || undefined;
   const logoUrl = institution?.hasLogo ? `/api/institution-logo/${institution.code}` : undefined;
-  // "Never use dark ... give colour combination options" follow-up — this
-  // institution's own chosen palette (or the platform default, for the
-  // generic un-prefixed /login) drives the whole screen below.
-  const palette = getPalette(institution?.themePalette ?? platformDefaultPalette);
+  // §Fixed-look: one colour scheme for the whole app (APP_PALETTE).
+  const palette = APP_PALETTE;
   // §Palette-picker follow-up ("colour palette is still not working"):
   // middleware.ts's CSP sends `style-src 'self' 'nonce-<value>'` in
   // production -- NOT 'unsafe-inline' -- so a bare <style> tag with no

@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireRequestContext } from "../../services/request-context";
 import { getUserDisplayInfo } from "../../services/tenant/tenant-service";
-import { getPlatformDefaultPalette } from "../../services/super-admin/super-admin-service";
-import { getPalette, paletteCssVars } from "../../services/branding/palettes";
+import { APP_PALETTE, paletteCssVars } from "../../services/branding/palettes";
 import { signOutAction } from "../(institution)/actions";
 import ResponsiveSidebar from "../components/ResponsiveSidebar";
 import NavLinks, { type NavItem } from "../components/NavLinks";
@@ -23,11 +22,9 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   // re-verification on every call (see that file's header comment).
   if (!ctx.isSuperAdmin) redirect("/dashboard");
 
-  const [viewer, platformDefaultPalette] = await Promise.all([
-    getUserDisplayInfo(ctx.session.authUserId, ctx.userId),
-    getPlatformDefaultPalette(),
-  ]);
-  const palette = getPalette(platformDefaultPalette);
+  const viewer = await getUserDisplayInfo(ctx.session.authUserId, ctx.userId);
+  // §Fixed-look: one colour scheme for the whole app.
+  const palette = APP_PALETTE;
   // §Palette-picker follow-up ("colour palette is still not working"):
   // same nonce-based CSP fix as (institution)/layout.tsx -- an inline
   // <style> tag with no `nonce` attribute is silently dropped under this
@@ -38,7 +35,6 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     { href: "/super-admin", label: "Institutions" },
     { href: "/super-admin/sample-portals", label: "Sample Portals" },
     { href: "/super-admin/audit", label: "Platform Audit" },
-    { href: "/super-admin/appearance", label: "Appearance" },
     ...(ctx.memberships.length > 0 ? [{ href: "/dashboard", label: "← Back to institution app", muted: true }] : []),
   ];
 

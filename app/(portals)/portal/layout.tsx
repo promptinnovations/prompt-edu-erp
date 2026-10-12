@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireRequestContext } from "../../../services/request-context";
 import { getInstitution } from "../../../services/institution/institution-service";
-import { getPlatformDefaultPalette } from "../../../services/super-admin/super-admin-service";
-import { getPalette, paletteCssVars } from "../../../services/branding/palettes";
+import { APP_PALETTE, paletteCssVars } from "../../../services/branding/palettes";
 import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { listMyNotifications, getUnreadNotificationCount } from "../../../services/notification/notification-service";
 import { getStudent } from "../../../modules/students/service";
@@ -84,12 +83,11 @@ export default async function PortalLayout({ children }: { children: React.React
   const isParentSide = pathname.startsWith("/portal/parent");
   const showSidebar = isStudentSide || isParentSide;
 
-  const [institution, notifications, unreadCount, viewer, platformDefaultPalette, ownStudentId, ownParentId] = await Promise.all([
+  const [institution, notifications, unreadCount, viewer, ownStudentId, ownParentId] = await Promise.all([
     getInstitution(ctx.institutionId, ctx.session.authUserId),
     listMyNotifications(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUnreadNotificationCount(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getUserDisplayInfo(ctx.session.authUserId, ctx.userId),
-    getPlatformDefaultPalette(),
     getOwnStudentId(ctx.institutionId, ctx.session.authUserId, ctx.userId),
     getOwnParentId(ctx.institutionId, ctx.session.authUserId, ctx.userId),
   ]);
@@ -109,7 +107,8 @@ export default async function PortalLayout({ children }: { children: React.React
     ? await getStudent(ctx.institutionId, ctx.session.authUserId, ownStudentId)
     : null;
 
-  const palette = getPalette(institution?.themePalette ?? platformDefaultPalette);
+  // §Fixed-look: one colour scheme for the whole app.
+  const palette = APP_PALETTE;
   // §Palette-picker follow-up ("colour palette is still not working"):
   // same nonce-based CSP fix as (institution)/layout.tsx -- an inline
   // <style> tag with no `nonce` attribute is silently dropped under this

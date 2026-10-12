@@ -4,42 +4,12 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
-  updateInstitutionTheme, updateInstitutionLogo,
+  updateInstitutionLogo,
   updateParentPortalSections, PARENT_PORTAL_SECTION_KEYS,
   updateExamSeatingGenderRule,
   type ParentPortalSections,
 } from "../../../services/institution/institution-service";
 import { uploadFile } from "../../../services/storage/file-service";
-
-export async function updateThemeAction(_prevState: { error: string | null }, formData: FormData) {
-  const ctx = await requireRequestContext();
-  if (!ctx.institutionId) return { error: "No active institution." };
-  try {
-    requirePermission(ctx.permissions, "settings.manage");
-    // "reset" is a dedicated hidden field rather than an empty selection,
-    // so "use the platform default" is always an explicit, distinct choice
-    // — same pattern the old single-colour picker used.
-    const reset = formData.get("reset") === "true";
-    const themePalette = reset ? null : String(formData.get("themePalette") ?? "");
-    await updateInstitutionTheme(ctx.institutionId, ctx.session.authUserId, ctx.userId, { themePalette });
-    revalidatePath("/settings");
-    // §Palette-picker follow-up bug ("selected colour combo, no changes
-    // yet"): revalidatePath("/", "layout") revalidates the layout that
-    // applies to the URL "/" -- which is app/layout.tsx (the true root
-    // layout), NOT app/(institution)/layout.tsx. "/" is its own standalone
-    // redirect page (app/page.tsx), outside the (institution) route group
-    // entirely, so it never actually shared a layout with /settings in the
-    // first place -- this call did nothing useful. The palette <style> tag,
-    // sidebar, and button colours all live in (institution)/layout.tsx,
-    // which wraps /settings itself, so THAT'S the path+type pair that
-    // actually invalidates it (Next.js revalidates every route sharing the
-    // same layout as the given path, not just that literal path).
-    revalidatePath("/settings", "layout");
-    return { error: null };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to update the colour theme." };
-  }
-}
 
 /** "Can I add institution logo?" follow-up — mirrors submitAchievementAction's
  *  upload-then-link shape (services/storage/file-service.ts's uploadFile()
@@ -67,7 +37,7 @@ export async function uploadInstitutionLogoAction(_prevState: { error: string | 
     });
     await updateInstitutionLogo(ctx.institutionId, ctx.session.authUserId, ctx.userId, uploaded.id);
     revalidatePath("/settings");
-    // Same fix as updateThemeAction() above -- the sidebar logo lives in
+    // The sidebar logo lives in
     // (institution)/layout.tsx, so the revalidation needs `"layout"` type
     // to actually reach it, not just the default `"page"` type this used
     // to have (which only invalidated the /dashboard PAGE segment).

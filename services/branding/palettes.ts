@@ -282,6 +282,13 @@ export function getPalette(id: string | null | undefined): ThemePalette {
   return THEME_PALETTES.find((p) => p.id === id) ?? THEME_PALETTES.find((p) => p.id === DEFAULT_PALETTE_ID)!;
 }
 
+/** §Fixed-look ("this is not required — fix the latest update"): the app
+ *  has ONE colour scheme, Modern Indigo, for every institution, portal,
+ *  login screen and the Super Admin console. The palette picker UI is
+ *  gone; the stored institutions.theme_palette / platform default values
+ *  are no longer read for rendering. */
+export const APP_PALETTE: ThemePalette = getPalette(DEFAULT_PALETTE_ID);
+
 /** Renders a palette's `vars` map as `--name: value;` CSS custom-property
  *  declarations — the body of a `:root { ... }` (or scoped selector)
  *  block. Used by every layout that injects a resolved palette via an
