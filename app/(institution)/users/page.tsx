@@ -8,6 +8,9 @@ import CreateUserForm from "./CreateUserForm";
 import UserRolesForm from "./UserRolesForm";
 import UserStatusForm from "./UserStatusForm";
 import UserPasswordForm from "./UserPasswordForm";
+import { Panel } from "../../components/portal/viz/blocks";
+import { CountBars, CountDonut } from "../../components/staff/insights";
+import { seriesColor } from "../../components/portal/viz/palette";
 
 /** §users-roles follow-up ("Staff and Students list should be separated,
  *  student list always must follow class & roll number order") — this page
@@ -46,6 +49,20 @@ export default async function UsersPage() {
         no email confirmation step needed. A user can hold several roles at once (e.g. Teacher + Librarian). The
         current password for each user is shown below; reset it any time if someone loses it.
       </p>
+
+      {/* §Staff-pages-visual — logins at a glance (same lists as the tables below). */}
+      {staff.length + students.length > 0 ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Staff logins by role" color={seriesColor(7)}>
+            <CountBars rows={staff.flatMap((s) => (s.roleNames.length > 0 ? s.roleNames : ["No role"]).map((r) => ({ r })))} label={(x) => x.r} color={seriesColor(7)} limit={10} />
+          </Panel>
+          <Panel title="Login status" color={seriesColor(7)}>
+            <CountDonut rows={[...staff, ...students]} sub="users"
+              label={(u) => (u.membershipStatus !== "active" ? "Inactive" : u.isClaimed ? "Active login" : "Not set up yet")}
+              fixed={{ "Active login": "#1baf7a", "Not set up yet": "#eda100", Inactive: "#79839a" }} />
+          </Panel>
+        </div>
+      ) : null}
 
       {canManageUsers ? (
         <section className="rounded-card border bg-white p-5">

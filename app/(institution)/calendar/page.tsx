@@ -8,6 +8,10 @@ import AddEventForm from "./AddEventForm";
 import DeleteEventButton from "./DeleteEventButton";
 import ToggleConductedButton from "./ToggleConductedButton";
 import { todayIST, formatDateIST } from "../../../services/datetime/ist";
+import { Panel } from "../../components/portal/viz/blocks";
+import { Timeline } from "../../components/portal/viz/charts";
+import { CountDonut } from "../../components/staff/insights";
+import { seriesColor } from "../../components/portal/viz/palette";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   holiday: "Holiday", exam: "Exam", meeting: "Meeting", ptm: "PTM", other: "Other",
@@ -53,6 +57,30 @@ export default async function CalendarPage() {
           </Link>
         ) : null}
       </div>
+
+      {/* §Staff-pages-visual — the year's calendar at a glance (same events
+          as the lists below). */}
+      {allEvents.length > 0 ? (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Panel title="Events by type" color={seriesColor(6)}>
+            <CountDonut rows={allEvents} sub="events" label={(e) => ({ holiday: "Holiday", exam: "Exam", meeting: "Meeting", ptm: "PTM", other: "Other" } as Record<string, string>)[e.event_type] ?? e.event_type}
+              fixed={{ Holiday: "#e34948", Exam: "#eda100", Meeting: "#2a78d6", PTM: "#e87ba4", Other: "#79839a" }} />
+          </Panel>
+          <Panel title="Next up" subtitle={`${upcoming.length} upcoming`} color={seriesColor(6)} className="lg:col-span-2">
+            {upcoming.length === 0 ? (
+              <p className="py-6 text-center text-sm text-zinc-500">Nothing scheduled.</p>
+            ) : (
+              <Timeline items={upcoming.slice(0, 5).map((e) => ({
+                key: e.id, title: e.title,
+                date: `${formatDate(e.start_date)}${e.end_date && e.end_date !== e.start_date ? ` – ${formatDate(e.end_date)}` : ""}`,
+                meta: e.description ?? undefined,
+                color: ({ holiday: "#e34948", exam: "#eda100", meeting: "#2a78d6", ptm: "#e87ba4" } as Record<string, string>)[e.event_type] ?? "#79839a",
+                icon: e.event_type === "holiday" ? "☀" : e.event_type === "exam" ? "✎" : "★",
+              }))} />
+            )}
+          </Panel>
+        </div>
+      ) : null}
 
       {canManage ? (
         <section className="rounded-card border bg-white p-5">
