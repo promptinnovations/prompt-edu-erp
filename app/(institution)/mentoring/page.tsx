@@ -10,6 +10,9 @@ import { listStaff } from "../../../modules/staff/service";
 import { listClasses } from "../../../modules/academic/service";
 import MentoringSection from "./MentoringSection";
 import MentorAssignmentSection from "./MentorAssignmentSection";
+import { Panel } from "../../components/portal/viz/blocks";
+import { MonthBars, CountBars } from "../../components/staff/insights";
+import { seriesColor } from "../../components/portal/viz/palette";
 
 export default async function MentoringPage() {
   const ctx = await requireRequestContext();
@@ -51,6 +54,19 @@ export default async function MentoringPage() {
           ? "You can see every mentoring record in the institution (mentoring.view_all)."
           : "You can only see mentoring records you authored yourself, per §75's confidentiality rule."}
       </p>
+
+      {/* §Staff-pages-visual — sessions at a glance (same records as below,
+          so the confidentiality scope above applies to the charts too). */}
+      {records.length > 0 ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Sessions per month" subtitle="Last 6 months." color={seriesColor(6)}>
+            <MonthBars rows={records} date={(r) => r.date} color={seriesColor(6)} noun="sessions" />
+          </Panel>
+          <Panel title={canViewAll ? "Sessions by mentor" : "Students you've mentored most"} color={seriesColor(6)}>
+            <CountBars rows={records} label={(r) => (canViewAll ? r.mentor_name : r.student_name)} color={seriesColor(6)} limit={8} />
+          </Panel>
+        </div>
+      ) : null}
 
       <section className="rounded-card border bg-white p-5">
         <MentoringSection

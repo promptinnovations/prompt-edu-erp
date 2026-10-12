@@ -7,6 +7,9 @@ import { listClasses, listSections, getCurrentAcademicYear } from "../../../modu
 import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import StudentForm from "./StudentForm";
 import StudentRowActions from "./StudentRowActions";
+import { Panel } from "../../components/portal/viz/blocks";
+import { DonutChart, HBars } from "../../components/portal/viz/charts";
+import { seriesColor } from "../../components/portal/viz/palette";
 
 /** §137 follow-up ("should be able edit, delete, search") — search box +
  *  class filter + a "show removed" toggle, all plain GET query params so
@@ -55,6 +58,41 @@ export default async function StudentsPage({
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">{t("title")}</h1>
+
+      {/* §Staff-pages-visual — the students currently in view (same list,
+          filters and class scope as the table below; no extra query). */}
+      {students.length > 0 ? (() => {
+        const active = students.filter((s) => s.status !== "withdrawn");
+        const g = (x: string | null) => (x ?? "").toLowerCase();
+        const boys = active.filter((s) => g(s.gender) === "m" || g(s.gender) === "male").length;
+        const girls = active.filter((s) => g(s.gender) === "f" || g(s.gender) === "female").length;
+        const byClass = new Map<string, number>();
+        for (const s of active) {
+          const k = s.class_name ? `${s.class_name}${s.section_name ? ` ${s.section_name}` : ""}` : "Not enrolled";
+          byClass.set(k, (byClass.get(k) ?? 0) + 1);
+        }
+        const classRows = [...byClass.entries()];
+        const maxClass = Math.max(1, ...classRows.map(([, n]) => n));
+        return (
+          <div className="grid gap-6 lg:grid-cols-5">
+            <Panel title="Students in view" subtitle={`${active.length} active`} color={seriesColor(0)} className="lg:col-span-2">
+              <DonutChart
+                size={140} stroke={22} center={active.length} sub="students"
+                segments={[
+                  { label: "Boys", value: boys, color: seriesColor(0) },
+                  { label: "Girls", value: girls, color: seriesColor(4) },
+                  ...(active.length - boys - girls > 0 ? [{ label: "Not recorded", value: active.length - boys - girls, color: "#79839a" }] : []),
+                ]}
+              />
+            </Panel>
+            <Panel title="Strength by class" color={seriesColor(0)} className="lg:col-span-3">
+              <div className="max-h-72 overflow-y-auto pr-1">
+                <HBars unit="" max={maxClass} rows={classRows.map(([label, n]) => ({ label, value: n, color: seriesColor(0), suffix: "" }))} />
+              </div>
+            </Panel>
+          </div>
+        );
+      })() : null}
 
       <section className="rounded-card border bg-white p-5">
         <StudentForm academicYearId={academicYear?.id ?? null} sections={sectionOptions} />

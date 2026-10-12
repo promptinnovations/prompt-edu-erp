@@ -3,6 +3,9 @@ import { requireModuleEnabledOrRedirect } from "../../../services/modules/module
 import { can } from "../../../services/permissions/permission-service";
 import { listAccountCategories, listTransactions, getAccountsSummary } from "../../../modules/accounts/service";
 import { AccountCategoryForm, TransactionForm } from "./TransactionForm";
+import { Panel } from "../../components/portal/viz/blocks";
+import { DonutChart, HBars } from "../../components/portal/viz/charts";
+import { seriesColor } from "../../components/portal/viz/palette";
 
 export default async function AccountsPage() {
   const ctx = await requireRequestContext();
@@ -36,6 +39,33 @@ export default async function AccountsPage() {
           <div className="text-lg font-semibold text-zinc-900">₹{summary.netBalance}</div>
         </div>
       </section>
+
+      {/* §Staff-pages-visual — income vs expense and where money goes, from
+          the same summary as the cards and the category list below. */}
+      {summary.byCategory.length > 0 ? (() => {
+        const income = Number(summary.totalIncome) || 0;
+        const expense = Number(summary.totalExpense) || 0;
+        const rows = (type: string) => summary.byCategory.filter((c) => c.type === type).map((c) => ({ label: c.category_name, value: Number(c.total) || 0 }))
+          .sort((a, b) => b.value - a.value).slice(0, 8);
+        const inc = rows("income"); const exp = rows("expense");
+        const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+        return (
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Panel title="Income vs expense" color={seriesColor(6)}>
+              <DonutChart size={136} stroke={21} center={rupees(income - expense)} sub="net" segments={[
+                { label: `Income ${rupees(income)}`, value: income, color: "#1baf7a" },
+                { label: `Expense ${rupees(expense)}`, value: expense, color: "#e34948" },
+              ]} />
+            </Panel>
+            <Panel title="Income by category" color="#1baf7a">
+              <HBars unit="" max={Math.max(1, ...inc.map((r) => r.value))} rows={inc.map((r) => ({ label: r.label, value: r.value, color: "#1baf7a", suffix: "", note: rupees(r.value) }))} />
+            </Panel>
+            <Panel title="Expense by category" color="#e34948">
+              <HBars unit="" max={Math.max(1, ...exp.map((r) => r.value))} rows={exp.map((r) => ({ label: r.label, value: r.value, color: "#e34948", suffix: "", note: rupees(r.value) }))} />
+            </Panel>
+          </div>
+        );
+      })() : null}
 
       {summary.byCategory.length > 0 ? (
         <section className="rounded-card border bg-white p-5">

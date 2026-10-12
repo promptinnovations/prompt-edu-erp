@@ -9,6 +9,9 @@ import {
 import DisciplineRecordForm from "./DisciplineRecordForm";
 import CharacterAssessmentForm from "./CharacterAssessmentForm";
 import DisciplineConfigSection from "./DisciplineConfigSection";
+import { Panel } from "../../components/portal/viz/blocks";
+import { CountDonut, MonthBars, CountBars } from "../../components/staff/insights";
+import { seriesColor, STATUS_COLOR } from "../../components/portal/viz/palette";
 
 export default async function DisciplinePage() {
   const ctx = await requireRequestContext();
@@ -33,6 +36,22 @@ export default async function DisciplinePage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Discipline &amp; Character</h1>
+
+      {/* §Staff-pages-visual — records at a glance (same rows as below). */}
+      {records.length > 0 ? (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Panel title="Positive vs needs attention" color={seriesColor(4)}>
+            <CountDonut rows={records} sub="records" label={(r) => (r.is_positive ? "Positive" : "Needs attention")}
+              fixed={{ Positive: STATUS_COLOR.present, "Needs attention": STATUS_COLOR.absent }} />
+          </Panel>
+          <Panel title="Records per month" subtitle="Last 6 months." color={seriesColor(4)}>
+            <MonthBars rows={records} date={(r) => r.date} color={seriesColor(4)} />
+          </Panel>
+          <Panel title="Most recorded" color={seriesColor(4)}>
+            <CountBars rows={records} label={(r) => r.category_name} color={seriesColor(4)} limit={7} />
+          </Panel>
+        </div>
+      ) : null}
 
       <section id="records" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Discipline records</h2>

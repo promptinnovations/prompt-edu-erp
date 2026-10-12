@@ -6,6 +6,9 @@ import { listStudents } from "../../../modules/students/service";
 import { listAchievementCategories, listAchievementLevels, listAchievements } from "../../../modules/achievements/service";
 import SubmitAchievementForm from "./SubmitAchievementForm";
 import AchievementsTable from "./AchievementsTable";
+import { Panel } from "../../components/portal/viz/blocks";
+import { CountDonut, CountBars } from "../../components/staff/insights";
+import { seriesColor, STATUS_COLOR } from "../../components/portal/viz/palette";
 
 export default async function AchievementsPage() {
   const ctx = await requireRequestContext();
@@ -23,6 +26,22 @@ export default async function AchievementsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Achievements</h1>
+
+      {/* §Staff-pages-visual — achievements at a glance (same rows as the table). */}
+      {achievements.length > 0 ? (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Panel title="By status" color={seriesColor(1)}>
+            <CountDonut rows={achievements} sub="entries" label={(a) => a.status.charAt(0).toUpperCase() + a.status.slice(1)}
+              fixed={{ Approved: STATUS_COLOR.present, Pending: STATUS_COLOR.late, Rejected: STATUS_COLOR.absent }} />
+          </Panel>
+          <Panel title="By category" color={seriesColor(1)}>
+            <CountBars rows={achievements.filter((a) => a.status === "approved")} label={(a) => a.category_name} color={seriesColor(1)} limit={7} />
+          </Panel>
+          <Panel title="By level" color={seriesColor(1)}>
+            <CountBars rows={achievements.filter((a) => a.status === "approved")} label={(a) => a.level_name} color={seriesColor(3)} limit={7} />
+          </Panel>
+        </div>
+      ) : null}
 
       {can(ctx.permissions, "achievements.submit") ? (
         <section className="rounded-card border bg-white p-5">

@@ -6,6 +6,9 @@ import { listAcademicYears } from "../../../modules/academic/service";
 import { getInstitution } from "../../../services/institution/institution-service";
 import ExaminationForm from "./ExaminationForm";
 import ExaminationsTable from "./ExaminationsTable";
+import { Panel } from "../../components/portal/viz/blocks";
+import { CountDonut, CountBars } from "../../components/staff/insights";
+import { seriesColor } from "../../components/portal/viz/palette";
 
 export default async function ExaminationsPage() {
   const ctx = await requireRequestContext();
@@ -32,6 +35,18 @@ export default async function ExaminationsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Examinations</h1>
+
+      {/* §Staff-pages-visual — exams at a glance (same list as the table). */}
+      {examinations.length > 0 ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="By stage" subtitle="Where each examination is in its workflow." color={seriesColor(0)}>
+            <CountDonut rows={examinations} sub="exams" label={(e) => String(e.workflowStatus).charAt(0).toUpperCase() + String(e.workflowStatus).slice(1)} />
+          </Panel>
+          <Panel title="By exam type" color={seriesColor(0)}>
+            <CountBars rows={examinations} label={(e) => examTypes.find((t) => t.id === e.exam_type_id)?.name} color={seriesColor(0)} limit={8} />
+          </Panel>
+        </div>
+      ) : null}
 
       {/* §Teacher-access follow-up: "create exam is there, cancel it for all
          teachers" — this section was previously rendered unconditionally.

@@ -14,6 +14,9 @@ import ReadingReviewQueue from "./ReadingReviewQueue";
 import HoldsWaitlist from "./HoldsWaitlist";
 import RichTextContent from "../../components/RichTextContent";
 import LibraryCatalogueGrid from "./LibraryCatalogueGrid";
+import { Panel, StatTile } from "../../components/portal/viz/blocks";
+import { DonutChart, HBars } from "../../components/portal/viz/charts";
+import { seriesColor, STATUS_COLOR } from "../../components/portal/viz/palette";
 
 export default async function LibraryPage() {
   const ctx = await requireRequestContext();
@@ -46,6 +49,41 @@ export default async function LibraryPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-[var(--heading)]">Library</h1>
+
+      {/* §Staff-pages-visual — the library at a glance, from the lists this
+          page already loads (no extra queries). */}
+      {(() => {
+        const copies = books.reduce((a, b) => a + Number(b.total_copies ?? 0), 0);
+        const available = books.reduce((a, b) => a + Number(b.available_copies ?? 0), 0);
+        const overdue = issued.filter((i) => i.is_overdue).length;
+        const byCategory = new Map<string, number>();
+        for (const b of books) { const k = b.category_name || "Uncategorised"; byCategory.set(k, (byCategory.get(k) ?? 0) + 1); }
+        const cats = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+        return (
+          <div className="space-y-6">
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTile label="Titles" icon="📚" color={seriesColor(3)} value={books.length} sub={`${copies} copies`} />
+              <StatTile label="On loan" icon="🎒" color={seriesColor(0)} value={issued.length} />
+              <StatTile label="Overdue" icon="⏰" color={seriesColor(7)} value={overdue} />
+              <StatTile label="Holds & reviews" icon="📦" color={seriesColor(4)} value={holds.length + pendingReviews.length} sub={`${holds.length} holds · ${pendingReviews.length} reviews`} />
+            </section>
+            {books.length > 0 ? (
+              <div className="grid gap-6 lg:grid-cols-5">
+                <Panel title="Copies" color={seriesColor(3)} className="lg:col-span-2">
+                  <DonutChart size={140} stroke={22} center={copies} sub="copies" segments={[
+                    { label: "On the shelf", value: available, color: STATUS_COLOR.present },
+                    { label: "On loan / other", value: Math.max(0, copies - available - overdue), color: seriesColor(0) },
+                    { label: "Overdue", value: overdue, color: STATUS_COLOR.absent },
+                  ]} />
+                </Panel>
+                <Panel title="Titles by category" color={seriesColor(3)} className="lg:col-span-3">
+                  <HBars unit="" max={Math.max(1, ...cats.map(([, n]) => n))} rows={cats.map(([label, n]) => ({ label, value: n, color: seriesColor(3), suffix: "" }))} />
+                </Panel>
+              </div>
+            ) : null}
+          </div>
+        );
+      })()}
 
       <section id="catalogue" className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
