@@ -67,9 +67,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ size
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          position: "relative",
           background: `linear-gradient(135deg, ${identity.badgeGradient[0]} 0%, ${identity.badgeGradient[1]} 55%, ${identity.badgeGradient[2]} 100%)`,
         }}
       >
+        {/* §Fixed-look icon: a soft light glow top-left over the brand
+            gradient, matching the static /icons artwork. */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            background: "radial-gradient(circle at 22% 18%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 55%)",
+          }}
+        />
         <div
           style={{
             color: "#ffffff",

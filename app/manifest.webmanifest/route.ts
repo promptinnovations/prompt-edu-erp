@@ -1,5 +1,6 @@
 import { getRequestContext } from "../../services/request-context";
 import { resolveAppIdentity, resolveAppIdentityByCode } from "../../services/branding/app-identity";
+import { APP_PALETTE } from "../../services/branding/palettes";
 
 /**
  * PROMPT EDU ERP — dynamic PWA manifest (ARCHITECTURE.md §R.1), served at
@@ -45,15 +46,22 @@ export async function GET(request: Request) {
     scope: identity.scope,
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: identity.badgeGradient[1],
+    theme_color: APP_PALETTE.vars.brand,
+    // §Install-button: "any" + "maskable" so Android draws the icon edge to
+    // edge in its adaptive shape (the artwork is a full-bleed gradient with
+    // a centred label, safe for masking) instead of a small icon on white.
     icons: identity.dynamicIcon
       ? [
-          { src: `${identity.assetBasePath}/icon-badge/192`, sizes: "192x192", type: "image/png" },
-          { src: `${identity.assetBasePath}/icon-badge/512`, sizes: "512x512", type: "image/png" },
+          { src: `${identity.assetBasePath}/icon-badge/192`, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: `${identity.assetBasePath}/icon-badge/512`, sizes: "512x512", type: "image/png", purpose: "any" },
+          // An uploaded logo could lose its edges to the mask, so only the
+          // generated badge is offered as maskable.
+          ...(identity.logoInstitutionCode ? [] : [{ src: `${identity.assetBasePath}/icon-badge/512`, sizes: "512x512", type: "image/png", purpose: "maskable" }]),
         ]
       : [
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
   };
 

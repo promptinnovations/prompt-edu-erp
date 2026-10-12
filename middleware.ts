@@ -204,6 +204,11 @@ function buildCsp(nonce: string, isDev: boolean): string {
     `style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
     `img-src 'self' blob: data:${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     `font-src 'self'`,
+    // §Install-button: the service worker (public/sw.js). With
+    // 'strict-dynamic' in script-src, its 'self' is ignored, and
+    // worker-src falls back to script-src — so it must be explicit.
+    `worker-src 'self'`,
+    `manifest-src 'self'`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

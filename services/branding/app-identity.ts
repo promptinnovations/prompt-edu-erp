@@ -25,8 +25,7 @@
  *      `id`.
  */
 import { getInstitution, getInstitutionPublicSummaryByCode } from "../institution/institution-service";
-import { getPlatformDefaultPalette } from "../super-admin/super-admin-service";
-import { getPalette } from "./palettes";
+import { APP_PALETTE } from "./palettes";
 import type { RequestContext } from "../../types/context";
 
 export interface AppIdentity {
@@ -96,9 +95,11 @@ function genericIdentity(gradient: [string, string, string]): AppIdentity {
   };
 }
 
-async function resolveBadgeGradient(themePalette: string | null): Promise<[string, string, string]> {
-  const palette = getPalette(themePalette ?? (await getPlatformDefaultPalette()));
-  return [palette.vars.brandFrom, palette.vars.brandVia, palette.vars.brandTo];
+// §Fixed-look: the app has one colour scheme, so every generated install
+// icon uses its gradient (indigo → violet → fuchsia). The argument is kept
+// for call-site compatibility and ignored.
+async function resolveBadgeGradient(_themePalette: string | null): Promise<[string, string, string]> {
+  return [APP_PALETTE.vars.brandFrom, APP_PALETTE.vars.brandVia, APP_PALETTE.vars.brandTo];
 }
 
 export async function resolveAppIdentity(ctx: RequestContext | null): Promise<AppIdentity> {
@@ -116,7 +117,10 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
         dynamicIcon: true,
         appId: `/app/${slug}`,
         scope: `/${slug}/`,
-        startUrl: `/${slug}`,
+        // §Install-button: start_url must sit INSIDE scope, or browsers
+        // discard the scope (spec) — "/<code>" alone is outside "/<code>/".
+        // /dashboard sends staff home and portal users on to their portal.
+        startUrl: `/${slug}/dashboard`,
         assetBasePath: `/${slug}`,
         logoInstitutionCode: institution.logoFileId && code ? code : null,
         badgeGradient: await resolveBadgeGradient(institution.themePalette),
@@ -134,7 +138,8 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
       badgeText: "SA",
       dynamicIcon: true,
       appId: "/app/super-admin",
-      scope: "/super-admin/",
+      // No trailing slash: "/super-admin" (the console home) must be in scope.
+      scope: "/super-admin",
       startUrl: "/super-admin",
       assetBasePath: "",
       logoInstitutionCode: null,
@@ -180,7 +185,7 @@ export async function resolveAppIdentityByCode(code: string | null): Promise<App
     dynamicIcon: true,
     appId: `/app/${slug}`,
     scope: `/${slug}/`,
-    startUrl: `/${slug}`,
+    startUrl: `/${slug}/dashboard`,
     assetBasePath: `/${slug}`,
     logoInstitutionCode: institution.hasLogo ? trimmedCode : null,
     badgeGradient: await resolveBadgeGradient(institution.themePalette),

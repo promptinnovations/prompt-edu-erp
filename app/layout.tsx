@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { getRequestContext } from "../services/request-context";
-import { resolveAppIdentity } from "../services/branding/app-identity";
+import { resolveAppIdentity, resolveAppIdentityByCode } from "../services/branding/app-identity";
 import { Lora } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 
 // Interface text stays on the system font stack (§80 "optimize for
@@ -14,6 +15,19 @@ import "./globals.css";
 // never fetched from Google at runtime, with a serif fallback stack.
 const lora = Lora({ subsets: ["latin"], weight: "600", display: "swap", preload: false, variable: "--font-lora" });
 const fontClass = `font-sans ${lora.variable}`;
+
+// §Install-button ("if clicked, app should get installed"). Chrome/Edge fire
+// `beforeinstallprompt` ONCE, early in page load — often before React has
+// hydrated and the install button's hook has attached its listener, which
+// left the button with nothing to call. This tiny inline script (first
+// thing in <body>, CSP-nonced) catches the event the moment it fires and
+// parks it on window for useInstallPrompt(), records which manifest it
+// belongs to, and registers the service worker (public/sw.js) that older
+// Android Chrome and Samsung Internet require before they offer install.
+const PWA_BOOT = `(function(){var w=window;function mf(){var l=document.querySelector('link[rel="manifest"]');return l?l.getAttribute('href'):'';}
+w.addEventListener('beforeinstallprompt',function(e){e.preventDefault();w.__pwaPrompt=e;w.__pwaPromptManifest=mf();w.dispatchEvent(new Event('pwa:prompt'));});
+w.addEventListener('appinstalled',function(){w.__pwaPrompt=null;w.__pwaInstalled=true;w.dispatchEvent(new Event('pwa:installed'));});
+if('serviceWorker' in navigator){w.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){});});}})();`;
 
 // Dynamic (not a static `export const metadata`) so the browser tab title,
 // favicon, and — critically — `apple-mobile-web-app-title` /
@@ -27,7 +41,13 @@ const fontClass = `font-sans ${lora.variable}`;
 // public /login page).
 export async function generateMetadata(): Promise<Metadata> {
   const ctx = await getRequestContext().catch(() => null);
-  const identity = await resolveAppIdentity(ctx);
+  // §Install-button: before sign-in (an institution's own /<code>/login)
+  // there's no session, which used to fall back to the generic PROMPT EDU
+  // ERP app — so "Install" on the login screen installed the wrong app.
+  // The institution code in the URL (middleware's x-institution-code)
+  // identifies it without a session, same as the manifest route does.
+  const urlCode = (await headers()).get("x-institution-code");
+  const identity = !ctx && urlCode ? await resolveAppIdentityByCode(urlCode) : await resolveAppIdentity(ctx);
 
   return {
     title: identity.name,
@@ -69,6 +89,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   const messages = await getMessages();
   const dir = locale === "ar" || locale === "ur" ? "rtl" : "ltr"; // §S.4 RTL-ready, unused in v1
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   // "Never use dark" follow-up: the app no longer has a dark mode to flash
   // to begin with (see globals.css / services/branding/palettes.ts — every
@@ -78,6 +99,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={locale} dir={dir} className={`${fontClass} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: PWA_BOOT }} />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

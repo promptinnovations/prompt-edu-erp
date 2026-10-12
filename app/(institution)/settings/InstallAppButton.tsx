@@ -31,7 +31,7 @@
 import { useInstallPrompt } from "../../components/useInstallPrompt";
 
 export default function InstallAppButton({ appName, logoUrl }: { appName: string; logoUrl: string | null }) {
-  const { deferredPrompt, installed, isIos, busy, outcome, manifestMismatch, handleInstall } = useInstallPrompt();
+  const { installed, busy, outcome, highlight, showHint, hintText, install } = useInstallPrompt();
 
   if (installed) {
     return (
@@ -49,53 +49,28 @@ export default function InstallAppButton({ appName, logoUrl }: { appName: string
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="h-10 w-10 rounded-lg border object-cover" />
         ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--brand)] text-sm font-semibold text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] text-sm font-semibold text-white">
             {appName.charAt(0).toUpperCase()}
           </div>
         )}
         <div>
           <p className="text-sm font-medium text-zinc-800">{appName}</p>
-          <p className="text-xs text-zinc-500">Add this institution&apos;s own app to your device.</p>
+          <p className="text-xs text-zinc-500">Add this institution&apos;s own app to your computer or phone.</p>
         </div>
       </div>
 
-      {manifestMismatch ? (
-        <div className="flex flex-col gap-1 sm:ml-auto sm:max-w-xs">
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
-          >
-            Refresh to prepare install
-          </button>
-          <p className="text-xs text-zinc-500">
-            Your browser cached a different app&apos;s install info earlier in this tab — refreshing this page fixes that
-            before you install.
-          </p>
-        </div>
-      ) : deferredPrompt ? (
+      <div className="flex flex-col gap-1 sm:ml-auto sm:max-w-xs sm:items-end">
         <button
           type="button"
-          onClick={handleInstall}
+          onClick={install}
           disabled={busy}
-          className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50 sm:ml-auto"
+          className={`rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50 ${highlight ? "animate-pulse" : ""}`}
         >
-          {busy ? "Installing…" : "Download / Install app"}
+          {busy ? "Installing…" : highlight ? "Tap to install" : "Install app"}
         </button>
-      ) : isIos ? (
-        <p className="text-xs text-zinc-500 sm:ml-auto sm:max-w-xs">
-          On iPhone/iPad: tap the Share icon in Safari, then <strong>&quot;Add to Home Screen&quot;</strong>.
-        </p>
-      ) : (
-        <p className="text-xs text-zinc-500 sm:ml-auto sm:max-w-xs">
-          Not seeing an install button? Open your browser&apos;s menu and look for <strong>&quot;Install app&quot;</strong> or
-          <strong> &quot;Add to Home screen&quot;</strong>.
-        </p>
-      )}
-
-      {outcome === "dismissed" ? (
-        <p className="text-xs text-zinc-500">Install dismissed — you can try again anytime.</p>
-      ) : null}
+        {showHint ? <p role="status" className="text-xs text-zinc-500 sm:text-right">{hintText}</p> : null}
+        {outcome === "dismissed" ? <p className="text-xs text-zinc-500">Install cancelled — you can try again anytime.</p> : null}
+      </div>
     </div>
   );
 }
