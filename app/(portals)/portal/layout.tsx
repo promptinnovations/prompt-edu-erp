@@ -116,7 +116,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   const banner = ctx.viewingInstitutionAsSuperAdmin ? (
-    <div className="flex flex-col items-start gap-1 bg-accent-800 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div data-app-shell className="flex flex-col items-start gap-1 bg-accent-800 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <span>
         {ctx.viewingAsUser ? (
           <>
@@ -147,7 +147,7 @@ export default async function PortalLayout({ children }: { children: React.React
   ) : null;
 
   const header = (
-    <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 sm:px-6 sm:py-4">
+    <header data-app-shell className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] text-xs font-bold text-white">
           {(institution?.appName || institution?.name || "P").trim().charAt(0).toUpperCase()}
@@ -170,7 +170,7 @@ export default async function PortalLayout({ children }: { children: React.React
   );
 
   const footer = (
-    <footer className="py-4 text-center text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+    <footer data-app-shell className="py-4 text-center text-[10px] uppercase tracking-[0.08em] text-zinc-500">
       PROMPT EDU ERP · Prompt Innovations
     </footer>
   );
