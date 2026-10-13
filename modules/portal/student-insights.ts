@@ -32,7 +32,7 @@
  */
 import { getDbClient, type DbClient } from "../../services/db/client";
 import { resolveGradeBand, subjectPercentFromUnits, type GradeUnit } from "../examination/grading";
-import { getPublishedDailyAssessmentResultsForStudent, type StudentDailyAssessmentResult } from "../examination/service";
+import { getPublishedDailyAssessmentResultsForStudent, getDailyAssessmentConsolidatedResult, type StudentDailyAssessmentResult } from "../examination/service";
 import { getPortfolioSummary, type PortfolioSummaryRecord } from "../portfolio-summary/service";
 import { listMentoringRecordsForPortal, type MentoringRecordRow } from "../mentoring/service";
 import { getLatestConsolidatedScore, type ConsolidatedScoreRecord } from "../scoring/service";
@@ -462,4 +462,122 @@ export async function getDashboardInsights(institutionId: string, authUserId: st
       kudos,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Daily assessment — one month in full (§Portal-daily-assessment-detail)
+// ---------------------------------------------------------------------------
+export interface DailyTest {
+  id: string; date: string; subject_id: string; subject_name: string; portion: string;
+  max: number; obtained: number | null; absent: boolean;
+  /** This student's % in the test; null when absent or not entered. */
+  percent: number | null;
+  /** Average % of the class in this test (students who sat it). */
+  class_avg_percent: number | null;
+}
+export interface DailySubjectSummary {
+  subject_id: string; subject_name: string; tests: number; sat: number;
+  obtained: number; max: number; percent: number | null; class_avg_percent: number | null;
+}
+export interface DailyAssessmentMonthDetail {
+  examination_id: string; name: string;
+  /** Same figures as the month's chip on Academics (getDailyAssessmentConsolidatedResult). */
+  percent: number | null; obtained: number; max: number;
+  grade_label: string | null; grade_color: string | null;
+  /** Class average of the monthly %, across students with at least one mark. */
+  class_avg_percent: number | null;
+  tests: DailyTest[];
+  subjects: DailySubjectSummary[];
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** "These must be buttons ... if pressed it will show complete data of each
+ *  with suitable visualizations — date, subject, topic, marks, total,
+ *  percentage". Every completed test of one PUBLISHED Daily Assessment
+ *  register for the student's current class, oldest first, with the
+ *  class's average per test for context; per-subject totals; and the
+ *  month's headline numbers computed exactly as the Academics chip does
+ *  (completed sessions, absent tests left out of both marks and total).
+ *  Returns null when the register isn't a published Daily Assessment or
+ *  the student has no class placement — the page 404s. */
+export async function getDailyAssessmentMonthDetail(
+  institutionId: string, authUserId: string, studentId: string, examinationId: string
+): Promise<DailyAssessmentMonthDetail | null> {
+  const db = await getDbClient();
+  const raw = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: ex } = await scoped.query<{ name: string }>(
+      `select e.name from examinations e join exam_types et on et.id = e.exam_type_id
+        where e.id = $1 and et.is_daily_assessment and e.published_at is not null`,
+      [examinationId]
+    );
+    if (!ex[0]) return null;
+    const placement = await loadPlacement(scoped, studentId);
+    if (!placement.class_id) return null;
+    const { rows } = await scoped.query<{
+      id: string; date: string; subject_id: string; subject_name: string; portion: string; max: number;
+      obtained: number | null; absent: boolean | null; class_avg: number | null;
+    }>(
+      `select da.id, da.assessment_date::text as date, da.subject_id, sub.name as subject_name, da.portion,
+              da.max_marks::float8 as max,
+              mine.marks_obtained::float8 as obtained, mine.is_absent as absent,
+              (select avg(m.marks_obtained / da.max_marks * 100)::float8
+                 from daily_assessment_marks m
+                where m.daily_assessment_id = da.id and not m.is_absent and m.marks_obtained is not null) as class_avg
+         from daily_assessments da
+         join subjects sub on sub.id = da.subject_id
+         left join daily_assessment_marks mine on mine.daily_assessment_id = da.id and mine.student_id = $3
+        where da.examination_id = $1 and da.class_id = $2 and da.status = 'completed'
+        order by da.assessment_date, sub.name, da.created_at`,
+      [examinationId, placement.class_id, studentId]
+    );
+    return { name: ex[0].name, classId: placement.class_id, rows };
+  });
+  if (!raw) return null;
+
+  const consolidated = await getDailyAssessmentConsolidatedResult(institutionId, authUserId, examinationId, raw.classId).catch(() => []);
+  const mine = consolidated.find((r) => r.student_id === studentId) ?? null;
+  const classPcts = consolidated
+    .filter((r) => Number(r.cumulative_max_marks) > 0)
+    .map((r) => (Number(r.cumulative_marks_obtained) / Number(r.cumulative_max_marks)) * 100);
+
+  const tests: DailyTest[] = raw.rows.map((r) => {
+    const absent = r.absent === true;
+    const obtained = absent ? null : r.obtained;
+    return {
+      id: r.id, date: r.date, subject_id: r.subject_id, subject_name: r.subject_name, portion: r.portion,
+      max: Number(r.max), obtained, absent,
+      percent: obtained != null && r.max > 0 ? round1((obtained / r.max) * 100) : null,
+      class_avg_percent: r.class_avg == null ? null : round1(r.class_avg),
+    };
+  });
+
+  const bySubject = new Map<string, DailySubjectSummary & { classSum: number; classN: number }>();
+  for (const t of tests) {
+    const s = bySubject.get(t.subject_id) ?? {
+      subject_id: t.subject_id, subject_name: t.subject_name, tests: 0, sat: 0, obtained: 0, max: 0,
+      percent: null, class_avg_percent: null, classSum: 0, classN: 0,
+    };
+    s.tests++;
+    if (t.obtained != null) { s.sat++; s.obtained += t.obtained; s.max += t.max; }
+    if (t.class_avg_percent != null) { s.classSum += t.class_avg_percent; s.classN++; }
+    bySubject.set(t.subject_id, s);
+  }
+  const subjects: DailySubjectSummary[] = [...bySubject.values()]
+    .map(({ classSum, classN, ...s }) => ({
+      ...s,
+      percent: s.max > 0 ? round1((s.obtained / s.max) * 100) : null,
+      class_avg_percent: classN > 0 ? round1(classSum / classN) : null,
+    }))
+    .sort((a, b) => a.subject_name.localeCompare(b.subject_name));
+
+  const obtained = mine ? Number(mine.cumulative_marks_obtained) : tests.reduce((a, t) => a + (t.obtained ?? 0), 0);
+  const max = mine ? Number(mine.cumulative_max_marks) : tests.reduce((a, t) => a + (t.obtained != null ? t.max : 0), 0);
+  return {
+    examination_id: examinationId, name: raw.name,
+    percent: max > 0 ? round1((obtained / max) * 100) : null, obtained, max,
+    grade_label: mine?.grade_label ?? null, grade_color: mine?.grade_color ?? null,
+    class_avg_percent: classPcts.length > 0 ? round1(classPcts.reduce((a, b) => a + b, 0) / classPcts.length) : null,
+    tests, subjects,
+  };
 }

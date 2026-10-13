@@ -15,7 +15,13 @@ function avg(xs: number[]): number | null {
  *  performance, and only here. Progress line across exams, subject bars
  *  (latest vs previous), a strengths radar, grade distribution, a subject
  *  × exam heat table, daily assessments and the consolidated score. */
-export default function AcademicsView({ data, reportCardHref, headerExtra }: { data: AcademicInsights; reportCardHref: (examinationId: string) => string; headerExtra?: ReactNode }) {
+export default function AcademicsView({ data, reportCardHref, dailyHref, headerExtra }: {
+  data: AcademicInsights; reportCardHref: (examinationId: string) => string;
+  /** §Portal-daily-assessment-detail — each month's chip opens that month in full. */
+  dailyHref?: (examinationId: string) => string;
+  headerExtra?: ReactNode;
+}) {
+  const dailyLink = dailyHref ?? ((id: string) => `/portal/student/exams/daily/${id}`);
   const exams = data.exams;
   const latest: ExamOutcome | null = exams[exams.length - 1] ?? null;
   const previous: ExamOutcome | null = exams.length > 1 ? exams[exams.length - 2] : null;
@@ -174,7 +180,7 @@ export default function AcademicsView({ data, reportCardHref, headerExtra }: { d
       )}
 
       {data.dailyAssessments.length > 0 ? (
-        <Panel title="Daily assessments" subtitle="Month-by-month total of your class-work tests." color={seriesColor(5)}>
+        <Panel title="Daily assessments" subtitle="Month-by-month total of class-work tests. Tap a month to see every test." color={seriesColor(5)}>
           {(() => {
             const rows = [...data.dailyAssessments].reverse();
             const pct = (r: (typeof rows)[number]) => Number(r.cumulative_max_marks) > 0 ? Math.round((Number(r.cumulative_marks_obtained) / Number(r.cumulative_max_marks)) * 1000) / 10 : null;
@@ -185,10 +191,16 @@ export default function AcademicsView({ data, reportCardHref, headerExtra }: { d
                 ) : null}
                 <ul className="flex flex-wrap gap-2">
                   {[...rows].reverse().map((r) => (
-                    <li key={r.examination_id} className="rounded-xl border border-[var(--border-subtle)] px-3 py-2 text-sm">
-                      <span className="text-zinc-700">{r.examination_name}</span>{" "}
-                      <span className="font-semibold tabular-nums text-[var(--foreground)]">{pct(r) ?? "—"}%</span>{" "}
-                      {r.grade_label ? <span className="rounded px-1.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: r.grade_color || NEUTRAL }}>{r.grade_label}</span> : null}
+                    <li key={r.examination_id}>
+                      <Link
+                        href={dailyLink(r.examination_id)}
+                        className="group inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2 text-sm shadow-card transition-all hover:-translate-y-0.5 hover:border-[var(--brand)] hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                      >
+                        <span className="text-zinc-700">{r.examination_name}</span>
+                        <span className="font-semibold tabular-nums text-[var(--foreground)]">{pct(r) ?? "—"}%</span>
+                        {r.grade_label ? <span className="rounded px-1.5 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: r.grade_color || NEUTRAL }}>{r.grade_label}</span> : null}
+                        <span aria-hidden className="text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--brand)]">→</span>
+                      </Link>
                     </li>
                   ))}
                 </ul>

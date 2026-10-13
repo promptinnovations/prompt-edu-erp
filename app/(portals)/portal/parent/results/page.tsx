@@ -18,6 +18,7 @@ export default async function ParentResultsPage({ searchParams }: { searchParams
     <AcademicsView
       data={data}
       reportCardHref={(id) => `/portal/parent/results/${id}?childId=${selectedChildId}`}
+      dailyHref={(id) => `/portal/parent/results/daily/${id}?childId=${selectedChildId}`}
       headerExtra={<ChildPicker options={children} selectedChildId={selectedChildId} />}
     />
   );

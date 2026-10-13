@@ -30,6 +30,7 @@ import {
 } from "../../modules/examination/service";
 import { getDbClient as getRawDbClient } from "../../services/db/client";
 import { getDailyAssessmentAnalysis, listDailyAssessmentYears } from "../../modules/analytics/service";
+import { getDailyAssessmentMonthDetail } from "../../modules/portal/student-insights";
 
 let institutionA: string;
 let adminAuth: string, adminUserId: string;
@@ -537,5 +538,37 @@ describe("§Daily-assessment-report-card — the monthly register's own report c
     expect(await listDailyAssessmentReportCardRows(other, otherAdmin.authUserId, examinationId)).toHaveLength(0);
     expect(await getDailyAssessmentStudentSubjectTotals(other, otherAdmin.authUserId, examinationId, student1)).toHaveLength(0);
     expect(await isDailyAssessmentExamination(other, otherAdmin.authUserId, examinationId)).toBe(false);
+  });
+});
+
+describe("§Portal-daily-assessment-detail — getDailyAssessmentMonthDetail()", () => {
+  it("lists every completed test with date/subject/topic/marks/total/%, class average, subject totals, and matches the month chip", async () => {
+    await publishExamination(institutionA, adminAuth, adminUserId, examinationId);
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = await createDailyAssessment(institutionA, adminAuth, adminUserId, {
+      examinationId, classId, subjectId, assessmentDate: today, portion: "Detail portion", maxMarks: 10,
+    });
+    await enterDailyAssessmentMarks(institutionA, adminAuth, adminUserId, entry.id, [
+      { studentId: student1, marksObtained: null, isAbsent: true },
+      { studentId: student2, marksObtained: 6, isAbsent: false },
+    ]);
+
+    const d = await getDailyAssessmentMonthDetail(institutionA, adminAuth, student1, examinationId);
+    expect(d).toBeTruthy();
+    const t = d!.tests.find((x) => x.id === entry.id)!;
+    expect(t).toMatchObject({ portion: "Detail portion", subject_name: "Mathematics", max: 10, absent: true, obtained: null, percent: null, class_avg_percent: 60 });
+    expect(d!.tests.map((x) => x.date)).toEqual([...d!.tests.map((x) => x.date)].sort());
+    expect(d!.subjects).toHaveLength(1);
+
+    const chip = (await getPublishedDailyAssessmentResultsForStudent(institutionA, adminAuth, student1, classId)).find((r) => r.examination_id === examinationId)!;
+    expect(d!.obtained).toBe(Number(chip.cumulative_marks_obtained));
+    expect(d!.max).toBe(Number(chip.cumulative_max_marks));
+    expect(d!.grade_label).toBe(chip.grade_label);
+    // the absent test is left out of the month total, as on the chip
+    expect(d!.max).toBe(d!.tests.filter((x) => x.obtained != null).reduce((a, x) => a + x.max, 0));
+    expect(d!.subjects[0].sat).toBe(d!.tests.filter((x) => x.obtained != null).length);
+
+    await unpublishExamination(institutionA, adminAuth, adminUserId, examinationId);
+    expect(await getDailyAssessmentMonthDetail(institutionA, adminAuth, student1, examinationId)).toBeNull();
   });
 });
