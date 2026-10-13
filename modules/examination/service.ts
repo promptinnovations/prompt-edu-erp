@@ -1569,8 +1569,23 @@ async function assertMarkEntryOpenForTeachers(scoped: DbClient, examSubjectId: s
   if (rows[0]?.closed) throw new Error("Mark entry is closed for this examination — ask an admin to reopen it.");
 }
 
-/** Bulk mark entry — only touches marks still in 'draft' (or not yet created). Editing
- *  an already-submitted/verified/approved/locked mark must go through correctMark().
+/** Bulk mark entry (the marks grid, and the bulk "Marks" import).
+ *
+ *  §Mark-edit fix ("there is a bug in mark edit, can't be done
+ *  correctly"): this used to touch only 'draft' marks and SILENTLY skip
+ *  any mark still carrying an old 'submitted'/'verified'/'approved'/
+ *  'locked' status from the retired approval workflow — the grid said
+ *  "saved" and the old value came back. Since migration 0054 marks are
+ *  live from entry and the only gates are the examination's own state
+ *  (Closed → teachers stop; Archived/finalized → everyone stops), so every
+ *  mark is now written. Changing the value of a mark that carries a legacy
+ *  non-draft status is recorded in mark_change_history, keeping the
+ *  correction trail those marks had. Values are range-checked against the
+ *  subject's maximum (CE already was).
+ *
+ *  `opts.allowWhenClosed` — the admin/principal composite ("1 for admin")
+ *  may keep entering while mark entry is Closed for teachers, same as
+ *  correctMark(); the caller decides who that is.
  *
  *  scopedClient (§"mark entry also should be available for bulk upload") --
  *  same optional trailing param as createExamination()'s own scopedClient,
@@ -1581,45 +1596,58 @@ async function assertMarkEntryOpenForTeachers(scoped: DbClient, examSubjectId: s
  *  directly. */
 export async function enterMarks(
   institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof markEntrySchema>,
-  scopedClient?: DbClient
+  scopedClient?: DbClient, opts: { allowWhenClosed?: boolean } = {}
 ): Promise<{ updated: number; skippedLocked: number }> {
   const data = markEntrySchema.parse(entries);
   const run = async (scoped: DbClient) => {
     await assertExamSubjectNotFinalized(scoped, examSubjectId);
-    await assertMarkEntryOpenForTeachers(scoped, examSubjectId);
+    if (!opts.allowWhenClosed) await assertMarkEntryOpenForTeachers(scoped, examSubjectId);
+    const { rows: subj } = await scoped.query<{ max_marks: string }>("select max_marks from exam_subjects where id = $1", [examSubjectId]);
+    const max = subj[0] ? Number(subj[0].max_marks) : null;
     let updated = 0;
-    let skippedLocked = 0;
     for (const e of data) {
-      const { rows: existing } = await scoped.query<{ id: string; entry_status: string }>(
-        "select id, entry_status from marks where exam_subject_id = $1 and student_id = $2",
+      if (!e.isAbsent && e.marksObtained != null && (!Number.isFinite(e.marksObtained) || e.marksObtained < 0 || (max != null && e.marksObtained > max))) {
+        throw new Error(`Marks must be between 0 and ${max ?? "the subject maximum"}.`);
+      }
+      const { rows: existing } = await scoped.query<{ id: string; entry_status: string; marks_obtained: string | null; is_absent: boolean }>(
+        "select id, entry_status, marks_obtained, is_absent from marks where exam_subject_id = $1 and student_id = $2",
         [examSubjectId, e.studentId]
       );
-      if (existing.length > 0 && existing[0].entry_status !== "draft") {
-        skippedLocked++;
-        continue;
-      }
+      const prev = existing[0] ?? null;
       // §1.2: a blank, Present cell is "not entered yet" — never a row.
       // Blanking a previously saved draft value clears it (row removed), so
       // Mark Entry Status and the live result both see it as not entered.
+      // A legacy approved mark is never erased by a blank cell (bulk import
+      // relies on "blank = don't touch"); it can still be changed or marked
+      // Absent.
       if (!e.isAbsent && e.marksObtained == null) {
-        if (existing.length > 0) {
-          await scoped.query("delete from marks where id = $1 and entry_status = 'draft'", [existing[0].id]);
+        if (prev && prev.entry_status === "draft") {
+          await scoped.query("delete from marks where id = $1", [prev.id]);
           updated++;
         }
         continue;
       }
+      const newValue = e.isAbsent ? null : e.marksObtained;
+      const oldValue = prev?.marks_obtained == null ? null : Number(prev.marks_obtained);
+      if (prev && oldValue === newValue && prev.is_absent === e.isAbsent) continue; // unchanged
       await scoped.query(
         `insert into marks (institution_id, exam_subject_id, student_id, marks_obtained, is_absent, entry_status, entered_by)
          values ($1, $2, $3, $4, $5, 'draft', $6)
          on conflict (institution_id, exam_subject_id, student_id)
          do update set marks_obtained = excluded.marks_obtained, is_absent = excluded.is_absent,
-                        entered_by = excluded.entered_by, updated_at = now()
-         where marks.entry_status = 'draft'`,
-        [institutionId, examSubjectId, e.studentId, e.isAbsent ? null : e.marksObtained, e.isAbsent, userId]
+                        entered_by = excluded.entered_by, updated_at = now()`,
+        [institutionId, examSubjectId, e.studentId, newValue, e.isAbsent, userId]
       );
+      if (prev && prev.entry_status !== "draft") {
+        await scoped.query(
+          `insert into mark_change_history (institution_id, mark_id, old_value, new_value, changed_by, reason)
+           values ($1, $2, $3, $4, $5, $6)`,
+          [institutionId, prev.id, oldValue, newValue, userId, e.isAbsent ? "Edited in mark entry (marked absent)" : "Edited in mark entry"]
+        );
+      }
       updated++;
     }
-    return { updated, skippedLocked };
+    return { updated, skippedLocked: 0 };
   };
   if (scopedClient) return run(scopedClient);
   const db = await getDbClient();
@@ -1635,9 +1663,10 @@ export async function enterMarks(
  *  source of truth and is already saved; Result Analysis will catch up on
  *  the next successful recompute (e.g. the next save). */
 export async function enterMarksAndRecompute(
-  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof markEntrySchema>
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof markEntrySchema>,
+  opts: { allowWhenClosed?: boolean } = {}
 ): Promise<{ updated: number; skippedLocked: number }> {
-  const result = await enterMarks(institutionId, authUserId, userId, examSubjectId, entries);
+  const result = await enterMarks(institutionId, authUserId, userId, examSubjectId, entries, undefined, opts);
   if (result.updated > 0) {
     try {
       await recomputeExaminationResults(institutionId, authUserId, examSubjectId);
@@ -1665,7 +1694,10 @@ async function deleteMarkAndReturnSubject(institutionId: string, authUserId: str
       "select id, entry_status, exam_subject_id from marks where id = $1", [markId]
     );
     if (rows.length === 0) throw new Error("Mark not found.");
-    if (rows[0].entry_status !== "draft") throw new Error("This mark has already been submitted — use Correct instead of Remove.");
+    // A mark that went through the old approval workflow is an official
+    // record with correction history — it can be corrected, not erased.
+    if (rows[0].entry_status !== "draft") throw new Error("This mark was approved earlier — use Correct instead of Remove.");
+    await assertExamSubjectNotFinalized(scoped, rows[0].exam_subject_id);
     await scoped.query("delete from marks where id = $1", [markId]);
     await recordAudit(scoped, { institutionId, userId, action: "delete", module: "examination", entityType: "marks", entityId: markId });
     return rows[0].exam_subject_id;
@@ -1777,18 +1809,31 @@ async function recomputeExaminationResults(institutionId: string, authUserId: st
  *  admin/principal can still correct marks while mark entry is Closed) — only
  *  assertExamSubjectNotFinalized (i.e. Archived) blocks it. */
 export async function correctMark(
-  institutionId: string, authUserId: string, userId: string, markId: string, newValue: number | null, reason: string
+  institutionId: string, authUserId: string, userId: string, markId: string, newValue: number | null, reason: string,
+  isAbsent = false
 ): Promise<void> {
   const db = await getDbClient();
   const examSubjectId = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows } = await scoped.query<{ marks_obtained: string | null; exam_subject_id: string }>(
-      "select marks_obtained, exam_subject_id from marks where id = $1", [markId]
+    const { rows } = await scoped.query<{ marks_obtained: string | null; exam_subject_id: string; max_marks: string }>(
+      `select m.marks_obtained, m.exam_subject_id, es.max_marks
+         from marks m join exam_subjects es on es.id = m.exam_subject_id where m.id = $1`, [markId]
     );
     if (rows.length === 0) throw new Error("Mark not found");
     await assertExamSubjectNotFinalized(scoped, rows[0].exam_subject_id);
     const oldValue = rows[0].marks_obtained === null ? null : Number(rows[0].marks_obtained);
+    // §Mark-edit fix: a correction used to change only marks_obtained, so a
+    // student who had been marked Absent stayed absent (the result ignored
+    // the corrected mark), and any value — even above the maximum — was
+    // accepted. Now: a value is range-checked and clears Absent; no value
+    // means Absent (when asked) or "not entered".
+    if (isAbsent) newValue = null;
+    if (newValue == null && !isAbsent) throw new Error("Enter the corrected mark, or tick Absent.");
+    const max = Number(rows[0].max_marks);
+    if (newValue != null && (!Number.isFinite(newValue) || newValue < 0 || newValue > max)) {
+      throw new Error(`Marks must be between 0 and ${max}.`);
+    }
 
-    await scoped.query("update marks set marks_obtained = $1, updated_at = now() where id = $2", [newValue, markId]);
+    await scoped.query("update marks set marks_obtained = $1, is_absent = $2, updated_at = now() where id = $3", [newValue, isAbsent, markId]);
     await scoped.query(
       `insert into mark_change_history (institution_id, mark_id, old_value, new_value, changed_by, reason)
        values ($1, $2, $3, $4, $5, $6)`,
@@ -1956,16 +2001,21 @@ const ceMarkEntrySchema = z.array(z.object({
   isAbsent: z.boolean().default(false),
 }));
 
-/** Bulk CE mark entry — same rules as enterMarks(): draft-only, a blank
- *  Present cell is never a row (and clears a saved draft), absent stores
- *  no value. Also range-checks against the component's max. */
+/** Bulk CE mark entry — same rules as enterMarks(): every CE mark is
+ *  written (§Mark-edit fix: no longer silently skips legacy non-draft
+ *  rows), a blank Present cell is never a row (and clears a saved one),
+ *  absent stores no value; range-checked against the component's max.
+ *  Teachers are stopped once mark entry is Closed; the admin composite
+ *  (opts.allowWhenClosed) is not. */
 export async function enterCeMarks(
-  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof ceMarkEntrySchema>
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof ceMarkEntrySchema>,
+  opts: { allowWhenClosed?: boolean } = {}
 ): Promise<{ updated: number; skippedLocked: number }> {
   const data = ceMarkEntrySchema.parse(entries);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     await assertExamSubjectNotFinalized(scoped, examSubjectId);
+    if (!opts.allowWhenClosed) await assertMarkEntryOpenForTeachers(scoped, examSubjectId);
     const { rows: comps } = await scoped.query<{ id: string; max_marks: string }>(
       "select id, max_marks from exam_ce_components where exam_subject_id = $1", [examSubjectId]
     );
@@ -1980,10 +2030,9 @@ export async function enterCeMarks(
       const { rows: existing } = await scoped.query<{ id: string; entry_status: string }>(
         "select id, entry_status from ce_marks where ce_component_id = $1 and student_id = $2", [e.componentId, e.studentId]
       );
-      if (existing.length > 0 && existing[0].entry_status !== "draft") { skippedLocked++; continue; }
       if (!e.isAbsent && e.marksObtained == null) {
-        if (existing.length > 0) {
-          await scoped.query("delete from ce_marks where id = $1 and entry_status = 'draft'", [existing[0].id]);
+        if (existing.length > 0 && existing[0].entry_status === "draft") {
+          await scoped.query("delete from ce_marks where id = $1", [existing[0].id]);
           updated++;
         }
         continue;
@@ -1993,8 +2042,7 @@ export async function enterCeMarks(
          values ($1, $2, $3, $4, $5, 'draft', $6)
          on conflict (institution_id, ce_component_id, student_id)
          do update set marks_obtained = excluded.marks_obtained, is_absent = excluded.is_absent,
-                        entered_by = excluded.entered_by, updated_at = now()
-         where ce_marks.entry_status = 'draft'`,
+                        entered_by = excluded.entered_by, updated_at = now()`,
         [institutionId, e.componentId, e.studentId, e.isAbsent ? null : e.marksObtained, e.isAbsent, userId]
       );
       updated++;
@@ -2005,9 +2053,10 @@ export async function enterCeMarks(
 
 /** enterCeMarks() + the same best-effort live recompute enterMarksAndRecompute() does. */
 export async function enterCeMarksAndRecompute(
-  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof ceMarkEntrySchema>
+  institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof ceMarkEntrySchema>,
+  opts: { allowWhenClosed?: boolean } = {}
 ): Promise<{ updated: number; skippedLocked: number }> {
-  const result = await enterCeMarks(institutionId, authUserId, userId, examSubjectId, entries);
+  const result = await enterCeMarks(institutionId, authUserId, userId, examSubjectId, entries, opts);
   if (result.updated > 0) {
     try { await recomputeExaminationResults(institutionId, authUserId, examSubjectId); } catch { /* best-effort, see enterMarksAndRecompute() */ }
   }

@@ -151,15 +151,33 @@ describe("Examination workflow (§28)", () => {
     expect(approved).toBe(2);
   });
 
-  it("once approved, enterMarks() silently skips instead of overwriting (must use correctMark)", async () => {
-    const result = await enterMarks(institutionA, adminAuth, adminUserId, examSubjectId, [
+  it("§Mark-edit fix: enterMarks() edits a legacy-approved mark (recording history) and range-checks", async () => {
+    // Out of range is refused outright, nothing written.
+    await expect(enterMarks(institutionA, adminAuth, adminUserId, examSubjectId, [
       { studentId: student1, marksObtained: 999, isAbsent: false },
-    ]);
-    expect(result.updated).toBe(0);
-    expect(result.skippedLocked).toBe(1);
+    ])).rejects.toThrow(/between 0 and/);
+    const grid0 = await getMarksGrid(institutionA, adminAuth, examSubjectId);
+    expect(Number(grid0.find((r) => r.student_id === student1)?.marks_obtained)).toBe(82); // unchanged
 
+    // Used to be silently skipped ("saved", then the old value came back).
+    const result = await enterMarks(institutionA, adminAuth, adminUserId, examSubjectId, [
+      { studentId: student2, marksObtained: 40, isAbsent: false },
+    ]);
+    expect(result.updated).toBe(1);
+    expect(result.skippedLocked).toBe(0);
     const grid = await getMarksGrid(institutionA, adminAuth, examSubjectId);
-    expect(Number(grid.find((r) => r.student_id === student1)?.marks_obtained)).toBe(82); // unchanged
+    const row2 = grid.find((r) => r.student_id === student2)!;
+    expect(Number(row2.marks_obtained)).toBe(40);
+    const db = await getDbClient();
+    const history = await db.withInstitutionContext({ institutionId: institutionA, authUserId: adminAuth }, (scoped) =>
+      scoped.query<{ old_value: string; new_value: string }>("select old_value, new_value from mark_change_history where mark_id = $1", [row2.mark_id])
+    );
+    expect(history.rows.map((h) => [Number(h.old_value), Number(h.new_value)])).toEqual([[38, 40]]);
+    // A blank cell never erases a legacy approved mark.
+    await enterMarks(institutionA, adminAuth, adminUserId, examSubjectId, [{ studentId: student2, marksObtained: null, isAbsent: false }]);
+    expect((await getMarksGrid(institutionA, adminAuth, examSubjectId)).find((r) => r.student_id === student2)?.mark_id).toBe(row2.mark_id);
+    // Put it back for the result tests below.
+    await enterMarks(institutionA, adminAuth, adminUserId, examSubjectId, [{ studentId: student2, marksObtained: 38, isAbsent: false }]);
   });
 
   it("correctMark() changes an approved mark AND records mark_change_history (§28 correction history)", async () => {

@@ -167,14 +167,19 @@ export async function removeExamSubjectAction(_prevState: { error: string | null
   }
 }
 
-export async function saveMarksAction(_prevState: { error: string | null }, formData: FormData) {
+export async function saveMarksAction(_prevState: { error: string | null; savedAt?: number }, formData: FormData): Promise<{ error: string | null; savedAt?: number }> {
   const ctx = await requireRequestContext();
   if (!ctx.institutionId) return { error: "No active institution." };
   const examSubjectId = String(formData.get("examSubjectId") ?? "");
   const examinationId = String(formData.get("examinationId") ?? "");
   try {
-    requirePermission(ctx.permissions, "marks.enter");
+    // §Mark-edit fix: the admin/principal composite ("1 for admin") may
+    // save the grid while mark entry is Closed for teachers — it's how an
+    // admin fixes a missing mark, an Absent flag or a CE mark after closing.
+    const isMarksAdmin = ctx.isSuperAdmin || can(ctx.permissions, "marks.approve") || can(ctx.permissions, "settings.manage");
+    if (!isMarksAdmin) requirePermission(ctx.permissions, "marks.enter");
     await assertMarkEntryScope(ctx.institutionId, ctx.session.authUserId, ctx.userId, ctx.permissions, examSubjectId);
+    const opts = { allowWhenClosed: isMarksAdmin };
     const studentIds = formData.getAll("studentId").map(String);
     const entries = studentIds.map((studentId) => {
       const raw = formData.get(`marks_${studentId}`);
@@ -185,7 +190,7 @@ export async function saveMarksAction(_prevState: { error: string | null }, form
         isAbsent,
       };
     });
-    await enterMarksAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, entries);
+    await enterMarksAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, entries, opts);
     // §CE: the same grid carries one column per CE component
     // (ce_<componentId>_<studentId> / ceabsent_<componentId>_<studentId>),
     // saved through the same blank/absent rules as the written mark.
@@ -200,10 +205,10 @@ export async function saveMarksAction(_prevState: { error: string | null }, form
           isAbsent,
         };
       }));
-      await enterCeMarksAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, ceEntries);
+      await enterCeMarksAndRecompute(ctx.institutionId, ctx.session.authUserId, ctx.userId, examSubjectId, ceEntries, opts);
     }
     revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
-    return { error: null };
+    return { error: null, savedAt: Date.now() };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to save marks." };
   }
@@ -398,7 +403,7 @@ export async function correctMarkAction(_prevState: { error: string | null }, fo
     const reason = String(formData.get("reason") ?? "").trim();
     if (!reason) return { error: "A reason is required for a correction." };
     const newValue = isAbsent || raw === "" || raw === null ? null : Number(raw);
-    await correctMark(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("markId") ?? ""), newValue, reason);
+    await correctMark(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("markId") ?? ""), newValue, reason, isAbsent);
     revalidatePath(`/examinations/${examinationId}/marks/${examSubjectId}`);
     return { error: null };
   } catch (err) {

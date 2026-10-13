@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState, useState, type FormEvent } from "react";
+import { Fragment, useActionState, useEffect, useState, type FormEvent } from "react";
 import { saveMarksAction, deleteMarkAction, correctMarkAction } from "../../../actions";
 import ConfirmSubmitButton from "../../../../../components/ui/ConfirmSubmitButton";
 import { formatMarks } from "../../../../../../services/format/marks";
@@ -34,7 +34,18 @@ function CorrectMarkRow({
   student, examinationId, examSubjectId,
 }: { student: GridStudent; examinationId: string; examSubjectId: string }) {
   const [open, setOpen] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [absent, setAbsent] = useState(student.is_absent);
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(correctMarkAction, { error: null });
+  // §Mark-edit fix: the form used to close the instant Save was pressed,
+  // so a rejected correction (e.g. above the maximum) vanished silently.
+  // It now closes only once the save has succeeded; an error stays visible.
+  useEffect(() => {
+    if (submitted && !pending) {
+      setSubmitted(false);
+      if (!state.error) setOpen(false);
+    }
+  }, [submitted, pending, state.error]);
 
   if (!open) {
     return (
@@ -45,14 +56,18 @@ function CorrectMarkRow({
   }
 
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-1.5" onSubmit={() => setOpen(false)}>
+    <form action={formAction} className="flex flex-wrap items-center justify-end gap-1.5" onSubmit={() => setSubmitted(true)}>
       <input type="hidden" name="examinationId" value={examinationId} />
       <input type="hidden" name="examSubjectId" value={examSubjectId} />
       <input type="hidden" name="markId" value={student.mark_id ?? ""} />
       <input autoComplete="off"
-        name="newValue" type="number" step="0.01" defaultValue={formatMarks(student.marks_obtained)}
-        placeholder="Marks" className="w-20 rounded-full border px-2 py-1 text-xs"
+        name="newValue" type="number" step="0.01" min={0} defaultValue={formatMarks(student.marks_obtained)}
+        disabled={absent} required={!absent}
+        placeholder="Marks" className="w-20 rounded-full border px-2 py-1 text-xs disabled:bg-zinc-100"
       />
+      <label className="text-[11px] text-zinc-500">
+        <input type="checkbox" name="isAbsent" checked={absent} onChange={(e) => setAbsent(e.target.checked)} /> AB
+      </label>
       <input autoComplete="off" name="reason" required placeholder="Reason" className="w-32 rounded-full border px-2 py-1 text-xs" />
       <button type="submit" disabled={pending} className="rounded-full border px-2 py-1 text-xs hover:bg-zinc-100 disabled:opacity-50">Save</button>
       <button type="button" onClick={() => setOpen(false)} className="text-xs text-zinc-500 hover:text-zinc-700">Cancel</button>
@@ -121,7 +136,7 @@ export default function MarksGridForm({
   // One delegated listener instead of an onChange per input: the input
   // names already encode what changed (marks_<student>, absent_<student>,
   // ce_<component>_<student>, ceabsent_<component>_<student>).
-  function onGridChange(e: FormEvent<HTMLFormElement>) {
+  function onGridChange(e: FormEvent<HTMLDivElement>) {
     const t = e.target as HTMLInputElement;
     const parts = (t.name ?? "").split("_");
     const kind = parts[0];
@@ -141,15 +156,28 @@ export default function MarksGridForm({
       return { ...prev, [studentId]: next };
     });
   }
-  const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(saveMarksAction, { error: null });
+  const [state, formAction, pending] = useActionState<{ error: string | null; savedAt?: number }, FormData>(saveMarksAction, { error: null });
   const [, deleteAction] = useActionState<{ error: string | null }, FormData>(deleteMarkAction, { error: null });
 
+  // §Mark-edit fix: the Remove/Correct forms used to sit INSIDE this
+  // save form — nested <form>s are invalid HTML (the browser drops the
+  // inner tags when parsing, which also broke hydration). The save form is
+  // now an empty element the grid inputs join via the `form` attribute, so
+  // the per-row forms are ordinary, separate forms.
+  const gridFormId = `marks-grid-${examSubjectId}`;
+  // "1 for admin, 2 for teachers": teachers write while mark entry is
+  // open; the admin/principal composite (canCorrect) can also fix the grid
+  // after it's Closed (only Archived stops them — then canCorrect is false).
+  const rowEditable = (canEnter && !examinationClosed) || canCorrect;
+
   return (
-    <div className="space-y-4">
-      <form action={formAction} onChange={onGridChange}>
+    <div className="space-y-4" onChange={onGridChange}>
+      <form id={gridFormId} action={formAction}>
         <input type="hidden" name="examinationId" value={examinationId} />
         <input type="hidden" name="examSubjectId" value={examSubjectId} />
         {ceComponents.map((c) => <input key={c.id} type="hidden" name="ceComponentId" value={c.id} />)}
+      </form>
+      <div>
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
@@ -172,7 +200,7 @@ export default function MarksGridForm({
               // only while the examination isn't Closed; the per-mark
               // entry_status no longer gates this (the old submit/verify/
               // approve/lock chain is retired from the UI).
-              const teacherCanEdit = canEnter && !examinationClosed;
+              const teacherCanEdit = rowEditable;
               // §"this (subject) should also be class wise, class should be
               // specified on the top" — students is already sorted class-
               // then-division-then-roll (sortRoster(), service.ts), so a
@@ -192,22 +220,22 @@ export default function MarksGridForm({
               ) : null}
               <tr key={s.student_id}>
                 <td className="py-1.5">
-                  <input type="hidden" name="studentId" value={s.student_id} />
+                  <input type="hidden" form={gridFormId} name="studentId" value={s.student_id} />
                   {s.admission_number}
                 </td>
                 <td className="py-1.5">{s.student_name}</td>
                 <td className="py-1.5">
-                  <input autoComplete="off"
+                  <input autoComplete="off" form={gridFormId}
                     name={`marks_${s.student_id}`}
                     type="number"
-                    step="0.01"
+                    step="0.01" min={0} max={Number(maxMarks)}
                     defaultValue={formatMarks(s.marks_obtained)}
                     disabled={!teacherCanEdit}
                     className="w-24 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
                 <td className="py-1.5">
-                  <input autoComplete="off"
+                  <input autoComplete="off" form={gridFormId}
                     name={`absent_${s.student_id}`}
                     type="checkbox"
                     defaultChecked={s.is_absent}
@@ -219,7 +247,7 @@ export default function MarksGridForm({
                   const ceEditable = teacherCanEdit;
                   return (
                     <td key={c.id} className="py-1.5 whitespace-nowrap">
-                      <input autoComplete="off"
+                      <input autoComplete="off" form={gridFormId}
                         name={`ce_${c.id}_${s.student_id}`}
                         type="number" step="0.01" min={0} max={Number(c.maxMarks)}
                         defaultValue={formatMarks(m?.marks_obtained)}
@@ -228,7 +256,7 @@ export default function MarksGridForm({
                         className="w-16 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                       />
                       <label className="ml-1 text-[11px] text-zinc-500">
-                        <input autoComplete="off" type="checkbox" name={`ceabsent_${c.id}_${s.student_id}`} defaultChecked={m?.is_absent ?? false} disabled={!ceEditable} /> AB
+                        <input autoComplete="off" form={gridFormId} type="checkbox" name={`ceabsent_${c.id}_${s.student_id}`} defaultChecked={m?.is_absent ?? false} disabled={!ceEditable} /> AB
                       </label>
                     </td>
                   );
@@ -240,7 +268,7 @@ export default function MarksGridForm({
                 ) : null}
                 <td className="py-1.5 text-right whitespace-nowrap">
                   <div className="inline-flex items-center justify-end gap-3">
-                  {teacherCanEdit && s.mark_id ? (
+                  {teacherCanEdit && s.mark_id && s.entry_status === "draft" ? (
                     <form action={deleteAction} className="inline">
                       <input type="hidden" name="examinationId" value={examinationId} />
                       <input type="hidden" name="examSubjectId" value={examSubjectId} />
@@ -262,16 +290,20 @@ export default function MarksGridForm({
           </tbody>
         </table>
         </div>
-        {canEnter && !examinationClosed ? (
-          <button type="submit" disabled={pending} className="mt-3 rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+        {rowEditable ? (
+          <button type="submit" form={gridFormId} disabled={pending} className="mt-3 rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
             Save marks
           </button>
         ) : null}
-        {canEnter && examinationClosed ? (
+        {canEnter && examinationClosed && !canCorrect ? (
           <p className="mt-2 text-xs text-zinc-500">Mark entry is closed for this examination — ask an admin to reopen it to make changes.</p>
         ) : null}
+        {canCorrect && examinationClosed ? (
+          <p className="mt-2 text-xs text-zinc-500">Mark entry is closed for teachers — as an admin you can still fix marks here.</p>
+        ) : null}
         {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
-      </form>
+        {!state.error && state.savedAt && !pending ? <p role="status" className="mt-2 text-sm text-emerald-700">Marks saved.</p> : null}
+      </div>
     </div>
   );
 }

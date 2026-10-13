@@ -22,7 +22,7 @@ import {
   getMarksGrid, getMarkEntryStatus, getExaminationMarksMatrix, getInstitutionPassRateTrend,
   setCeComponents, enterCeMarks, finalizeExamination, listGradeScales, getGradeBands, updateGradeBand,
   resolveGradeBand, computeStudentResult, DEFAULT_OVERALL_PASS_PCT, lookupGrade,
-  closeMarkEntry, publishExamination,
+  closeMarkEntry, publishExamination, correctMark,
 } from "../../modules/examination/service";
 
 let inst: string;
@@ -401,5 +401,44 @@ describe("§1.6 finalize = immutable snapshot", () => {
     await enterMarks(inst, adminAuth, adminUserId, exam.es[0], [{ studentId: s1, marksObtained: 65, isAbsent: false }]);
     await computeResults(inst, adminAuth, exam.examinationId);
     expect(Number((await rawResult(exam.examinationId, s1))!.percentage)).toBe(65);
+  });
+});
+
+describe("§Mark-edit fix — editing marks after the fact", () => {
+  it("Correct on an Absent student clears Absent, so the result counts the mark; range-checked", async () => {
+    const exam = await newExam("IN Mark edit", [[mathId, 100, 35]]);
+    await enterMarks(inst, adminAuth, adminUserId, exam.es[0], [
+      { studentId: s1, marksObtained: null, isAbsent: true },
+      { studentId: s2, marksObtained: 50, isAbsent: false },
+    ]);
+    const markId = (await getMarksGrid(inst, adminAuth, exam.es[0])).find((r) => r.student_id === s1)!.mark_id!;
+    await expect(correctMark(inst, adminAuth, adminUserId, markId, 101, "typo")).rejects.toThrow(/between 0 and 100/);
+    await correctMark(inst, adminAuth, adminUserId, markId, 100, "was present — real mark 100");
+    const row = (await getMarksGrid(inst, adminAuth, exam.es[0])).find((r) => r.student_id === s1)!;
+    expect(row.is_absent).toBe(false);
+    expect(Number(row.marks_obtained)).toBe(100);
+    await computeResults(inst, adminAuth, exam.examinationId);
+    const r = await rawResult(exam.examinationId, s1);
+    expect(Number(r!.total_marks)).toBe(100);
+    expect(r!.absent_subject_count).toBe(0);
+    // and back to Absent through the same path
+    await correctMark(inst, adminAuth, adminUserId, markId, null, "absent after all", true);
+    const back = (await getMarksGrid(inst, adminAuth, exam.es[0])).find((r) => r.student_id === s1)!;
+    expect(back.is_absent).toBe(true);
+    expect(back.marks_obtained).toBeNull();
+  });
+
+  it("after Closed, teachers are stopped but the admin path (allowWhenClosed) can still enter TE and CE marks", async () => {
+    const exam = await newExam("IN Closed edit", [[mathId, 80, 28]]);
+    await updateExamination(inst, adminAuth, adminUserId, exam.examinationId, { ceEnabled: true, ceMode: "total" });
+    const comps = await setCeComponents(inst, adminAuth, adminUserId, exam.es[0], [{ name: "CE", maxMarks: 20 }]);
+    await closeMarkEntry(inst, adminAuth, adminUserId, exam.examinationId);
+    await expect(enterMarks(inst, adminAuth, adminUserId, exam.es[0], [{ studentId: s3, marksObtained: 70, isAbsent: false }])).rejects.toThrow(/closed/i);
+    await enterMarks(inst, adminAuth, adminUserId, exam.es[0], [{ studentId: s3, marksObtained: 80, isAbsent: false }], undefined, { allowWhenClosed: true });
+    await expect(enterCeMarks(inst, adminAuth, adminUserId, exam.es[0], [{ studentId: s3, componentId: comps[0].id, marksObtained: 20, isAbsent: false }])).rejects.toThrow(/closed/i);
+    await enterCeMarks(inst, adminAuth, adminUserId, exam.es[0], [{ studentId: s3, componentId: comps[0].id, marksObtained: 20, isAbsent: false }], { allowWhenClosed: true });
+    await expect(enterMarks(inst, adminAuth, adminUserId, exam.es[0], [{ studentId: s3, marksObtained: 81, isAbsent: false }], undefined, { allowWhenClosed: true })).rejects.toThrow(/between 0 and 80/);
+    await computeResults(inst, adminAuth, exam.examinationId);
+    expect(Number((await rawResult(exam.examinationId, s3))!.total_marks)).toBe(100);
   });
 });
