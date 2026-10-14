@@ -85,6 +85,7 @@ export default async function ParentPortalPage({ searchParams }: { searchParams:
         academics: `/portal/parent/results${q}`, attendance: `/portal/parent/attendance${q}`, achievements: `/portal/parent/portfolio${q}`,
         reading: `/portal/parent/reading${q}`, fees: `/portal/parent/fees${q}`, contact: `/portal/parent/contact${q}`, growth: `/portal/parent/growth${q}`,
       }}
+      dailyMonthHref={(id) => `/portal/parent/results/daily/${id}${q}`}
       details={<StudentDetailsCard student={profile} classLabel={insights.classLabel} rollNumber={insights.rollNumber} guardian={parents[0] ?? null} />}
     />
   );

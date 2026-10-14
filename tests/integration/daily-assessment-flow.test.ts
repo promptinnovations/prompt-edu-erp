@@ -30,7 +30,7 @@ import {
 } from "../../modules/examination/service";
 import { getDbClient as getRawDbClient } from "../../services/db/client";
 import { getDailyAssessmentAnalysis, listDailyAssessmentYears } from "../../modules/analytics/service";
-import { getDailyAssessmentMonthDetail } from "../../modules/portal/student-insights";
+import { getDailyAssessmentMonthDetail, getDashboardInsights } from "../../modules/portal/student-insights";
 
 let institutionA: string;
 let adminAuth: string, adminUserId: string;
@@ -568,7 +568,22 @@ describe("§Portal-daily-assessment-detail — getDailyAssessmentMonthDetail()",
     expect(d!.max).toBe(d!.tests.filter((x) => x.obtained != null).reduce((a, x) => a + x.max, 0));
     expect(d!.subjects[0].sat).toBe(d!.tests.filter((x) => x.obtained != null).length);
 
+    expect(d!.published).toBe(true);
+    // §Dashboard-latest-daily: still viewable while unpublished, grade withheld.
     await unpublishExamination(institutionA, adminAuth, adminUserId, examinationId);
-    expect(await getDailyAssessmentMonthDetail(institutionA, adminAuth, student1, examinationId)).toBeNull();
+    const live = await getDailyAssessmentMonthDetail(institutionA, adminAuth, student1, examinationId);
+    expect(live!.published).toBe(false);
+    expect(live!.grade_label).toBeNull();
+    expect(live!.tests.length).toBe(d!.tests.length);
+
+    // the dashboard's latest two test days (own marks only, newest first)
+    const dash = await getDashboardInsights(institutionA, adminAuth, student1);
+    expect(dash.latestDaily.length).toBeGreaterThan(0);
+    expect(dash.latestDaily.length).toBeLessThanOrEqual(2);
+    expect(dash.latestDaily[0].date).toBe(today);
+    const t0 = dash.latestDaily[0].tests.find((x) => x.id === entry.id)!;
+    expect(t0).toMatchObject({ portion: "Detail portion", absent: true, obtained: null, class_avg_percent: 60 });
+    const dash2 = await getDashboardInsights(institutionA, adminAuth, student2);
+    expect(dash2.latestDaily[0].tests.find((x) => x.id === entry.id)).toMatchObject({ obtained: 6, max: 10, percent: 60 });
   });
 });

@@ -60,12 +60,18 @@ export default function DailyAssessmentMonthView({ data, backHref, headerExtra }
 
       <PageHeader title={month} subtitle="Daily assessment — every class-work test this month." icon="📝" color={COLOR}>{headerExtra}</PageHeader>
 
+      {!data.published ? (
+        <p role="status" className="rounded-xl border px-4 py-3 text-sm" style={{ borderColor: tint(COLOR, 0.35), backgroundColor: tint(COLOR, 0.07) }}>
+          <b>This month is still in progress.</b> Tests appear as soon as marks are entered. The month&rsquo;s final grade is given when the school publishes the result.
+        </p>
+      ) : null}
+
       {data.tests.length === 0 ? (
         <Panel title="No tests yet" color={COLOR}><EmptyNote>Tests appear here once teachers enter their marks.</EmptyNote></Panel>
       ) : (
         <>
           <div className="grid gap-6 lg:grid-cols-3">
-            <Panel title="This month" color={COLOR}>
+            <Panel title={data.published ? "This month" : "So far this month"} color={COLOR}>
               <div className="flex flex-col items-center gap-2">
                 <RingGauge
                   value={data.percent} color={data.grade_color || COLOR} size={160} stroke={18}

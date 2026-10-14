@@ -6,6 +6,7 @@ import { Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { Sparkline, Timeline } from "../viz/charts";
 import { NEUTRAL, seriesColor, tint } from "../viz/palette";
 import { AREA } from "./areas";
+import LatestDailyResults from "./LatestDailyResults";
 
 /** §Student-portal-visual-redesign — Dashboard = "at a glance" + "take
  *  action". It shows each area's single headline number (with a small
@@ -113,6 +114,8 @@ export default function DashboardView({
           ) : null}
         </StatTile>
       </section>
+
+      <LatestDailyResults days={d.latestDaily} monthHref={(id) => `/portal/student/exams/daily/${id}`} />
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Panel title="Coming up" subtitle="Exams and school events in the next weeks." color={seriesColor(6)} className="lg:col-span-3">

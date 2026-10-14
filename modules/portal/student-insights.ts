@@ -379,6 +379,13 @@ export interface DashboardInsights {
   upcoming: { id: string; kind: "exam" | "event"; title: string; type: string; start: string; end: string | null }[];
   todo: { readyToCollect: number; overdue: number; reviewsToWrite: number; awaitingApproval: number };
   kudos: { id: string; kind: string; message: string | null; from: string; date: string }[];
+  /** §Dashboard-latest-daily — the student's two most recent Daily
+   *  Assessment test days (newest first), live as soon as marks are saved. */
+  latestDaily: LatestDailyDay[];
+}
+export interface LatestDailyDay {
+  date: string; examination_id: string; examination_name: string;
+  tests: { id: string; subject_name: string; portion: string; max: number; obtained: number | null; absent: boolean; percent: number | null; class_avg_percent: number | null }[];
 }
 
 export async function getDashboardInsights(institutionId: string, authUserId: string, studentId: string): Promise<DashboardInsights> {
@@ -445,6 +452,46 @@ export async function getDashboardInsights(institutionId: string, authUserId: st
         where k.to_student_id = $1 order by k.created_at desc limit 6`,
       [studentId]
     );
+    // §Dashboard-latest-daily ("Today's result & Yesterday's result"):
+    // the student's own marks on their two most recent test days. Live —
+    // shown as soon as the teacher saves them, not held for the monthly
+    // Publish (the user's choice); the month's total/grade still wait.
+    const { rows: daily } = await scoped.query<{
+      id: string; date: string; examination_id: string; examination_name: string; subject_name: string; portion: string;
+      max: number; obtained: number | null; absent: boolean; class_avg: number | null;
+    }>(
+      `with mine as (
+         select da.id, da.assessment_date, da.examination_id, e.name as examination_name, sub.name as subject_name, da.portion,
+                da.max_marks::float8 as max, dam.marks_obtained::float8 as obtained, dam.is_absent as absent, da.created_at
+           from daily_assessment_marks dam
+           join daily_assessments da on da.id = dam.daily_assessment_id
+           join examinations e on e.id = da.examination_id
+           join subjects sub on sub.id = da.subject_id
+          where dam.student_id = $1 and da.status = 'completed' and da.assessment_date <= current_date + 1
+       ), days as (
+         select distinct assessment_date from mine order by assessment_date desc limit 2
+       )
+       select m.id, m.assessment_date::text as date, m.examination_id, m.examination_name, m.subject_name, m.portion,
+              m.max, m.obtained, m.absent,
+              (select avg(x.marks_obtained / da2.max_marks * 100)::float8
+                 from daily_assessment_marks x join daily_assessments da2 on da2.id = x.daily_assessment_id
+                where x.daily_assessment_id = m.id and not x.is_absent and x.marks_obtained is not null) as class_avg
+         from mine m
+        where m.assessment_date in (select assessment_date from days)
+        order by m.assessment_date desc, m.subject_name, m.created_at`,
+      [studentId]
+    );
+    const latestDaily: LatestDailyDay[] = [];
+    for (const r of daily) {
+      let day = latestDaily.find((d) => d.date === r.date);
+      if (!day) { day = { date: r.date, examination_id: r.examination_id, examination_name: r.examination_name, tests: [] }; latestDaily.push(day); }
+      const obtained = r.absent ? null : r.obtained;
+      day.tests.push({
+        id: r.id, subject_name: r.subject_name, portion: r.portion, max: Number(r.max), obtained, absent: r.absent,
+        percent: obtained != null && r.max > 0 ? Math.round((obtained / r.max) * 1000) / 10 : null,
+        class_avg_percent: r.class_avg == null ? null : Math.round(r.class_avg * 10) / 10,
+      });
+    }
     const present = att[0]?.present ?? 0;
     const total = att[0]?.total ?? 0;
     const upcoming = [
@@ -460,6 +507,7 @@ export async function getDashboardInsights(institutionId: string, authUserId: st
       upcoming,
       todo: todo[0] ?? { readyToCollect: 0, overdue: 0, reviewsToWrite: 0, awaitingApproval: 0 },
       kudos,
+      latestDaily,
     };
   });
 }
@@ -481,6 +529,9 @@ export interface DailySubjectSummary {
 }
 export interface DailyAssessmentMonthDetail {
   examination_id: string; name: string;
+  /** Published to the portal by the school. Until then the tests show live
+   *  but the month's grade is withheld (the total is a running figure). */
+  published: boolean;
   /** Same figures as the month's chip on Academics (getDailyAssessmentConsolidatedResult). */
   percent: number | null; obtained: number; max: number;
   grade_label: string | null; grade_color: string | null;
@@ -499,16 +550,19 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
  *  class's average per test for context; per-subject totals; and the
  *  month's headline numbers computed exactly as the Academics chip does
  *  (completed sessions, absent tests left out of both marks and total).
- *  Returns null when the register isn't a published Daily Assessment or
- *  the student has no class placement — the page 404s. */
+ *  §Dashboard-latest-daily: available while the month is still running
+ *  (the dashboard's "see the whole month" button opens it); the grade is
+ *  only given once the school has published the month. Returns null when
+ *  the register isn't a Daily Assessment or the student has no class
+ *  placement — the page 404s. */
 export async function getDailyAssessmentMonthDetail(
   institutionId: string, authUserId: string, studentId: string, examinationId: string
 ): Promise<DailyAssessmentMonthDetail | null> {
   const db = await getDbClient();
   const raw = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    const { rows: ex } = await scoped.query<{ name: string }>(
-      `select e.name from examinations e join exam_types et on et.id = e.exam_type_id
-        where e.id = $1 and et.is_daily_assessment and e.published_at is not null`,
+    const { rows: ex } = await scoped.query<{ name: string; published: boolean }>(
+      `select e.name, e.published_at is not null as published from examinations e join exam_types et on et.id = e.exam_type_id
+        where e.id = $1 and et.is_daily_assessment`,
       [examinationId]
     );
     if (!ex[0]) return null;
@@ -531,7 +585,7 @@ export async function getDailyAssessmentMonthDetail(
         order by da.assessment_date, sub.name, da.created_at`,
       [examinationId, placement.class_id, studentId]
     );
-    return { name: ex[0].name, classId: placement.class_id, rows };
+    return { name: ex[0].name, published: ex[0].published, classId: placement.class_id, rows };
   });
   if (!raw) return null;
 
@@ -574,9 +628,9 @@ export async function getDailyAssessmentMonthDetail(
   const obtained = mine ? Number(mine.cumulative_marks_obtained) : tests.reduce((a, t) => a + (t.obtained ?? 0), 0);
   const max = mine ? Number(mine.cumulative_max_marks) : tests.reduce((a, t) => a + (t.obtained != null ? t.max : 0), 0);
   return {
-    examination_id: examinationId, name: raw.name,
+    examination_id: examinationId, name: raw.name, published: raw.published,
     percent: max > 0 ? round1((obtained / max) * 100) : null, obtained, max,
-    grade_label: mine?.grade_label ?? null, grade_color: mine?.grade_color ?? null,
+    grade_label: raw.published ? mine?.grade_label ?? null : null, grade_color: raw.published ? mine?.grade_color ?? null : null,
     class_avg_percent: classPcts.length > 0 ? round1(classPcts.reduce((a, b) => a + b, 0) / classPcts.length) : null,
     tests, subjects,
   };

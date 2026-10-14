@@ -6,6 +6,7 @@ import { Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { Sparkline, Timeline } from "../viz/charts";
 import { NEUTRAL, seriesColor, tint } from "../viz/palette";
 import { AREA } from "../student/areas";
+import LatestDailyResults from "../student/LatestDailyResults";
 
 export const FEES_COLOR = seriesColor(6);
 export const CONTACT_COLOR = seriesColor(5);
@@ -30,11 +31,13 @@ function rupees(n: number): string {
  *  child's details. Each area's charts live only on that area's page. */
 export default function ParentDashboardView({
   childName, childFirstName, admissionNumber, insights, photo, switcher, banner, details,
-  show, fees, leavesPending, schoolNotes, hrefs,
+  show, fees, leavesPending, schoolNotes, hrefs, dailyMonthHref,
 }: {
   childName: string; childFirstName: string; admissionNumber: string | null;
   insights: DashboardInsights; photo: ReactNode; switcher?: ReactNode; banner?: ReactNode; details?: ReactNode;
   show: ParentDashboardShow; fees: ParentFeeSummary | null; leavesPending: number; schoolNotes: number; hrefs: ParentHrefs;
+  /** §Dashboard-latest-daily — the month page for a Daily Assessment register. */
+  dailyMonthHref: (examinationId: string) => string;
 }) {
   const d = insights;
   const latest = d.recentExams[d.recentExams.length - 1] ?? null;
@@ -144,6 +147,8 @@ export default function ParentDashboardView({
           {tiles}
         </section>
       ) : null}
+
+      {show.results ? <LatestDailyResults days={d.latestDaily} monthHref={dailyMonthHref} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Panel title="Needs your attention" color={seriesColor(7)} className="lg:col-span-3">
