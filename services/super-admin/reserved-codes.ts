@@ -15,6 +15,8 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   "users", "portal", "api", "icons", "icon-badge", "favicon.ico",
   "manifest.webmanifest", "robots.txt", "sitemap.xml", "sw.js", "_next",
   "calendar", "substitution", "print", "analysis", "results",
+  // §Marketing-demo: /demo is the public sales demo (app/demo/route.ts).
+  "demo",
   // §Fee/Accounts bug fix ("Accounts & Fee are not working") — app/(institution)/
   // fees/ and accounts/ are real top-level route folders (Phase D, tasks
   // #428-431) that were never added here. Without this, middleware.ts's

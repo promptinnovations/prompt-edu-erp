@@ -253,6 +253,13 @@ function buildBaseResponse(routing: InstitutionRouting, request: NextRequest, re
 }
 
 export async function middleware(request: NextRequest) {
+  // §Marketing-demo: the public sales demo (app/demo/route.ts) is a static,
+  // self-contained page — no session, no tenant, no data. It skips the
+  // institution routing, the session refresh and the app's nonce-based CSP
+  // (it carries its own inline script and loads Google Fonts).
+  if (request.nextUrl.pathname === "/demo" || request.nextUrl.pathname === "/demo/") {
+    return NextResponse.next();
+  }
   const routing = resolveInstitutionRouting(request);
 
   if (routing.redirectTo) {
