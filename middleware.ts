@@ -202,6 +202,19 @@ function buildCsp(nonce: string, isDev: boolean): string {
     // Refresh/style injection isn't nonce-aware) — production uses the
     // nonce, matching the framework's own documented dev-vs-prod split.
     `style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
+    // §Instant-colours fix ("the coloured box takes a lot of time to
+    // appear"): the dashboards, portals and charts colour things with
+    // per-element style="" attributes (gradients, tints, bar widths).
+    // style-src above has no 'unsafe-inline', so the browser BLOCKED those
+    // attributes in the server-rendered HTML — boxes came up white/blank
+    // and only filled in once React re-rendered them on the client. CSP
+    // Level 3 splits the two: <style>/<link> elements stay nonce-only
+    // (style-src-elem), while style ATTRIBUTES are allowed
+    // (style-src-attr). An attribute can't run script, so this keeps the
+    // protection that matters. Browsers too old for these directives fall
+    // back to style-src, i.e. exactly the previous behaviour.
+    `style-src-elem 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
+    `style-src-attr 'unsafe-inline'`,
     `img-src 'self' blob: data:${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     `font-src 'self'`,
     // §Install-button: the service worker (public/sw.js). With

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { DashboardInsights } from "../../../../modules/portal/student-insights";
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { Panel, StatTile, EmptyNote } from "../viz/blocks";
-import { RingGauge, Sparkline, Timeline } from "../viz/charts";
+import { Sparkline, Timeline } from "../viz/charts";
 import { NEUTRAL, seriesColor, tint } from "../viz/palette";
 import { AREA } from "./areas";
 
@@ -77,9 +77,13 @@ export default function DashboardView({
           value={d.attendance.percent != null ? `${d.attendance.percent}%` : "—"}
           sub={d.attendance.total > 0 ? `Present ${d.attendance.present} of ${d.attendance.total} days` : "Not marked yet this year"}
         >
-          <div className="flex justify-end -mt-14">
-            <RingGauge value={d.attendance.percent} color={AREA.attendance.color} size={64} stroke={8} center=" " />
+          {/* A slim bar, not a ring: the ring sat over the "Present x of y
+              days" line on narrow tiles. */}
+          {d.attendance.percent != null ? (
+          <div className="mt-1 h-2 overflow-hidden rounded-full" style={{ backgroundColor: tint(AREA.attendance.color, 0.15) }} aria-hidden>
+            <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, d.attendance.percent ?? 0))}%`, backgroundColor: AREA.attendance.color }} />
           </div>
+          ) : null}
         </StatTile>
 
         <StatTile
