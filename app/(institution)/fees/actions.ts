@@ -5,7 +5,7 @@ import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
   createFeeCategory, createFeeStructure, assignFeeStructureToClass, assignAdHocFee,
-  recordFeePayment, confirmPendingFeePayment, updateFeePayment,
+  recordFeePayment, confirmPendingFeePayment, updateFeePayment, voidFeePayment,
 } from "../../../modules/fees/service";
 
 export async function createFeeCategoryAction(_prevState: { error: string | null }, formData: FormData) {
@@ -134,5 +134,28 @@ export async function updateFeePaymentAction(_prevState: { error: string | null 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to update payment." };
+  }
+}
+
+/** §Fee-payment-delete — remove a wrongly recorded payment (voided, not
+ *  erased: see voidFeePayment()). Same permission as recording/editing. */
+export async function deleteFeePaymentAction(_prevState: { error: string | null; done?: boolean }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "fees.collect");
+    await voidFeePayment(ctx.institutionId, ctx.session.authUserId, ctx.userId, {
+      id: String(formData.get("id") ?? ""),
+      reason: String(formData.get("reason") ?? ""),
+    });
+    revalidatePath("/fees");
+    revalidatePath("/accounts");
+    return { error: null, done: true };
+  } catch (err) {
+    if (err && typeof err === "object" && "issues" in err) {
+      const first = (err as { issues: { message: string }[] }).issues[0];
+      return { error: first?.message ?? "Give a reason for deleting this payment." };
+    }
+    return { error: err instanceof Error ? err.message : "Failed to delete payment." };
   }
 }

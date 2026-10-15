@@ -287,7 +287,8 @@ export default async function FeesPage({
                     {canCollect && (paymentsByInvoice.get(i.id)?.length ?? 0) > 0 ? (
                       <details className="mt-1">
                         <summary className="cursor-pointer text-xs text-[var(--brand)] hover:underline">
-                          {paymentsByInvoice.get(i.id)!.length} payment(s)
+                          {paymentsByInvoice.get(i.id)!.filter((p) => p.status !== "voided").length} payment(s)
+                          {paymentsByInvoice.get(i.id)!.some((p) => p.status === "voided") ? ` · ${paymentsByInvoice.get(i.id)!.filter((p) => p.status === "voided").length} deleted` : ""}
                         </summary>
                         <InvoicePayments payments={paymentsByInvoice.get(i.id)!} />
                       </details>

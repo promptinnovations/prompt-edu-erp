@@ -64,7 +64,7 @@ export async function getFeeSnapshot(institutionId: string, authUserId: string):
       `with yr as (select id, name from academic_years where is_current = true limit 1),
             inv as (
               select i.id, i.amount_due::float8 as due, i.status, i.due_date,
-                     coalesce((select sum(p.amount) from fee_payments p where p.invoice_id = i.id), 0)::float8 as paid
+                     coalesce((select sum(p.amount) from fee_payments p where p.invoice_id = i.id and p.status = 'confirmed'), 0)::float8 as paid
                 from student_fee_invoices i
                where i.academic_year_id = (select id from yr) and i.status <> 'waived'
             )
@@ -78,7 +78,7 @@ export async function getFeeSnapshot(institutionId: string, authUserId: string):
     );
     const { rows: months } = await scoped.query<{ month: string; amount: number }>(
       `select to_char(m, 'YYYY-MM') as month,
-              coalesce((select sum(p.amount) from fee_payments p where date_trunc('month', p.payment_date) = m), 0)::float8 as amount
+              coalesce((select sum(p.amount) from fee_payments p where p.status = 'confirmed' and date_trunc('month', p.payment_date) = m), 0)::float8 as amount
          from generate_series(date_trunc('month', current_date) - interval '5 months', date_trunc('month', current_date), interval '1 month') m
         order by m`
     );

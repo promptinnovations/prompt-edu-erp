@@ -61,6 +61,8 @@ export interface FeeClassSummaryRow {
 export interface FeePaymentRow {
   id: string; invoice_id: string; amount: string; payment_date: string; payment_method: string;
   reference_no: string | null; notes: string | null; status: string; recorded_by: string | null; created_at: string;
+  /** §Fee-payment-delete — set when the payment was voided (deleted). */
+  void_reason?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -513,12 +515,13 @@ export async function updateFeePayment(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows: before } = await scoped.query<FeePaymentRow>(
       `select id, invoice_id, amount::text as amount, payment_date::text as payment_date, payment_method,
-              reference_no, notes, status, recorded_by, created_at::text as created_at
+              reference_no, notes, status, recorded_by, created_at::text as created_at, void_reason
          from fee_payments where id = $1`,
       [data.id]
     );
     if (!before[0]) throw new Error("Payment not found.");
     if (before[0].status === "rejected") throw new Error("A rejected payment can't be edited.");
+    if (before[0].status === "voided") throw new Error("A deleted payment can't be edited.");
 
     const merged = {
       amount: data.amount ?? Number(before[0].amount),
@@ -553,12 +556,47 @@ export async function updateFeePayment(
   });
 }
 
+/** §Fee-payment-delete ("an option for deleting payment — needed because
+ *  of false entries"). Admin/account staff (fees.collect) remove a wrong
+ *  payment. fee_payments is a financial ledger, so the row is VOIDED, not
+ *  erased: status 'voided' (migration 0068) drops it from every total
+ *  (they all sum status = 'confirmed' only), the invoice status is
+ *  recalculated, and the income row postToAccountsIfActive() posted for it
+ *  is removed so Accounts stays in step. Who/when/why stay on the row and
+ *  in the audit log. A reason is required. */
+export async function voidFeePayment(
+  institutionId: string, authUserId: string, userId: string, input: { id: string; reason: string }
+): Promise<void> {
+  const data = z.object({ id: z.string().uuid(), reason: z.string().trim().min(3, "Give a reason for deleting this payment.").max(300) }).parse(input);
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query<FeePaymentRow>(
+      `select id, invoice_id, amount::text as amount, payment_date::text as payment_date, payment_method,
+              reference_no, notes, status, recorded_by, created_at::text as created_at
+         from fee_payments where id = $1`,
+      [data.id]
+    );
+    if (!before[0]) throw new Error("Payment not found.");
+    if (before[0].status === "voided") throw new Error("This payment has already been deleted.");
+    await scoped.query(
+      `update fee_payments set status = 'voided', voided_by = $2, voided_at = now(), void_reason = $3 where id = $1`,
+      [data.id, userId, data.reason]
+    );
+    await scoped.query(`delete from account_transactions where source_module = 'fees' and source_entity_id = $1`, [data.id]);
+    await recalculateInvoiceStatus(scoped, before[0].invoice_id);
+    await recordAudit(scoped, {
+      institutionId, userId, action: "delete", module: "fees",
+      entityType: "fee_payments", entityId: data.id, before: before[0], after: { status: "voided", reason: data.reason },
+    });
+  });
+}
+
 export async function listFeePaymentsForInvoice(institutionId: string, authUserId: string, invoiceId: string): Promise<FeePaymentRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<FeePaymentRow>(
       `select id, invoice_id, amount::text as amount, payment_date::text as payment_date, payment_method,
-              reference_no, notes, status, recorded_by, created_at::text as created_at
+              reference_no, notes, status, recorded_by, created_at::text as created_at, void_reason
          from fee_payments where invoice_id = $1 order by created_at`,
       [invoiceId]
     );
@@ -577,7 +615,7 @@ export async function listFeePaymentsForInvoices(
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     const { rows } = await scoped.query<FeePaymentRow>(
       `select id, invoice_id, amount::text as amount, payment_date::text as payment_date, payment_method,
-              reference_no, notes, status, recorded_by, created_at::text as created_at
+              reference_no, notes, status, recorded_by, created_at::text as created_at, void_reason
          from fee_payments where invoice_id = any($1) order by created_at`,
       [invoiceIds]
     );

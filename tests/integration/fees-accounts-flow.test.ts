@@ -13,7 +13,7 @@ import { createClass, createSection, getCurrentAcademicYear } from "../../module
 import {
   createFeeCategory, createFeeStructure, assignFeeStructureToClass, listStudentFeeInvoices,
   recordFeePayment, submitParentFeePayment, listPendingConfirmationPayments, confirmPendingFeePayment,
-  getFeeSummary, updateFeePayment, listFeePaymentsForInvoice, listFeePaymentsForInvoices,
+  getFeeSummary, updateFeePayment, listFeePaymentsForInvoice, listFeePaymentsForInvoices, voidFeePayment,
 } from "../../modules/fees/service";
 import { listAccountCategories, createAccountCategory, recordTransaction, listTransactions, getAccountsSummary } from "../../modules/accounts/service";
 
@@ -184,6 +184,29 @@ describe("Fee payment editing (§8 follow-up: admin/accounts can edit a recorded
 
     await expect(updateFeePayment(institutionA, adminAuth, adminUserId, { id: submitted.id, amount: 300 }))
       .rejects.toThrow(/rejected payment/i);
+  });
+
+  it("§Fee-payment-delete: a wrongly entered payment can be deleted (voided) — invoice, totals and Accounts all drop it, history keeps it", async () => {
+    const invoices = await listStudentFeeInvoices(institutionA, adminAuth, { studentId });
+    const invoice = invoices[0];
+    const mistake = await recordFeePayment(institutionA, adminAuth, adminUserId, { invoiceId: invoice.id, amount: 700, paymentMethod: "cash", notes: "entered twice" });
+    const [withMistake] = await listStudentFeeInvoices(institutionA, adminAuth, { studentId });
+    expect(withMistake.amount_paid).toBe("5700.00");
+    expect((await listTransactions(institutionA, adminAuth, { type: "income" })).filter((t) => t.source_entity_id === mistake.id)).toHaveLength(1);
+
+    await expect(voidFeePayment(institutionA, adminAuth, adminUserId, { id: mistake.id, reason: "" })).rejects.toThrow();
+    await voidFeePayment(institutionA, adminAuth, adminUserId, { id: mistake.id, reason: "Entered twice by mistake" });
+
+    const [after] = await listStudentFeeInvoices(institutionA, adminAuth, { studentId });
+    expect(after.amount_paid).toBe("5000.00");
+    expect(after.status).toBe("paid");
+    expect((await listTransactions(institutionA, adminAuth, { type: "income" })).filter((t) => t.source_entity_id === mistake.id)).toHaveLength(0);
+    const row = (await listFeePaymentsForInvoice(institutionA, adminAuth, invoice.id)).find((p) => p.id === mistake.id)!;
+    expect(row.status).toBe("voided");
+    expect(row.void_reason).toBe("Entered twice by mistake");
+
+    await expect(voidFeePayment(institutionA, adminAuth, adminUserId, { id: mistake.id, reason: "again" })).rejects.toThrow(/already been deleted/);
+    await expect(updateFeePayment(institutionA, adminAuth, adminUserId, { id: mistake.id, amount: 100 })).rejects.toThrow(/deleted payment/);
   });
 
   it("listFeePaymentsForInvoices groups payments for multiple invoices in one query", async () => {
