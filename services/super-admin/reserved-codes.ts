@@ -17,6 +17,8 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   "calendar", "substitution", "print", "analysis", "results",
   // §Marketing-demo: /demo is the public sales demo (app/demo/route.ts).
   "demo",
+  // §Marketing-pricing: /pricing is the public price calculator (app/pricing/route.ts).
+  "pricing",
   // §Fee/Accounts bug fix ("Accounts & Fee are not working") — app/(institution)/
   // fees/ and accounts/ are real top-level route folders (Phase D, tasks
   // #428-431) that were never added here. Without this, middleware.ts's

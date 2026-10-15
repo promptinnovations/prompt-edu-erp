@@ -257,7 +257,10 @@ export async function middleware(request: NextRequest) {
   // self-contained page — no session, no tenant, no data. It skips the
   // institution routing, the session refresh and the app's nonce-based CSP
   // (it carries its own inline script and loads Google Fonts).
-  if (request.nextUrl.pathname === "/demo" || request.nextUrl.pathname === "/demo/") {
+  // §Marketing-pricing: /pricing (app/pricing/route.ts) is the public price
+  // calculator — same treatment as /demo.
+  const publicPage = request.nextUrl.pathname.replace(/\/$/, "");
+  if (publicPage === "/demo" || publicPage === "/pricing") {
     return NextResponse.next();
   }
   const routing = resolveInstitutionRouting(request);
