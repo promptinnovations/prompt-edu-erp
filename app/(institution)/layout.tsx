@@ -116,6 +116,9 @@ export default async function InstitutionLayout({ children }: { children: React.
   // profiles/Portfolio views below, same split staff/page.tsx already
   // draws with canViewAllStaff.
   const canManageEnrollment = ctx.isSuperAdmin || can(ctx.permissions, "student.view_all");
+  // §Student-details: class teachers (any teacher — the page itself narrows
+  // to the divisions they are class teacher of) and admins with student.edit.
+  const canCompleteStudentDetails = ctx.isSuperAdmin || can(ctx.permissions, "student.edit") || can(ctx.permissions, "marks.enter");
   // Staff group: "only what is concerned to them — my profile, my leave, my
   // attendance, my portion plan. nothing more." staff.edit is the same
   // "unrestricted staff access" signal app/(institution)/staff/page.tsx's
@@ -170,6 +173,7 @@ export default async function InstitutionLayout({ children }: { children: React.
         // (student.view, which a teacher does hold, only unlocks the two
         // read-only views above/below).
         ...(canManageEnrollment ? [{ href: "/students", label: "Enrollment" }] : []),
+        ...(canCompleteStudentDetails ? [{ href: "/students/details", label: "Complete student details" }] : []),
         { href: "/students/directory?tab=portfolio", label: "Portfolio" },
       ],
     }] : []),

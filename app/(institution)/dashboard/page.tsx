@@ -15,6 +15,7 @@ import {
 } from "../../../modules/attendance/service";
 import { resolveAttendanceVisibility } from "../../../services/scope/attendance-visibility-service";
 import OnboardingChecklist from "./OnboardingChecklist";
+import { getClassTeacherCoverage, countIncompleteStudents } from "../../../modules/student-details/service";
 import TodoWidget from "./TodoWidget";
 import {
   ResultIcon, StaffIcon, AttendanceIcon, StudentIcon, DisciplineIcon, AnalysisIcon,
@@ -71,6 +72,23 @@ export default async function DashboardPage() {
   const attendanceVisibility = hasAttendanceAccess
     ? await resolveAttendanceVisibility(institutionId, authUserId, ctx.userId, ctx.permissions)
     : { hasAccess: false, label: "" };
+
+  // §Student-details: nudge class teachers (their own divisions) and
+  // admins (whole institution) to fill details a bulk import left out.
+  // Never allowed to break the dashboard.
+  const detailsUnrestricted = ctx.isSuperAdmin || can(ctx.permissions, "student.edit");
+  const detailsNudge = detailsUnrestricted || can(ctx.permissions, "marks.enter")
+    ? await (async () => {
+        try {
+          const coverage = detailsUnrestricted ? null : await getClassTeacherCoverage(institutionId, authUserId, ctx.userId);
+          if (coverage && coverage.byClass.size === 0) return null;
+          const counts = await countIncompleteStudents(institutionId, authUserId, coverage);
+          return { ...counts, scopeLabel: coverage ? "students in your class" : "students" };
+        } catch {
+          return null;
+        }
+      })()
+    : null;
 
   const [institution, checklist, stats, attendanceToday, todos, recentExam] = await Promise.all([
     getInstitution(institutionId, authUserId),
@@ -272,6 +290,16 @@ export default async function DashboardPage() {
       ) : null}
 
       {canSeeChecklist ? <OnboardingChecklist items={checklist} /> : null}
+
+      {detailsNudge && detailsNudge.incomplete > 0 ? (
+        <Link href="/students/details" className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 hover:bg-amber-100">
+          <span>
+            <b>{detailsNudge.incomplete}</b> of {detailsNudge.total} {detailsNudge.scopeLabel} have missing details
+            (date of birth, gender, father&rsquo;s name or mobile number).
+          </span>
+          <span className="rounded-full bg-amber-600 px-3 py-1 text-xs font-medium text-white">Complete them →</span>
+        </Link>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {attendanceToday ? (
