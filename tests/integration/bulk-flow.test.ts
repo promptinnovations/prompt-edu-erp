@@ -77,7 +77,7 @@ describe("Import entity catalogue + templates (§Q.1, §Q.3)", () => {
     const types = listImportEntityTypes().map((t) => t.entityType).sort();
     expect(types).toEqual(
       ["achievements", "calendar_events", "classes", "daily_assessment_marks", "enrollments", "examinations", "library_books", "marks", "parents",
-        "sections", "staff", "student_logins", "students", "subjects", "timetable_periods"].sort()
+        "sections", "staff", "staff_roles", "class_subjects", "teacher_assignments", "student_logins", "students", "subjects", "timetable_periods"].sort()
     );
   });
 

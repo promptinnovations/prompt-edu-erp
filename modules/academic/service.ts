@@ -361,11 +361,11 @@ const assignClassSubjectSchema = z.object({
 /** Idempotent by design (`on conflict ... do update`) — safe to call again
  *  to change is_core without a separate update function. */
 export async function assignSubjectToClass(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof assignClassSubjectSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof assignClassSubjectSchema>,
+  scopedClient?: DbClient // §Q.1 — the "Subjects per class" bulk import runs inside its own transaction
 ): Promise<ClassSubjectRecord> {
   const data = assignClassSubjectSchema.parse(input);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<{ id: string; class_id: string; subject_id: string; is_core: boolean }>(
       `insert into class_subjects (institution_id, class_id, subject_id, is_core)
        values ($1, $2, $3, $4)
@@ -379,7 +379,10 @@ export async function assignSubjectToClass(
       entityType: "class_subjects", entityId: rows[0].id, after: rows[0],
     });
     return { ...rows[0], subject_name: subjRows[0]?.name ?? "" };
-  });
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
 export async function removeSubjectFromClass(

@@ -84,7 +84,9 @@ export interface TeacherAssignmentRow extends TeacherAssignmentRecord {
 // Staff directory
 // ---------------------------------------------------------------------------
 const createStaffSchema = z.object({
-  email: z.string().email(),
+  // §ICS-staff: optional — some staff have no email yet ("add even without
+  // email, I will edit later"). A login can only be created once one is added.
+  email: z.string().email().nullable().optional(),
   fullName: z.string().min(1).max(200),
   staffCode: z.string().min(1).max(50),
   designation: z.string().max(150).nullable().optional(),
@@ -129,7 +131,7 @@ export async function createStaffMember(
     try {
       await scoped.query(
         `insert into users (id, email, full_name, preferred_locale) values ($1, $2, $3, 'en')`,
-        [newUserId, data.email, data.fullName]
+        [newUserId, data.email ? data.email.trim().toLowerCase() : null, data.fullName]
       );
     } catch {
       throw new Error(`A user with email "${data.email}" already exists — reusing an existing account for a new staff member isn't supported yet.`);
@@ -1144,11 +1146,11 @@ const createAssignmentSchema = z.object({
 });
 
 export async function createTeacherAssignment(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createAssignmentSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof createAssignmentSchema>,
+  scopedClient?: DbClient // §Q.1 — the "Teacher assignments" bulk import runs inside its own transaction
 ): Promise<TeacherAssignmentRecord> {
   const data = createAssignmentSchema.parse(input);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<TeacherAssignmentRecord>(
       `insert into teacher_assignments (institution_id, user_id, class_id, section_id, subject_id, academic_year_id, role_type)
        values ($1, $2, $3, $4, $5, $6, $7)
@@ -1157,7 +1159,58 @@ export async function createTeacherAssignment(
     );
     await recordAudit(scoped, { institutionId, userId, action: "create", module: "staff", entityType: "teacher_assignments", entityId: rows[0].id, after: rows[0] });
     return rows[0];
-  });
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+/** Roles the "Staff" and "Staff roles" bulk imports may grant. Deliberately
+ *  excludes institution_admin (an import must never be a way to hand out
+ *  admin) and the portal-only parent/student roles. Keys are what people
+ *  type in a spreadsheet; values are role codes. */
+export const IMPORTABLE_STAFF_ROLES: Record<string, string> = {
+  teacher: "teacher",
+  management: "management",
+  principal: "management",
+  "principal / management": "management",
+  "section head": "section_head",
+  section_head: "section_head",
+  librarian: "librarian",
+  "accounts staff": "accounts_staff",
+  accounts_staff: "accounts_staff",
+  accounts: "accounts_staff",
+  staff: "staff",
+};
+
+/** Grants one role to a staff member's user (no-op if they already hold it).
+ *  Returns false if they already had it. */
+export async function grantStaffRole(
+  institutionId: string, authUserId: string, userId: string,
+  input: { staffUserId: string; roleCode: string },
+  scopedClient?: DbClient
+): Promise<boolean> {
+  if (!Object.values(IMPORTABLE_STAFF_ROLES).includes(input.roleCode)) throw new Error(`Role "${input.roleCode}" can't be granted here.`);
+  const run = async (scoped: DbClient) => {
+    const { rows: roleRows } = await scoped.query<{ id: string }>(
+      `select id from roles where institution_id = $1 and code = $2`, [institutionId, input.roleCode]
+    );
+    if (roleRows.length === 0) throw new Error(`This institution has no "${input.roleCode}" role.`);
+    const { rows } = await scoped.query<{ user_id: string }>(
+      `insert into user_roles (user_id, institution_id, role_id) values ($1, $2, $3) on conflict do nothing returning user_id`,
+      [input.staffUserId, institutionId, roleRows[0].id]
+    );
+    if (rows.length > 0) {
+      await recordAudit(scoped, {
+        institutionId, userId, action: "grant_role", module: "staff", entityType: "user_roles", entityId: input.staffUserId,
+        after: { role: input.roleCode },
+      });
+    }
+    return rows.length > 0;
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
 export async function listTeacherAssignments(

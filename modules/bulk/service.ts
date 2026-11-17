@@ -23,9 +23,9 @@ import ExcelJS from "exceljs";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
-import { createClass, createSection, createSubject, listClasses, listSections, listSubjects, listAcademicYears, getCurrentAcademicYear } from "../academic/service";
+import { createClass, createSection, createSubject, listClasses, listSections, listSubjects, listAcademicYears, getCurrentAcademicYear, listClassSubjects, assignSubjectToClass } from "../academic/service";
 import { createStudent, createParent, linkParentToStudent, listStudents, enrollStudent, listActiveEnrollments } from "../students/service";
-import { createStaffMember, listStaff } from "../staff/service";
+import { createStaffMember, listStaff, createTeacherAssignment, listTeacherAssignments, grantStaffRole, IMPORTABLE_STAFF_ROLES } from "../staff/service";
 import { createBook } from "../library/service";
 import { submitAchievement, listAchievementCategories, listAchievementLevels } from "../achievements/service";
 import { createStudentLoginAccount } from "../portal/service";
@@ -39,7 +39,12 @@ import { upsertTimetablePeriod } from "../substitution/service";
 // ---------------------------------------------------------------------------
 // Shared types
 // ---------------------------------------------------------------------------
-export interface ImportColumn { key: string; label: string; required: boolean }
+export interface ImportColumn {
+  key: string; label: string; required: boolean;
+  /** Other header spellings accepted for this column (e.g. "DOB" for
+   *  "DOB (YYYY-MM-DD)") — matched case-insensitively, like the label. */
+  aliases?: string[];
+}
 export interface ParsedRow {
   rowNumber: number;
   status: "valid" | "invalid" | "duplicate";
@@ -182,8 +187,9 @@ const subjectsDefinition: EntityImportDefinition = {
   columns: [
     { key: "name", label: "Name", required: true },
     { key: "code", label: "Code", required: false },
+    { key: "track", label: "Track (academic/islamic)", required: false, aliases: ["Track"] },
   ],
-  sampleRow: { name: "Mathematics", code: "MATH" },
+  sampleRow: { name: "Mathematics", code: "MATH", track: "academic" },
   async prepareContext(institutionId, authUserId) {
     const existing = await listSubjects(institutionId, authUserId);
     return { existingNames: new Set(existing.map((s) => normKey(s.name))) };
@@ -196,10 +202,17 @@ const subjectsDefinition: EntityImportDefinition = {
     const existingNames = context.existingNames as Set<string>;
     if (existingNames.has(key)) return { status: "invalid", errors: [`Subject "${name}" already exists.`] };
     const code = (raw.code ?? "").trim() || null;
-    return { status: "valid", data: { name, code }, dedupeKey: key };
+    const trackRaw = normKey(raw.track);
+    if (trackRaw && trackRaw !== "academic" && trackRaw !== "islamic") {
+      return { status: "invalid", errors: [`"Track" must be academic or islamic (or blank).`] };
+    }
+    const track = trackRaw ? (trackRaw as "academic" | "islamic") : null;
+    return { status: "valid", data: { name, code, track }, dedupeKey: key };
   },
   async insertRow(institutionId, authUserId, userId, data, scoped) {
-    await createSubject(institutionId, authUserId, userId, { name: data.name as string, code: data.code as string | null }, scoped);
+    await createSubject(institutionId, authUserId, userId, {
+      name: data.name as string, code: data.code as string | null, track: data.track as "academic" | "islamic" | null,
+    }, scoped);
   },
 };
 
@@ -228,7 +241,7 @@ const studentsDefinition: EntityImportDefinition = {
     { key: "admissionNumber", label: "Adm No", required: true },
     { key: "fullName", label: "Student Name", required: true },
     { key: "fatherName", label: "Father", required: true },
-    { key: "dateOfBirth", label: "DOB (YYYY-MM-DD)", required: false },
+    { key: "dateOfBirth", label: "DOB (YYYY-MM-DD)", required: false, aliases: ["DOB", "Date of birth"] },
     { key: "gender", label: "Gender", required: false },
     { key: "mobileNo", label: "Mobile No", required: true },
   ],
@@ -484,14 +497,15 @@ const staffDefinition: EntityImportDefinition = {
   entityType: "staff",
   label: "Staff",
   columns: [
-    { key: "email", label: "Email", required: true },
+    { key: "email", label: "Email", required: false },
     { key: "fullName", label: "Full name", required: true },
     { key: "staffCode", label: "Staff code", required: true },
     { key: "designation", label: "Designation", required: false },
     { key: "department", label: "Department", required: false },
-    { key: "employmentStatus", label: "Employment status (active/on_leave/resigned/terminated)", required: false },
+    { key: "employmentStatus", label: "Employment status (active/on_leave/resigned/terminated)", required: false, aliases: ["Employment status", "Status"] },
+    { key: "role", label: "Role (teacher/management/librarian/accounts staff/staff)", required: false, aliases: ["Role"] },
   ],
-  sampleRow: { email: "teacher2@example.com", fullName: "Yusuf Khan", staffCode: "STF-002", designation: "Teacher", department: "Academics", employmentStatus: "active" },
+  sampleRow: { email: "teacher2@example.com", fullName: "Yusuf Khan", staffCode: "STF-002", designation: "Teacher", department: "Academics", employmentStatus: "active", role: "teacher" },
   async prepareContext(institutionId, authUserId) {
     const existing = await listStaff(institutionId, authUserId);
     return {
@@ -501,32 +515,40 @@ const staffDefinition: EntityImportDefinition = {
   },
   parseRow(raw, context) {
     const errors: string[] = [];
-    const email = req(raw, "email", errors);
+    // §ICS-staff: email is optional (a login needs one, so it can be added
+    // later); spaces typed inside an address ("name 12@gmail. com") are
+    // dropped and it is lower-cased.
+    const email = (raw.email ?? "").replace(/\s+/g, "").toLowerCase() || null;
     const fullName = req(raw, "fullName", errors);
     const staffCode = req(raw, "staffCode", errors);
     if (email && !EMAIL_RE.test(email)) errors.push(`"email" is not a valid email address.`);
-    const employmentStatusRaw = (raw.employmentStatus ?? "").trim() || "active";
+    const employmentStatusRaw = normKey(raw.employmentStatus).replace(/[^a-z_ ]/g, "").replace(/\s+/g, "_") || "active";
     if (!EMPLOYMENT_STATUSES.has(employmentStatusRaw)) errors.push(`"employmentStatus" must be one of active/on_leave/resigned/terminated.`);
+    const roleRaw = normKey(raw.role) || "teacher";
+    const roleCode = IMPORTABLE_STAFF_ROLES[roleRaw];
+    if (!roleCode) errors.push(`"Role" must be one of teacher, management, section head, librarian, accounts staff or staff.`);
     if (errors.length > 0) return { status: "invalid", errors };
     const existingEmails = context.existingEmails as Set<string>;
     const existingStaffCodes = context.existingStaffCodes as Set<string>;
-    if (existingEmails.has(normKey(email))) return { status: "invalid", errors: [`Staff email "${email}" already exists.`] };
+    if (email && existingEmails.has(normKey(email))) return { status: "invalid", errors: [`Staff email "${email}" already exists.`] };
     if (existingStaffCodes.has(normKey(staffCode))) return { status: "invalid", errors: [`Staff code "${staffCode}" already exists.`] };
     return {
-      status: "valid", dedupeKey: normKey(email),
+      status: "valid", dedupeKey: `code:${normKey(staffCode)}`,
       data: {
         email, fullName, staffCode,
         designation: (raw.designation ?? "").trim() || null,
         department: (raw.department ?? "").trim() || null,
         employmentStatus: employmentStatusRaw,
+        roleCode,
       },
     };
   },
   async insertRow(institutionId, authUserId, userId, data, scoped) {
     await createStaffMember(institutionId, authUserId, userId, {
-      email: data.email as string, fullName: data.fullName as string, staffCode: data.staffCode as string,
+      email: data.email as string | null, fullName: data.fullName as string, staffCode: data.staffCode as string,
       designation: data.designation as string | null, department: data.department as string | null,
       employmentStatus: data.employmentStatus as "active" | "on_leave" | "resigned" | "terminated",
+      roleCode: data.roleCode as string,
     }, scoped);
   },
 };
@@ -1078,6 +1100,164 @@ const dailyAssessmentMarksDefinition: EntityImportDefinition = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// §ICS-staff — bulk school setup: roles for staff already imported, which
+// subjects each class studies, and who teaches what (class teacher /
+// subject teacher). Before these, all three were one-at-a-time forms only.
+// ---------------------------------------------------------------------------
+const staffRolesDefinition: EntityImportDefinition = {
+  entityType: "staff_roles",
+  label: "Staff roles (give existing staff a role)",
+  columns: [
+    { key: "staffCode", label: "Staff code", required: true },
+    { key: "role", label: "Role (teacher/management/section head/librarian/accounts staff/staff)", required: true, aliases: ["Role"] },
+  ],
+  sampleRow: { staffCode: "STF-002", role: "teacher" },
+  async prepareContext(institutionId, authUserId) {
+    const staff = await listStaff(institutionId, authUserId);
+    const db = await getDbClient();
+    const held = await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+      const { rows } = await scoped.query<{ user_id: string; code: string }>(
+        `select ur.user_id, r.code from user_roles ur join roles r on r.id = ur.role_id where ur.institution_id = $1`,
+        [institutionId]
+      );
+      return new Set(rows.map((r) => `${r.user_id}:${r.code}`));
+    });
+    return { staffByCode: new Map(staff.map((s) => [normKey(s.staff_code), s.user_id])), held };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const staffCode = req(raw, "staffCode", errors);
+    const roleRaw = normKey(req(raw, "role", errors));
+    if (errors.length > 0) return { status: "invalid", errors };
+    const roleCode = IMPORTABLE_STAFF_ROLES[roleRaw];
+    if (!roleCode) return { status: "invalid", errors: [`"Role" must be one of teacher, management, section head, librarian, accounts staff or staff.`] };
+    const staffUserId = (context.staffByCode as Map<string, string>).get(normKey(staffCode));
+    if (!staffUserId) return { status: "invalid", errors: [`Staff code "${staffCode}" was not found — import "Staff" first.`] };
+    if ((context.held as Set<string>).has(`${staffUserId}:${roleCode}`)) {
+      return { status: "invalid", errors: [`This staff member already has the "${roleRaw}" role.`] };
+    }
+    return { status: "valid", dedupeKey: `${staffUserId}:${roleCode}`, data: { staffUserId, roleCode } };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await grantStaffRole(institutionId, authUserId, userId, {
+      staffUserId: data.staffUserId as string, roleCode: data.roleCode as string,
+    }, scoped);
+  },
+};
+
+const classSubjectsDefinition: EntityImportDefinition = {
+  entityType: "class_subjects",
+  label: "Subjects per class",
+  columns: [
+    { key: "className", label: "Class", required: true, aliases: ["Class name", "Std"] },
+    { key: "subjectName", label: "Subject", required: true },
+  ],
+  sampleRow: { className: "6", subjectName: "Mathematics" },
+  async prepareContext(institutionId, authUserId) {
+    const [classes, subjects, links] = await Promise.all([
+      listClasses(institutionId, authUserId), listSubjects(institutionId, authUserId), listClassSubjects(institutionId, authUserId),
+    ]);
+    return {
+      classesByName: new Map(classes.map((c) => [normKey(c.name), c.id])),
+      subjectsByName: new Map(subjects.map((s) => [normKey(s.name), s.id])),
+      links: new Set(links.map((l) => `${l.class_id}:${l.subject_id}`)),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const className = req(raw, "className", errors);
+    const subjectName = req(raw, "subjectName", errors);
+    if (errors.length > 0) return { status: "invalid", errors };
+    const classId = (context.classesByName as Map<string, string>).get(normKey(className));
+    if (!classId) return { status: "invalid", errors: [`Class "${className}" was not found.`] };
+    const subjectId = (context.subjectsByName as Map<string, string>).get(normKey(subjectName));
+    if (!subjectId) return { status: "invalid", errors: [`Subject "${subjectName}" was not found — add it (or import "Subjects") first.`] };
+    if ((context.links as Set<string>).has(`${classId}:${subjectId}`)) {
+      return { status: "invalid", errors: [`Class "${className}" already studies "${subjectName}".`] };
+    }
+    return { status: "valid", dedupeKey: `${classId}:${subjectId}`, data: { classId, subjectId } };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await assignSubjectToClass(institutionId, authUserId, userId, {
+      classId: data.classId as string, subjectId: data.subjectId as string, isCore: true,
+    }, scoped);
+  },
+};
+
+const teacherAssignmentsDefinition: EntityImportDefinition = {
+  entityType: "teacher_assignments",
+  label: "Teacher assignments (class teacher / subject teacher)",
+  columns: [
+    { key: "staffCode", label: "Staff code", required: true },
+    { key: "className", label: "Class", required: true, aliases: ["Class name", "Std"] },
+    { key: "sectionName", label: "Division (blank = whole class)", required: false, aliases: ["Division", "Div", "Section", "Section name"] },
+    { key: "subjectName", label: "Subject (blank for class teacher)", required: false, aliases: ["Subject"] },
+    { key: "role", label: "Role (class teacher/subject teacher)", required: true, aliases: ["Role"] },
+  ],
+  sampleRow: { staffCode: "STF-002", className: "6", sectionName: "A", subjectName: "Mathematics", role: "subject teacher" },
+  async prepareContext(institutionId, authUserId) {
+    const [staff, classes, sections, subjects, links, year] = await Promise.all([
+      listStaff(institutionId, authUserId), listClasses(institutionId, authUserId), listSections(institutionId, authUserId),
+      listSubjects(institutionId, authUserId), listClassSubjects(institutionId, authUserId), getCurrentAcademicYear(institutionId, authUserId),
+    ]);
+    const existing = year ? await listTeacherAssignments(institutionId, authUserId, { academicYearId: year.id }) : [];
+    return {
+      staffByCode: new Map(staff.map((s) => [normKey(s.staff_code), s.user_id])),
+      classesByName: new Map(classes.map((c) => [normKey(c.name), c.id])),
+      sectionsByClassAndName: new Map(sections.map((s) => [`${s.class_id}:${normKey(s.name)}`, s.id])),
+      subjectsByName: new Map(subjects.map((s) => [normKey(s.name), s.id])),
+      links: new Set(links.map((l) => `${l.class_id}:${l.subject_id}`)),
+      currentAcademicYearId: year?.id ?? null,
+      existing: new Set(existing.map((a) => [a.user_id, a.class_id, a.section_id ?? "", a.subject_id ?? "", a.role_type].join("|"))),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const staffCode = req(raw, "staffCode", errors);
+    const className = req(raw, "className", errors);
+    const roleText = normKey(req(raw, "role", errors));
+    if (errors.length > 0) return { status: "invalid", errors };
+    const roleType = roleText.includes("class") ? "class_teacher" : roleText.includes("subject") ? "subject_teacher" : null;
+    if (!roleType) return { status: "invalid", errors: [`"Role" must be "class teacher" or "subject teacher".`] };
+    const academicYearId = context.currentAcademicYearId as string | null;
+    if (!academicYearId) return { status: "invalid", errors: [`No current academic year is set — set one under Academic Setup first.`] };
+    const userIdForStaff = (context.staffByCode as Map<string, string>).get(normKey(staffCode));
+    if (!userIdForStaff) return { status: "invalid", errors: [`Staff code "${staffCode}" was not found — import "Staff" first.`] };
+    const classId = (context.classesByName as Map<string, string>).get(normKey(className));
+    if (!classId) return { status: "invalid", errors: [`Class "${className}" was not found.`] };
+    const sectionName = (raw.sectionName ?? "").trim();
+    let sectionId: string | null = null;
+    if (sectionName) {
+      sectionId = (context.sectionsByClassAndName as Map<string, string>).get(`${classId}:${normKey(sectionName)}`) ?? null;
+      if (!sectionId) return { status: "invalid", errors: [`Division "${sectionName}" was not found in class "${className}".`] };
+    }
+    const subjectName = (raw.subjectName ?? "").trim();
+    let subjectId: string | null = null;
+    if (subjectName) {
+      if (roleType === "class_teacher") return { status: "invalid", errors: [`Leave "Subject" blank on a class teacher row.`] };
+      subjectId = (context.subjectsByName as Map<string, string>).get(normKey(subjectName)) ?? null;
+      if (!subjectId) return { status: "invalid", errors: [`Subject "${subjectName}" was not found.`] };
+      if (!(context.links as Set<string>).has(`${classId}:${subjectId}`)) {
+        return { status: "invalid", errors: [`Class "${className}" doesn't study "${subjectName}" — add it with the "Subjects per class" import first.`] };
+      }
+    }
+    const key = [userIdForStaff, classId, sectionId ?? "", subjectId ?? "", roleType].join("|");
+    if ((context.existing as Set<string>).has(key)) return { status: "invalid", errors: [`This assignment already exists.`] };
+    return {
+      status: "valid", dedupeKey: key,
+      data: { teacherUserId: userIdForStaff, classId, sectionId, subjectId, academicYearId, roleType },
+    };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await createTeacherAssignment(institutionId, authUserId, userId, {
+      userId: data.teacherUserId as string, classId: data.classId as string,
+      sectionId: data.sectionId as string | null, subjectId: data.subjectId as string | null,
+      academicYearId: data.academicYearId as string, roleType: data.roleType as "class_teacher" | "subject_teacher",
+    }, scoped);
+  },
+};
+
 const registry: Record<string, EntityImportDefinition> = {
   classes: classesDefinition,
   sections: sectionsDefinition,
@@ -1087,6 +1267,9 @@ const registry: Record<string, EntityImportDefinition> = {
   enrollments: enrollmentsDefinition,
   student_logins: studentLoginsDefinition,
   staff: staffDefinition,
+  staff_roles: staffRolesDefinition,
+  class_subjects: classSubjectsDefinition,
+  teacher_assignments: teacherAssignmentsDefinition,
   library_books: libraryBooksDefinition,
   achievements: achievementsDefinition,
   calendar_events: calendarEventsDefinition,
@@ -1166,9 +1349,29 @@ async function parseUploadedFile(fileBuffer: Buffer, format: "xlsx" | "csv"): Pr
   const rows: string[][] = [];
   sheet.eachRow((row) => {
     const values = (row.values as unknown[]).slice(1); // exceljs row.values is 1-indexed with a leading empty slot
-    rows.push(values.map((v) => (v === null || v === undefined ? "" : String(v))));
+    rows.push(Array.from(values, (v) => cellToText(v)));
   });
   return rows;
+}
+
+/** One Excel cell -> the text a person sees. exceljs hands back real Date
+ *  objects for date cells, { text, hyperlink } for e-mail/web links and
+ *  { richText: [...] } for partly formatted text — String() on those gave
+ *  "Thu Feb 22 2017 05:30:00 GMT…" or "[object Object]", which then failed
+ *  validation (every DOB rejected, every hyperlinked staff e-mail "invalid"). */
+export function cellToText(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? "" : v.toISOString().slice(0, 10);
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if (Array.isArray(o.richText)) return (o.richText as { text?: string }[]).map((t) => t.text ?? "").join("");
+    if ("result" in o) return cellToText(o.result);
+    if ("text" in o) return cellToText(o.text);
+    if ("hyperlink" in o) return String(o.hyperlink).replace(/^mailto:/i, "");
+    if ("error" in o) return "";
+    return "";
+  }
+  return String(v);
 }
 
 // ---------------------------------------------------------------------------
@@ -1197,6 +1400,9 @@ export async function stageImport(
   for (const col of definition.columns) {
     labelToKey.set(normKey(col.label), col.key);
     labelToKey.set(normKey(col.key), col.key);
+    for (const alias of col.aliases ?? []) {
+      if (!labelToKey.has(normKey(alias))) labelToKey.set(normKey(alias), col.key);
+    }
   }
   const columnOrder = header.map((h) => labelToKey.get(normKey(h)) ?? null);
 
