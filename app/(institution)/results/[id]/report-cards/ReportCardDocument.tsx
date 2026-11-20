@@ -2,6 +2,7 @@ import { formatDateIST, todayIST } from "../../../../../services/datetime/ist";
 import { formatMarks } from "../../../../../services/format/marks";
 import type { ReportCardData, ReportCardContext } from "./report-card-data";
 import FitToPage from "./FitToPage";
+import { PromptMark } from "../../../../components/PromptLogo";
 
 /** §Report-card-print-all — the printable card itself, shared by the
  *  single-student route and the whole-class print route so they render
@@ -306,7 +307,7 @@ export default function ReportCardDocument({
 
         <footer className="mt-[5mm] flex items-center justify-between text-[7pt] uppercase tracking-[0.1em] text-zinc-400">
           <span>Printed on {formatDateIST(todayIST())}</span>
-          <span>Powered by PROMPT EDU ERP &middot; &copy; Prompt Innovations</span>
+          <span className="inline-flex items-center gap-[1.2mm]">Powered by <PromptMark size={11} /> PROMPT EDU ERP &middot; &copy; Prompt Innovations</span>
         </footer>
         </FitToPage>
       </div>

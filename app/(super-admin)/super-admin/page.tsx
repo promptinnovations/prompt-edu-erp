@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ThemeIcon from "../../components/portal/viz/ThemeIcon";
 import { headers } from "next/headers";
 import { requireSuperAdminContext } from "../../../services/request-context";
 import { listInstitutions, getPlatformUsageOverview } from "../../../services/super-admin/super-admin-service";
@@ -33,26 +34,27 @@ export default async function SuperAdminOverviewPage() {
     }),
     { students: 0, staff: 0, users: 0 }
   );
+  // §Palette-matching icons: a line icon per figure (was an empty square).
   const summary: Array<[string, number, string]> = [
-    ["Institutions", institutions.length, "from-[var(--brand-from)] to-[var(--brand-via)]"],
-    ["Students", totals.students, "from-[var(--brand-from)] to-[var(--brand-via)]"],
-    ["Staff", totals.staff, "from-[var(--brand-from)] to-[var(--brand-via)]"],
-    ["Platform users", totals.users, "from-[var(--brand-from)] to-[var(--brand-via)]"],
+    ["Institutions", institutions.length, "🏫"],
+    ["Students", totals.students, "🎒"],
+    ["Staff", totals.staff, "🧑‍💼"],
+    ["Platform users", totals.users, "👥"],
   ];
 
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] p-6 text-white shadow-float sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-indigo-500/20 blur-2xl" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-white/5 blur-2xl" />
         <div className="relative">
           <div className="text-xs font-medium uppercase tracking-[0.08em] text-white/60">Super Admin Console</div>
           <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Institutions</h1>
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {summary.map(([label, value, accent]) => (
+          {summary.map(([label, value, icon]) => (
             <div key={label} className="rounded-card bg-white/10 p-4 backdrop-blur">
-              <div className={`mb-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${accent}`} />
+              <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15"><ThemeIcon icon={icon} color="#ffffff" size={17} /></div>
               <div className="text-xl font-semibold">{value}</div>
               <div className="mt-0.5 text-xs text-white/70">{label}</div>
             </div>

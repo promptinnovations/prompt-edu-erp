@@ -6,6 +6,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { STATUS_COLOR, tint } from "./palette";
+import ThemeIcon from "./ThemeIcon";
 
 export function PageHeader({ title, subtitle, icon, color, children }: {
   title: string; subtitle?: string; icon: string; color: string; children?: ReactNode;
@@ -17,7 +18,7 @@ export function PageHeader({ title, subtitle, icon, color, children }: {
     >
       <div className="flex flex-wrap items-center gap-4">
         <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl shadow-sm" style={{ backgroundColor: color }}>
-          <span className="drop-shadow-sm">{icon}</span>
+          <span className="drop-shadow-sm"><ThemeIcon icon={icon} color="#ffffff" size={24} /></span>
         </span>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-[var(--heading)]">{title}</h1>
@@ -55,7 +56,7 @@ export function StatTile({ label, value, sub, color, icon, href, children }: {
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-xl text-lg" style={{ backgroundColor: tint(color, 0.18) }}>{icon}</span>
+        <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-xl text-lg" style={{ backgroundColor: tint(color, 0.16) }}><ThemeIcon icon={icon} color={color} size={19} /></span>
         {href ? <span aria-hidden className="text-xs text-zinc-400 transition-transform group-hover:translate-x-0.5">→</span> : null}
       </div>
       <div className="mt-3 text-2xl font-bold tracking-tight text-[var(--foreground)]">{value}</div>

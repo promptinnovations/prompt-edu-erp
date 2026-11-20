@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { requireRequestContext } from "../../../services/request-context";
 import { getInstitution } from "../../../services/institution/institution-service";
 import { resolveInstitutionPalette, paletteCssVars } from "../../../services/branding/palettes";
+import { PromptCredit } from "../../components/PromptLogo";
 import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { listMyNotifications, getUnreadNotificationCount } from "../../../services/notification/notification-service";
 import { getStudent } from "../../../modules/students/service";
@@ -171,8 +172,8 @@ export default async function PortalLayout({ children }: { children: React.React
   );
 
   const footer = (
-    <footer data-app-shell className="py-4 text-center text-[10px] uppercase tracking-[0.08em] text-zinc-500">
-      PROMPT EDU ERP · Prompt Innovations
+    <footer data-app-shell className="flex justify-center py-4 text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+      <PromptCredit markSize={14} />
     </footer>
   );
 

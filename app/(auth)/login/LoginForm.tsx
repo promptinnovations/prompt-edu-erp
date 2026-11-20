@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loginAction, type LoginState } from "./actions";
 import LoginInstallButton from "./LoginInstallButton";
+import { PromptMark, PromptCredit } from "../../components/PromptLogo";
 
 const INITIAL_STATE: LoginState = { error: null, info: null };
 
@@ -31,7 +32,7 @@ const INITIAL_STATE: LoginState = { error: null, info: null };
 export default function LoginForm({ institutionName, logoUrl }: { institutionName?: string; logoUrl?: string }) {
   const t = useTranslations("login");
   const [state, formAction, pending] = useActionState<LoginState, FormData>(loginAction, INITIAL_STATE);
-  const credit = institutionName ? "PROMPT EDU ERP · Prompt Innovations" : "Prompt Innovations";
+  const credit = "PROMPT EDU ERP · Prompt Innovations";
   const logoLetter = (institutionName ?? "P").trim().charAt(0).toUpperCase() || "P";
   // §137 follow-up ("their log in id (must be student name, password- phone
   // number of parent)") — the student-name login tab only makes sense once
@@ -67,6 +68,12 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL
               <img src={logoUrl} alt="" className="h-11 w-11 rounded-2xl bg-white object-contain p-1" />
+            ) : !institutionName ? (
+              // §Brand-logo: the generic (no institution) login is the
+              // PROMPT EDU ERP screen itself — its own mark.
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                <PromptMark size={36} variant="white" />
+              </span>
             ) : (
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold backdrop-blur">
                 {logoLetter}
@@ -81,13 +88,13 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
                 : "One platform for academics, attendance, examinations, library, staff, and every institution you run — built for madrasas, schools, and colleges alike."}
             </p>
           </div>
-          <div className="text-xs font-bold uppercase tracking-[0.22em] text-white/70">{credit}</div>
+          <div className="text-xs font-bold uppercase tracking-[0.22em] text-white/70"><PromptCredit light markSize={18} text={credit} /></div>
         </div>
 
         {/* Right: the actual sign-in form */}
         <div className="flex flex-col justify-center p-8 sm:p-10">
           <div className="mb-6">
-            <div className="text-xs font-bold uppercase tracking-[0.22em] text-zinc-500 md:hidden">{credit}</div>
+            <div className="text-xs font-bold uppercase tracking-[0.22em] text-zinc-500 md:hidden"><PromptCredit markSize={18} text={credit} /></div>
             <h1 className="mt-1 text-2xl font-semibold text-[var(--heading)]">{institutionName ?? t("title")}</h1>
             <p className="mt-1 text-sm text-zinc-500">{t("subtitle")}</p>
           </div>

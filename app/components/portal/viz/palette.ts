@@ -5,9 +5,9 @@
  * colour follows the entity, never its rank). Grade colours always come
  * from the institution's own grade_bands.color, passed in as data.
  */
-import { CHART_SERIES, seriesColor } from "../../charts/series";
+import { CHART_SERIES, seriesColor, decorColor } from "../../charts/series";
 
-export { CHART_SERIES, seriesColor };
+export { CHART_SERIES, seriesColor, decorColor };
 
 /** Attendance states — reserved for status, never reused as a series
  *  colour, and always shown with a text label / legend. */
@@ -24,6 +24,9 @@ export const NEUTRAL = "#79839a";
 
 /** `#rrggbb` + alpha → `rgba(...)`, for soft tinted fills behind a mark. */
 export function tint(hex: string, alpha: number): string {
+  // Theme-following colours from charts/series.ts: "rgb(var(--x, r, g, b))".
+  const v = /^rgb\((var\(--[\w-]+(?:,[^)]*)?\))\)$/.exec(hex.trim());
+  if (v) return `rgba(${v[1]}, ${alpha})`;
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
   if (!m) return hex;
   return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;

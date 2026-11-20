@@ -6,7 +6,7 @@
  * All charts scale to their container width (viewBox + width 100%).
  */
 import type { ReactNode } from "react";
-import { NEUTRAL, tint } from "./palette";
+import { NEUTRAL, seriesColor, tint } from "./palette";
 import { Legend } from "./legend";
 
 export { Legend } from "./legend";
@@ -120,7 +120,7 @@ export function HBars({ rows, max = 100, unit = "%", previousLabel, currentLabel
         })}
       </ul>
       {hasPrev ? (
-        <Legend items={[{ label: currentLabel ?? "Now", color: "#2a78d6" }, { label: previousLabel ?? "Before", color: "#c7bda9" }]} />
+        <Legend items={[{ label: currentLabel ?? "Now", color: seriesColor(0) }, { label: previousLabel ?? "Before", color: "#c7bda9" }]} />
       ) : null}
     </div>
   );

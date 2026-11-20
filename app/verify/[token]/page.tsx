@@ -1,4 +1,5 @@
 import { parseRecordToken, getPublicRecordInfo } from "../../../services/learner-record/verification";
+import { PromptCredit } from "../../components/PromptLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function VerifyRecordPage({ params }: { params: Promise<{ t
             <p className="mt-3 text-sm text-zinc-600">The code is invalid or has been altered. Please ask the school for a fresh copy.</p>
           </>
         )}
-        <p className="mt-6 text-[10px] uppercase tracking-[0.08em] text-zinc-400">PROMPT EDU ERP · Prompt Innovations</p>
+        <p className="mt-6 flex justify-center text-[10px] uppercase tracking-[0.08em] text-zinc-400"><PromptCredit markSize={14} /></p>
       </div>
     </main>
   );

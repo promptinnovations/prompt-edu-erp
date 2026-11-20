@@ -31,7 +31,7 @@ import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { getMyRoleNames, getLibrarySnapshot, getFeeSnapshot } from "../../../services/home/dashboard-insights";
 import { Panel, StatTile, EmptyNote } from "../../components/portal/viz/blocks";
 import { RingGauge, HBars, Timeline, ColumnBars } from "../../components/portal/viz/charts";
-import { seriesColor, tint } from "../../components/portal/viz/palette";
+import { seriesColor, decorColor, tint } from "../../components/portal/viz/palette";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -245,7 +245,7 @@ export default async function DashboardPage() {
 
       <section aria-label="Institution at a glance" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {statCards.map((s, i) => (
-          <StatTile key={s.label} label={s.label} value={s.value} icon={s.icon} color={seriesColor(i)} />
+          <StatTile key={s.label} label={s.label} value={s.value} icon={s.icon} color={decorColor(i)} />
         ))}
       </section>
 
@@ -271,7 +271,8 @@ export default async function DashboardPage() {
         // in 3-4 rows") — every button visible at once.
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {quickButtons.map((b, i) => {
-            const c = seriesColor(i % 8);
+            // §Palette-matching: the theme's own colour family, not a rainbow.
+            const c = decorColor(i);
             return (
               <Link
                 key={b.label}

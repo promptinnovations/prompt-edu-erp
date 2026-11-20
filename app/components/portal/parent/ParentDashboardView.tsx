@@ -6,6 +6,7 @@ import { Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { Sparkline, Timeline } from "../viz/charts";
 import { NEUTRAL, seriesColor, tint } from "../viz/palette";
 import { AREA } from "../student/areas";
+import ThemeIcon from "../viz/ThemeIcon";
 import LatestDailyResults from "../student/LatestDailyResults";
 
 export const FEES_COLOR = seriesColor(6);
@@ -166,7 +167,7 @@ export default function ParentDashboardView({
                     className="flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors hover:bg-[var(--surface-muted)]"
                     style={{ borderColor: a.urgent ? tint("#e34948", 0.45) : "var(--border-subtle)", backgroundColor: a.urgent ? tint("#e34948", 0.05) : undefined }}
                   >
-                    <span aria-hidden className="text-lg">{a.icon}</span>
+                    <span aria-hidden className="flex text-lg"><ThemeIcon icon={a.icon} color={a.urgent ? "#c2410c" : "var(--brand)"} size={18} /></span>
                     <span className="flex-1 text-zinc-700">{a.text}</span>
                     <span aria-hidden className="text-zinc-400">→</span>
                   </Link>
@@ -188,7 +189,7 @@ export default function ParentDashboardView({
                     className="flex h-full flex-col items-center gap-1.5 rounded-xl border p-3 text-center text-sm font-medium text-[var(--foreground)] transition-all hover:-translate-y-0.5 hover:shadow-raised"
                     style={{ borderColor: tint(a.color, 0.35), backgroundColor: tint(a.color, 0.08) }}
                   >
-                    <span aria-hidden className="text-2xl">{a.icon}</span>
+                    <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-xl text-2xl" style={{ backgroundColor: tint(a.color, 0.16) }}><ThemeIcon icon={a.icon} color={a.color} size={20} /></span>
                     {a.label}
                   </Link>
                 </li>

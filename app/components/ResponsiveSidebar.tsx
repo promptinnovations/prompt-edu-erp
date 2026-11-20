@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import SidebarInstallButton from "./SidebarInstallButton";
+import { PromptAppTile, PromptCredit } from "./PromptLogo";
 
 /**
  * Off-canvas sidebar shell shared by (institution)/layout.tsx and
@@ -33,6 +34,7 @@ import SidebarInstallButton from "./SidebarInstallButton";
 export default function ResponsiveSidebar({
   brandLabel,
   logoUrl,
+  platformBrand = false,
   children,
 }: {
   brandLabel: string;
@@ -40,6 +42,9 @@ export default function ResponsiveSidebar({
    *  when the institution has uploaded one, else null to keep the existing
    *  generated letter badge exactly as before. */
   logoUrl?: string | null;
+  /** §Brand-logo: true on platform screens (Super Admin console) — the
+   *  badge is the PROMPT EDU ERP mark instead of a letter. */
+  platformBrand?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -53,11 +58,13 @@ export default function ResponsiveSidebar({
 
   const logoLetter = brandLabel.trim().charAt(0).toUpperCase() || "P";
   const badge = (className: string) =>
-    logoUrl ? (
+    platformBrand ? (
+      <PromptAppTile size={className.includes("h-9") ? 36 : 28} className="shadow-float" />
+    ) : logoUrl ? (
       // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL
       <img src={logoUrl} alt="" className={`${className} object-contain bg-white`} />
     ) : (
-      <span className={`${className} bg-[var(--accent-teal)] font-bold text-white`}>{logoLetter}</span>
+      <span className={`${className} bg-[var(--brand)] font-bold text-white`}>{logoLetter}</span>
     );
 
   return (
@@ -117,8 +124,8 @@ export default function ResponsiveSidebar({
           <SidebarInstallButton />
         </div>
 
-        <div className="mt-3 truncate text-center text-[10px] uppercase tracking-[0.08em] text-[var(--sidebar-text-muted)]">
-          PROMPT EDU ERP · Prompt Innovations
+        <div className="mt-3 flex justify-center truncate text-[10px] uppercase tracking-[0.08em] text-[var(--sidebar-text-muted)]">
+          <PromptCredit markSize={14} />
         </div>
       </aside>
     </>

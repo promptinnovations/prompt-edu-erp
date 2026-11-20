@@ -6,6 +6,7 @@ import type { LearnerEntry, LearnerSection } from "../../../modules/learner-reco
 import PrintLetterhead from "../PrintLetterhead";
 import PrintButton from "../PrintButton";
 import RecordQr from "./RecordQr";
+import { PromptCredit } from "../PromptLogo";
 import { StudentDetailsCard } from "./ProfileSections";
 import { ACTIVITY_CATEGORY_RE, type LearnerRecord } from "./learner-record-data";
 import type { AchievementRow } from "../../../modules/achievements/service";
@@ -318,7 +319,7 @@ export default async function LearnerRecordView({
         <footer className="flex items-end justify-between gap-4 pt-2 text-[10px] uppercase tracking-[0.08em] text-zinc-400">
           <div>
             <div>Issued {formatDateIST(today)} · Only teacher-verified entries are shown</div>
-            <div className="mt-1">PROMPT EDU ERP · Prompt Innovations</div>
+            <div className="mt-1"><PromptCredit markSize={12} /></div>
           </div>
           {verifyUrl ? (
             <div className="flex items-center gap-2 text-right normal-case tracking-normal">

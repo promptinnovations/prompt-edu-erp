@@ -91,17 +91,19 @@
   --color-info: #1f6f8c;
   --color-info-soft: #e4f1f6;
 
-  /* Chart series — fixed 8 slots, CVD-validated. Assign in order, never
-     cycle, never substitute brand colours. Mirrored for SVG/JS use in
-     app/components/charts/series.ts. */
-  --color-chart-1: #2a78d6;
-  --color-chart-2: #eb6834;
-  --color-chart-3: #1baf7a;
-  --color-chart-4: #eda100;
-  --color-chart-5: #e87ba4;
-  --color-chart-6: #008300;
-  --color-chart-7: #4a3aa7;
-  --color-chart-8: #e34948;
+  /* Chart series — 8 slots that follow the colour theme (§Palette-
+     matching charts): slot 1 brand, slot 2 accent, then six companion
+     hues, set per palette as --sys-chart-N (services/branding/palettes.ts).
+     Fallbacks are the Scholar Teal set. Assign in order, never cycle.
+     Mirrored for SVG/JS use in app/components/charts/series.ts. */
+  --color-chart-1: var(--sys-chart-1, #0f766e);
+  --color-chart-2: var(--sys-chart-2, #ea580c);
+  --color-chart-3: var(--sys-chart-3, #2563eb);
+  --color-chart-4: var(--sys-chart-4, #7c3aed);
+  --color-chart-5: var(--sys-chart-5, #db2777);
+  --color-chart-6: var(--sys-chart-6, #16a34a);
+  --color-chart-7: var(--sys-chart-7, #65a30d);
+  --color-chart-8: var(--sys-chart-8, #475569);
 
   /* Shape and depth. Shadows are tinted with brand primary, never black. */
   --radius-card: 0.875rem;
@@ -206,29 +208,29 @@
  * heading colour (brand-primary-900 in Navy & Gold, the palette's
  * foreground elsewhere). */
 :root {
-  --background: #f9fafb;
-  --foreground: #1d2939;
-  --heading: #1d2939;
+  --background: #f4f8f7;
+  --foreground: #172033;
+  --heading: #172033;
   --surface: #ffffff;
-  --surface-muted: #f9fafb;
-  --border-subtle: #eaecf0;
-  --brand: #4f46e5;
-  --brand-hover: #4338ca;
-  --brand-from: #4f46e5;
-  --brand-via: #7c3aed;
-  --brand-to: #a21caf;
-  --accent-teal: #7c3aed;
-  --accent-teal-hover: #6d28d9;
+  --surface-muted: #fafcfb;
+  --border-subtle: #dee2e3;
+  --brand: #0f766e;
+  --brand-hover: #0e6460;
+  --brand-from: #0f766e;
+  --brand-via: #0e6460;
+  --brand-to: #0e5353;
+  --accent-teal: #c2410c;
+  --accent-teal-hover: #a13810;
 
   --sidebar-bg: #ffffff;
   --sidebar-bg-2: #ffffff;
-  --sidebar-active: #eef2ff;
-  --sidebar-border: #eaecf0;
-  --sidebar-text: #344054;
-  --sidebar-text-muted: #667085;
-  --sidebar-icon: #667085;
-  --sidebar-strong: #1d2939;
-  --sidebar-active-text: #4338ca;
+  --sidebar-active: #f1f7f6;
+  --sidebar-border: #dee2e3;
+  --sidebar-text: #3a4152;
+  --sidebar-text-muted: #646a76;
+  --sidebar-icon: #646a76;
+  --sidebar-strong: #172033;
+  --sidebar-active-text: #0e6460;
 }
 
 @layer base {
@@ -417,24 +419,24 @@ table tbody tr:hover {
          (utilities layer) would override a border width set here. Setting
          --tw-inset-shadow also keeps the accent when a shadow-* utility is
          present, since Tailwind composes it into box-shadow. */
-      --panel-accent: var(--color-chart-1);
+      --panel-accent: rgb(var(--decor-1-rgb, 15, 118, 110));
       --tw-inset-shadow: inset 0 3px 0 0 var(--panel-accent);
       box-shadow: var(--tw-inset-shadow), var(--shadow-card);
     }
     .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 2),
-    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 2) { --panel-accent: var(--color-chart-2); }
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 2) { --panel-accent: rgb(var(--decor-2-rgb, 234, 88, 12)); }
     .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 3),
-    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 3) { --panel-accent: var(--color-chart-3); }
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 3) { --panel-accent: rgb(var(--decor-3-rgb, 14, 83, 83)); }
     .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 4),
-    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 4) { --panel-accent: var(--color-chart-4); }
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 4) { --panel-accent: rgb(var(--decor-4-rgb, 101, 167, 162)); }
     .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 5),
-    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 5) { --panel-accent: var(--color-chart-5); }
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 5) { --panel-accent: rgb(var(--decor-1-rgb, 15, 118, 110)); }
     .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 6),
-    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 6) { --panel-accent: var(--color-chart-6); }
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 6) { --panel-accent: rgb(var(--decor-2-rgb, 234, 88, 12)); }
     .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 7),
-    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 7) { --panel-accent: var(--color-chart-7); }
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 7) { --panel-accent: rgb(var(--decor-3-rgb, 14, 83, 83)); }
     .staff-app section.rounded-card.border.bg-white:not(.print-area):nth-of-type(8n + 8),
-    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 8) { --panel-accent: var(--color-chart-8); }
+    .staff-app section.rounded-2xl.border.bg-white:not(.print-area):nth-of-type(8n + 8) { --panel-accent: rgb(var(--decor-4-rgb, 101, 167, 162)); }
     .staff-app section.rounded-card.border.bg-white:not(.print-area) > h2:first-child::before,
     .staff-app section.rounded-card.border.bg-white:not(.print-area) > div:first-child > h2:first-child::before {
       content: "";
@@ -454,14 +456,14 @@ table tbody tr:hover {
     .staff-app thead[class*="tracking-[0.08em]"] th:last-child { border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
 
     .staff-app .grid > div.rounded-card.border.bg-white {
-      --stat-accent: var(--color-chart-1);
+      --stat-accent: rgb(var(--decor-1-rgb, 15, 118, 110));
       --tw-inset-shadow: inset 4px 0 0 0 var(--stat-accent);
       box-shadow: var(--tw-inset-shadow), var(--shadow-card);
       background-image: linear-gradient(135deg, color-mix(in srgb, var(--stat-accent) 8%, transparent), transparent 60%);
     }
-    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 2) { --stat-accent: var(--color-chart-2); }
-    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 3) { --stat-accent: var(--color-chart-3); }
-    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 4) { --stat-accent: var(--color-chart-4); }
+    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 2) { --stat-accent: rgb(var(--decor-2-rgb, 234, 88, 12)); }
+    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 3) { --stat-accent: rgb(var(--decor-3-rgb, 14, 83, 83)); }
+    .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 4) { --stat-accent: rgb(var(--decor-4-rgb, 101, 167, 162)); }
   }
 }
 

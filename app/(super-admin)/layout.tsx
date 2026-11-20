@@ -41,7 +41,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--background)] md:flex-row">
       <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
-      <ResponsiveSidebar brandLabel="Super Admin Console">
+      <ResponsiveSidebar brandLabel="Super Admin Console" platformBrand>
         <NavLinks items={navItems} />
         <form action={signOutAction}>
           <button type="submit" className="w-full rounded-full px-3 py-2 text-left text-sm text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)] hover:text-[var(--sidebar-strong)]">

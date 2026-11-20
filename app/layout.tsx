@@ -6,6 +6,8 @@ import { resolveAppIdentity, resolveAppIdentityByCode } from "../services/brandi
 import { Lora } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
+import { getEarlyPalette } from "../services/branding/early-palette";
+import { paletteCssVars } from "../services/branding/palettes";
 
 // Interface text stays on the system font stack (§80 "optimize for
 // lower-end mobile devices and slower networks" — zero extra requests).
@@ -90,6 +92,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const messages = await getMessages();
   const dir = locale === "ar" || locale === "ur" ? "rtl" : "ltr"; // §S.4 RTL-ready, unused in v1
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  // §Palette-first-paint: the right colours in <head>, before first paint
+  // (see services/branding/early-palette.ts).
+  const palette = await getEarlyPalette();
 
   // "Never use dark" follow-up: the app no longer has a dark mode to flash
   // to begin with (see globals.css / services/branding/palettes.ts — every
@@ -98,6 +103,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // has been removed entirely, not just its trigger.
   return (
     <html lang={locale} dir={dir} className={`${fontClass} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
+        <meta name="theme-color" content={palette.vars.brand} />
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: PWA_BOOT }} />
         <NextIntlClientProvider locale={locale} messages={messages}>
