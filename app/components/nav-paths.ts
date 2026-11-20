@@ -26,7 +26,7 @@ const PREFIXABLE = new Set([
   "analytics", "skills", "achievements", "scoring", "library", "staff",
   "discipline", "mentoring", "reports", "import", "announcements",
   "storage", "users", "settings", "portal", "calendar", "substitution",
-  "print", "analysis", "results", "fees", "accounts", "messages", "events", "homework",
+  "print", "analysis", "results", "fees", "accounts", "messages", "events", "homework", "timetable",
 ]);
 
 /** Adds the institution prefix to an app link when the current URL uses it. */

@@ -118,6 +118,11 @@ export const EventsIcon = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}><path d="M8 20.5h8M12 16v4.5" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.6M17 6h2.5a2.5 2.5 0 0 1-2.6 3.6" /></Base>
 );
 
+// School timetable — a week grid.
+export const TimetableIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><rect x="3.5" y="4.5" width="17" height="15" rx="2" /><path d="M3.5 9h17M9 9v10.5M14.5 9v10.5M3.5 14.2h17" /></Base>
+);
+
 // Homework (migration 0072) — a notebook with a pencil.
 export const HomeworkIcon = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}><path d="M5 4.5h10a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2V4.5Z" /><path d="M8.5 9h5M8.5 12.5h3.5" /><path d="m19.5 9.5-3.6 7.4-1.6.8.1-1.8 3.6-7.4a.9.9 0 0 1 1.5.9Z" /></Base>

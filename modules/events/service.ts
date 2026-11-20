@@ -1039,3 +1039,35 @@ export async function getStudentEventsView(institutionId: string, authUserId: st
     };
   });
 }
+
+export interface StudentEventResult {
+  event_id: string; event_name: string; event_kind: string; event_date: string | null; academic_year_id: string;
+  item_name: string; participation: string; team_name: string | null; house_name: string | null; house_color: string | null;
+  position: number | null; grade: string | null; points: number | null; score_pct: number | null;
+}
+
+/**
+ * Every PUBLISHED event result of one student, all years, newest first —
+ * for the student's profile (staff), the Learner Record and the portfolio
+ * ("results of events must be added to student profiles").
+ */
+export async function listStudentEventResults(institutionId: string, authUserId: string, studentId: string): Promise<StudentEventResult[]> {
+  return scopedRun({ institutionId, authUserId }, async (s) => {
+    const { rows } = await s.query<StudentEventResult>(
+      `select e.id as event_id, e.name as event_name, e.kind as event_kind,
+              coalesce(e.end_date, e.start_date)::text as event_date, e.academic_year_id,
+              i.name as item_name, i.participation, en.team_name, h.name as house_name, h.color as house_color,
+              r.position, r.grade, r.points, r.score_pct
+         from activity_entry_members m
+         join activity_entries en on en.id = m.entry_id and en.status = 'enrolled'
+         join activity_items i on i.id = en.item_id
+         join activity_events e on e.id = i.event_id and e.status = 'published'
+         left join activity_results r on r.entry_id = en.id
+         left join houses h on h.id = en.house_id
+        where m.student_id = $1
+        order by coalesce(e.end_date, e.start_date) desc nulls last, e.name, r.position nulls last, i.name`,
+      [studentId]
+    );
+    return rows.map((r) => ({ ...r, position: numOrNull(r.position), points: numOrNull(r.points), score_pct: numOrNull(r.score_pct) }));
+  });
+}

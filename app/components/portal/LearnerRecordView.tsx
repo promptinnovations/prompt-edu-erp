@@ -236,6 +236,29 @@ export default async function LearnerRecordView({
           </Section>
         ) : null}
 
+        {record.events.length > 0 ? (
+          <Section title="Events & competitions" subtitle="Results from school events — arts, sports and more.">
+            <ul className="space-y-1.5 text-sm">
+              {record.events.map((e, n) => {
+                const place = e.position === 1 ? "1st" : e.position === 2 ? "2nd" : e.position === 3 ? "3rd" : null;
+                return (
+                  <li key={`${e.event_id}-${e.item_name}-${n}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface-muted)] px-3 py-2">
+                    <span className="min-w-0">
+                      <span className="font-medium text-[var(--foreground)]">{e.item_name}</span>
+                      <span className="text-xs text-zinc-500"> · {e.event_name}{e.event_date ? ` · ${formatDateIST(e.event_date)}` : ""}{e.team_name ? ` · ${e.team_name}` : ""}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-xs">
+                      {place ? <span className="rounded-full bg-[var(--brand)] px-2 py-0.5 font-semibold text-white">{place}</span> : null}
+                      {e.grade ? <span className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 font-semibold text-zinc-700">Grade {e.grade}</span> : null}
+                      {!place && !e.grade ? <span className="text-zinc-500">Took part</span> : null}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+        ) : null}
+
         {hasActivities ? (
           <Section title="Service, leadership & activities" subtitle="Community service, leadership roles, clubs and co-curricular involvement.">
             <div className="space-y-4">

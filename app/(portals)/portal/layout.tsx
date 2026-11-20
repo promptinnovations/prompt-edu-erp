@@ -41,6 +41,9 @@ const withEvents = (items: NavItem[], href: string, on: boolean): NavItem[] => {
   const entry = { href, label: "Events & houses" };
   return at >= 0 ? [...items.slice(0, at + 1), entry, ...items.slice(at + 1)] : [...items, entry];
 };
+// Class timetable — right after the Dashboard.
+const withTimetable = (items: NavItem[], href: string, on: boolean): NavItem[] =>
+  on ? [items[0], { href, label: "Timetable" }, ...items.slice(1)] : items;
 
 // §"Parent & Student portal side panel + app download button" — the parent
 // side previously had no sidebar at all (single-column layout, "out of
@@ -111,7 +114,10 @@ export default async function PortalLayout({ children }: { children: React.React
   // (the common case) never gets this toggle by design — there's no
   // parent record for it to switch to.
   const hasDualPortalAccess = Boolean(ownStudentId && ownParentId);
-  const eventsOn = showSidebar && (await getEnabledModuleCodes(ctx.institutionId, ctx.session.authUserId)).has("events");
+  const portalModules = showSidebar ? await getEnabledModuleCodes(ctx.institutionId, ctx.session.authUserId) : new Set<string>();
+  const eventsOn = portalModules.has("events");
+  // Class timetable (timetable_periods live in the Substitution module).
+  const timetableOn = portalModules.has("substitution");
 
   // §student-portal redesign "photo of the student is not seen" — sidebar
   // profile block, student side only. getStudent() (not the heavier
@@ -242,8 +248,8 @@ export default async function PortalLayout({ children }: { children: React.React
             </div>
           ) : null}
           <NavLinks items={isParentSide
-            ? withEvents(parentNavItems(await getParentPortalSections(ctx.institutionId, ctx.session.authUserId), ctx.permissions), "/portal/parent/events", eventsOn && can(ctx.permissions, "events.view"))
-            : withEvents(STUDENT_NAV_ITEMS, "/portal/student/events", eventsOn && can(ctx.permissions, "events.view"))} />
+            ? withTimetable(withEvents(parentNavItems(await getParentPortalSections(ctx.institutionId, ctx.session.authUserId), ctx.permissions), "/portal/parent/events", eventsOn && can(ctx.permissions, "events.view")), "/portal/parent/timetable", timetableOn)
+            : withTimetable(withEvents(STUDENT_NAV_ITEMS, "/portal/student/events", eventsOn && can(ctx.permissions, "events.view")), "/portal/student/timetable", timetableOn)} />
         </ResponsiveSidebar>
         <div className="flex min-w-0 flex-1 flex-col">
           {header}

@@ -63,7 +63,7 @@ function Avatar({ photoFileId, fullName, size = 72 }: { photoFileId: string | nu
   );
 }
 
-type TabId = "overview" | "academic" | "attendance" | "assessments" | "achievements" | "co-curricular" | "behaviour" | "remarks" | "documents";
+type TabId = "overview" | "academic" | "attendance" | "assessments" | "achievements" | "co-curricular" | "behaviour" | "remarks" | "documents" | "events";
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
@@ -244,8 +244,11 @@ const TAB_ORDER: { id: TabId; label: string; gate?: (s: PortfolioDashboardData["
 ];
 
 export default function StudentPortfolioDashboard({
-  data, remarkEditor, academicYearSwitcher, headerActions,
+  data, remarkEditor, academicYearSwitcher, headerActions, extra,
 }: {
+  /** Events & Activities (house, entries, published results) — shown as
+   *  its own "Events & houses" tab when the school has the module. */
+  extra?: ReactNode;
   data: PortfolioDashboardData;
   /** Staff-only "edit teacher's remark" form, gated by the caller behind
    *  `student.edit` — this component has no notion of permissions itself. */
@@ -258,7 +261,10 @@ export default function StudentPortfolioDashboard({
    *  see PrintButtons below for the simple built-in version). */
   headerActions?: ReactNode;
 }) {
-  const tabs = TAB_ORDER.filter((t) => !t.gate || t.gate(data.sections));
+  const tabs = [
+    ...TAB_ORDER.filter((t) => !t.gate || t.gate(data.sections)),
+    ...(extra ? [{ id: "events" as TabId, label: "Events & houses" }] : []),
+  ];
   const [active, setActive] = useState<TabId>("overview");
   const activeTab = tabs.some((t) => t.id === active) ? active : (tabs[0]?.id ?? "overview");
 
@@ -422,6 +428,8 @@ export default function StudentPortfolioDashboard({
           ) : null}
         </div>
       ) : null}
+
+      {activeTab === "events" && extra ? extra : null}
 
       {activeTab === "remarks" ? (
         <Section title="Teacher's overall remark" subtitle="A standing summary set by the class teacher — separate from day-to-day mentoring notes.">

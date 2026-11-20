@@ -19,7 +19,7 @@ import { listPortfolioTimeline } from "../../modules/portfolio/service";
 import {
   createHouse, listHouses, autoAssignHouses, listStudentHouses, createEvent, setEventStatus, createItem,
   enrolEntry, withdrawEntry, listEntries, setItemJudges, listMyJudgingItems, getScoreSheet, saveScores,
-  getHouseLeaderboard, getChampions, groupChampions, getStudentEventsView, listEvents, rankEntries,
+  getHouseLeaderboard, getChampions, groupChampions, getStudentEventsView, listEvents, rankEntries, listStudentEventResults,
 } from "../../modules/events/service";
 
 let A: string, B: string;
@@ -215,12 +215,16 @@ describe("judging and results", () => {
     expect(champs.boys[0].student_id).toBe(kids.amal);
     expect(champs.byStage.find((s) => s.stage === "Junior")!.rows[0].student_id).toBe(kids.amal);
 
+    const results = await listStudentEventResults(A, adminAuth, kids.amal);
+    expect(results.find((r) => r.item_name === "Elocution")).toMatchObject({ event_name: "Arts Fest", position: 1, grade: "A" });
+
     const timeline = await listPortfolioTimeline(A, adminAuth, kids.amal);
     expect(timeline.some((t) => t.title === "1st place — Grade A: Elocution")).toBe(true);
 
     // unpublishing removes the portfolio lines again
     await setEventStatus(A, adminAuth, adminId, eventId, "judging");
     expect((await listPortfolioTimeline(A, adminAuth, kids.amal)).some((t) => t.module === "events")).toBe(false);
+    expect(await listStudentEventResults(A, adminAuth, kids.amal)).toHaveLength(0); // unpublished → not on the profile
     await setEventStatus(A, adminAuth, adminId, eventId, "published");
   });
 });

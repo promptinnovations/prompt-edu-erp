@@ -9,6 +9,7 @@ import { getInstitution, institutionReportName } from "../../../services/institu
 import { todayIST } from "../../../services/datetime/ist";
 import { listLearnerEntries, type LearnerEntry } from "../../../modules/learner-record/service";
 import { listStudentYears, getYearRecordIds, inYear, type StudentYear } from "../../../modules/portfolio/year-service";
+import { listStudentEventResults, type StudentEventResult } from "../../../modules/events/service";
 
 /** Achievement categories whose name matches this are shown under
  *  "Service, leadership & activities" (IB CAS-style) instead of the
@@ -37,6 +38,8 @@ export interface LearnerRecord {
    *  first) and the one shown — null = every year. */
   years: StudentYear[];
   selectedYearId: string | null;
+  /** Published Events & Activities results (migration 0070). */
+  events: StudentEventResult[];
 }
 
 export async function loadLearnerRecord(
@@ -46,7 +49,7 @@ export async function loadLearnerRecord(
     listStudentYears(institutionId, authUserId, studentId),
     yearId ? getYearRecordIds(institutionId, authUserId, studentId, yearId) : Promise.resolve(null),
   ]);
-  const [bundleAll, institution, years, skillsAll, assessmentsAll, labels, mentoringAll, readingAll, entriesAll] = await Promise.all([
+  const [bundleAll, institution, years, skillsAll, assessmentsAll, labels, mentoringAll, readingAll, entriesAll, eventsAll] = await Promise.all([
     loadPortalProfileBundle(institutionId, authUserId, studentId),
     getInstitution(institutionId, authUserId),
     listAcademicYears(institutionId, authUserId),
@@ -56,6 +59,7 @@ export async function loadLearnerRecord(
     listMentoringRecordsForPortal(institutionId, authUserId, studentId).catch(() => [] as MentoringRecordRow[]),
     listReadingRecords(institutionId, authUserId, undefined, undefined, studentId).catch(() => [] as ReadingRecordRow[]),
     listLearnerEntries(institutionId, authUserId, studentId),
+    listStudentEventResults(institutionId, authUserId, studentId).catch(() => [] as StudentEventResult[]),
   ]);
 
   // One year selected → only that year's records (and that year's attendance).
@@ -67,6 +71,7 @@ export async function loadLearnerRecord(
   const mentoring = inYear(mentoringAll, yearIds?.mentoring);
   const reading = inYear(readingAll, yearIds?.reading);
   const entries = inYear(entriesAll, yearIds?.entries);
+  const events = yearIds ? eventsAll.filter((e) => e.academic_year_id === yearIds.year.id) : eventsAll;
 
   const today = todayIST();
   const current = (yearIds ? years.find((y) => y.id === yearIds.year.id) : null)
@@ -111,5 +116,6 @@ export async function loadLearnerRecord(
     mentoring, reading, entries,
     years: studentYears,
     selectedYearId: yearIds?.year.id ?? null,
+    events,
   };
 }

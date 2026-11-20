@@ -44,6 +44,8 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   "events",
   // homework/ — Homework (migration 0072).
   "homework",
+  // timetable/ — the school timetable view.
+  "timetable",
   // Public Learner Record verification page (app/verify/[token]).
   "verify",
 ]);

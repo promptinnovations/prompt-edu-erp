@@ -21,6 +21,9 @@ import { buildPortfolioDashboardData, ALL_PORTFOLIO_SECTIONS } from "../../../..
 import RichTextContent from "../../../components/RichTextContent";
 import StudentPortfolioDashboard from "../../../components/portfolio/StudentPortfolioDashboard";
 import YearSelect from "../../../components/portal/YearSelect";
+import EventsView from "../../../components/portal/EventsView";
+import { getStudentEventsView } from "../../../../modules/events/service";
+import { getEnabledModuleCodes } from "../../../../services/modules/module-service";
 import { listStudentYears, getYearRecordIds, inYear } from "../../../../modules/portfolio/year-service";
 import EnrollForm from "../EnrollForm";
 import ClassEnrollmentSection from "../ClassEnrollmentSection";
@@ -158,6 +161,11 @@ export default async function StudentDetailPage({
     portfolioYear ? getPortfolioSummary(institutionId, authUserId, id, portfolioYear.id) : Promise.resolve(null),
   ]);
   const isCurrentPortfolioYear = !portfolioYear || portfolioYear.id === academicYear?.id;
+  // "Results of events must be added to student profiles": house, entries
+  // and published results (Events & Activities), when the school has it.
+  const eventsView = (await getEnabledModuleCodes(institutionId, authUserId)).has("events")
+    ? await getStudentEventsView(institutionId, authUserId, id)
+    : null;
   // Staff always sees discipline/character gated by discipline.view (same
   // permission the old "Discipline & character" section used) — every
   // other section is visible to staff regardless of the parent-portal
@@ -394,6 +402,7 @@ export default async function StudentDetailPage({
 
       <StudentPortfolioDashboard
         data={portfolioDashboardData}
+        extra={eventsView ? <EventsView view={eventsView} who="Their" /> : undefined}
         academicYearSwitcher={studentYears.length > 1 ? <YearSelect years={studentYears} selected={portfolioYear?.id ?? null} allLabel={null} /> : undefined}
         headerActions={
           <a href={`/students/${id}/record${portfolioYear && !isCurrentPortfolioYear ? `?year=${portfolioYear.id}` : ""}`}
