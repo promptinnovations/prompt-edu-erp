@@ -167,7 +167,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasStudentAccess ? [{
       kind: "group" as const, label: "Student Management", icon: ni(StudentIcon),
       items: [
-        { href: "/students/directory", label: "Student profiles" },
+        { href: "/students/directory", label: "Student profiles", match: ["/students"] },
         // §"enrollment of students (student management module) should not
         // be in teachers portal" — gated separately from the group itself
         // (student.view, which a teacher does hold, only unlocks the two
@@ -239,8 +239,8 @@ export default async function InstitutionLayout({ children }: { children: React.
         // under Mentoring/top-level). This one is specifically the
         // exam-pattern page at /analytics.
         { href: "/analytics", label: "Result Analysis" },
-        { href: "/results", label: "Consolidated marks" },
-        { href: "/results", label: "Report Cards" },
+        { href: "/results?view=consolidated", label: "Consolidated marks" },
+        { href: "/results?view=report-cards", label: "Report Cards" },
         ...(hasReportsAccess ? [{ href: "/scoring", label: "Scoring" }] : []),
       ],
     }] : []),
@@ -276,7 +276,7 @@ export default async function InstitutionLayout({ children }: { children: React.
       // (management/admin) keeps the original 9-item admin list unchanged.
       items: canViewAllStaff
         ? [
-            { href: "/staff/directory", label: "Staff profiles" },
+            { href: "/staff/directory", label: "Staff profiles", match: ["/staff"] },
             { href: "/staff#directory", label: "Staff directory" },
             { href: "/staff#staff-attendance", label: "Staff attendance" },
             { href: "/staff#staff-leave", label: "Staff leave" },
@@ -351,6 +351,31 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(ctx.isSuperAdmin ? [{ kind: "link" as const, href: "/super-admin", label: t("superAdmin"), icon: ni(SuperAdminIcon) }] : []),
   ];
 
+  // §Navigation ("check the navigation of the app — give a proper
+  // navigation"): the ~25 main items are arranged into a few named
+  // sections instead of one long list. Items keep their own permission
+  // gating above; this only orders them (links by href, groups by label)
+  // and adds the section headings — anything not listed keeps its place
+  // at the end, and a heading with nothing under it isn't shown.
+  const NAV_ORDER: Array<string | { heading: string }> = [
+    "/dashboard",
+    { heading: "Academics" }, "/classes", "Academic Structure", "Attendance", "Examination", "Result", "/calendar", "/substitution",
+    { heading: "People" }, "Student Management", "Staff",
+    { heading: "Student life" }, "Skills & Achievements", "Discipline", "Mentoring", "Library",
+    { heading: "Reports" }, "/analysis", "/print",
+    { heading: "Finance & messages" }, "/fees", "/accounts", "/messages", "/announcements",
+    { heading: "Administration" }, "/import", "/storage", "/users", "/settings", "/super-admin",
+  ];
+  const navKey = (e: NavEntry) => (e.kind === "link" ? e.href : e.label);
+  const orderedNav: NavEntry[] = [];
+  const placed = new Set<NavEntry>();
+  for (const k of NAV_ORDER) {
+    if (typeof k !== "string") { orderedNav.push({ kind: "heading", label: k.heading }); continue; }
+    const entry = navItems.find((e) => e.kind !== "heading" && navKey(e) === k && !placed.has(e));
+    if (entry) { orderedNav.push(entry); placed.add(entry); }
+  }
+  orderedNav.push(...navItems.filter((e) => !placed.has(e)));
+
   // "Never use dark ... give colour combination options" follow-up
   // (migration 0040): resolves to this institution's own chosen palette,
   // or the platform default if it hasn't picked one, and injects it as a
@@ -375,7 +400,7 @@ export default async function InstitutionLayout({ children }: { children: React.
         brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}
         logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null}
       >
-        <GroupedNavLinks items={navItems} />
+        <GroupedNavLinks items={orderedNav} institutionCode={institution?.code ?? null} />
 
         {enabledLocales.length > 1 ? (
           <form action={setLocaleAction} className="mb-3 flex items-end gap-1">
@@ -437,7 +462,7 @@ export default async function InstitutionLayout({ children }: { children: React.
           </div>
         ) : null}
         <header data-app-shell className="flex items-center justify-between gap-3 border-b bg-white px-4 py-2.5 sm:px-6">
-          <Breadcrumb />
+          <Breadcrumb institutionCode={institution?.code ?? null} />
           <div className="flex items-center gap-3">
             {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
             <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />

@@ -90,6 +90,7 @@ export default function ResponsiveSidebar({
 
       <aside
         data-app-shell
+        onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setOpen(false); }}
         className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-[var(--sidebar-border)] bg-gradient-to-b from-[var(--sidebar-bg-2)] to-[var(--sidebar-bg)] px-4 py-6 shadow-float transition-transform duration-200 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         } md:static md:z-auto md:w-64 md:translate-x-0 md:shadow-none md:transition-none`}

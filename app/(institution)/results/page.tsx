@@ -18,7 +18,12 @@ function formatDate(d: string | null): string {
  *  display-only re-sort of listExaminations()'s own "most recently
  *  created" ordering, which other pages (Examination setup, Home widgets)
  *  still rely on unchanged. */
-export default async function ResultsPage() {
+export default async function ResultsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+  // §Navigation — the sidebar's "Consolidated marks" and "Report Cards"
+  // both land here (the exam is picked on this page); ?view= says which
+  // one, so the title and each row's main button match what was clicked.
+  const { view: rawView } = await searchParams;
+  const view = rawView === "consolidated" || rawView === "report-cards" ? rawView : null;
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
@@ -39,10 +44,17 @@ export default async function ResultsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[var(--heading)]">Results</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold text-[var(--heading)]">
+          {view === "consolidated" ? "Consolidated marks" : view === "report-cards" ? "Report cards" : "Results"}
+        </h1>
         <Link href="/results/cumulative" className="text-sm text-zinc-600 underline">Cumulative Mark Sheet →</Link>
       </div>
+      {view ? (
+        <p className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-900">
+          Pick an examination below to open its {view === "consolidated" ? "consolidated marks" : "report cards"}.
+        </p>
+      ) : null}
       <p className="text-sm text-zinc-500">
         Pick an examination to view its computed results, consolidated marksheet, or print report cards — or see every
         exam side by side in the <Link href="/results/cumulative" className="underline">Cumulative Mark Sheet</Link>.
@@ -69,9 +81,17 @@ export default async function ResultsPage() {
                   <td className="px-4 py-2 capitalize">{e.status}</td>
                   <td className="px-4 py-2 text-right">
                     <div className="flex items-center justify-end gap-3">
+                      {view ? (
+                        <Link
+                          href={`/results/${e.id}/${view}`}
+                          className="whitespace-nowrap rounded-full bg-[var(--brand)] px-3 py-1 text-sm text-white hover:bg-[var(--brand-hover)]"
+                        >
+                          Open {view === "consolidated" ? "consolidated marks" : "report cards"}
+                        </Link>
+                      ) : null}
                       <Link href={`/examinations/${e.id}`} className="text-sm text-zinc-600 underline">Results</Link>
-                      <Link href={`/results/${e.id}/consolidated`} className="text-sm text-zinc-600 underline">Consolidated marks</Link>
-                      <Link href={`/results/${e.id}/report-cards`} className="text-sm text-zinc-600 underline">Report cards</Link>
+                      {view !== "consolidated" ? <Link href={`/results/${e.id}/consolidated`} className="text-sm text-zinc-600 underline">Consolidated marks</Link> : null}
+                      {view !== "report-cards" ? <Link href={`/results/${e.id}/report-cards`} className="text-sm text-zinc-600 underline">Report cards</Link> : null}
                       <Link
                         href={dailyTypeIds.has(e.exam_type_id) ? "/analytics/daily-assessments" : `/analytics?examinationId=${e.id}`}
                         className="text-sm text-zinc-600 underline"

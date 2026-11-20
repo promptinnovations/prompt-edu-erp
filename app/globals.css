@@ -464,3 +464,66 @@ table tbody tr:hover {
     .staff-app .grid > div.rounded-card.border.bg-white:nth-child(4n + 4) { --stat-accent: var(--color-chart-4); }
   }
 }
+
+/* §Mobile-overflow ("some pages are not mobile friendly — they widen
+ * beyond the mobile screen to the left and right ... fix it everywhere").
+ * App-wide guards, screen only, so no single control can push a page wider
+ * than the phone:
+ *   - form controls never exceed their container. A percentage max-width
+ *     also lets a <select> with a very long option (a student's full name,
+ *     an exam title) shrink instead of setting the width of its whole row;
+ *   - a grid item may shrink below its content's natural width (the
+ *     classic grid "blow-out": one wide table or long word in a 1fr column
+ *     used to widen the column, and with it the page);
+ *   - a form laid out as a row of fields wraps onto the next line when the
+ *     screen is too narrow, instead of running off the right edge, and a
+ *     field (or a whole form sitting in a row) that is still too wide on a
+ *     line of its own shrinks to the screen;
+ *   - long unbroken text (e-mail addresses, file names, URLs) wraps.
+ * Wide tables keep scrolling inside their own overflow-x-auto box. */
+@media screen {
+  main select,
+  main textarea,
+  main input:not([type="checkbox"]):not([type="radio"]) {
+    max-width: 100%;
+  }
+  main .grid > * {
+    min-width: 0;
+  }
+  main form.flex:not(.flex-col):not(.flex-nowrap) {
+    flex-wrap: wrap;
+  }
+  main form.flex > *,
+  main .flex > form,
+  main .flex.flex-wrap > * {
+    min-width: 0;
+  }
+  main {
+    overflow-wrap: break-word;
+  }
+}
+
+/* §Mobile-overflow — the report card is an A4 sheet. On a screen narrower
+ * than A4 (phones, small tablets) FitToPage sets --screen-zoom and the whole
+ * sheet is shown at its true A4 layout, scaled down to the screen width, so
+ * it looks exactly like the printout instead of spilling off the side.
+ * Print is untouched: --screen-zoom is cleared before printing. */
+@media screen {
+  .report-sheet[style*="--screen-zoom"] {
+    zoom: var(--screen-zoom);
+    width: 210mm;
+    max-width: none;
+    min-height: 297mm;
+    padding: 10mm;
+  }
+  .report-sheet[style*="--screen-zoom"] > div {
+    min-height: 276mm;
+    padding: 8mm;
+  }
+  .report-sheet[style*="--screen-zoom"] .report-fit[style*="--fit-zoom"] {
+    zoom: var(--fit-zoom);
+    flex: none;
+    width: calc(173mm / var(--fit-zoom));
+    min-height: calc(259mm / var(--fit-zoom));
+  }
+}

@@ -28,8 +28,8 @@ export default function ImportWizard({ entities }: { entities: EntityOption[] })
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-4">
-        <div>
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="min-w-0">
           <label className="mb-1 block text-xs text-zinc-500">Entity type</label>
           <select
             value={entityType}

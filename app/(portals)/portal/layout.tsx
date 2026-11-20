@@ -156,7 +156,7 @@ export default async function PortalLayout({ children }: { children: React.React
           {institution?.appName || institution?.name}
         </div>
       </div>
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
+      <div className="flex min-w-0 max-w-full items-center gap-1.5 sm:gap-2.5">
         {hasDualPortalAccess ? <PortalRoleToggle /> : null}
         {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
         <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
