@@ -34,6 +34,7 @@ import { PromptAppTile, PromptCredit } from "./PromptLogo";
 export default function ResponsiveSidebar({
   brandLabel,
   logoUrl,
+  badgeText,
   platformBrand = false,
   children,
 }: {
@@ -45,6 +46,9 @@ export default function ResponsiveSidebar({
   /** §Brand-logo: true on platform screens (Super Admin console) — the
    *  badge is the PROMPT EDU ERP mark instead of a letter. */
   platformBrand?: boolean;
+  /** §App-icon: the institution's short name (services/branding/
+   *  short-label.ts) shown in the colour box when it has no logo. */
+  badgeText?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -56,7 +60,14 @@ export default function ResponsiveSidebar({
     setOpen(false);
   }, [pathname]);
 
-  const logoLetter = brandLabel.trim().charAt(0).toUpperCase() || "P";
+  const logoLetter = badgeText || brandLabel.trim().charAt(0).toUpperCase() || "P";
+  // Smaller type for a 2–4 letter short name, scaled to the badge size.
+  const letterClass = (className: string) => {
+    if (logoLetter.length <= 1) return className;
+    const big = className.includes("h-9");
+    const size = logoLetter.length === 2 ? (big ? "text-[13px]" : "text-[11px]") : logoLetter.length === 3 ? (big ? "text-[11.5px]" : "text-[9.5px]") : big ? "text-[9.5px]" : "text-[8px]";
+    return `${className.replace(/\btext-(xs|sm)\b/, "")} ${size}`;
+  };
   const badge = (className: string) =>
     platformBrand ? (
       <PromptAppTile size={className.includes("h-9") ? 36 : 28} className="shadow-float" />
@@ -64,7 +75,7 @@ export default function ResponsiveSidebar({
       // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL
       <img src={logoUrl} alt="" className={`${className} object-contain bg-white`} />
     ) : (
-      <span className={`${className} bg-[var(--brand)] font-bold text-white`}>{logoLetter}</span>
+      <span className={`${letterClass(className)} bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] font-bold leading-none tracking-tight text-white`}>{logoLetter}</span>
     );
 
   return (

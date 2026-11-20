@@ -10,6 +10,7 @@ import { getStudent } from "../../../modules/students/service";
 import NotificationBell from "../../components/NotificationBell";
 import SignedInAs from "../../components/SignedInAs";
 import ResponsiveSidebar from "../../components/ResponsiveSidebar";
+import { institutionShortLabel } from "../../../services/branding/short-label";
 import NavLinks, { type NavItem } from "../../components/NavLinks";
 import { signOutAction, exitSuperAdminViewAction, exitSamplePortalAction } from "../../(institution)/actions";
 import { getOwnStudentId, getOwnParentId } from "../../../modules/portal/service";
@@ -148,12 +149,21 @@ export default async function PortalLayout({ children }: { children: React.React
     </div>
   ) : null;
 
+  const portalLogoUrl = institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null;
+  const portalBadge = institutionShortLabel(institution?.code, institution?.name);
+
   const header = (
     <header data-app-shell className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] text-xs font-bold text-white">
-          {(institution?.appName || institution?.name || "P").trim().charAt(0).toUpperCase()}
-        </span>
+        {/* §App-icon: the institution's logo, or its short name in the colour box. */}
+        {portalLogoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL
+          <img src={portalLogoUrl} alt="" className="h-8 w-8 shrink-0 rounded-lg border border-[var(--border-subtle)] bg-white object-contain" />
+        ) : (
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] font-bold leading-none tracking-tight text-white ${portalBadge.length <= 1 ? "text-xs" : portalBadge.length === 2 ? "text-[11px]" : portalBadge.length === 3 ? "text-[9.5px]" : "text-[8px]"}`}>
+            {portalBadge}
+          </span>
+        )}
         <div className="min-w-0 truncate text-sm font-semibold text-[var(--foreground)]">
           {institution?.appName || institution?.name}
         </div>
@@ -198,7 +208,7 @@ export default async function PortalLayout({ children }: { children: React.React
       <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
       {banner}
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <ResponsiveSidebar brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}>
+        <ResponsiveSidebar brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"} logoUrl={portalLogoUrl} badgeText={portalBadge}>
           {ownStudentProfile ? (
             <div className="mb-4 flex items-center gap-3 rounded-card bg-[var(--sidebar-active)]/30 p-3">
               {ownStudentProfile.photo_file_id ? (

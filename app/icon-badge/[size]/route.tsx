@@ -16,6 +16,9 @@ import { getRequestContext } from "../../../services/request-context";
 import { resolveAppIdentity, resolveAppIdentityByCode } from "../../../services/branding/app-identity";
 import { getPublicLogoFile } from "../../../services/institution/institution-service";
 import { getStorageProviderByName } from "../../../services/storage/storage-provider";
+import { BADGE_FONT_WOFF_BASE64 } from "./badge-font";
+
+const BADGE_FONT = Buffer.from(BADGE_FONT_WOFF_BASE64, "base64");
 
 const SIZES: Record<string, number> = { "192": 192, "512": 512 };
 
@@ -37,26 +40,51 @@ export async function GET(request: Request, { params }: { params: Promise<{ size
   // (same lookup the pre-auth /api/institution-logo/[code] route uses) —
   // this route is already authenticated via ctx by this point, but the
   // lookup itself doesn't need a second, redundant auth check.
+  // §App-icon ("app icon of an institute must be their logo; if not
+  // available, their short name in the app colour box"): an uploaded logo
+  // becomes the icon — centred on a white square with a safe margin, so a
+  // wide or transparent logo still makes a proper app icon (and survives
+  // Android's round/squircle mask). Formats the image renderer can't draw
+  // (e.g. WebP/SVG) are served as uploaded.
   if (identity.logoInstitutionCode) {
     const file = await getPublicLogoFile(identity.logoInstitutionCode).catch(() => null);
     if (file) {
+      let bytes: Uint8Array<ArrayBuffer> | null = null;
+      let remoteUrl: string | null = null;
       if (file.storageProvider !== "local") {
-        const url = await getStorageProviderByName(file.storageProvider).getDownloadUrl(file.storageFileId);
-        return NextResponse.redirect(url);
+        remoteUrl = await getStorageProviderByName(file.storageProvider).getDownloadUrl(file.storageFileId);
+        const res = await fetch(remoteUrl).catch(() => null);
+        if (res && res.ok) bytes = new Uint8Array(await res.arrayBuffer());
+      } else {
+        bytes = new Uint8Array(await getStorageProviderByName("local").download(file.storageFileId));
       }
-      const bytes = await getStorageProviderByName("local").download(file.storageFileId);
-      return new NextResponse(new Uint8Array(bytes), {
-        status: 200,
-        headers: {
-          "Content-Type": file.mimeType || "application/octet-stream",
-          "Cache-Control": "public, max-age=3600",
-        },
-      });
+      const mime = (file.mimeType || "").toLowerCase();
+      if (bytes && (mime === "image/png" || mime === "image/jpeg" || mime === "image/jpg")) {
+        const dataUrl = `data:${mime === "image/jpg" ? "image/jpeg" : mime};base64,${Buffer.from(bytes).toString("base64")}`;
+        const pad = Math.round(size * 0.16);
+        return new ImageResponse(
+          (
+            <div style={{ height: "100%", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- rendered to PNG by ImageResponse */}
+              <img src={dataUrl} alt="" width={size - 2 * pad} height={size - 2 * pad} style={{ objectFit: "contain" }} />
+            </div>
+          ),
+          { width: size, height: size, headers: { "Cache-Control": "public, max-age=3600" } }
+        );
+      }
+      if (remoteUrl) return NextResponse.redirect(remoteUrl);
+      if (bytes) {
+        return new NextResponse(new Uint8Array(bytes), {
+          status: 200,
+          headers: { "Content-Type": file.mimeType || "application/octet-stream", "Cache-Control": "public, max-age=3600" },
+        });
+      }
     }
   }
 
   const label = identity.badgeText;
-  const fontSize = label.length <= 2 ? size * 0.42 : label.length <= 4 ? size * 0.3 : size * 0.22;
+  // Short name in the institution's colour box (§App-icon).
+  const fontSize = label.length <= 1 ? size * 0.46 : label.length === 2 ? size * 0.38 : label.length === 3 ? size * 0.3 : size * 0.24;
 
   return new ImageResponse(
     (
@@ -88,8 +116,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ size
           style={{
             color: "#ffffff",
             fontSize,
-            fontWeight: 700,
-            fontFamily: "sans-serif",
+            fontWeight: 800,
+            fontFamily: "Jakarta",
             letterSpacing: label.length > 2 ? -1 : 0,
           }}
         >
@@ -100,6 +128,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ size
     {
       width: size,
       height: size,
+      fonts: [{ name: "Jakarta", data: BADGE_FONT, weight: 800, style: "normal" }],
       headers: { "Cache-Control": "public, max-age=3600" },
     }
   );

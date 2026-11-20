@@ -29,11 +29,12 @@ const INITIAL_STATE: LoginState = { error: null, info: null };
  * combination — or the platform default — governs this page exactly the
  * same way it governs the rest of the app.
  */
-export default function LoginForm({ institutionName, logoUrl }: { institutionName?: string; logoUrl?: string }) {
+export default function LoginForm({ institutionName, logoUrl, badgeText }: { institutionName?: string; logoUrl?: string; badgeText?: string }) {
   const t = useTranslations("login");
   const [state, formAction, pending] = useActionState<LoginState, FormData>(loginAction, INITIAL_STATE);
   const credit = "PROMPT EDU ERP · Prompt Innovations";
-  const logoLetter = (institutionName ?? "P").trim().charAt(0).toUpperCase() || "P";
+  // §App-icon: the institution's short name in the colour box (no logo).
+  const logoLetter = badgeText || (institutionName ?? "P").trim().charAt(0).toUpperCase() || "P";
   // §137 follow-up ("their log in id (must be student name, password- phone
   // number of parent)") — the student-name login tab only makes sense once
   // we're already on a specific institution's own login screen (the
@@ -75,7 +76,7 @@ export default function LoginForm({ institutionName, logoUrl }: { institutionNam
                 <PromptMark size={36} variant="white" />
               </span>
             ) : (
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold backdrop-blur">
+              <span className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 font-bold leading-none backdrop-blur ${logoLetter.length <= 1 ? "text-lg" : logoLetter.length === 2 ? "text-base" : logoLetter.length === 3 ? "text-sm" : "text-xs"}`}>
                 {logoLetter}
               </span>
             )}

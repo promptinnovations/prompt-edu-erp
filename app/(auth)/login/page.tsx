@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import LoginForm from "./LoginForm";
+import { institutionShortLabel } from "../../../services/branding/short-label";
 import { getInstitutionPublicSummaryByCode } from "../../../services/institution/institution-service";
 import { resolveInstitutionPalette, paletteCssVars } from "../../../services/branding/palettes";
 import { ACTIVE_INSTITUTION_COOKIE } from "../../../services/tenant/institution-cookie";
@@ -38,7 +39,7 @@ export default async function LoginPage() {
   return (
     <>
       <style nonce={nonce} dangerouslySetInnerHTML={{ __html: `:root{${paletteCssVars(palette)}}` }} />
-      <LoginForm institutionName={institutionName} logoUrl={logoUrl} />
+      <LoginForm institutionName={institutionName} logoUrl={logoUrl} badgeText={institution ? institutionShortLabel(institution.code, institution.name) : undefined} />
     </>
   );
 }

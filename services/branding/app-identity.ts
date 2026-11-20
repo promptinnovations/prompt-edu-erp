@@ -26,6 +26,7 @@
  */
 import { getInstitution, getInstitutionPublicSummaryByCode } from "../institution/institution-service";
 import { APP_PALETTE, resolveInstitutionPalette } from "./palettes";
+import { institutionShortLabel } from "./short-label";
 import type { RequestContext } from "../../types/context";
 
 export interface AppIdentity {
@@ -113,7 +114,8 @@ export async function resolveAppIdentity(ctx: RequestContext | null): Promise<Ap
       return {
         name,
         shortName: label.length > 12 ? label.slice(0, 12) : label,
-        badgeText: label,
+        // §App-icon: the short name in the colour box when there's no logo.
+        badgeText: institutionShortLabel(code, institution.name),
         dynamicIcon: true,
         appId: `/app/${slug}`,
         scope: `/${slug}/`,
@@ -181,7 +183,7 @@ export async function resolveAppIdentityByCode(code: string | null): Promise<App
   return {
     name,
     shortName: label.length > 12 ? label.slice(0, 12) : label,
-    badgeText: label,
+    badgeText: institutionShortLabel(trimmedCode, institution.name),
     dynamicIcon: true,
     appId: `/app/${slug}`,
     scope: `/${slug}/`,

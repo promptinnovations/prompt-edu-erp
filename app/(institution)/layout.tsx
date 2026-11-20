@@ -12,6 +12,7 @@ import { listMyNotifications, getUnreadNotificationCount } from "../../services/
 import { getUserDisplayInfo } from "../../services/tenant/tenant-service";
 import NotificationBell from "../components/NotificationBell";
 import ResponsiveSidebar from "../components/ResponsiveSidebar";
+import { institutionShortLabel } from "../../services/branding/short-label";
 import GroupedNavLinks, { type NavEntry } from "../components/GroupedNavLinks";
 import Breadcrumb from "../components/Breadcrumb";
 import SignedInAs from "../components/SignedInAs";
@@ -401,6 +402,7 @@ export default async function InstitutionLayout({ children }: { children: React.
       <ResponsiveSidebar
         brandLabel={institution?.appName || institution?.name || "PROMPT EDU ERP"}
         logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null}
+        badgeText={institutionShortLabel(institution?.code, institution?.name)}
       >
         <GroupedNavLinks items={orderedNav} institutionCode={institution?.code ?? null} />
 
