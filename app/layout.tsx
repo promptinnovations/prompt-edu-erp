@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { getRequestContext } from "../services/request-context";
 import { resolveAppIdentity, resolveAppIdentityByCode } from "../services/branding/app-identity";
-import { Lora } from "next/font/google";
+import { Lora, Plus_Jakarta_Sans } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { getEarlyPalette } from "../services/branding/early-palette";
@@ -16,7 +16,10 @@ import { paletteCssVars } from "../services/branding/palettes";
 // build time — served from this app's own origin (CSP font-src 'self'),
 // never fetched from Google at runtime, with a serif fallback stack.
 const lora = Lora({ subsets: ["latin"], weight: "600", display: "swap", preload: false, variable: "--font-lora" });
-const fontClass = `font-sans ${lora.variable}`;
+// The PROMPT EDU ERP wordmark's own face (Plus Jakarta Sans 800, as in the
+// approved logo sheet) — only the wordmark uses it, not preloaded.
+const brandFont = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["700", "800"], display: "swap", preload: false, variable: "--font-brand" });
+const fontClass = `font-sans ${lora.variable} ${brandFont.variable}`;
 
 // §Install-button ("if clicked, app should get installed"). Chrome/Edge fire
 // `beforeinstallprompt` ONCE, early in page load — often before React has

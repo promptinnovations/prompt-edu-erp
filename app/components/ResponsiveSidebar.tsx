@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import SidebarInstallButton from "./SidebarInstallButton";
-import { PromptAppTile, PromptCredit } from "./PromptLogo";
+import { PromptAppTile, PromptCredit, PromptWordmark } from "./PromptLogo";
 
 /**
  * Off-canvas sidebar shell shared by (institution)/layout.tsx and
@@ -94,8 +94,14 @@ export default function ResponsiveSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
           </svg>
         </button>
-        {badge("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs")}
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{brandLabel}</span>
+        {platformBrand ? (
+          <span className="min-w-0 flex-1"><PromptWordmark size={28} tagline={false} /></span>
+        ) : (
+          <>
+            {badge("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs")}
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold">{brandLabel}</span>
+          </>
+        )}
       </div>
 
       {open ? (
@@ -124,10 +130,19 @@ export default function ResponsiveSidebar({
           </svg>
         </button>
 
-        <div className="mb-6 hidden items-center gap-2.5 md:flex">
-          {badge("flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-sm shadow-float")}
-          <div className="min-w-0 truncate text-base font-semibold text-[var(--sidebar-strong)]">{brandLabel}</div>
-        </div>
+        {platformBrand ? (
+          // §Brand-logo: the platform console carries the full approved
+          // logo (mark + wordmark + tagline), with the console name under it.
+          <div className="mb-6 flex flex-col gap-2.5">
+            <PromptWordmark size={38} />
+            <span className="self-start rounded-full bg-[var(--sidebar-active)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--sidebar-active-text)]">{brandLabel}</span>
+          </div>
+        ) : (
+          <div className="mb-6 hidden items-center gap-2.5 md:flex">
+            {badge("flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-sm shadow-float")}
+            <div className="min-w-0 truncate text-base font-semibold text-[var(--sidebar-strong)]">{brandLabel}</div>
+          </div>
+        )}
 
         {children}
 

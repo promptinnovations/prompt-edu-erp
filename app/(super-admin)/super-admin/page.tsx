@@ -1,5 +1,7 @@
 import Link from "next/link";
-import ThemeIcon from "../../components/portal/viz/ThemeIcon";
+import { StatTile } from "../../components/portal/viz/blocks";
+import { decorColor } from "../../components/portal/viz/palette";
+import { PromptWordmark } from "../../components/PromptLogo";
 import { headers } from "next/headers";
 import { requireSuperAdminContext } from "../../../services/request-context";
 import { listInstitutions, getPlatformUsageOverview } from "../../../services/super-admin/super-admin-service";
@@ -44,22 +46,28 @@ export default async function SuperAdminOverviewPage() {
 
   return (
     <div className="space-y-6">
+      {/* §Brand ("why only 2 colours here; why isn't the PROMPT EDU ERP
+          logo the original one"): the console header carries the approved
+          logo, the Scholar Teal gradient with its coral accent, and the four
+          figures as theme stat tiles in the full approved family (teal,
+          coral, deep teal, light teal) instead of four identical
+          white-on-teal boxes. */}
       <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-[var(--brand-from)] via-[var(--brand-via)] to-[var(--brand-to)] p-6 text-white shadow-float sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-accent-500/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-white/5 blur-2xl" />
-        <div className="relative">
-          <div className="text-xs font-medium uppercase tracking-[0.08em] text-white/60">Super Admin Console</div>
-          <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Institutions</h1>
+        <div className="relative flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-accent-200">Super Admin Console</div>
+            <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Institutions</h1>
+            <span aria-hidden className="mt-3 block h-1 w-14 rounded-full bg-accent-500" />
+          </div>
+          <PromptWordmark size={46} light className="max-w-full" />
         </div>
-        <div className="relative mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {summary.map(([label, value, icon]) => (
-            <div key={label} className="rounded-card bg-white/10 p-4 backdrop-blur">
-              <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/15"><ThemeIcon icon={icon} color="#ffffff" size={17} /></div>
-              <div className="text-xl font-semibold">{value}</div>
-              <div className="mt-0.5 text-xs text-white/70">{label}</div>
-            </div>
-          ))}
-        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {summary.map(([label, value, icon], i) => (
+          <StatTile key={label} label={label} value={value.toLocaleString("en-IN")} icon={icon} color={decorColor(i)} />
+        ))}
       </div>
 
       <section className="rounded-card border bg-white p-5">

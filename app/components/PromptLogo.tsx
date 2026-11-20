@@ -59,3 +59,33 @@ export function PromptCredit({ className = "", markSize = 14, light = false, tex
     </span>
   );
 }
+
+/**
+ * The full PROMPT EDU ERP logo exactly as approved on the logo sheet: the
+ * Scholar Hall mark + "Prompt EDU ERP" (EDU in teal — coral on dark) in
+ * Plus Jakarta Sans 800, with the "TECHNOLOGY WITH PURPOSE" tagline. Fixed
+ * brand colours: it is the platform's logo, not themed per institution.
+ */
+export function PromptWordmark({ size = 40, light = false, tagline = true, className = "" }: { size?: number; light?: boolean; tagline?: boolean; className?: string }) {
+  return (
+    <span className={`inline-flex min-w-0 items-center ${className}`} style={{ gap: Math.round(size * 0.26) }}>
+      <PromptMark size={size} variant={light ? "white" : "full"} />
+      <span className="min-w-0 leading-none">
+        <span
+          className="block whitespace-nowrap"
+          style={{ fontFamily: "var(--font-brand), var(--font-sans)", fontWeight: 800, letterSpacing: "-0.015em", fontSize: Math.round(size * 0.5), lineHeight: 1.05, color: light ? "#FFFFFF" : "#172033" }}
+        >
+          Prompt <span style={{ color: light ? "#FDBA74" : "#0F766E" }}>EDU</span> <span style={{ fontWeight: 700, opacity: 0.8 }}>ERP</span>
+        </span>
+        {tagline ? (
+          <span
+            className="mt-[3px] block whitespace-nowrap"
+            style={{ fontSize: Math.max(7, Math.round(size * 0.17 * 10) / 10), letterSpacing: "0.22em", fontWeight: 600, color: light ? "rgba(255,255,255,.78)" : "#5A6378" }}
+          >
+            TECHNOLOGY WITH PURPOSE
+          </span>
+        ) : null}
+      </span>
+    </span>
+  );
+}

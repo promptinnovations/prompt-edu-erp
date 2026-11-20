@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loginAction, type LoginState } from "./actions";
 import LoginInstallButton from "./LoginInstallButton";
-import { PromptMark, PromptCredit } from "../../components/PromptLogo";
+import { PromptCredit, PromptWordmark } from "../../components/PromptLogo";
 
 const INITIAL_STATE: LoginState = { error: null, info: null };
 
@@ -72,9 +72,7 @@ export default function LoginForm({ institutionName, logoUrl, badgeText }: { ins
             ) : !institutionName ? (
               // §Brand-logo: the generic (no institution) login is the
               // PROMPT EDU ERP screen itself — its own mark.
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-                <PromptMark size={36} variant="white" />
-              </span>
+              <PromptWordmark size={44} light />
             ) : (
               <span className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 font-bold leading-none backdrop-blur ${logoLetter.length <= 1 ? "text-lg" : logoLetter.length === 2 ? "text-base" : logoLetter.length === 3 ? "text-sm" : "text-xs"}`}>
                 {logoLetter}
