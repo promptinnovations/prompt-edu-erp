@@ -69,6 +69,10 @@ export interface AuthService {
    *  "best-effort, narrow" shape below rather than AuthResult's, since
    *  there's no new identity to report back. */
   adminUpdatePassword(authUserId: string, password: string): Promise<void | { error: string }>;
+  /** Changes an existing account's sign-in e-mail server-side (already
+   *  confirmed — no confirmation mail), e.g. an admin correcting a staff
+   *  member's mistyped address. Returns void on success. */
+  adminUpdateEmail(authUserId: string, email: string): Promise<void | { error: string }>;
   /** Best-effort compensation for the specific case where adminCreateUser()
    *  succeeded but a LATER step in the same logical operation then failed
    *  (e.g. the institution's DB rows couldn't be created) — never called on

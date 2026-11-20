@@ -210,6 +210,9 @@ export async function getStaffMember(institutionId: string, authUserId: string, 
 
 const updateStaffSchema = z.object({
   fullName: z.string().min(1).max(200).optional(),
+  // §ICS-staff: correcting a mistyped e-mail. It is also the login, so a
+  // staff member who already has one gets their sign-in e-mail changed too.
+  email: z.string().trim().toLowerCase().email().optional(),
   staffCode: z.string().min(1).max(50).optional(),
   designation: z.string().max(150).nullable().optional(),
   department: z.string().max(150).nullable().optional(),
@@ -243,6 +246,32 @@ export async function updateStaffMember(
     const staffRow = staffRows[0];
     if (data.fullName) {
       await scoped.query(`update users set full_name = $1, updated_at = now() where id = $2`, [data.fullName, staffRow.user_id]);
+    }
+    if (data.email) {
+      const { rows: current } = await scoped.query<{ email: string | null; auth_user_id: string | null }>(
+        `select email, auth_user_id from users where id = $1`, [staffRow.user_id]
+      );
+      if ((current[0]?.email ?? "").toLowerCase() !== data.email) {
+        try {
+          await scoped.query("savepoint staff_email");
+          await scoped.query(`update users set email = $1, updated_at = now() where id = $2`, [data.email, staffRow.user_id]);
+          await scoped.query("release savepoint staff_email");
+        } catch {
+          await scoped.query("rollback to savepoint staff_email").catch(() => {});
+          throw new Error(`The e-mail "${data.email}" is already used by another account.`);
+        }
+        if (current[0]?.auth_user_id) {
+          const authService = await getAuthService();
+          const result = await authService.adminUpdateEmail(current[0].auth_user_id, data.email);
+          if (result && "error" in result) {
+            throw new Error(`Could not change the login e-mail (${result.error}). Nothing was changed.`);
+          }
+        }
+        await recordAudit(scoped, {
+          institutionId, userId, action: "change_email", module: "staff", entityType: "users", entityId: staffRow.user_id,
+          before: { email: current[0]?.email ?? null }, after: { email: data.email },
+        });
+      }
     }
     const { rows: userRows } = await scoped.query<{ full_name: string; email: string | null; has_login: boolean }>(
       `select full_name, email, (auth_user_id is not null) as has_login from users where id = $1`,
@@ -1217,6 +1246,58 @@ export async function grantStaffRole(
   if (scopedClient) return run(scopedClient);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, run);
+}
+
+/** §Assignment-change — moves one assignment to a different teacher
+ *  (class, division, subject and role stay the same). */
+export async function changeTeacherAssignmentTeacher(
+  institutionId: string, authUserId: string, userId: string, assignmentId: string, newTeacherUserId: string
+): Promise<void> {
+  const ids = z.object({ assignmentId: z.string().uuid(), newTeacherUserId: z.string().uuid() })
+    .parse({ assignmentId, newTeacherUserId });
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: teacher } = await scoped.query<{ user_id: string }>(
+      `select user_id from staff where user_id = $1`, [ids.newTeacherUserId]
+    );
+    if (teacher.length === 0) throw new Error("That teacher isn't on this institution's staff.");
+    const { rows: before } = await scoped.query<TeacherAssignmentRecord>(
+      `select id, user_id, class_id, section_id, subject_id, academic_year_id, role_type from teacher_assignments where id = $1`,
+      [ids.assignmentId]
+    );
+    if (before.length === 0) throw new Error("Assignment not found.");
+    if (before[0].user_id === ids.newTeacherUserId) return;
+    const { rows: dup } = await scoped.query<{ id: string }>(
+      `select id from teacher_assignments
+        where user_id = $1 and class_id = $2 and section_id is not distinct from $3
+          and subject_id is not distinct from $4 and academic_year_id = $5 and role_type = $6`,
+      [ids.newTeacherUserId, before[0].class_id, before[0].section_id, before[0].subject_id, before[0].academic_year_id, before[0].role_type]
+    );
+    if (dup.length > 0) throw new Error("That teacher already has this exact assignment.");
+    await scoped.query(`update teacher_assignments set user_id = $1 where id = $2`, [ids.newTeacherUserId, ids.assignmentId]);
+    await recordAudit(scoped, {
+      institutionId, userId, action: "edit", module: "staff", entityType: "teacher_assignments", entityId: ids.assignmentId,
+      before: before[0], after: { ...before[0], user_id: ids.newTeacherUserId },
+    });
+  });
+}
+
+/** §Assignment-change — removes one teacher assignment. */
+export async function deleteTeacherAssignment(
+  institutionId: string, authUserId: string, userId: string, assignmentId: string
+): Promise<void> {
+  const id = z.string().uuid().parse(assignmentId);
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<TeacherAssignmentRecord>(
+      `delete from teacher_assignments where id = $1
+       returning id, user_id, class_id, section_id, subject_id, academic_year_id, role_type`, [id]
+    );
+    if (rows.length === 0) throw new Error("Assignment not found.");
+    await recordAudit(scoped, {
+      institutionId, userId, action: "delete", module: "staff", entityType: "teacher_assignments", entityId: id, before: rows[0],
+    });
+  });
 }
 
 export async function listTeacherAssignments(

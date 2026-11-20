@@ -6,7 +6,7 @@ import { requirePermission, can } from "../../../services/permissions/permission
 import {
   createStaffMember, markStaffAttendance,
   createPortionPlan, recordPortionCompletion,
-  recordTeacherObservation, createTeacherAssignment,
+  recordTeacherObservation, createTeacherAssignment, changeTeacherAssignmentTeacher, deleteTeacherAssignment,
   createStaffLoginAccount, resetStaffLoginPassword,
   updateStaffMember, updateStaffProfile, updateStaffPhoto, getStaffProfile,
   createObservationCriterion, updateObservationCriterion, deleteObservationCriterion,
@@ -200,6 +200,35 @@ export async function createTeacherAssignmentAction(_prevState: { error: string 
   }
 }
 
+/** §Assignment-change — "is there an option for changing teacher
+ *  assignment?": change the teacher of one assignment, or remove it. */
+export async function changeAssignmentTeacherAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.assignment.manage");
+    await changeTeacherAssignmentTeacher(ctx.institutionId, ctx.session.authUserId, ctx.userId,
+      String(formData.get("assignmentId") ?? ""), String(formData.get("userId") ?? ""));
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to change the teacher." };
+  }
+}
+
+export async function removeTeacherAssignmentAction(_prevState: { error: string | null }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "staff.assignment.manage");
+    await deleteTeacherAssignment(ctx.institutionId, ctx.session.authUserId, ctx.userId, String(formData.get("assignmentId") ?? ""));
+    revalidatePath("/staff");
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to remove the assignment." };
+  }
+}
+
 /** §Attendance-follow-up-3 "section wise for section heads" — reuses
  *  staff.assignment.manage (same "who oversees what" category of admin
  *  action as Teacher assignments right above it, rather than a new
@@ -293,6 +322,7 @@ export async function updateStaffAction(_prevState: { error: string | null }, fo
     requirePermission(ctx.permissions, "staff.edit");
     await updateStaffMember(ctx.institutionId, ctx.session.authUserId, ctx.userId, staffId, {
       fullName: String(formData.get("fullName") ?? "") || undefined,
+      email: String(formData.get("email") ?? "").replace(/\s+/g, "") || undefined,
       staffCode: String(formData.get("staffCode") ?? "") || undefined,
       designation: String(formData.get("designation") ?? "") || null,
       department: String(formData.get("department") ?? "") || null,

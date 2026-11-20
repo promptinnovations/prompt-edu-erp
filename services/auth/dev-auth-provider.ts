@@ -65,6 +65,10 @@ export function createDevAuthProvider(): AuthService {
       // No-op — same reasoning as adminCreateUser() above.
     },
 
+    async adminUpdateEmail(_authUserId, _email) {
+      // No-op: dev sign-in looks the e-mail up on `users`, which the caller updates.
+    },
+
     async adminDeleteUser(_authUserId) {
       // No-op: dev mode has no separate auth-account store to clean up —
       // devSignIn()/devLookupAuthUserIdByEmail() only ever look at `users`.

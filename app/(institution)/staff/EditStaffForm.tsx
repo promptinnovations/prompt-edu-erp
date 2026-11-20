@@ -11,9 +11,9 @@ import { updateStaffAction } from "./actions";
  *  already-existing concern), same reasoning as EditStudentForm's own
  *  note about EnrollForm. */
 export default function EditStaffForm({
-  staffId, staffCode, fullName, designation, department, employmentStatus,
+  staffId, staffCode, fullName, email, designation, department, employmentStatus,
 }: {
-  staffId: string; staffCode: string; fullName: string;
+  staffId: string; staffCode: string; fullName: string; email?: string | null;
   designation: string | null; department: string | null; employmentStatus: string;
 }) {
   const [editing, setEditing] = useState(false);
@@ -41,6 +41,10 @@ export default function EditStaffForm({
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Full name</label>
         <input autoComplete="off" name="fullName" defaultValue={fullName} required className="rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-zinc-500">E-mail (also their login)</label>
+        <input autoComplete="off" name="email" type="email" defaultValue={email ?? ""} className="w-64 rounded-full border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-zinc-500">Designation</label>

@@ -155,6 +155,7 @@ export default async function StaffDetailPage({
                     staffId={profile.id}
                     staffCode={profile.staff_code}
                     fullName={profile.full_name}
+                    email={profile.email}
                     designation={profile.designation}
                     department={profile.department}
                     employmentStatus={profile.employment_status}
@@ -244,6 +245,7 @@ export default async function StaffDetailPage({
                 staffId={profile.id}
                 staffCode={profile.staff_code}
                 fullName={profile.full_name}
+                email={profile.email}
                 designation={profile.designation}
                 department={profile.department}
                 employmentStatus={profile.employment_status}

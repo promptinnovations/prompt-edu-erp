@@ -133,6 +133,12 @@ export function createSupabaseAuthProvider(): AuthService {
       if (error) return { error: error.message };
     },
 
+    async adminUpdateEmail(authUserId, email) {
+      const admin = getSupabaseAdminClient();
+      const { error } = await admin.auth.admin.updateUserById(authUserId, { email, email_confirm: true });
+      if (error) return { error: error.message };
+    },
+
     async adminDeleteUser(authUserId) {
       const admin = getSupabaseAdminClient();
       try {
