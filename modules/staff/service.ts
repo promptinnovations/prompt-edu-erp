@@ -23,6 +23,7 @@ import { z } from "zod";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+import { createOrRecoverAuthAccount } from "../../services/users/user-management-service";
 import { assertBelowLimit } from "../../services/limits/limit-service";
 import { getAuthService } from "../../services/auth/auth-service";
 import {
@@ -492,11 +493,11 @@ export interface StaffLoginResult {
  *  after the auth account is created, it's torn back down (same
  *  best-effort compensation createStudentLoginAccount() uses). */
 export async function createStaffLoginAccount(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof provisionStaffLoginSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof provisionStaffLoginSchema>,
+  scopedClient?: DbClient // §Q.1 — the "Staff logins" bulk import runs inside its own transaction
 ): Promise<StaffLoginResult> {
   const data = provisionStaffLoginSchema.parse(input);
-  const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  const run = async (scoped: DbClient) => {
     const { rows } = await scoped.query<{ user_id: string; email: string | null; auth_user_id: string | null }>(
       `select st.user_id, u.email, u.auth_user_id from staff st join users u on u.id = st.user_id where st.id = $1`,
       [data.staffId]
@@ -506,10 +507,12 @@ export async function createStaffLoginAccount(
     if (!rows[0].email) throw new Error("This staff member has no email on file — add one first (edit their record).");
 
     const authService = await getAuthService();
-    const authResult = await authService.adminCreateUser(rows[0].email, data.password);
-    if ("error" in authResult) {
-      throw new Error(`Could not create the login (${authResult.error}).`);
-    }
+    // An auth account with this e-mail may already exist without being
+    // linked here (e.g. left over from a bulk import batch that rolled back
+    // after its auth accounts were created) — recover and re-link it rather
+    // than failing, and never delete one this call didn't create.
+    const recovered = await createOrRecoverAuthAccount(authService, rows[0].email, data.password);
+    const authResult = { authUserId: recovered.authUserId };
     try {
       // Plain UPDATE would silently affect 0 rows here — users_write_self
       // (migration 0001) only allows a user to update their OWN row, not
@@ -528,10 +531,13 @@ export async function createStaffLoginAccount(
       });
       return { userId: rows[0].user_id };
     } catch (err) {
-      await authService.adminDeleteUser(authResult.authUserId).catch(() => {});
+      if (recovered.wasCreated) await authService.adminDeleteUser(authResult.authUserId).catch(() => {});
       throw err;
     }
-  });
+  };
+  if (scopedClient) return run(scopedClient);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, run);
 }
 
 /** Resets an existing staff login's password (e.g. a mistyped phone number,

@@ -95,6 +95,21 @@ describe("staff import", () => {
   });
 });
 
+describe("staff logins", () => {
+  it("creates a login per staff member, refuses no-email and existing logins", async () => {
+    const staged = await run("staff_logins", ["Staff code", "Password"], [
+      ["T-2", "9847012345"], ["M-1", "9847000000"], ["NOPE", "123456"], ["HM-1", "12"],
+    ]);
+    expect(staged.rows.map((r) => r.status)).toEqual(["valid", "invalid", "invalid", "invalid"]);
+    expect(staged.rows[1].errors[0]).toMatch(/no e-mail/);
+    expect((await confirmImport(inst, adminAuth, adminUserId, staged.batchId)).importedRows).toBe(1);
+    const staff = await listStaff(inst, adminAuth);
+    expect(staff.find((s) => s.staff_code === "T-2")?.has_login).toBe(true);
+    const again = await run("staff_logins", ["Staff code", "Password"], [["T-2", "9847012345"]]);
+    expect(again.rows[0].errors[0]).toMatch(/already has a login/);
+  });
+});
+
 describe("subjects per class + teacher assignments", () => {
   it("adds subjects to a class, once", async () => {
     const staged = await run("class_subjects", ["Class", "Subject"], [

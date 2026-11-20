@@ -25,7 +25,7 @@ import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
 import { createClass, createSection, createSubject, listClasses, listSections, listSubjects, listAcademicYears, getCurrentAcademicYear, listClassSubjects, assignSubjectToClass } from "../academic/service";
 import { createStudent, createParent, linkParentToStudent, listStudents, enrollStudent, listActiveEnrollments } from "../students/service";
-import { createStaffMember, listStaff, createTeacherAssignment, listTeacherAssignments, grantStaffRole, IMPORTABLE_STAFF_ROLES } from "../staff/service";
+import { createStaffMember, listStaff, createTeacherAssignment, listTeacherAssignments, grantStaffRole, IMPORTABLE_STAFF_ROLES, createStaffLoginAccount } from "../staff/service";
 import { createBook } from "../library/service";
 import { submitAchievement, listAchievementCategories, listAchievementLevels } from "../achievements/service";
 import { createStudentLoginAccount } from "../portal/service";
@@ -1146,6 +1146,39 @@ const staffRolesDefinition: EntityImportDefinition = {
   },
 };
 
+const staffLoginsDefinition: EntityImportDefinition = {
+  entityType: "staff_logins",
+  label: "Staff logins (username = staff e-mail, password = your choice)",
+  columns: [
+    { key: "staffCode", label: "Staff code", required: true },
+    { key: "password", label: "Password (e.g. the staff member's phone number)", required: true, aliases: ["Password"] },
+  ],
+  sampleRow: { staffCode: "STF-002", password: "9876543210" },
+  async prepareContext(institutionId, authUserId) {
+    const staff = await listStaff(institutionId, authUserId);
+    return {
+      staffByCode: new Map(staff.map((s) => [normKey(s.staff_code), { id: s.id, email: s.email, hasLogin: Boolean(s.has_login) }])),
+    };
+  },
+  parseRow(raw, context) {
+    const errors: string[] = [];
+    const staffCode = req(raw, "staffCode", errors);
+    const password = req(raw, "password", errors);
+    if (password && (password.length < 4 || password.length > 30)) errors.push(`"password" must be 4–30 characters.`);
+    if (errors.length > 0) return { status: "invalid", errors };
+    const staff = (context.staffByCode as Map<string, { id: string; email: string | null; hasLogin: boolean }>).get(normKey(staffCode));
+    if (!staff) return { status: "invalid", errors: [`Staff code "${staffCode}" was not found — import "Staff" first.`] };
+    if (!staff.email) return { status: "invalid", errors: [`This staff member has no e-mail on file — add one first; the e-mail is their login.`] };
+    if (staff.hasLogin) return { status: "invalid", errors: [`This staff member already has a login. Use "Reset password" in the staff directory instead.`] };
+    return { status: "valid", dedupeKey: staff.id, data: { staffId: staff.id, password } };
+  },
+  async insertRow(institutionId, authUserId, userId, data, scoped) {
+    await createStaffLoginAccount(institutionId, authUserId, userId, {
+      staffId: data.staffId as string, password: data.password as string,
+    }, scoped);
+  },
+};
+
 const classSubjectsDefinition: EntityImportDefinition = {
   entityType: "class_subjects",
   label: "Subjects per class",
@@ -1268,6 +1301,7 @@ const registry: Record<string, EntityImportDefinition> = {
   student_logins: studentLoginsDefinition,
   staff: staffDefinition,
   staff_roles: staffRolesDefinition,
+  staff_logins: staffLoginsDefinition,
   class_subjects: classSubjectsDefinition,
   teacher_assignments: teacherAssignmentsDefinition,
   library_books: libraryBooksDefinition,
