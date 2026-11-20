@@ -54,3 +54,7 @@ yarn-error.log*
 next-env.d.ts
 .write_test
 .npm-install.log
+
+
+# Files exchanged with Claude (may contain student/staff personal data) — never commit
+Claude outputs/
