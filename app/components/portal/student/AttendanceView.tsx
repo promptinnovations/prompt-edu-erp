@@ -3,7 +3,7 @@ import type { AttendanceInsights } from "../../../../modules/portal/student-insi
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, StatTile, EmptyNote, CalendarHeatmap } from "../viz/blocks";
 import { RingGauge, ColumnBars, HBars, DonutChart } from "../viz/charts";
-import { STATUS_COLOR, seriesColor } from "../viz/palette";
+import { STATUS_COLOR, decorColor } from "../viz/palette";
 import { AREA } from "./areas";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -83,8 +83,8 @@ export default function AttendanceView({ data, headerExtra, leaveSlot }: {
               />
             </Panel>
             <div className="grid gap-4">
-              <StatTile label="Current streak" icon="🔥" color={seriesColor(1)} value={`${current} day${current === 1 ? "" : "s"}`} sub="In a row without an absence" />
-              <StatTile label="Best streak" icon="🏅" color={seriesColor(3)} value={`${best} day${best === 1 ? "" : "s"}`} sub="Your longest run this year" />
+              <StatTile label="Current streak" icon="🔥" color={decorColor(1)} value={`${current} day${current === 1 ? "" : "s"}`} sub="In a row without an absence" />
+              <StatTile label="Best streak" icon="🏅" color={decorColor(3)} value={`${best} day${best === 1 ? "" : "s"}`} sub="Your longest run this year" />
             </div>
           </div>
 
@@ -127,8 +127,8 @@ export default function AttendanceView({ data, headerExtra, leaveSlot }: {
                 <span
                   className="rounded-full px-2.5 py-0.5 text-xs font-medium capitalize"
                   style={{
-                    backgroundColor: l.status === "approved" ? "#e6f4ec" : l.status === "rejected" ? "#fbeaec" : "#fdf1dc",
-                    color: l.status === "approved" ? "#1f7a4d" : l.status === "rejected" ? "#a72f3a" : "#8a5b0c",
+                    backgroundColor: l.status === "approved" ? "#ecf7f0" : l.status === "rejected" ? "#fbeaea" : "var(--color-warning-soft)",
+                    color: l.status === "approved" ? "#15803d" : l.status === "rejected" ? "#b91c1c" : "var(--color-warning)",
                   }}
                 >
                   {l.status}

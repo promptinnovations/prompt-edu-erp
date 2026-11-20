@@ -69,27 +69,29 @@
   --color-primary-900: var(--sys-brand-900, #0b1f3a);
   --color-primary-950: var(--sys-brand-950, #061223);
 
-  /* Brand accent — 7 steps, anchored at 500 = #C8A84B exactly (derived the
-     same way). Gold 500 is only 2.3:1 on white: never use it for text or
-     under white text; 700+ is the readable end. */
-  --color-accent-50: #fbf8ef;
-  --color-accent-100: #f4edd7;
-  --color-accent-200: #e6d6a8;
-  --color-accent-500: #c8a84b;
-  --color-accent-600: #ae8e32;
-  --color-accent-700: #896f24;
-  --color-accent-800: #66521a;
+  /* Brand accent — the theme's accent ramp (§Theme-only colours): set per
+     palette as --sys-accent-N (services/branding/palettes.ts), 600 = the
+     strong accent that carries white text. Fallbacks: Scholar Teal coral. */
+  --color-accent-50: var(--sys-accent-50, #fbf2ee);
+  --color-accent-100: var(--sys-accent-100, #f6e4dd);
+  --color-accent-200: var(--sys-accent-200, #edc6b6);
+  --color-accent-500: var(--sys-accent-500, #c95829);
+  --color-accent-600: var(--sys-accent-600, #c2410c);
+  --color-accent-700: var(--sys-accent-700, #a5390f);
+  --color-accent-800: var(--sys-accent-800, #873112);
 
-  /* Semantic pairs — text colour on soft fill. */
-  --color-success: #1f7a4d;
-  --color-success-soft: #e6f4ec;
-  --color-warning: #8a5b0c; /* darkened from the spec's literal #a8710f (3.7:1 on
-     its own soft fill, below WCAG AA) to ~5.2:1, same amber/brown hue. */
-  --color-warning-soft: #fdf1dc;
-  --color-danger: #a72f3a;
-  --color-danger-soft: #fbeaec;
-  --color-info: #1f6f8c;
-  --color-info-soft: #e4f1f6;
+  /* Semantic pairs — text colour on soft fill. §Theme-only colours: the
+     notice/warning and info pairs come from the theme (accent and brand);
+     success and danger keep the brand kit's fixed status colours (good
+     #15803d, critical #b91c1c) so pass/fail read the same in every theme. */
+  --color-success: #15803d;
+  --color-success-soft: #ecf7f0;
+  --color-warning: var(--sys-accent-700, #a5390f);
+  --color-warning-soft: var(--sys-accent-50, #fbf2ee);
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fbeaea;
+  --color-info: var(--sys-brand-700, #0e6460);
+  --color-info-soft: var(--sys-brand-50, #f1f7f6);
 
   /* Chart series — 8 slots that follow the colour theme (§Palette-
      matching charts): slot 1 brand, slot 2 accent, then six companion
@@ -147,51 +149,58 @@
   /* Legacy alias: status families -> semantic pairs. Steps 50-100 are the
      soft fill, 200-300 (only ever used as borders) the global border
      neutral, 400+ the text colour. */
-  --color-red-50: #fbeaec;
-  --color-red-100: #fbeaec;
-  --color-red-200: var(--sys-neutral-300, #e2dbcc);
-  --color-red-300: var(--sys-neutral-300, #e2dbcc);
-  --color-red-400: #a72f3a;
-  --color-red-500: #a72f3a;
-  --color-red-600: #a72f3a;
-  --color-red-700: #a72f3a;
-  --color-red-800: #7a2530; /* hover step -- darker than --color-danger, same hue */
-  --color-red-900: #7a2530;
-  --color-rose-100: #fbeaec;
-  --color-rose-500: #a72f3a;
-  --color-rose-700: #a72f3a;
+  --color-red-50: #fbeaea;
+  --color-red-100: #fbeaea;
+  --color-red-200: var(--sys-neutral-300, #dee2e3);
+  --color-red-300: var(--sys-neutral-300, #dee2e3);
+  --color-red-400: #b91c1c;
+  --color-red-500: #b91c1c;
+  --color-red-600: #b91c1c;
+  --color-red-700: #b91c1c;
+  --color-red-800: #8f1616; /* hover step -- darker than --color-danger, same hue */
+  --color-red-900: #8f1616;
+  --color-rose-50: #fbeaea;
+  --color-rose-100: #fbeaea;
+  --color-rose-500: #b91c1c;
+  --color-rose-700: #b91c1c;
 
-  --color-emerald-50: #e6f4ec;
-  --color-emerald-100: #e6f4ec;
-  --color-emerald-200: var(--sys-neutral-300, #e2dbcc);
-  --color-emerald-300: #1f7a4d;
-  --color-emerald-400: #1f7a4d;
-  --color-emerald-500: #1f7a4d;
-  --color-emerald-600: #1f7a4d;
-  --color-emerald-700: #1f7a4d;
-  --color-emerald-800: #165a3c; /* hover step -- darker than --color-success, same hue */
-  --color-emerald-900: #165a3c;
-  --color-emerald-950: #1f7a4d;
-  --color-green-50: #e6f4ec;
-  --color-green-100: #e6f4ec;
-  --color-green-400: #1f7a4d;
-  --color-green-700: #1f7a4d;
-  --color-green-900: #1f7a4d;
+  --color-emerald-50: #ecf7f0;
+  --color-emerald-100: #ecf7f0;
+  --color-emerald-200: var(--sys-neutral-300, #dee2e3);
+  --color-emerald-300: #15803d;
+  --color-emerald-400: #15803d;
+  --color-emerald-500: #15803d;
+  --color-emerald-600: #15803d;
+  --color-emerald-700: #15803d;
+  --color-emerald-800: #10632f; /* hover step -- darker than --color-success, same hue */
+  --color-emerald-900: #10632f;
+  --color-emerald-950: #15803d;
+  --color-green-50: #ecf7f0;
+  --color-green-100: #ecf7f0;
+  --color-green-400: #15803d;
+  --color-green-700: #15803d;
+  --color-green-900: #15803d;
 
-  --color-amber-50: #fdf1dc;
-  --color-amber-100: #fdf1dc;
-  --color-amber-200: var(--sys-neutral-300, #e2dbcc);
-  --color-amber-400: #8a5b0c;
-  --color-amber-500: #8a5b0c;
-  --color-amber-600: #8a5b0c;
-  --color-amber-700: #8a5b0c;
-  --color-amber-800: #8a5b0c;
-  --color-amber-900: #8a5b0c;
+  /* Legacy alias: amber (notices, warnings, highlights) -> the theme's
+     accent ramp (§Theme-only colours). 400-700 are the readable text /
+     button step, 800-900 the darker hover step. */
+  --color-amber-50: var(--sys-accent-50, #fbf2ee);
+  --color-amber-100: var(--sys-accent-100, #f6e4dd);
+  --color-amber-200: var(--sys-accent-200, #edc6b6);
+  --color-amber-300: var(--sys-accent-300, #e0a086);
+  --color-amber-400: var(--sys-accent-700, #a5390f);
+  --color-amber-500: var(--sys-accent-700, #a5390f);
+  --color-amber-600: var(--sys-accent-700, #a5390f);
+  --color-amber-700: var(--sys-accent-700, #a5390f);
+  --color-amber-800: var(--sys-accent-800, #873112);
+  --color-amber-900: var(--sys-accent-800, #873112);
+  --color-yellow-50: var(--sys-accent-50, #fbf2ee);
 
-  --color-sky-100: #e4f1f6;
-  --color-sky-500: #1f6f8c;
-  --color-sky-700: #1f6f8c;
-  --color-blue-600: #1f6f8c;
+  /* Legacy alias: sky/blue (info) -> the theme's brand ramp. */
+  --color-sky-100: var(--sys-brand-100, #e0edec);
+  --color-sky-500: var(--sys-brand-600, #0f766e);
+  --color-sky-700: var(--sys-brand-700, #0e6460);
+  --color-blue-600: var(--sys-brand-600, #0f766e);
 }
 
 /* Semantic tokens — the fallback before a layout injects the resolved
@@ -410,7 +419,8 @@ table tbody tr:hover {
       width: 0.45rem;
       height: 1.65rem;
       border-radius: 9999px;
-      background: linear-gradient(180deg, var(--brand-from, var(--brand)), var(--brand-to, var(--brand)));
+      /* §Theme colours used fully: brand into the accent. */
+      background: linear-gradient(180deg, var(--brand), var(--accent-teal, var(--brand)));
     }
 
     .staff-app section.rounded-card.border.bg-white:not(.print-area),
@@ -450,8 +460,13 @@ table tbody tr:hover {
     }
 
     .staff-app thead[class*="tracking-[0.08em]"] tr {
-      background-color: var(--surface-muted);
+      background-color: rgba(var(--decor-1-rgb, 15, 118, 110), 0.07);
     }
+    .staff-app thead[class*="tracking-[0.08em]"] th {
+      color: var(--sys-brand-800, #0e5353);
+    }
+    .staff-app thead[class*="tracking-[0.08em]"] th:not(:last-child) { padding-right: 0.75rem; }
+    .staff-app thead[class*="tracking-[0.08em]"] + tbody td:not(:last-child) { padding-right: 0.75rem; }
     .staff-app thead[class*="tracking-[0.08em]"] th:first-child { border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem; padding-left: 0.5rem; }
     .staff-app thead[class*="tracking-[0.08em]"] th:last-child { border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
 
@@ -527,5 +542,19 @@ table tbody tr:hover {
     flex: none;
     width: calc(173mm / var(--fit-zoom));
     min-height: calc(259mm / var(--fit-zoom));
+  }
+}
+
+/* §Theme colours used fully ("use colours in the approved colour codes more
+ * effectively"): plain text links in the staff app wear the theme's brand
+ * colour instead of grey (status-coloured links keep their own colour). */
+@media screen {
+  .staff-app a.underline:not([class*="text-red"]):not([class*="text-white"]):not([class*="text-emerald"]):not([class*="text-amber"]):not([class*="text-[var(--brand"]) {
+    color: var(--brand);
+    text-decoration-color: rgba(var(--decor-1-rgb, 15, 118, 110), 0.4);
+    text-underline-offset: 2px;
+  }
+  .staff-app a.underline:not([class*="text-red"]):not([class*="text-white"]):not([class*="text-emerald"]):not([class*="text-amber"]):not([class*="text-[var(--brand"]):hover {
+    color: var(--brand-hover);
   }
 }

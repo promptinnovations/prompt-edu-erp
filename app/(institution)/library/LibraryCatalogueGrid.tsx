@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { CHART_SERIES } from "../../components/charts/series";
 
 export interface CatalogueBook {
   id: string;
@@ -19,10 +20,11 @@ export interface CatalogueBook {
 // reused here as book "spine" accent colours, hashed off category name so
 // the same category always lands on the same colour without a schema
 // change (books has no cover_file_id/colour column, §422).
-const SPINE_COLORS = ["#4f46e5", "#0891b2", "#c026d3", "#ea580c", "#65a30d", "#0d9488", "#9333ea", "#dc2626"];
+// §Theme-only colours: the theme's own chart series, so book spines match the chosen colours.
+const SPINE_COLORS: readonly string[] = CHART_SERIES;
 
 function colorForCategory(name: string | null): string {
-  if (!name) return "#71717a"; // zinc-500 — uncategorised
+  if (!name) return "#8a919b"; // neutral — uncategorised
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   return SPINE_COLORS[hash % SPINE_COLORS.length];

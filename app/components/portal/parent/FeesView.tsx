@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { RingGauge, HBars, Timeline } from "../viz/charts";
-import { seriesColor } from "../viz/palette";
+import { decorColor } from "../viz/palette";
 import { FEES_COLOR } from "./ParentDashboardView";
 
 export interface FeeInvoiceLite {
@@ -11,11 +11,11 @@ export interface FeeInvoiceLite {
 }
 
 const STATUS: Record<string, { text: string; bg: string; fg: string }> = {
-  paid: { text: "Paid", bg: "#e6f4ec", fg: "#1f7a4d" },
-  partial: { text: "Part paid", bg: "#fdf1dc", fg: "#8a5b0c" },
+  paid: { text: "Paid", bg: "#ecf7f0", fg: "#15803d" },
+  partial: { text: "Part paid", bg: "var(--color-warning-soft)", fg: "var(--color-warning)" },
   pending: { text: "Pending", bg: "var(--color-zinc-100)", fg: "var(--color-zinc-700)" },
-  overdue: { text: "Overdue", bg: "#fbeaec", fg: "#a72f3a" },
-  waived: { text: "Waived", bg: "#e4f1f6", fg: "#1f6f8c" },
+  overdue: { text: "Overdue", bg: "#fbeaea", fg: "#b91c1c" },
+  waived: { text: "Waived", bg: "var(--color-info-soft)", fg: "var(--color-info)" },
 };
 
 function rupees(n: number): string {
@@ -62,10 +62,10 @@ export default function FeesView({ invoices, payForm, invoiceHref, headerExtra }
               </div>
             </Panel>
             <div className="grid grid-cols-2 gap-4 lg:col-span-2">
-              <StatTile label="Balance" icon="🧾" color={balance > 0 ? seriesColor(7) : seriesColor(2)} value={balance > 0 ? rupees(balance) : "All paid"} sub={`${open.length} invoice${open.length === 1 ? "" : "s"} open`} />
-              <StatTile label="Next due" icon="📅" color={seriesColor(3)} value={nextDue?.due_date ? formatDateIST(nextDue.due_date) : "—"} sub={nextDue ? `${nextDue.category_name} · ${rupees(Number(nextDue.amount_due) - Number(nextDue.amount_paid))}` : "Nothing upcoming"} />
-              <StatTile label="Overdue" icon="⚠️" color={seriesColor(1)} value={open.filter((i) => statusOf(i) === "overdue").length} sub="Past their due date" />
-              <StatTile label="Invoices" icon="📂" color={seriesColor(0)} value={invoices.length} sub="This and earlier years" />
+              <StatTile label="Balance" icon="🧾" color={balance > 0 ? decorColor(7) : decorColor(2)} value={balance > 0 ? rupees(balance) : "All paid"} sub={`${open.length} invoice${open.length === 1 ? "" : "s"} open`} />
+              <StatTile label="Next due" icon="📅" color={decorColor(3)} value={nextDue?.due_date ? formatDateIST(nextDue.due_date) : "—"} sub={nextDue ? `${nextDue.category_name} · ${rupees(Number(nextDue.amount_due) - Number(nextDue.amount_paid))}` : "Nothing upcoming"} />
+              <StatTile label="Overdue" icon="⚠️" color={decorColor(1)} value={open.filter((i) => statusOf(i) === "overdue").length} sub="Past their due date" />
+              <StatTile label="Invoices" icon="📂" color={decorColor(0)} value={invoices.length} sub="This and earlier years" />
             </div>
           </div>
 
@@ -74,7 +74,7 @@ export default function FeesView({ invoices, payForm, invoiceHref, headerExtra }
               <HBars
                 rows={[...byCategory.entries()].map(([name, c]) => ({
                   label: name, value: c.due > 0 ? Math.round((c.paid / c.due) * 1000) / 10 : null,
-                  color: c.paid >= c.due ? seriesColor(2) : FEES_COLOR, note: `${rupees(c.paid)} of ${rupees(c.due)}`,
+                  color: c.paid >= c.due ? decorColor(2) : FEES_COLOR, note: `${rupees(c.paid)} of ${rupees(c.due)}`,
                 }))}
               />
             </Panel>
@@ -90,7 +90,7 @@ export default function FeesView({ invoices, payForm, invoiceHref, headerExtra }
                       date: i.due_date ? `Due ${formatDateIST(i.due_date)}` : "No due date",
                       title: `${i.category_name} — ${rupees(Number(i.amount_due) - Number(i.amount_paid))}`,
                       meta: STATUS[s]?.text ?? s,
-                      color: s === "overdue" ? "#e34948" : FEES_COLOR,
+                      color: s === "overdue" ? "#b91c1c" : FEES_COLOR,
                       icon: s === "overdue" ? "!" : "₹",
                     };
                   })}
@@ -113,7 +113,7 @@ export default function FeesView({ invoices, payForm, invoiceHref, headerExtra }
                       <span className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: s.bg, color: s.fg }}>{s.text}</span>
                     </div>
                     <div className="mt-1 text-xs text-zinc-500">{rupees(Number(i.amount_paid))} paid of {rupees(Number(i.amount_due))}{i.due_date ? ` · due ${formatDateIST(i.due_date)}` : ""}</div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? seriesColor(2) : FEES_COLOR }} /></div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? decorColor(2) : FEES_COLOR }} /></div>
                     <Link href={invoiceHref(i.id)} className="mt-2 inline-block text-xs font-medium text-[var(--brand)] hover:underline">View / print →</Link>
                   </li>
                 );

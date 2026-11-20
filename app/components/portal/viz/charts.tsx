@@ -120,7 +120,7 @@ export function HBars({ rows, max = 100, unit = "%", previousLabel, currentLabel
         })}
       </ul>
       {hasPrev ? (
-        <Legend items={[{ label: currentLabel ?? "Now", color: seriesColor(0) }, { label: previousLabel ?? "Before", color: "#c7bda9" }]} />
+        <Legend items={[{ label: currentLabel ?? "Now", color: seriesColor(0) }, { label: previousLabel ?? "Before", color: "#a4aab0" }]} />
       ) : null}
     </div>
   );

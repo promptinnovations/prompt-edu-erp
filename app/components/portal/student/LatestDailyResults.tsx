@@ -2,9 +2,9 @@ import Link from "next/link";
 import type { LatestDailyDay } from "../../../../modules/portal/student-insights";
 import { daysAgoIST, todayIST } from "../../../../services/datetime/ist";
 import { Panel } from "../viz/blocks";
-import { seriesColor, tint } from "../viz/palette";
+import { seriesColor, tint, decorColor } from "../viz/palette";
 
-const COLOR = seriesColor(5);
+const COLOR = decorColor(5);
 const num = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, ""));
 
 function dayTitle(date: string): string {

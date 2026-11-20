@@ -11,8 +11,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Legend } from "./legend";
 import { tint } from "./palette";
 
-const INK_MUTED = "#657087";
-const INK_BODY = "#4a5464";
+const INK_MUTED = "#646a76";
+const INK_BODY = "#4a5160";
 const GRID = "var(--color-zinc-300)";
 
 function fmt(n: number, digits = 1): string {

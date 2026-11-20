@@ -32,13 +32,15 @@ export const CHART_SERIES = [
 ] as const;
 
 /** Decorative accents (stat tiles, quick links, panel edges) — the
- *  theme's own colour family (brand, accent, deep brand, light brand),
+ *  theme's own colour family (brand, accent, deep brand, light brand,
+ *  light accent),
  *  cycled, so dashboards look like the chosen theme rather than a rainbow. */
 const DECOR = [
   "rgb(var(--decor-1-rgb, 15, 118, 110))",
   "rgb(var(--decor-2-rgb, 234, 88, 12))",
   "rgb(var(--decor-3-rgb, 14, 83, 83))",
   "rgb(var(--decor-4-rgb, 101, 167, 162))",
+  "rgb(var(--decor-5-rgb, 211, 118, 80))",
 ] as const;
 
 export function decorColor(index: number): string {

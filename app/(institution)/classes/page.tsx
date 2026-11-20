@@ -7,7 +7,7 @@ import { listTeacherAssignments } from "../../../modules/staff/service";
 import { getTeacherClassScope } from "../../../services/scope/teacher-scope-service";
 import { Panel } from "../../components/portal/viz/blocks";
 import { DonutChart, ColumnBars } from "../../components/portal/viz/charts";
-import { seriesColor, CHART_SERIES } from "../../components/portal/viz/palette";
+import { CHART_SERIES, decorColor } from "../../components/portal/viz/palette";
 
 /**
  * §137 follow-up ("in the side panel, there should [be] Classes for
@@ -116,27 +116,27 @@ export default async function ClassesPage() {
           divisions still lack a class teacher; from the data loaded above. */}
       {classes.length > 0 ? (() => {
         const byStage = orderedPhases.map((p, i) => ({
-          label: p, color: CHART_SERIES[i] ?? "#79839a",
+          label: p, color: CHART_SERIES[i] ?? "#8a919b",
           value: (groups.get(p) ?? []).reduce((a, c) => a + (studentCountByClass.get(c.id) ?? 0), 0),
         }));
         const total = byStage.reduce((a, s) => a + s.value, 0);
         const noTeacher = sections.filter((s) => !classTeacherByClassSection.get(`${s.class_id}::${s.id}`) && !classTeacherByClassWide.get(s.class_id)).length;
         return (
           <div className="grid gap-6 lg:grid-cols-5">
-            <Panel title="Students by stage" color={seriesColor(0)} className="lg:col-span-2">
+            <Panel title="Students by stage" color={decorColor(0)} className="lg:col-span-2">
               <DonutChart size={140} stroke={22} center={total} sub="students" segments={byStage} />
               <p className="mt-3 text-xs text-zinc-500">
                 {classes.length} classes · {sections.length} divisions
                 {noTeacher > 0 ? <> · <b className="text-rose-700">{noTeacher}</b> without a class teacher</> : " · every division has a class teacher"}
               </p>
             </Panel>
-            <Panel title="Students per class" color={seriesColor(0)} className="lg:col-span-3">
-              <ColumnBars unit="" color={seriesColor(0)} height={200}
+            <Panel title="Students per class" color={decorColor(0)} className="lg:col-span-3">
+              <ColumnBars unit="" color={decorColor(0)} height={200}
                 max={Math.max(5, ...classes.map((c) => studentCountByClass.get(c.id) ?? 0))}
                 items={classes.map((c) => {
                   const stageIdx = orderedPhases.indexOf(c.stage?.trim() || "Other");
                   const n = studentCountByClass.get(c.id) ?? 0;
-                  return { label: c.name, value: n, color: CHART_SERIES[stageIdx] ?? "#79839a", tip: `${c.name}: ${n} students` };
+                  return { label: c.name, value: n, color: CHART_SERIES[stageIdx] ?? "#8a919b", tip: `${c.name}: ${n} students` };
                 })} />
             </Panel>
           </div>

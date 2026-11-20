@@ -10,7 +10,7 @@ import DeleteSubstitutionButton from "./DeleteSubstitutionButton";
 import { todayIST, daysAgoIST, formatDateIST } from "../../../services/datetime/ist";
 import { Panel } from "../../components/portal/viz/blocks";
 import { CountBars } from "../../components/staff/insights";
-import { seriesColor } from "../../components/portal/viz/palette";
+import { decorColor } from "../../components/portal/viz/palette";
 
 function formatDate(d: string) {
   return formatDateIST(d);
@@ -58,11 +58,11 @@ export default async function SubstitutionPage({
           (same rows as the list below). */}
       {recent.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Covered most" subtitle="Periods covered, last 14 days." color={seriesColor(5)}>
-            <CountBars rows={recent.filter((r) => r.coveringStaffName)} label={(r) => r.coveringStaffName} color={seriesColor(5)} limit={8} />
+          <Panel title="Covered most" subtitle="Periods covered, last 14 days." color={decorColor(5)}>
+            <CountBars rows={recent.filter((r) => r.coveringStaffName)} label={(r) => r.coveringStaffName} color={decorColor(5)} limit={8} />
           </Panel>
-          <Panel title="Absent most" subtitle="Periods needing cover, last 14 days." color={seriesColor(7)}>
-            <CountBars rows={recent} label={(r) => r.absentStaffName} color={seriesColor(7)} limit={8} />
+          <Panel title="Absent most" subtitle="Periods needing cover, last 14 days." color={decorColor(7)}>
+            <CountBars rows={recent} label={(r) => r.absentStaffName} color={decorColor(7)} limit={8} />
           </Panel>
         </div>
       ) : null}

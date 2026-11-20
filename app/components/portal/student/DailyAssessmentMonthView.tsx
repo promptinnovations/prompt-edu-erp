@@ -4,9 +4,9 @@ import type { DailyAssessmentMonthDetail, DailyTest } from "../../../../modules/
 import { PageHeader, Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { LineChart, HBars, RingGauge } from "../viz/charts";
 import { Legend } from "../viz/legend";
-import { NEUTRAL, seriesColor, tint } from "../viz/palette";
+import { NEUTRAL, seriesColor, tint, decorColor } from "../viz/palette";
 
-const COLOR = seriesColor(5);
+const COLOR = decorColor(5);
 
 function shortDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -83,14 +83,14 @@ export default function DailyAssessmentMonthView({ data, backHref, headerExtra }
               </div>
             </Panel>
             <div className="grid grid-cols-2 gap-4 lg:col-span-2">
-              <StatTile label="Tests taken" icon="✏️" color={seriesColor(0)} value={`${taken} / ${data.tests.length}`} sub={`${data.subjects.length} subject${data.subjects.length === 1 ? "" : "s"}`} />
-              <StatTile label="Absent" icon="🚫" color={absent > 0 ? seriesColor(7) : seriesColor(2)} value={absent} sub={absent > 0 ? "Not counted in the total" : "Present for every test"} />
+              <StatTile label="Tests taken" icon="✏️" color={decorColor(0)} value={`${taken} / ${data.tests.length}`} sub={`${data.subjects.length} subject${data.subjects.length === 1 ? "" : "s"}`} />
+              <StatTile label="Absent" icon="🚫" color={absent > 0 ? decorColor(7) : decorColor(2)} value={absent} sub={absent > 0 ? "Not counted in the total" : "Present for every test"} />
               <StatTile
-                label="Class average" icon="👥" color={seriesColor(6)}
+                label="Class average" icon="👥" color={decorColor(6)}
                 value={data.class_avg_percent != null ? `${num(data.class_avg_percent)}%` : "—"}
                 sub={vsClass == null ? "Not available" : vsClass >= 0 ? `${num(vsClass)} points above` : `${num(Math.abs(vsClass))} points below`}
               />
-              <StatTile label="Best subject" icon="⭐" color={seriesColor(3)} value={best ? best.subject_name : "—"} sub={best?.percent != null ? `${num(best.percent)}%` : undefined} />
+              <StatTile label="Best subject" icon="⭐" color={decorColor(3)} value={best ? best.subject_name : "—"} sub={best?.percent != null ? `${num(best.percent)}%` : undefined} />
             </div>
           </div>
 

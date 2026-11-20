@@ -15,7 +15,7 @@ import { formatDateIST } from "../../services/datetime/ist";
  *  overflowing it. */
 import type { AttendanceTrendRow } from "../../modules/analytics/service";
 import { LineTrendChart } from "./charts/ResultCharts";
-import { seriesColor } from "./charts/series";
+import { decorColor } from "./charts/series";
 
 function formatMonth(m: string) {
   return formatDateIST(m, { month: "short", year: "numeric" });
@@ -43,7 +43,7 @@ export default function MonthlyAttendanceTrendChart({ points }: { points: Attend
       <LineTrendChart
         series={[{
           label: "Present %",
-          color: seriesColor(0),
+          color: decorColor(0),
           points: points.map((p) => ({ x: formatMonth(p.month), y: p.present_percent })),
         }]}
         height={160}

@@ -22,7 +22,7 @@ function fmt(n: string | number | null) {
  *  color pair, per ResultCharts.tsx's COLOR RULE) at the pass/fail ends,
  *  amber in between. The consolidated-result chart uses each row's own
  *  grade_color when available (already resolved server-side) instead. */
-const AMBER = "#d97706";
+const AMBER = "rgb(var(--decor-2-rgb, 234, 88, 12))";
 function colorForPercent(pct: number): string {
   if (pct >= 75) return PASS_COLOR;
   if (pct >= 50) return AMBER;

@@ -5,7 +5,7 @@ import { getDailyAssessmentAnalysis, listDailyAssessmentYears, type DailyAssessm
 import { getTeacherClassScope } from "../../../../services/scope/teacher-scope-service";
 import { PASS_COLOR, FAIL_COLOR } from "../../../../modules/examination/service";
 import { LineTrendChart, StatCard, BarChart, type ChartDatum, type LineSeries } from "../../../components/charts/ResultCharts";
-import { seriesColor, CHART_SERIES } from "../../../components/charts/series";
+import { seriesColor, CHART_SERIES, decorColor } from "../../../components/charts/series";
 import PrintButton from "../../../components/PrintButton";
 import { formatDateIST } from "../../../../services/datetime/ist";
 
@@ -110,7 +110,7 @@ export default async function DailyAssessmentsAnalyticsPage({
   const series: LineSeries[] = [
     {
       label: "All classes",
-      color: seriesColor(0),
+      color: decorColor(0),
       points: monthsChrono.map((m, i) => ({ x: xLabels[i], y: pct(m.total_obtained, m.total_max) })),
     },
     ...(showClassLines

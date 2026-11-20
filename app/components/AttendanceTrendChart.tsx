@@ -19,7 +19,7 @@ import { formatDateIST } from "../../services/datetime/ist";
  *  chart-type change, not a separate patch. */
 import type { AttendanceTrendPoint } from "../../modules/attendance/service";
 import { LineTrendChart } from "./charts/ResultCharts";
-import { seriesColor } from "./charts/series";
+import { decorColor } from "./charts/series";
 
 function formatDate(d: string) {
   return formatDateIST(d, { day: "numeric", month: "short" });
@@ -54,7 +54,7 @@ export default function AttendanceTrendChart({
       <LineTrendChart
         series={[{
           label: "Present %",
-          color: seriesColor(0),
+          color: decorColor(0),
           points: points.map((p) => ({ x: formatDate(p.date), y: p.presentPercent })),
         }]}
         height={compact ? 90 : 160}

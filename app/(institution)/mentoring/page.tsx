@@ -12,7 +12,7 @@ import MentoringSection from "./MentoringSection";
 import MentorAssignmentSection from "./MentorAssignmentSection";
 import { Panel } from "../../components/portal/viz/blocks";
 import { MonthBars, CountBars } from "../../components/staff/insights";
-import { seriesColor } from "../../components/portal/viz/palette";
+import { decorColor } from "../../components/portal/viz/palette";
 
 export default async function MentoringPage() {
   const ctx = await requireRequestContext();
@@ -59,11 +59,11 @@ export default async function MentoringPage() {
           so the confidentiality scope above applies to the charts too). */}
       {records.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Sessions per month" subtitle="Last 6 months." color={seriesColor(6)}>
-            <MonthBars rows={records} date={(r) => r.date} color={seriesColor(6)} noun="sessions" />
+          <Panel title="Sessions per month" subtitle="Last 6 months." color={decorColor(6)}>
+            <MonthBars rows={records} date={(r) => r.date} color={decorColor(6)} noun="sessions" />
           </Panel>
-          <Panel title={canViewAll ? "Sessions by mentor" : "Students you've mentored most"} color={seriesColor(6)}>
-            <CountBars rows={records} label={(r) => (canViewAll ? r.mentor_name : r.student_name)} color={seriesColor(6)} limit={8} />
+          <Panel title={canViewAll ? "Sessions by mentor" : "Students you've mentored most"} color={decorColor(6)}>
+            <CountBars rows={records} label={(r) => (canViewAll ? r.mentor_name : r.student_name)} color={decorColor(6)} limit={8} />
           </Panel>
         </div>
       ) : null}

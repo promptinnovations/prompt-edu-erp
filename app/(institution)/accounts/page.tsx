@@ -5,7 +5,7 @@ import { listAccountCategories, listTransactions, getAccountsSummary } from "../
 import { AccountCategoryForm, TransactionForm } from "./TransactionForm";
 import { Panel } from "../../components/portal/viz/blocks";
 import { DonutChart, HBars } from "../../components/portal/viz/charts";
-import { seriesColor } from "../../components/portal/viz/palette";
+import { decorColor } from "../../components/portal/viz/palette";
 
 export default async function AccountsPage() {
   const ctx = await requireRequestContext();
@@ -51,17 +51,17 @@ export default async function AccountsPage() {
         const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
         return (
           <div className="grid gap-6 lg:grid-cols-3">
-            <Panel title="Income vs expense" color={seriesColor(6)}>
+            <Panel title="Income vs expense" color={decorColor(6)}>
               <DonutChart size={136} stroke={21} center={rupees(income - expense)} sub="net" segments={[
-                { label: `Income ${rupees(income)}`, value: income, color: "#1baf7a" },
-                { label: `Expense ${rupees(expense)}`, value: expense, color: "#e34948" },
+                { label: `Income ${rupees(income)}`, value: income, color: "#15803d" },
+                { label: `Expense ${rupees(expense)}`, value: expense, color: "#b91c1c" },
               ]} />
             </Panel>
-            <Panel title="Income by category" color="#1baf7a">
-              <HBars unit="" max={Math.max(1, ...inc.map((r) => r.value))} rows={inc.map((r) => ({ label: r.label, value: r.value, color: "#1baf7a", suffix: "", note: rupees(r.value) }))} />
+            <Panel title="Income by category" color="#15803d">
+              <HBars unit="" max={Math.max(1, ...inc.map((r) => r.value))} rows={inc.map((r) => ({ label: r.label, value: r.value, color: "#15803d", suffix: "", note: rupees(r.value) }))} />
             </Panel>
-            <Panel title="Expense by category" color="#e34948">
-              <HBars unit="" max={Math.max(1, ...exp.map((r) => r.value))} rows={exp.map((r) => ({ label: r.label, value: r.value, color: "#e34948", suffix: "", note: rupees(r.value) }))} />
+            <Panel title="Expense by category" color="#b91c1c">
+              <HBars unit="" max={Math.max(1, ...exp.map((r) => r.value))} rows={exp.map((r) => ({ label: r.label, value: r.value, color: "#b91c1c", suffix: "", note: rupees(r.value) }))} />
             </Panel>
           </div>
         );

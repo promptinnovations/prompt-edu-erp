@@ -119,9 +119,9 @@ export function CalendarHeatmap({ from, to, days, holidays }: {
       <div className="overflow-x-auto">
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block" role="img" aria-label="Attendance calendar">
           {monthLabels.map((m, i) => (
-            <text key={`${m.label}-${i}`} x={left + m.col * (cell + gapPx)} y={11} fontSize={10} fill="#657087">{m.label}</text>
+            <text key={`${m.label}-${i}`} x={left + m.col * (cell + gapPx)} y={11} fontSize={10} fill="#646a76">{m.label}</text>
           ))}
-          {dayNames.map((n, r) => n ? <text key={n} x={0} y={top + r * (cell + gapPx) + 10} fontSize={9} fill="#657087">{n}</text> : null)}
+          {dayNames.map((n, r) => n ? <text key={n} x={0} y={top + r * (cell + gapPx) + 10} fontSize={9} fill="#646a76">{n}</text> : null)}
           {cells.map((c) => (
             <rect key={c.key} x={left + c.col * (cell + gapPx)} y={top + c.row * (cell + gapPx)} width={cell} height={cell} rx={3} fill={c.color}>
               <title>{c.tip}</title>

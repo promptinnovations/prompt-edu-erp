@@ -4,13 +4,13 @@ import type { DashboardInsights } from "../../../../modules/portal/student-insig
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { Sparkline, Timeline } from "../viz/charts";
-import { NEUTRAL, seriesColor, tint } from "../viz/palette";
+import { NEUTRAL, tint, decorColor } from "../viz/palette";
 import { AREA } from "../student/areas";
 import ThemeIcon from "../viz/ThemeIcon";
 import LatestDailyResults from "../student/LatestDailyResults";
 
-export const FEES_COLOR = seriesColor(6);
-export const CONTACT_COLOR = seriesColor(5);
+export const FEES_COLOR = decorColor(6);
+export const CONTACT_COLOR = decorColor(5);
 
 export interface ParentDashboardShow {
   results: boolean; attendance: boolean; achievements: boolean; library: boolean;
@@ -152,7 +152,7 @@ export default function ParentDashboardView({
       {show.results ? <LatestDailyResults days={d.latestDaily} monthHref={dailyMonthHref} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Panel title="Needs your attention" color={seriesColor(7)} className="lg:col-span-3">
+        <Panel title="Needs your attention" color={decorColor(7)} className="lg:col-span-3">
           {attention.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-4 text-center">
               <span aria-hidden className="text-4xl">✅</span>
@@ -165,9 +165,9 @@ export default function ParentDashboardView({
                   <Link
                     href={a.href}
                     className="flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors hover:bg-[var(--surface-muted)]"
-                    style={{ borderColor: a.urgent ? tint("#e34948", 0.45) : "var(--border-subtle)", backgroundColor: a.urgent ? tint("#e34948", 0.05) : undefined }}
+                    style={{ borderColor: a.urgent ? tint("#b91c1c", 0.45) : "var(--border-subtle)", backgroundColor: a.urgent ? tint("#b91c1c", 0.05) : undefined }}
                   >
-                    <span aria-hidden className="flex text-lg"><ThemeIcon icon={a.icon} color={a.urgent ? "#c2410c" : "var(--brand)"} size={18} /></span>
+                    <span aria-hidden className="flex text-lg"><ThemeIcon icon={a.icon} color={a.urgent ? "var(--color-warning)" : "var(--brand)"} size={18} /></span>
                     <span className="flex-1 text-zinc-700">{a.text}</span>
                     <span aria-hidden className="text-zinc-400">→</span>
                   </Link>
@@ -199,7 +199,7 @@ export default function ParentDashboardView({
         </Panel>
       </div>
 
-      <Panel title="Coming up" subtitle={`Exams for ${childFirstName}'s class and school events.`} color={seriesColor(6)}>
+      <Panel title="Coming up" subtitle={`Exams for ${childFirstName}'s class and school events.`} color={decorColor(6)}>
         {d.upcoming.length === 0 ? (
           <EmptyNote>Nothing scheduled yet.</EmptyNote>
         ) : (
@@ -209,7 +209,7 @@ export default function ParentDashboardView({
               date: `${formatDateIST(u.start)}${u.end && u.end !== u.start ? ` – ${formatDateIST(u.end)}` : ""}`,
               title: u.title,
               meta: u.kind === "exam" ? "Examination" : ({ holiday: "Holiday", meeting: "Meeting", ptm: "Parent–teacher meeting", exam: "Exam", other: "Event" } as Record<string, string>)[u.type] ?? "Event",
-              color: u.kind === "exam" ? AREA.academics.color : u.type === "holiday" ? "#c7bda9" : u.type === "ptm" ? AREA.growth.color : seriesColor(6),
+              color: u.kind === "exam" ? AREA.academics.color : u.type === "holiday" ? "#a4aab0" : u.type === "ptm" ? AREA.growth.color : decorColor(6),
               icon: u.kind === "exam" ? "✎" : u.type === "holiday" ? "☀" : "★",
             }))}
           />

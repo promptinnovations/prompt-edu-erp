@@ -19,7 +19,7 @@ import SectionHeadAssignmentForm from "./SectionHeadAssignmentForm";
 import { todayIST } from "../../../services/datetime/ist";
 import { Panel } from "../../components/portal/viz/blocks";
 import { DonutChart, HBars } from "../../components/portal/viz/charts";
-import { seriesColor, STATUS_COLOR, CHART_SERIES } from "../../components/portal/viz/palette";
+import { STATUS_COLOR, CHART_SERIES, decorColor } from "../../components/portal/viz/palette";
 
 export default async function StaffPage({
   searchParams,
@@ -101,18 +101,18 @@ export default async function StaffPage({
         const present = marked.filter((r) => r.status_id && presentIds.has(r.status_id)).length;
         return (
           <div className="grid gap-6 lg:grid-cols-3">
-            <Panel title="By department" subtitle={`${active.length} active staff`} color={seriesColor(1)}>
+            <Panel title="By department" subtitle={`${active.length} active staff`} color={decorColor(1)}>
               <DonutChart size={130} stroke={20} center={active.length} sub="staff"
                 segments={departments.slice(0, 7).map(([label, value], i): { label: string; value: number; color: string } => ({ label, value, color: CHART_SERIES[i] }))
-                  .concat(departments.length > 7 ? [{ label: "Other", value: departments.slice(7).reduce((a, [, n]) => a + n, 0), color: "#79839a" }] : [])} />
+                  .concat(departments.length > 7 ? [{ label: "Other", value: departments.slice(7).reduce((a, [, n]) => a + n, 0), color: "#8a919b" }] : [])} />
             </Panel>
-            <Panel title="By designation" color={seriesColor(1)}>
+            <Panel title="By designation" color={decorColor(1)}>
               <div className="max-h-64 overflow-y-auto pr-1">
-                <HBars unit="" max={Math.max(1, ...designations.map(([, n]) => n))} rows={designations.map(([label, n]) => ({ label, value: n, color: seriesColor(1), suffix: "" }))} />
+                <HBars unit="" max={Math.max(1, ...designations.map(([, n]) => n))} rows={designations.map(([label, n]) => ({ label, value: n, color: decorColor(1), suffix: "" }))} />
               </div>
             </Panel>
             {canManageStaffAttendance ? (
-              <Panel title="Attendance" subtitle={effectiveDate} color={seriesColor(2)}>
+              <Panel title="Attendance" subtitle={effectiveDate} color={decorColor(2)}>
                 {marked.length === 0 ? (
                   <p className="py-6 text-center text-sm text-zinc-500">Not marked yet for this date.</p>
                 ) : (

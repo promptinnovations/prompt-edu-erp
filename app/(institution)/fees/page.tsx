@@ -13,7 +13,7 @@ import PendingConfirmations from "./PendingConfirmations";
 import InvoicePayments from "./InvoicePayments";
 import { Panel } from "../../components/portal/viz/blocks";
 import { RingGauge, DonutChart, HBars } from "../../components/portal/viz/charts";
-import { seriesColor, STATUS_COLOR } from "../../components/portal/viz/palette";
+import { STATUS_COLOR, decorColor } from "../../components/portal/viz/palette";
 
 const STATUS_BADGE: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-700",
@@ -90,12 +90,12 @@ export default async function FeesPage({
           summary rows the cards and table below show (no extra queries). */}
       {Number(summary.totalDue) > 0 ? (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Panel title="Collected" color={seriesColor(6)}>
+          <Panel title="Collected" color={decorColor(6)}>
             <div className="flex flex-col items-center gap-1">
-              <RingGauge value={Math.round((Number(summary.totalCollected) / Number(summary.totalDue)) * 1000) / 10} color={seriesColor(6)} size={140} stroke={16} sub="of total due" />
+              <RingGauge value={Math.round((Number(summary.totalCollected) / Number(summary.totalDue)) * 1000) / 10} color={decorColor(6)} size={140} stroke={16} sub="of total due" />
             </div>
           </Panel>
-          <Panel title="Invoices by status" color={seriesColor(6)}>
+          <Panel title="Invoices by status" color={decorColor(6)}>
             <DonutChart
               size={140} stroke={22}
               center={summary.countPaid + summary.countPartial + summary.countPending}
@@ -107,12 +107,12 @@ export default async function FeesPage({
               ]}
             />
           </Panel>
-          <Panel title="Collected by class" subtitle="Share of each class's dues collected." color={seriesColor(6)}>
+          <Panel title="Collected by class" subtitle="Share of each class's dues collected." color={decorColor(6)}>
             <HBars
               rows={classSummary.slice(0, 12).map((r) => ({
                 label: `${r.class_name} ${r.section_name}`.trim(),
                 value: Number(r.total_due) > 0 ? Math.round((Number(r.total_collected) / Number(r.total_due)) * 1000) / 10 : null,
-                color: seriesColor(6),
+                color: decorColor(6),
               }))}
             />
           </Panel>

@@ -25,7 +25,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Donut, StatCard } from "../charts/ResultCharts";
-import { seriesColor } from "../charts/series";
+import { decorColor } from "../charts/series";
 import { formatDateIST } from "../../../services/datetime/ist";
 import type { PortfolioDashboardData } from "../../../modules/portfolio/dashboard-service";
 
@@ -113,9 +113,9 @@ function AcademicPerformanceTable({ data }: { data: PortfolioDashboardData["acad
 
 function AttendanceDonut({ attendance, size = 160 }: { attendance: PortfolioDashboardData["attendance"]; size?: number }) {
   const segments = [
-    { label: "Present", value: attendance.present, color: seriesColor(0) },
-    { label: "Absent", value: attendance.absent, color: seriesColor(1) },
-    { label: "Late", value: attendance.late, color: seriesColor(2) },
+    { label: "Present", value: attendance.present, color: decorColor(0) },
+    { label: "Absent", value: attendance.absent, color: decorColor(1) },
+    { label: "Late", value: attendance.late, color: decorColor(2) },
   ];
   return (
     <Donut

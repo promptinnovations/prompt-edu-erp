@@ -1,7 +1,7 @@
 import type { ReadingInsights } from "../../../../modules/portal/student-insights";
 import { Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { ColumnBars, DonutChart } from "../viz/charts";
-import { CHART_SERIES, NEUTRAL, seriesColor } from "../viz/palette";
+import { CHART_SERIES, NEUTRAL, decorColor } from "../viz/palette";
 import { AREA } from "./areas";
 
 /** §Student-portal-visual-redesign — the reading picture at the top of
@@ -32,9 +32,9 @@ export default function ReadingStats({ data }: { data: ReadingInsights }) {
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatTile label="Books read" icon="📚" color={AREA.reading.color} value={distinct} />
-        <StatTile label="Reviews published" icon="✍️" color={seriesColor(1)} value={reviewed} />
-        <StatTile label="Likes on reviews" icon="👍" color={seriesColor(4)} value={data.likesReceived} />
-        <StatTile label="Genres explored" icon="🧭" color={seriesColor(2)} value={new Set(data.books.map((b) => b.category).filter(Boolean)).size} />
+        <StatTile label="Reviews published" icon="✍️" color={decorColor(1)} value={reviewed} />
+        <StatTile label="Likes on reviews" icon="👍" color={decorColor(4)} value={data.likesReceived} />
+        <StatTile label="Genres explored" icon="🧭" color={decorColor(2)} value={new Set(data.books.map((b) => b.category).filter(Boolean)).size} />
       </section>
 
       {data.books.length === 0 ? (

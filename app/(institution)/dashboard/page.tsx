@@ -31,7 +31,8 @@ import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { getMyRoleNames, getLibrarySnapshot, getFeeSnapshot } from "../../../services/home/dashboard-insights";
 import { Panel, StatTile, EmptyNote } from "../../components/portal/viz/blocks";
 import { RingGauge, HBars, Timeline, ColumnBars } from "../../components/portal/viz/charts";
-import { seriesColor, decorColor, tint } from "../../components/portal/viz/palette";
+import { decorColor, tint } from "../../components/portal/viz/palette";
+import ThemeIcon from "../../components/portal/viz/ThemeIcon";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -304,11 +305,11 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {attendanceToday ? (
-          <Panel title="Today's attendance" subtitle={formatDateIST(today)} color={seriesColor(2)}>
+          <Panel title="Today's attendance" subtitle={formatDateIST(today)} color={decorColor(2)}>
             <div className="grid grid-cols-2 gap-4">
               {([
-                ["Students", studentPct, attendanceToday.studentsPresent, attendanceToday.studentsMarked, attendanceToday.studentsEnrolled, attendanceToday.studentsAbsent, seriesColor(2)],
-                ["Staff", staffPct, attendanceToday.staffPresent, attendanceToday.staffMarked, attendanceToday.staffTotal, attendanceToday.staffAbsent, seriesColor(0)],
+                ["Students", studentPct, attendanceToday.studentsPresent, attendanceToday.studentsMarked, attendanceToday.studentsEnrolled, attendanceToday.studentsAbsent, decorColor(2)],
+                ["Staff", staffPct, attendanceToday.staffPresent, attendanceToday.staffMarked, attendanceToday.staffTotal, attendanceToday.staffAbsent, decorColor(0)],
               ] as const).map(([label, pct, present, marked, total, absent, color]) => (
                 <div key={label} className="flex flex-col items-center gap-1 text-center">
                   <RingGauge value={pct} color={color} size={112} stroke={12} sub={label.toLowerCase()} title={`${label}: ${pct ?? "—"}% present`} />
@@ -320,21 +321,21 @@ export default async function DashboardPage() {
           </Panel>
         ) : null}
 
-        <Panel title="To do list" color={seriesColor(7)}>
+        <Panel title="To do list" color={decorColor(7)}>
           <TodoWidget todos={todos} />
         </Panel>
 
         {librarySnapshot ? (
-          <Panel title="Library desk" subtitle="Live loans, holds and reviews." color={seriesColor(3)} action={<Link href="/library" className="text-xs text-[var(--brand)] underline">Open library →</Link>}>
+          <Panel title="Library desk" subtitle="Live loans, holds and reviews." color={decorColor(3)} action={<Link href="/library" className="text-xs text-[var(--brand)] underline">Open library →</Link>}>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {([
-                ["On loan", librarySnapshot.issuedNow, "📚", seriesColor(3)],
-                ["Overdue", librarySnapshot.overdue, "⏰", seriesColor(7)],
-                ["Holds", librarySnapshot.holdsWaiting + librarySnapshot.holdsReady, "📦", seriesColor(0)],
-                ["Reviews to check", librarySnapshot.reviewsPending, "✍️", seriesColor(4)],
+                ["On loan", librarySnapshot.issuedNow, "📚", decorColor(3)],
+                ["Overdue", librarySnapshot.overdue, "⏰", decorColor(7)],
+                ["Holds", librarySnapshot.holdsWaiting + librarySnapshot.holdsReady, "📦", decorColor(0)],
+                ["Reviews to check", librarySnapshot.reviewsPending, "✍️", decorColor(4)],
               ] as const).map(([label, n, icon, c]) => (
                 <div key={label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tint(c, 0.1) }}>
-                  <div aria-hidden className="text-lg">{icon}</div>
+                  <div aria-hidden className="flex justify-center text-lg"><ThemeIcon icon={icon} color={c} size={20} /></div>
                   <div className="text-xl font-bold text-[var(--foreground)]">{n}</div>
                   <div className="text-xs text-zinc-600">{label}</div>
                 </div>
@@ -342,16 +343,16 @@ export default async function DashboardPage() {
             </div>
             <div className="mt-4">
               <p className="mb-1 text-xs text-zinc-500">Books issued per month · {librarySnapshot.books} titles, {librarySnapshot.copiesAvailable} copies on the shelf</p>
-              <ColumnBars unit="" color={seriesColor(3)} height={170} max={Math.max(5, ...librarySnapshot.issuesByMonth.map((m) => m.issues))}
+              <ColumnBars unit="" color={decorColor(3)} height={170} max={Math.max(5, ...librarySnapshot.issuesByMonth.map((m) => m.issues))}
                 items={librarySnapshot.issuesByMonth.map((m) => ({ label: monthLabel(m.month), value: m.issues, tip: `${monthLabel(m.month)}: ${m.issues} issued` }))} />
             </div>
           </Panel>
         ) : null}
 
         {feeSnapshot ? (
-          <Panel title="Fee collection" subtitle={feeSnapshot.yearName ? `Academic year ${feeSnapshot.yearName}` : undefined} color={seriesColor(6)} action={<Link href="/fees" className="text-xs text-[var(--brand)] underline">Open fees →</Link>}>
+          <Panel title="Fee collection" subtitle={feeSnapshot.yearName ? `Academic year ${feeSnapshot.yearName}` : undefined} color={decorColor(6)} action={<Link href="/fees" className="text-xs text-[var(--brand)] underline">Open fees →</Link>}>
             <div className="flex flex-wrap items-center gap-5">
-              <RingGauge value={feeSnapshot.due > 0 ? Math.round((feeSnapshot.collected / feeSnapshot.due) * 1000) / 10 : null} color={seriesColor(6)} size={120} stroke={13} sub="collected" />
+              <RingGauge value={feeSnapshot.due > 0 ? Math.round((feeSnapshot.collected / feeSnapshot.due) * 1000) / 10 : null} color={decorColor(6)} size={120} stroke={13} sub="collected" />
               <div className="grid flex-1 grid-cols-2 gap-2 text-sm">
                 <div><div className="text-xs text-zinc-500">Collected</div><div className="font-semibold text-[var(--foreground)]">{rupees(feeSnapshot.collected)}</div></div>
                 <div><div className="text-xs text-zinc-500">Outstanding</div><div className="font-semibold text-[var(--foreground)]">{rupees(Math.max(0, feeSnapshot.due - feeSnapshot.collected))}</div></div>
@@ -361,25 +362,25 @@ export default async function DashboardPage() {
             </div>
             <div className="mt-4">
               <p className="mb-1 text-xs text-zinc-500">Collected per month (₹)</p>
-              <ColumnBars unit="" color={seriesColor(6)} height={170} max={Math.max(1, ...feeSnapshot.collectedByMonth.map((m) => m.amount))}
+              <ColumnBars unit="" color={decorColor(6)} height={170} max={Math.max(1, ...feeSnapshot.collectedByMonth.map((m) => m.amount))}
                 items={feeSnapshot.collectedByMonth.map((m) => ({ label: monthLabel(m.month), value: m.amount, tip: `${monthLabel(m.month)}: ${rupees(m.amount)}` }))} />
             </div>
           </Panel>
         ) : null}
 
         {canSeeMarkEntryStatus && recentExam ? (
-          <Panel title="Mark entry status" subtitle={recentExam.name} color={seriesColor(0)} action={<Link href="/examinations/status" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">View full status →</Link>}>
+          <Panel title="Mark entry status" subtitle={recentExam.name} color={decorColor(0)} action={<Link href="/examinations/status" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">View full status →</Link>}>
             {markExpected === 0 ? (
               <EmptyNote>No students/subjects configured yet.</EmptyNote>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <RingGauge value={markPct} color={seriesColor(0)} size={96} stroke={11} />
+                  <RingGauge value={markPct} color={decorColor(0)} size={96} stroke={11} />
                   <p className="text-sm text-zinc-600"><b className="text-[var(--foreground)]">{markEntered}</b> of {markExpected} marks entered</p>
                 </div>
                 <HBars rows={[...markByClass.entries()].map(([name, c]) => ({
                   label: name, value: c.expected > 0 ? Math.round((c.entered / c.expected) * 1000) / 10 : null,
-                  color: c.entered >= c.expected ? seriesColor(2) : seriesColor(0), note: `${c.entered}/${c.expected}`,
+                  color: c.entered >= c.expected ? decorColor(2) : decorColor(0), note: `${c.entered}/${c.expected}`,
                 }))} />
               </div>
             )}
@@ -387,7 +388,7 @@ export default async function DashboardPage() {
         ) : null}
 
         {canSeeOpenMarkEntry ? (
-          <Panel title="Mark Entry" subtitle="Exams open for your classes and subjects." color={seriesColor(0)} className="lg:col-span-2">
+          <Panel title="Mark Entry" subtitle="Exams open for your classes and subjects." color={decorColor(0)} className="lg:col-span-2">
             {openMarkEntry.length === 0 ? (
               <EmptyNote>Nothing open for entry right now.</EmptyNote>
             ) : (
@@ -397,13 +398,13 @@ export default async function DashboardPage() {
                     <Link
                       href={`/examinations/${r.examinationId}/marks/${r.examSubjectId}`}
                       className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] p-3 transition-all hover:-translate-y-0.5 hover:shadow-raised"
-                      style={{ borderLeft: `4px solid ${r.status === "not_started" ? seriesColor(1) : seriesColor(0)}` }}
+                      style={{ borderLeft: `4px solid ${r.status === "not_started" ? decorColor(1) : decorColor(0)}` }}
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-[var(--foreground)]">{r.subjectName} · {r.className}</span>
                         <span className="block truncate text-xs text-zinc-500">{r.examinationName}</span>
                       </span>
-                      <span className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: tint(r.status === "not_started" ? seriesColor(1) : seriesColor(0), 0.14), color: "var(--foreground)" }}>
+                      <span className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: tint(r.status === "not_started" ? decorColor(1) : decorColor(0), 0.14), color: "var(--foreground)" }}>
                         {r.status === "not_started" ? "Enter marks" : "Continue"} →
                       </span>
                     </Link>
@@ -415,29 +416,29 @@ export default async function DashboardPage() {
         ) : null}
 
         {hasExaminationAccess && passRateTrendByStage.length > 0 ? (
-          <Panel title="Pass rate trend" color={seriesColor(1)} action={<Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+          <Panel title="Pass rate trend" color={decorColor(1)} action={<Link href="/analytics" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
             <PassRateStageTrendChart points={passRateTrendByStage} />
           </Panel>
         ) : null}
 
         {isSectionOrAbove && attendanceTrendByStage.length > 0 ? (
-          <Panel title="Attendance trend" subtitle={`${attendanceVisibility.label} · last 15 days`} color={seriesColor(2)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+          <Panel title="Attendance trend" subtitle={`${attendanceVisibility.label} · last 15 days`} color={decorColor(2)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
             <AttendanceStageTrendChart points={attendanceTrendByStage} />
           </Panel>
         ) : attendanceVisibility.hasAccess && attendanceTrend.length > 0 ? (
-          <Panel title="Attendance trend" subtitle={attendanceVisibility.label} color={seriesColor(2)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+          <Panel title="Attendance trend" subtitle={attendanceVisibility.label} color={decorColor(2)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
             <AttendanceTrendChart points={attendanceTrend} compact />
           </Panel>
         ) : null}
 
         {isSectionOrAbove && consecutiveAbsentees.length > 0 ? (
-          <Panel title="Chronic absentees (3+ days)" color={seriesColor(7)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
+          <Panel title="Chronic absentees (3+ days)" color={decorColor(7)} action={<Link href="/attendance#overview" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Full view →</Link>}>
             <ConsecutiveAbsenteesList rows={consecutiveAbsentees} />
           </Panel>
         ) : null}
 
         {hasUnrestrictedLeaveReview || hasScopedLeaveReview ? (
-          <Panel title="Pending leave requests" color={seriesColor(4)} action={<Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>}>
+          <Panel title="Pending leave requests" color={decorColor(4)} action={<Link href="/attendance#leave" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Review →</Link>}>
             {pendingLeave.length === 0 ? (
               <EmptyNote>Nothing pending.</EmptyNote>
             ) : (
@@ -455,7 +456,7 @@ export default async function DashboardPage() {
           </Panel>
         ) : null}
 
-        <Panel title="Upcoming calendar" color={seriesColor(6)}>
+        <Panel title="Upcoming calendar" color={decorColor(6)}>
           {upcoming.length === 0 ? (
             <EmptyNote>Nothing scheduled.</EmptyNote>
           ) : (
@@ -465,7 +466,7 @@ export default async function DashboardPage() {
                 date: `${formatDate(u.date)}${u.endDate ? ` – ${formatDate(u.endDate)}` : ""}`,
                 title: u.title,
                 meta: u.kind === "exam" ? "Examination" : u.subKind ? u.subKind.charAt(0).toUpperCase() + u.subKind.slice(1) : undefined,
-                color: u.kind === "exam" ? seriesColor(0) : u.subKind === "holiday" ? "#c7bda9" : seriesColor(6),
+                color: u.kind === "exam" ? decorColor(0) : u.subKind === "holiday" ? "#a4aab0" : decorColor(6),
                 icon: u.kind === "exam" ? "✎" : u.subKind === "holiday" ? "☀" : "★",
               }))}
             />

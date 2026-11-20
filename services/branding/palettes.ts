@@ -86,6 +86,12 @@ export interface PaletteSystem {
    *  --sys-chart-N (hex) and --chart-N-rgb ("r, g, b"), which
    *  app/components/charts/series.ts reads. */
   chart?: string[];
+  /** §Theme-only colours ("use only a colour which is there in the colour
+   *  code"): the accent ramp, 50 (soft fill) → 900, anchored at 600 = the
+   *  palette's strong accent (white text AA). globals.css points the
+   *  legacy amber/"accent" families — notices, warnings, highlights — at it
+   *  (--sys-accent-N), so they wear the theme's accent, not a fixed amber. */
+  accent?: Record<"50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900", string>;
 }
 
 // §Brand-kit ("i will choose 2 Scholar Teal as the primary UI — add 1, 3,
@@ -108,6 +114,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f1f7f6", "100": "#e0edec", "200": "#c1dbd9", "300": "#95c3bf", "400": "#65a7a2", "500": "#358c85", "600": "#0f766e", "700": "#0e6460", "800": "#0e5353", "900": "#0d4549", "950": "#0c353c" },
       neutral: { "50": "#fafcfb", "100": "#f4f8f7", "200": "#e7ebeb", "300": "#dee2e3", "400": "#a4aab0" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#fbf2ee", "100": "#f6e4dd", "200": "#edc6b6", "300": "#e0a086", "400": "#d37650", "500": "#c95829", "600": "#c2410c", "700": "#a5390f", "800": "#873112", "900": "#6e2a15" },
       chart: ["#0f766e", "#ea580c", "#2563eb", "#7c3aed", "#db2777", "#16a34a", "#65a30d", "#475569"],
       shadowRgb: "21, 54, 66",
     },
@@ -122,6 +129,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f4f4fd", "100": "#e8e7fc", "200": "#d1cff8", "300": "#b2aef4", "400": "#8e89ee", "500": "#6b64e9", "600": "#4f46e5", "700": "#433cc2", "800": "#3834a2", "900": "#2e2c86", "950": "#232367" },
       neutral: { "50": "#fafbfd", "100": "#f6f7fb", "200": "#e9eaef", "300": "#e0e2e7", "400": "#a6aab3" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#faf3ee", "100": "#f4e7dd", "200": "#e8cbb5", "300": "#daa984", "400": "#c9834e", "500": "#bd6827", "600": "#b45309", "700": "#99480d", "800": "#7e3e10", "900": "#663414" },
       chart: ["#4f46e5", "#d97706", "#db2777", "#16a34a", "#0891b2", "#65a30d", "#9333ea", "#475569"],
       shadowRgb: "37, 42, 96",
     },
@@ -136,6 +144,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f1f3f6", "100": "#e2e5ec", "200": "#c4ccd9", "300": "#9ca8bf", "400": "#6e81a2", "500": "#415a85", "600": "#1d3a6e", "700": "#1a3260", "800": "#172c53", "900": "#142649", "950": "#111f3c" },
       neutral: { "50": "#fbfaf8", "100": "#f7f5f0", "200": "#eae8e5", "300": "#e1e0dd", "400": "#a6a8ac" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#f6f4ef", "100": "#ece9e0", "200": "#d7d0bc", "300": "#bcb290", "400": "#9f8f5e", "500": "#8a773b", "600": "#7a6420", "700": "#685720", "800": "#564920", "900": "#473d20" },
       chart: ["#1d3a6e", "#b8952f", "#7c3aed", "#db2777", "#16a34a", "#65a30d", "#0891b2", "#475569"],
       shadowRgb: "24, 38, 66",
     },
@@ -150,6 +159,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f0f7f5", "100": "#deede9", "200": "#bedcd3", "300": "#91c4b5", "400": "#5ea993", "500": "#2c8e72", "600": "#047857", "700": "#05654d", "800": "#065544", "900": "#07463d", "950": "#083534" },
       neutral: { "50": "#fafbf9", "100": "#f4f7f3", "200": "#e7eae7", "300": "#dee2e0", "400": "#a4aaae" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#f6f4ee", "100": "#ede8dc", "200": "#d8cfb4", "300": "#beae82", "400": "#a18b4c", "500": "#8c7124", "600": "#7c5e06", "700": "#6a520a", "800": "#58450e", "900": "#483a12" },
       chart: ["#047857", "#ca8a04", "#2563eb", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#475569"],
       shadowRgb: "18, 54, 60",
     },
@@ -164,6 +174,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f0f6f9", "100": "#deecf3", "200": "#bdd8e7", "300": "#90bdd6", "400": "#5e9fc3", "500": "#2b81b0", "600": "#0369a1", "700": "#04598a", "800": "#064b75", "900": "#073e63", "950": "#08304e" },
       neutral: { "50": "#fafbfd", "100": "#f6f7fb", "200": "#e9eaef", "300": "#e0e2e7", "400": "#a6aab3" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#fbf2ee", "100": "#f6e4dd", "200": "#edc6b6", "300": "#e0a086", "400": "#d37650", "500": "#c95829", "600": "#c2410c", "700": "#a5390f", "800": "#873112", "900": "#6e2a15" },
       chart: ["#0369a1", "#ea580c", "#7c3aed", "#db2777", "#16a34a", "#65a30d", "#2563eb", "#475569"],
       shadowRgb: "18, 50, 78",
     },
@@ -178,6 +189,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f3f4f5", "100": "#e4e6e9", "200": "#caced3", "300": "#a5abb4", "400": "#7c8592", "500": "#545f70", "600": "#334155", "700": "#2c384b", "800": "#253043", "900": "#20293c", "950": "#192233" },
       neutral: { "50": "#fafafc", "100": "#f5f6f8", "200": "#e8e9ec", "300": "#dfe1e4", "400": "#a5a9b1" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#f3f6ee", "100": "#e6eddd", "200": "#cad8b7", "300": "#a6be87", "400": "#7fa152", "500": "#628c2c", "600": "#4d7c0f", "700": "#426b12", "800": "#385914", "900": "#2f4a17" },
       chart: ["#334155", "#65a30d", "#ca8a04", "#7c3aed", "#db2777", "#16a34a", "#0891b2", "#e11d48"],
       shadowRgb: "30, 40, 60",
     },
@@ -192,6 +204,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f1f6f3", "100": "#e1ebe5", "200": "#c2d7ca", "300": "#98bba6", "400": "#6a9c7d", "500": "#3b7e54", "600": "#166534", "700": "#145630", "800": "#12482d", "900": "#113c2a", "950": "#0f2f27" },
       neutral: { "50": "#fbf9f4", "100": "#f7f3ea", "200": "#eae6df", "300": "#e1ded8", "400": "#a6a7a8" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#f8f4ee", "100": "#f2e9dc", "200": "#e3d0b5", "300": "#d0b083", "400": "#bb8e4c", "500": "#ac7525", "600": "#a16207", "700": "#89550b", "800": "#71480f", "900": "#5c3c12" },
       chart: ["#166534", "#a16207", "#2563eb", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#475569"],
       shadowRgb: "23, 49, 51",
     },
@@ -206,6 +219,7 @@ export const THEME_PALETTES: ThemePalette[] = [
       brand: { "50": "#f1f7f8", "100": "#e0edf1", "200": "#c0dbe2", "300": "#95c2ce", "400": "#65a6b8", "500": "#358aa2", "600": "#0e7490", "700": "#0d627c", "800": "#0d526a", "900": "#0d445a", "950": "#0c3448" },
       neutral: { "50": "#f9fcfc", "100": "#f3f8fa", "200": "#e6ebee", "300": "#dde2e6", "400": "#a4aab2" },
       text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      accent: { "50": "#f3f6ee", "100": "#e6eddd", "200": "#cad8b7", "300": "#a6be87", "400": "#7fa152", "500": "#628c2c", "600": "#4d7c0f", "700": "#426b12", "800": "#385914", "900": "#2f4a17" },
       chart: ["#0e7490", "#65a30d", "#2563eb", "#ca8a04", "#7c3aed", "#db2777", "#16a34a", "#475569"],
       shadowRgb: "21, 53, 74",
     },
@@ -264,10 +278,11 @@ function systemCssVars(s: PaletteSystem | undefined): string {
   for (const [k, v] of Object.entries(s.brand)) out += `--sys-brand-${k}:${v};`;
   for (const [k, v] of Object.entries(s.neutral)) out += `--sys-neutral-${k}:${v};`;
   out += `--sys-muted:${s.text.muted};--sys-body:${s.text.body};--sys-ink:${s.text.ink};--sys-shadow-rgb:${s.shadowRgb};`;
+  for (const [k, v] of Object.entries(s.accent ?? {})) out += `--sys-accent-${k}:${v};`;
   (s.chart ?? []).forEach((c, i) => { out += `--sys-chart-${i + 1}:${c};--chart-${i + 1}-rgb:${hexToRgbTriplet(c)};`; });
   // Decorative accents (stat tiles, quick links, panel edges): the
-  // palette's own family — brand, accent, deep brand, light brand.
-  const decor = [s.brand["600"], s.chart?.[1] ?? s.brand["400"], s.brand["800"], s.brand["400"]];
+  // palette's own family — brand, accent, deep brand, light brand, light accent.
+  const decor = [s.brand["600"], s.chart?.[1] ?? s.brand["400"], s.brand["800"], s.brand["400"], s.accent?.["400"] ?? s.brand["300"]];
   decor.forEach((c, i) => { out += `--decor-${i + 1}-rgb:${hexToRgbTriplet(c)};`; });
   return out;
 }

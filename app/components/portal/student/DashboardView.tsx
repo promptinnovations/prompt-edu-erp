@@ -4,7 +4,7 @@ import type { DashboardInsights } from "../../../../modules/portal/student-insig
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { Sparkline, Timeline } from "../viz/charts";
-import { NEUTRAL, seriesColor, tint } from "../viz/palette";
+import { NEUTRAL, seriesColor, tint, decorColor } from "../viz/palette";
 import { AREA } from "./areas";
 import LatestDailyResults from "./LatestDailyResults";
 
@@ -118,7 +118,7 @@ export default function DashboardView({
       <LatestDailyResults days={d.latestDaily} monthHref={(id) => `/portal/student/exams/daily/${id}`} />
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Panel title="Coming up" subtitle="Exams and school events in the next weeks." color={seriesColor(6)} className="lg:col-span-3">
+        <Panel title="Coming up" subtitle="Exams and school events in the next weeks." color={decorColor(6)} className="lg:col-span-3">
           {d.upcoming.length === 0 ? (
             <EmptyNote>Nothing scheduled yet.</EmptyNote>
           ) : (
@@ -128,14 +128,14 @@ export default function DashboardView({
                 date: `${formatDateIST(u.start)}${u.end && u.end !== u.start ? ` – ${formatDateIST(u.end)}` : ""}`,
                 title: u.title,
                 meta: u.kind === "exam" ? "Examination" : ({ holiday: "Holiday", meeting: "Meeting", ptm: "Parent–teacher meeting", exam: "Exam", other: "Event" } as Record<string, string>)[u.type] ?? "Event",
-                color: u.kind === "exam" ? AREA.academics.color : u.type === "holiday" ? "#c7bda9" : u.type === "ptm" ? AREA.growth.color : seriesColor(6),
+                color: u.kind === "exam" ? AREA.academics.color : u.type === "holiday" ? "#a4aab0" : u.type === "ptm" ? AREA.growth.color : decorColor(6),
                 icon: u.kind === "exam" ? "✎" : u.type === "holiday" ? "☀" : "★",
               }))}
             />
           )}
         </Panel>
 
-        <Panel title="To do" subtitle="Things waiting for you." color={seriesColor(7)} className="lg:col-span-2">
+        <Panel title="To do" subtitle="Things waiting for you." color={decorColor(7)} className="lg:col-span-2">
           {todo.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-4 text-center">
               <span className="text-4xl" aria-hidden>🎉</span>

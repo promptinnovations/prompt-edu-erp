@@ -118,7 +118,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   const banner = ctx.viewingInstitutionAsSuperAdmin ? (
-    <div data-app-shell className="flex flex-col items-start gap-1 bg-accent-800 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div data-app-shell className="flex flex-col items-start gap-1 bg-primary-800 px-4 py-1.5 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <span>
         {ctx.viewingAsUser ? (
           <>

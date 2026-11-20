@@ -8,7 +8,7 @@ import SubmitAchievementForm from "./SubmitAchievementForm";
 import AchievementsTable from "./AchievementsTable";
 import { Panel } from "../../components/portal/viz/blocks";
 import { CountDonut, CountBars } from "../../components/staff/insights";
-import { seriesColor, STATUS_COLOR } from "../../components/portal/viz/palette";
+import { STATUS_COLOR, decorColor } from "../../components/portal/viz/palette";
 
 export default async function AchievementsPage() {
   const ctx = await requireRequestContext();
@@ -30,15 +30,15 @@ export default async function AchievementsPage() {
       {/* §Staff-pages-visual — achievements at a glance (same rows as the table). */}
       {achievements.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Panel title="By status" color={seriesColor(1)}>
+          <Panel title="By status" color={decorColor(1)}>
             <CountDonut rows={achievements} sub="entries" label={(a) => a.status.charAt(0).toUpperCase() + a.status.slice(1)}
               fixed={{ Approved: STATUS_COLOR.present, Pending: STATUS_COLOR.late, Rejected: STATUS_COLOR.absent }} />
           </Panel>
-          <Panel title="By category" color={seriesColor(1)}>
-            <CountBars rows={achievements.filter((a) => a.status === "approved")} label={(a) => a.category_name} color={seriesColor(1)} limit={7} />
+          <Panel title="By category" color={decorColor(1)}>
+            <CountBars rows={achievements.filter((a) => a.status === "approved")} label={(a) => a.category_name} color={decorColor(1)} limit={7} />
           </Panel>
-          <Panel title="By level" color={seriesColor(1)}>
-            <CountBars rows={achievements.filter((a) => a.status === "approved")} label={(a) => a.level_name} color={seriesColor(3)} limit={7} />
+          <Panel title="By level" color={decorColor(1)}>
+            <CountBars rows={achievements.filter((a) => a.status === "approved")} label={(a) => a.level_name} color={decorColor(3)} limit={7} />
           </Panel>
         </div>
       ) : null}

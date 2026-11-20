@@ -38,7 +38,7 @@ export default async function ParentGrowthPage({ searchParams }: { searchParams:
       data={data}
       headerExtra={<ChildPicker options={children} selectedChildId={selectedChildId} />}
       schoolNotes={incidents.length > 0 ? (
-        <Panel title="Notes from school" subtitle="Matters the school has recorded and may want to discuss with you." color="#79839a">
+        <Panel title="Notes from school" subtitle="Matters the school has recorded and may want to discuss with you." color="#8a919b">
           <ul className="divide-y divide-[var(--border-subtle)]">
             {incidents.map((d) => (
               <li key={d.id} className="py-2.5 text-sm">

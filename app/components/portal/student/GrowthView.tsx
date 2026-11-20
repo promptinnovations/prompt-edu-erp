@@ -3,7 +3,7 @@ import type { GrowthInsights } from "../../../../modules/portal/student-insights
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, EmptyNote } from "../viz/blocks";
 import { RadarChart, LineChart, Timeline } from "../viz/charts";
-import { seriesColor, tint } from "../viz/palette";
+import { seriesColor, tint, decorColor } from "../viz/palette";
 import { AREA } from "./areas";
 
 const RECOGNITION_ICONS = ["🌟", "🤝", "💡", "🎖️", "💪", "🌈", "🧭", "🏵️"];
@@ -50,7 +50,7 @@ export default function GrowthView({ data, headerExtra, schoolNotes }: { data: G
                   max={5}
                   rings={5}
                   series={[
-                    ...(previous ? [{ name: previous.period, color: "#c7bda9", values: data.attributes.map((a) => ratingOf(previous, a)) }] : []),
+                    ...(previous ? [{ name: previous.period, color: "#a4aab0", values: data.attributes.map((a) => ratingOf(previous, a)) }] : []),
                     { name: latest.period, color: AREA.growth.color, values: data.attributes.map((a) => ratingOf(latest, a)) },
                   ]}
                 />
@@ -104,9 +104,9 @@ export default function GrowthView({ data, headerExtra, schoolNotes }: { data: G
       {hasSummary ? (
         <div className="grid gap-4 md:grid-cols-3">
           {([
-            ["💪 Strengths", summary!.strengths, seriesColor(2)],
-            ["🎯 Areas to work on", summary!.areas_for_improvement, seriesColor(3)],
-            ["🚀 Goals", summary!.future_goals, seriesColor(0)],
+            ["💪 Strengths", summary!.strengths, decorColor(2)],
+            ["🎯 Areas to work on", summary!.areas_for_improvement, decorColor(3)],
+            ["🚀 Goals", summary!.future_goals, decorColor(0)],
           ] as const).map(([t, items, c]) => (
             <section key={t} className="rounded-card border p-5 shadow-card" style={{ borderColor: tint(c, 0.35), backgroundColor: tint(c, 0.06) }}>
               <h2 className="text-sm font-semibold text-[var(--heading)]">{t}</h2>
@@ -124,7 +124,7 @@ export default function GrowthView({ data, headerExtra, schoolNotes }: { data: G
         </div>
       ) : null}
 
-      <Panel title="Recognitions" subtitle="Good conduct your teachers have recorded." color={seriesColor(3)}>
+      <Panel title="Recognitions" subtitle="Good conduct your teachers have recorded." color={decorColor(3)}>
         {data.recognitions.length === 0 ? (
           <EmptyNote>Recognitions for good conduct will collect here as badges.</EmptyNote>
         ) : (
@@ -148,13 +148,13 @@ export default function GrowthView({ data, headerExtra, schoolNotes }: { data: G
       {schoolNotes}
 
       {data.mentoring.length > 0 ? (
-        <Panel title="Mentoring" subtitle="Notes from your mentor sessions." color={seriesColor(6)}>
+        <Panel title="Mentoring" subtitle="Notes from your mentor sessions." color={decorColor(6)}>
           <Timeline
             items={data.mentoring.map((m) => ({
               key: m.id,
               date: formatDateIST(m.date),
               title: `Session with ${m.mentor_name}`,
-              color: seriesColor(6),
+              color: decorColor(6),
               icon: "✦",
               aside: (
                 <div className="mt-1 space-y-0.5 text-xs text-zinc-600">

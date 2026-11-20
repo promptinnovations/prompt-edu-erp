@@ -9,7 +9,7 @@ import StudentForm from "./StudentForm";
 import StudentRowActions from "./StudentRowActions";
 import { Panel } from "../../components/portal/viz/blocks";
 import { DonutChart, HBars } from "../../components/portal/viz/charts";
-import { seriesColor } from "../../components/portal/viz/palette";
+import { decorColor } from "../../components/portal/viz/palette";
 
 /** §137 follow-up ("should be able edit, delete, search") — search box +
  *  class filter + a "show removed" toggle, all plain GET query params so
@@ -75,19 +75,19 @@ export default async function StudentsPage({
         const maxClass = Math.max(1, ...classRows.map(([, n]) => n));
         return (
           <div className="grid gap-6 lg:grid-cols-5">
-            <Panel title="Students in view" subtitle={`${active.length} active`} color={seriesColor(0)} className="lg:col-span-2">
+            <Panel title="Students in view" subtitle={`${active.length} active`} color={decorColor(0)} className="lg:col-span-2">
               <DonutChart
                 size={140} stroke={22} center={active.length} sub="students"
                 segments={[
-                  { label: "Boys", value: boys, color: seriesColor(0) },
-                  { label: "Girls", value: girls, color: seriesColor(4) },
-                  ...(active.length - boys - girls > 0 ? [{ label: "Not recorded", value: active.length - boys - girls, color: "#79839a" }] : []),
+                  { label: "Boys", value: boys, color: decorColor(0) },
+                  { label: "Girls", value: girls, color: decorColor(4) },
+                  ...(active.length - boys - girls > 0 ? [{ label: "Not recorded", value: active.length - boys - girls, color: "#8a919b" }] : []),
                 ]}
               />
             </Panel>
-            <Panel title="Strength by class" color={seriesColor(0)} className="lg:col-span-3">
+            <Panel title="Strength by class" color={decorColor(0)} className="lg:col-span-3">
               <div className="max-h-72 overflow-y-auto pr-1">
-                <HBars unit="" max={maxClass} rows={classRows.map(([label, n]) => ({ label, value: n, color: seriesColor(0), suffix: "" }))} />
+                <HBars unit="" max={maxClass} rows={classRows.map(([label, n]) => ({ label, value: n, color: decorColor(0), suffix: "" }))} />
               </div>
             </Panel>
           </div>

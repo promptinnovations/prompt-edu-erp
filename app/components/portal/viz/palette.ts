@@ -12,15 +12,15 @@ export { CHART_SERIES, seriesColor, decorColor };
 /** Attendance states — reserved for status, never reused as a series
  *  colour, and always shown with a text label / legend. */
 export const STATUS_COLOR = {
-  present: "#1baf7a",
-  late: "#eda100",
-  absent: "#e34948",
-  holiday: "#c7bda9",
-  none: "#efeae0",
+  present: "#15803d",
+  late: "rgb(var(--decor-2-rgb, 234, 88, 12))",
+  absent: "#b91c1c",
+  holiday: "#a4aab0",
+  none: "#e7ebeb",
 } as const;
 
 /** Neutral used when an institution's grade band has no colour set. */
-export const NEUTRAL = "#79839a";
+export const NEUTRAL = "#8a919b";
 
 /** `#rrggbb` + alpha → `rgba(...)`, for soft tinted fills behind a mark. */
 export function tint(hex: string, alpha: number): string {

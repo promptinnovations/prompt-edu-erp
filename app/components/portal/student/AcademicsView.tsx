@@ -4,7 +4,7 @@ import type { AcademicInsights, ExamOutcome } from "../../../../modules/portal/s
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { LineChart, HBars, RadarChart, GradeChips, RingGauge } from "../viz/charts";
-import { NEUTRAL, seriesColor, tint } from "../viz/palette";
+import { NEUTRAL, seriesColor, tint, decorColor } from "../viz/palette";
 import { AREA } from "./areas";
 
 function avg(xs: number[]): number | null {
@@ -58,12 +58,12 @@ export default function AcademicsView({ data, reportCardHref, dailyHref, headerE
               <RingGauge value={overallAvg} color={AREA.academics.color} size={56} stroke={7} center=" " />
             </StatTile>
             <StatTile
-              label="Change since last exam" icon={change != null && change < 0 ? "📉" : "🚀"} color={change != null && change < 0 ? seriesColor(7) : seriesColor(2)}
+              label="Change since last exam" icon={change != null && change < 0 ? "📉" : "🚀"} color={change != null && change < 0 ? decorColor(7) : decorColor(2)}
               value={change == null ? "—" : `${change > 0 ? "+" : ""}${change}%`}
               sub={previous && latest ? `${previous.name} → ${latest.name}` : "Needs two exams"}
             />
-            <StatTile label="Strongest subject" icon="⭐" color={seriesColor(3)} value={best ? best.subject_name : "—"} sub={best ? `${best.percent}% in ${latest?.name}` : undefined} />
-            <StatTile label="Give extra attention to" icon="🎯" color={seriesColor(4)} value={focus && focus !== best ? focus.subject_name : "—"} sub={focus && focus !== best ? `${focus.percent}% in ${latest?.name}` : undefined} />
+            <StatTile label="Strongest subject" icon="⭐" color={decorColor(3)} value={best ? best.subject_name : "—"} sub={best ? `${best.percent}% in ${latest?.name}` : undefined} />
+            <StatTile label="Give extra attention to" icon="🎯" color={decorColor(4)} value={focus && focus !== best ? focus.subject_name : "—"} sub={focus && focus !== best ? `${focus.percent}% in ${latest?.name}` : undefined} />
           </section>
 
           <div className="grid gap-6 xl:grid-cols-2">
@@ -97,7 +97,7 @@ export default function AcademicsView({ data, reportCardHref, dailyHref, headerE
                   axes={subjectNames}
                   unit="%"
                   series={[
-                    { name: "Average of all exams", color: seriesColor(1), values: subjectAvg.map((s) => s.avg) },
+                    { name: "Average of all exams", color: decorColor(1), values: subjectAvg.map((s) => s.avg) },
                     ...(exams.length > 1 && latest ? [{ name: latest.name, color: AREA.academics.color, values: subjectNames.map((n) => latest.subjects.find((s) => s.subject_name === n)?.percent ?? null) }] : []),
                   ]}
                 />
@@ -136,7 +136,7 @@ export default function AcademicsView({ data, reportCardHref, dailyHref, headerE
                             <td
                               key={e.examination_id}
                               className="rounded-md px-2 py-1.5 text-center tabular-nums"
-                              style={p != null ? { backgroundColor: tint(c, 0.1 + (p / 100) * 0.45), color: "var(--foreground)", fontWeight: 600 } : { backgroundColor: "#f7f4ee" }}
+                              style={p != null ? { backgroundColor: tint(c, 0.1 + (p / 100) * 0.45), color: "var(--foreground)", fontWeight: 600 } : { backgroundColor: "var(--background)" }}
                               title={s ? `${n} · ${e.name}: ${s.absent ? "Absent" : p != null ? `${p}%${s.grade_label ? ` (${s.grade_label})` : ""}` : "—"}` : `${n} not in ${e.name}`}
                             >
                               {s ? (s.absent ? "AB" : p != null ? `${Math.round(p)}` : "—") : ""}
@@ -180,14 +180,14 @@ export default function AcademicsView({ data, reportCardHref, dailyHref, headerE
       )}
 
       {data.dailyAssessments.length > 0 ? (
-        <Panel title="Daily assessments" subtitle="Month-by-month total of class-work tests. Tap a month to see every test." color={seriesColor(5)}>
+        <Panel title="Daily assessments" subtitle="Month-by-month total of class-work tests. Tap a month to see every test." color={decorColor(5)}>
           {(() => {
             const rows = [...data.dailyAssessments].reverse();
             const pct = (r: (typeof rows)[number]) => Number(r.cumulative_max_marks) > 0 ? Math.round((Number(r.cumulative_marks_obtained) / Number(r.cumulative_max_marks)) * 1000) / 10 : null;
             return (
               <div className="space-y-4">
                 {rows.length > 1 ? (
-                  <LineChart labels={rows.map((r) => r.examination_name.replace(/daily assessments?\s*[—-]?\s*/i, ""))} series={[{ name: "Monthly %", color: seriesColor(5), values: rows.map(pct) }]} height={200} />
+                  <LineChart labels={rows.map((r) => r.examination_name.replace(/daily assessments?\s*[—-]?\s*/i, ""))} series={[{ name: "Monthly %", color: decorColor(5), values: rows.map(pct) }]} height={200} />
                 ) : null}
                 <ul className="flex flex-wrap gap-2">
                   {[...rows].reverse().map((r) => (
@@ -211,7 +211,7 @@ export default function AcademicsView({ data, reportCardHref, dailyHref, headerE
       ) : null}
 
       {breakdown.length > 0 && data.consolidated ? (
-        <Panel title="Consolidated score" subtitle={`${data.consolidated.period} · overall ${data.consolidated.score}`} color={seriesColor(6)}>
+        <Panel title="Consolidated score" subtitle={`${data.consolidated.period} · overall ${data.consolidated.score}`} color={decorColor(6)}>
           <HBars
             unit=""
             max={Math.max(100, ...breakdown.map(([, v]) => Number(v) || 0))}

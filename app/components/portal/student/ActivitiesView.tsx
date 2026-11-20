@@ -3,7 +3,7 @@ import type { ActivityInsights } from "../../../../modules/portal/student-insigh
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { PageHeader, Panel, StatTile, EmptyNote } from "../viz/blocks";
 import { DonutChart, HBars, Timeline } from "../viz/charts";
-import { CHART_SERIES, NEUTRAL, seriesColor, tint } from "../viz/palette";
+import { CHART_SERIES, NEUTRAL, tint, decorColor } from "../viz/palette";
 import { AREA } from "./areas";
 
 function medal(position: string | null): { icon: string; label: string } {
@@ -28,11 +28,11 @@ function countBy<T>(xs: T[], key: (x: T) => string): { label: string; value: num
 }
 
 const STATUS_CHIP: Record<string, { text: string; bg: string; fg: string }> = {
-  approved: { text: "Approved", bg: "#e6f4ec", fg: "#1f7a4d" },
-  submitted: { text: "Awaiting review", bg: "#fdf1dc", fg: "#8a5b0c" },
-  pending_review: { text: "Awaiting review", bg: "#fdf1dc", fg: "#8a5b0c" },
-  returned: { text: "Returned for changes", bg: "#e4f1f6", fg: "#1f6f8c" },
-  rejected: { text: "Not approved", bg: "#fbeaec", fg: "#a72f3a" },
+  approved: { text: "Approved", bg: "#ecf7f0", fg: "#15803d" },
+  submitted: { text: "Awaiting review", bg: "var(--color-warning-soft)", fg: "var(--color-warning)" },
+  pending_review: { text: "Awaiting review", bg: "var(--color-warning-soft)", fg: "var(--color-warning)" },
+  returned: { text: "Returned for changes", bg: "var(--color-info-soft)", fg: "var(--color-info)" },
+  rejected: { text: "Not approved", bg: "#fbeaea", fg: "#b91c1c" },
 };
 
 /** §Student-portal-visual-redesign — Achievements & activities: the
@@ -56,9 +56,9 @@ export default function ActivitiesView({ data, forms, headerExtra }: { data: Act
 
       <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatTile label="Awards" icon="🏆" color={AREA.achievements.color} value={a.length} sub={points > 0 ? `${points} points earned` : undefined} />
-        <StatTile label="Podium finishes" icon="🥇" color={seriesColor(3)} value={podium} sub="1st, 2nd or 3rd place" />
-        <StatTile label="Certificates" icon="📜" color={seriesColor(0)} value={certificates.length} />
-        <StatTile label="Activities" icon="🎨" color={seriesColor(2)} value={data.activities.filter((x) => x.status === "approved").length} sub={`${data.activities.length} submitted in all`} />
+        <StatTile label="Podium finishes" icon="🥇" color={decorColor(3)} value={podium} sub="1st, 2nd or 3rd place" />
+        <StatTile label="Certificates" icon="📜" color={decorColor(0)} value={certificates.length} />
+        <StatTile label="Activities" icon="🎨" color={decorColor(2)} value={data.activities.filter((x) => x.status === "approved").length} sub={`${data.activities.length} submitted in all`} />
       </section>
 
       <Panel title="Badge collection" subtitle="Every approved award. Hover a badge for details." color={AREA.achievements.color}>
@@ -117,7 +117,7 @@ export default function ActivitiesView({ data, forms, headerExtra }: { data: Act
       ) : null}
 
       {certificates.length > 0 ? (
-        <Panel title="Certificate gallery" subtitle="Tap a certificate to open it." color={seriesColor(0)}>
+        <Panel title="Certificate gallery" subtitle="Tap a certificate to open it." color={decorColor(0)}>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {certificates.map((x) => (
               <li key={x.id}>
@@ -129,7 +129,7 @@ export default function ActivitiesView({ data, forms, headerExtra }: { data: Act
                 >
                   <span
                     className="flex aspect-[4/3] items-center justify-center rounded-lg border-2 border-double text-3xl"
-                    style={{ borderColor: tint(seriesColor(3), 0.7), backgroundColor: tint(seriesColor(3), 0.08) }}
+                    style={{ borderColor: tint(decorColor(3), 0.7), backgroundColor: tint(decorColor(3), 0.08) }}
                     aria-hidden
                   >
                     📜
@@ -143,7 +143,7 @@ export default function ActivitiesView({ data, forms, headerExtra }: { data: Act
         </Panel>
       ) : null}
 
-      <Panel title="Co-curricular activities" subtitle="Activities submitted and where each one stands." color={seriesColor(2)}>
+      <Panel title="Co-curricular activities" subtitle="Activities submitted and where each one stands." color={decorColor(2)}>
         {data.activities.length === 0 ? (
           <EmptyNote>No activities submitted yet.</EmptyNote>
         ) : (

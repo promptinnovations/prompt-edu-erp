@@ -125,7 +125,7 @@ export default function GroupedNavLinks({ items, institutionCode }: { items: Nav
     [
       "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left font-medium transition-colors",
       active
-        ? "bg-[var(--sidebar-active)] text-[var(--sidebar-active-text)] [&_svg]:text-[var(--sidebar-active-text)]"
+        ? "bg-[var(--sidebar-active)] text-[var(--sidebar-active-text)] [&_svg]:text-[var(--sidebar-active-text)] relative before:absolute before:left-0 before:top-1/2 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[var(--accent-teal)]"
         : "text-[var(--sidebar-text)] hover:bg-[var(--sidebar-active)]/60",
     ].join(" ");
 
@@ -133,7 +133,7 @@ export default function GroupedNavLinks({ items, institutionCode }: { items: Nav
     [
       "block rounded-lg px-2.5 py-1.5 text-[13px] transition-colors",
       active
-        ? "bg-[var(--sidebar-active)] font-medium text-[var(--sidebar-active-text)]"
+        ? "bg-[var(--sidebar-active)] font-medium text-[var(--sidebar-active-text)] relative before:absolute before:left-0 before:top-1/2 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[var(--accent-teal)]"
         : "text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-active)]/50 hover:text-[var(--sidebar-text)]",
     ].join(" ");
 
@@ -196,7 +196,7 @@ export default function GroupedNavLinks({ items, institutionCode }: { items: Nav
       {visible.map((entry, i) => {
         if (entry.kind === "heading") {
           return (
-            <div key={`h:${entry.label}`} className={`${i === 0 ? "" : "mt-3"} px-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--sidebar-text-muted)]`}>
+            <div key={`h:${entry.label}`} className={`${i === 0 ? "" : "mt-3"} px-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--sidebar-active-text)] opacity-75`}>
               {entry.label}
             </div>
           );

@@ -16,7 +16,7 @@ import RichTextContent from "../../components/RichTextContent";
 import LibraryCatalogueGrid from "./LibraryCatalogueGrid";
 import { Panel, StatTile } from "../../components/portal/viz/blocks";
 import { DonutChart, HBars } from "../../components/portal/viz/charts";
-import { seriesColor, STATUS_COLOR } from "../../components/portal/viz/palette";
+import { STATUS_COLOR, decorColor } from "../../components/portal/viz/palette";
 
 export default async function LibraryPage() {
   const ctx = await requireRequestContext();
@@ -62,22 +62,22 @@ export default async function LibraryPage() {
         return (
           <div className="space-y-6">
             <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatTile label="Titles" icon="📚" color={seriesColor(3)} value={books.length} sub={`${copies} copies`} />
-              <StatTile label="On loan" icon="🎒" color={seriesColor(0)} value={issued.length} />
-              <StatTile label="Overdue" icon="⏰" color={seriesColor(7)} value={overdue} />
-              <StatTile label="Holds & reviews" icon="📦" color={seriesColor(4)} value={holds.length + pendingReviews.length} sub={`${holds.length} holds · ${pendingReviews.length} reviews`} />
+              <StatTile label="Titles" icon="📚" color={decorColor(3)} value={books.length} sub={`${copies} copies`} />
+              <StatTile label="On loan" icon="🎒" color={decorColor(0)} value={issued.length} />
+              <StatTile label="Overdue" icon="⏰" color={decorColor(7)} value={overdue} />
+              <StatTile label="Holds & reviews" icon="📦" color={decorColor(4)} value={holds.length + pendingReviews.length} sub={`${holds.length} holds · ${pendingReviews.length} reviews`} />
             </section>
             {books.length > 0 ? (
               <div className="grid gap-6 lg:grid-cols-5">
-                <Panel title="Copies" color={seriesColor(3)} className="lg:col-span-2">
+                <Panel title="Copies" color={decorColor(3)} className="lg:col-span-2">
                   <DonutChart size={140} stroke={22} center={copies} sub="copies" segments={[
                     { label: "On the shelf", value: available, color: STATUS_COLOR.present },
-                    { label: "On loan / other", value: Math.max(0, copies - available - overdue), color: seriesColor(0) },
+                    { label: "On loan / other", value: Math.max(0, copies - available - overdue), color: decorColor(0) },
                     { label: "Overdue", value: overdue, color: STATUS_COLOR.absent },
                   ]} />
                 </Panel>
-                <Panel title="Titles by category" color={seriesColor(3)} className="lg:col-span-3">
-                  <HBars unit="" max={Math.max(1, ...cats.map(([, n]) => n))} rows={cats.map(([label, n]) => ({ label, value: n, color: seriesColor(3), suffix: "" }))} />
+                <Panel title="Titles by category" color={decorColor(3)} className="lg:col-span-3">
+                  <HBars unit="" max={Math.max(1, ...cats.map(([, n]) => n))} rows={cats.map(([label, n]) => ({ label, value: n, color: decorColor(3), suffix: "" }))} />
                 </Panel>
               </div>
             ) : null}

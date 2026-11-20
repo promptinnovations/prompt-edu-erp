@@ -11,22 +11,22 @@ import { todayIST, formatDateIST } from "../../../services/datetime/ist";
 import { Panel } from "../../components/portal/viz/blocks";
 import { Timeline } from "../../components/portal/viz/charts";
 import { CountDonut } from "../../components/staff/insights";
-import { seriesColor } from "../../components/portal/viz/palette";
+import { decorColor } from "../../components/portal/viz/palette";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   holiday: "Holiday", exam: "Exam", meeting: "Meeting", ptm: "PTM", other: "Other",
 };
 const EVENT_TYPE_DOT: Record<string, string> = {
-  holiday: "bg-rose-500", exam: "bg-amber-500", meeting: "bg-sky-500", ptm: "bg-accent-500", other: "bg-zinc-400",
+  holiday: "bg-rose-500", exam: "bg-amber-500", meeting: "bg-sky-500", ptm: "bg-primary-400", other: "bg-zinc-400",
 };
 const EVENT_TYPE_BORDER: Record<string, string> = {
-  holiday: "border-l-rose-500", exam: "border-l-amber-500", meeting: "border-l-sky-500", ptm: "border-l-accent-500", other: "border-l-zinc-400",
+  holiday: "border-l-rose-500", exam: "border-l-amber-500", meeting: "border-l-sky-500", ptm: "border-l-primary-400", other: "border-l-zinc-400",
 };
 const EVENT_TYPE_BADGE: Record<string, string> = {
   holiday: "bg-rose-100 text-rose-700",
   exam: "bg-amber-100 text-amber-700",
   meeting: "bg-sky-100 text-sky-700",
-  ptm: "bg-accent-100 text-accent-800",
+  ptm: "bg-primary-100 text-primary-800",
   other: "bg-zinc-100 text-zinc-600",
 };
 
@@ -62,11 +62,11 @@ export default async function CalendarPage() {
           as the lists below). */}
       {allEvents.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Panel title="Events by type" color={seriesColor(6)}>
+          <Panel title="Events by type" color={decorColor(6)}>
             <CountDonut rows={allEvents} sub="events" label={(e) => ({ holiday: "Holiday", exam: "Exam", meeting: "Meeting", ptm: "PTM", other: "Other" } as Record<string, string>)[e.event_type] ?? e.event_type}
-              fixed={{ Holiday: "#e34948", Exam: "#eda100", Meeting: "#2a78d6", PTM: "#e87ba4", Other: "#79839a" }} />
+              fixed={{ Holiday: "#b91c1c", Exam: "rgb(var(--decor-2-rgb, 234, 88, 12))", Meeting: "rgb(var(--decor-1-rgb, 15, 118, 110))", PTM: "rgb(var(--decor-4-rgb, 101, 167, 162))", Other: "#8a919b" }} />
           </Panel>
-          <Panel title="Next up" subtitle={`${upcoming.length} upcoming`} color={seriesColor(6)} className="lg:col-span-2">
+          <Panel title="Next up" subtitle={`${upcoming.length} upcoming`} color={decorColor(6)} className="lg:col-span-2">
             {upcoming.length === 0 ? (
               <p className="py-6 text-center text-sm text-zinc-500">Nothing scheduled.</p>
             ) : (
@@ -74,7 +74,7 @@ export default async function CalendarPage() {
                 key: e.id, title: e.title,
                 date: `${formatDate(e.start_date)}${e.end_date && e.end_date !== e.start_date ? ` – ${formatDate(e.end_date)}` : ""}`,
                 meta: e.description ?? undefined,
-                color: ({ holiday: "#e34948", exam: "#eda100", meeting: "#2a78d6", ptm: "#e87ba4" } as Record<string, string>)[e.event_type] ?? "#79839a",
+                color: ({ holiday: "#b91c1c", exam: "rgb(var(--decor-2-rgb, 234, 88, 12))", meeting: "rgb(var(--decor-1-rgb, 15, 118, 110))", ptm: "rgb(var(--decor-4-rgb, 101, 167, 162))" } as Record<string, string>)[e.event_type] ?? "#8a919b",
                 icon: e.event_type === "holiday" ? "☀" : e.event_type === "exam" ? "✎" : "★",
               }))} />
             )}
