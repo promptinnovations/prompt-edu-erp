@@ -26,8 +26,11 @@ beforeAll(async () => {
   auth = admin.authUserId; uid = admin.userId;
   const cur = (await getCurrentAcademicYear(A, auth))!;
   thisYear = cur.id;
-  const prevStart = `${Number(cur.start_date.slice(0, 4)) - 1}${cur.start_date.slice(4)}`;
-  const dayBefore = new Date(Date.parse(`${cur.start_date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+  // The test database may hand dates back as Date objects or as strings.
+  const raw = cur.start_date as unknown;
+  const start = raw instanceof Date ? raw.toISOString().slice(0, 10) : String(raw).slice(0, 10);
+  const prevStart = `${Number(start.slice(0, 4)) - 1}${start.slice(4)}`;
+  const dayBefore = new Date(Date.parse(`${start}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
   lastYear = (await createAcademicYear(A, auth, uid, { name: "Last year", startDate: prevStart, endDate: dayBefore, isCurrent: false })).id;
   const c5 = await createClass(A, auth, uid, { name: "Grade 5", sortOrder: 1 });
   const c6 = await createClass(A, auth, uid, { name: "Grade 6", sortOrder: 2 });
