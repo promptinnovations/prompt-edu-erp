@@ -26,6 +26,7 @@ import { getEnabledModuleCodes } from "../../../services/modules/module-service"
 const STUDENT_NAV_ITEMS: NavItem[] = [
   { href: "/portal/student", label: "Dashboard" },
   { href: "/portal/student/exams", label: "Academics" },
+  { href: "/portal/student/homework", label: "Homework & syllabus" },
   { href: "/portal/student/attendance", label: "Attendance" },
   { href: "/portal/student/growth", label: "Growth & conduct" },
   { href: "/portal/student/portfolio", label: "Achievements" },
@@ -59,6 +60,7 @@ function parentNavItems(
   const items: (NavItem | null)[] = [
     { href: "/portal/parent", label: "Dashboard" },
     s.results ? { href: "/portal/parent/results", label: "Academics" } : null,
+    can(perms, "homework.view") ? { href: "/portal/parent/homework", label: "Homework & syllabus" } : null,
     s.attendance || can(perms, "attendance.leave.apply") ? { href: "/portal/parent/attendance", label: s.attendance ? "Attendance & leave" : "Leave" } : null,
     s.character || s.mentoring || s.portfolio || s.discipline ? { href: "/portal/parent/growth", label: "Growth & conduct" } : null,
     s.achievements || s.skills ? { href: "/portal/parent/portfolio", label: "Achievements" } : null,

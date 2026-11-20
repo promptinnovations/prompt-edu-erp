@@ -377,7 +377,7 @@ export interface DashboardInsights {
   achievements: { total: number; podium: number };
   booksRead: number;
   upcoming: { id: string; kind: "exam" | "event"; title: string; type: string; start: string; end: string | null }[];
-  todo: { readyToCollect: number; overdue: number; reviewsToWrite: number; awaitingApproval: number };
+  todo: { readyToCollect: number; overdue: number; reviewsToWrite: number; awaitingApproval: number; homeworkDue: number };
   kudos: { id: string; kind: string; message: string | null; from: string; date: string }[];
   /** §Dashboard-latest-daily — the student's two most recent Daily
    *  Assessment test days (newest first), live as soon as marks are saved. */
@@ -443,7 +443,14 @@ export async function getDashboardInsights(institutionId: string, authUserId: st
          (select count(*)::int from book_issues where student_id = $1 and status = 'issued' and due_date < current_date) as overdue,
          (select count(*)::int from reading_records where student_id = $1 and review_status = 'pending' and coalesce(review_text, '') = '') as "reviewsToWrite",
          ((select count(*)::int from achievements where student_id = $1 and status = 'pending')
-          + (select count(*)::int from skill_submissions where student_id = $1 and status in ('submitted', 'pending_review'))) as "awaitingApproval"`,
+          + (select count(*)::int from skill_submissions where student_id = $1 and status in ('submitted', 'pending_review'))) as "awaitingApproval",
+         -- Homework (migration 0072) due today or later and not ticked done.
+         (select count(*)::int from student_enrollments se
+            join homework h on h.class_id = se.class_id and h.academic_year_id = se.academic_year_id
+                 and (h.section_id is null or h.section_id = se.section_id)
+           where se.student_id = $1 and se.status = 'active' and h.due_date >= current_date
+             and se.academic_year_id = (select id from academic_years where is_current = true limit 1)
+             and not exists (select 1 from homework_done d where d.homework_id = h.id and d.student_id = $1)) as "homeworkDue"`,
       [studentId]
     );
     const { rows: kudos } = await scoped.query<DashboardInsights["kudos"][number]>(
@@ -505,7 +512,7 @@ export async function getDashboardInsights(institutionId: string, authUserId: st
       achievements: { total: ach[0]?.total ?? 0, podium: ach[0]?.podium ?? 0 },
       booksRead: books[0]?.n ?? 0,
       upcoming,
-      todo: todo[0] ?? { readyToCollect: 0, overdue: 0, reviewsToWrite: 0, awaitingApproval: 0 },
+      todo: todo[0] ?? { readyToCollect: 0, overdue: 0, reviewsToWrite: 0, awaitingApproval: 0, homeworkDue: 0 },
       kudos,
       latestDaily,
     };

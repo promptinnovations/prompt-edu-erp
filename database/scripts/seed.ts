@@ -102,7 +102,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
   );
 
   const roleGrants: Record<string, string[]> = {
-    management: ["events.manage", "events.judge", "events.view",
+    management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", 
       // §"there should be an option for editing marks even after submission
       // with the permission of principal" — correctMark()/correctMarkAction()
       // already existed and were already wired into the marks-entry grid's
@@ -124,7 +124,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
       // planning is an office job, same audience as academic.promote.
       "examinations.seating.manage",
     ],
-    teacher: ["events.judge", "events.view",
+    teacher: ["events.judge", "events.view", "homework.set", "homework.view", 
       "student.view", "marks.view", "marks.enter", "marks.verify",
       "attendance.view", "attendance.enter", "attendance.leave.review_own_class", "skills.review",
       "achievements.submit", "portfolio.view_own", "discipline.record",
@@ -150,10 +150,10 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     // Result Analysis & Reporting spec "Section Head defaults to own
     // section" (stage) — same reports.view + page-level scoping treatment
     // as teacher above, via getStaffSectionScope().
-    section_head: ["events.judge", "events.view", "student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "reports.view", "messages.view"],
+    section_head: ["events.judge", "events.view", "homework.set", "homework.view", "student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "reports.view", "messages.view"],
     librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view", "messages.view"],
-    parent: ["events.view", "student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view", "fees.pay_own", "messages.send_to_staff", "kudos.send"],
-    student: ["events.view", "events.enrol_self", "student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],
+    parent: ["events.view", "homework.view", "student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view", "fees.pay_own", "messages.send_to_staff", "kudos.send"],
+    student: ["events.view", "events.enrol_self", "homework.view", "student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],
     staff: ["events.judge", "events.view", "staff.view", "announcements.view", "calendar.view", "substitution.view", "messages.view"],
     // Phase D §1/§2 — "admin or account staff will update payment status".
     accounts_staff: ["fees.manage", "fees.collect", "fees.view", "accounts.manage", "accounts.view"],

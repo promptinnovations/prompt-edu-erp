@@ -20,7 +20,7 @@ import {
   DashboardIcon, AcademicIcon, StudentIcon, AttendanceIcon, ExamIcon, ResultIcon, LibraryIcon,
   StaffIcon, SkillsIcon, DisciplineIcon, MentoringIcon, AnalysisIcon, PrintIcon,
   UsersIcon, SettingsIcon, SuperAdminIcon, ImportIcon, AnnouncementIcon, StorageIcon,
-  CalendarIcon, SubstitutionIcon, FeesIcon, AccountsIcon, MessagesIcon, EventsIcon,
+  CalendarIcon, SubstitutionIcon, FeesIcon, AccountsIcon, MessagesIcon, EventsIcon, HomeworkIcon,
 } from "../components/NavIcons";
 import { setLocaleAction, signOutAction, exitSuperAdminViewAction, exitSamplePortalAction } from "./actions";
 
@@ -339,6 +339,8 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasReportsAccess ? [{ kind: "link" as const, href: "/analysis", label: "Analysis", icon: ni(AnalysisIcon) }] : []),
     ...(hasSubstitutionAccess ? [{ kind: "link" as const, href: "/substitution", label: "Substitution", icon: ni(SubstitutionIcon) }] : []),
     ...(hasCalendarAccess ? [{ kind: "link" as const, href: "/calendar", label: "Academic Calendar", icon: ni(CalendarIcon) }] : []),
+    // Homework (migration 0072): teachers for their classes, management for all.
+    ...(ctx.isSuperAdmin || can(ctx.permissions, "homework.set") ? [{ kind: "link" as const, href: "/homework", label: "Homework", icon: ni(HomeworkIcon) }] : []),
     ...(hasFeesAccess ? [{ kind: "link" as const, href: "/fees", label: "Fees", icon: ni(FeesIcon) }] : []),
     ...(hasAccountsAccess ? [{ kind: "link" as const, href: "/accounts", label: "Accounts", icon: ni(AccountsIcon) }] : []),
     ...(hasMessagesAccess ? [{ kind: "link" as const, href: "/messages", label: "Messages", icon: ni(MessagesIcon) }] : []),
@@ -373,7 +375,7 @@ export default async function InstitutionLayout({ children }: { children: React.
   // at the end, and a heading with nothing under it isn't shown.
   const NAV_ORDER: Array<string | { heading: string }> = [
     "/dashboard",
-    { heading: "Academics" }, "/classes", "Academic Structure", "Attendance", "Examination", "Result", "/calendar", "/substitution",
+    { heading: "Academics" }, "/classes", "Academic Structure", "Attendance", "Examination", "Result", "/homework", "/calendar", "/substitution",
     { heading: "People" }, "Student Management", "Staff",
     { heading: "Student life" }, "Skills & Achievements", "Events & Activities", "Discipline", "Mentoring", "Library",
     { heading: "Reports" }, "/analysis", "/print",

@@ -42,6 +42,8 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   "messages",
   // events/ — Events & Activities (migration 0070), same reason as above.
   "events",
+  // homework/ — Homework (migration 0072).
+  "homework",
   // Public Learner Record verification page (app/verify/[token]).
   "verify",
 ]);

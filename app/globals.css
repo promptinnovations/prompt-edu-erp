@@ -497,7 +497,14 @@ table tbody tr:hover {
  *     field (or a whole form sitting in a row) that is still too wide on a
  *     line of its own shrinks to the screen;
  *   - long unbroken text (e-mail addresses, file names, URLs) wraps.
- * Wide tables keep scrolling inside their own overflow-x-auto box. */
+ * Wide tables keep scrolling inside their own overflow-x-auto box.
+ *
+ * These are DEFAULTS, so they live in the base layer: an explicit utility on
+ * an element (min-w-[12rem] on a hero's text column, max-w-* on a control)
+ * still wins. Unlayered, "min-width: 0" beat every min-w-* class and a
+ * flex-wrap row squeezed its text into a one-letter-wide column instead of
+ * wrapping (the student dashboard greeting on a phone). */
+@layer base {
 @media screen {
   main select,
   main textarea,
@@ -518,6 +525,7 @@ table tbody tr:hover {
   main {
     overflow-wrap: break-word;
   }
+}
 }
 
 /* §Mobile-overflow — the report card is an A4 sheet. On a screen narrower

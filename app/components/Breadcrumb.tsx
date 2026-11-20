@@ -80,6 +80,8 @@ const ROUTES: Record<string, Crumb[]> = {
   "/substitution/report": [["Substitution", "/substitution"], ["Report"]],
   "/substitution/timetable": [["Substitution", "/substitution"], ["Timetable"]],
   "/calendar": [["Academic calendar"]],
+  "/homework": [["Homework"]],
+  "/homework/*": [["Homework", "/homework"], ["Homework details"]],
   "/fees": [["Fees"]],
   "/accounts": [["Accounts"]],
   "/messages": [["Messages"]],
@@ -101,6 +103,8 @@ const ROUTES: Record<string, Crumb[]> = {
   "/portal/student": [["Student Portal"]],
   "/portal/parent": [["Parent Portal"]],
   "/portal/student/events": [["Student Portal", "/portal/student"], ["Events"]],
+  "/portal/student/homework": [["Student Portal", "/portal/student"], ["Homework & syllabus"]],
+  "/portal/parent/homework": [["Parent Portal", "/portal/parent"], ["Homework & syllabus"]],
   "/portal/parent/events": [["Parent Portal", "/portal/parent"], ["Events"]],
 };
 

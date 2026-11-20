@@ -208,7 +208,7 @@ describe("resolveInstitutionRouting() via middleware() -- real app-page segments
   // "/<itself>/login".
   const realAppPages = [
     "dashboard", "messages", "fees", "accounts", "scoring", "settings",
-    "print", "analysis", "results", "calendar", "substitution", "events",
+    "print", "analysis", "results", "calendar", "substitution", "events", "homework",
   ];
 
   it.each(realAppPages)("does not treat bare /%s as an institution code (no redirect to /%s/login)", async (page) => {

@@ -23,6 +23,7 @@ export default function DashboardView({
   const latest = d.recentExams[d.recentExams.length - 1] ?? null;
 
   const todo = [
+    { n: d.todo.homeworkDue ?? 0, text: "homework to finish", plural: "pieces of homework to finish", href: "/portal/student/homework", icon: "📝" },
     { n: d.todo.readyToCollect, text: "book ready to collect", plural: "books ready to collect", href: AREA.reading.href, icon: "📦" },
     { n: d.todo.overdue, text: "library book overdue", plural: "library books overdue", href: AREA.reading.href, icon: "⏰" },
     { n: d.todo.reviewsToWrite, text: "book review to write", plural: "book reviews to write", href: AREA.reading.href, icon: "✍️" },

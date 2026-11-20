@@ -20,7 +20,8 @@ export function PageHeader({ title, subtitle, icon, color, children }: {
         <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl shadow-sm" style={{ backgroundColor: color }}>
           <span className="drop-shadow-sm"><ThemeIcon icon={icon} color="#ffffff" size={24} /></span>
         </span>
-        <div className="min-w-0 flex-1">
+        {/* min-w: on a phone the header's buttons wrap below the title instead of squeezing it */}
+        <div className="min-w-[11rem] flex-1">
           <h1 className="text-2xl font-semibold text-[var(--heading)]">{title}</h1>
           {subtitle ? <p className="mt-0.5 text-sm text-zinc-600">{subtitle}</p> : null}
         </div>
