@@ -158,20 +158,25 @@ export async function markAttendance(
   const data = markAttendanceSchema.parse(input);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
-    let marked = 0;
-    for (const e of data.entries) {
+    // §Speed: one statement for the whole class (was one round trip per
+    // student — 40 students = 40 queries over the network per save).
+    data.entries = [...new Map(data.entries.map((e) => [e.studentId, e])).values()]; // one row per student, last wins
+    if (data.entries.length > 0) {
       await scoped.query(
         `insert into attendance_records
            (institution_id, student_id, class_id, section_id, date, status_id, is_late, late_minutes, marked_by)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         select $1, x.student_id, $2, $3, $4::date, x.status_id, x.is_late, x.late_minutes, $5
+           from unnest($6::uuid[], $7::uuid[], $8::boolean[], $9::int[]) as x(student_id, status_id, is_late, late_minutes)
          on conflict (institution_id, student_id, date)
          do update set status_id = excluded.status_id, is_late = excluded.is_late,
                         late_minutes = excluded.late_minutes, section_id = excluded.section_id,
                         class_id = excluded.class_id, marked_by = excluded.marked_by, updated_at = now()`,
-        [institutionId, e.studentId, data.classId, data.sectionId, data.date, e.statusId, e.isLate, e.lateMinutes ?? null, userId]
+        [institutionId, data.classId, data.sectionId, data.date, userId,
+          data.entries.map((e) => e.studentId), data.entries.map((e) => e.statusId),
+          data.entries.map((e) => e.isLate), data.entries.map((e) => e.lateMinutes ?? null)]
       );
-      marked++;
     }
+    const marked = data.entries.length;
     await recordAudit(scoped, {
       institutionId, userId, action: "mark", module: "attendance", entityType: "attendance_records",
       entityId: data.classId, after: { classId: data.classId, sectionId: data.sectionId, date: data.date, count: marked },

@@ -1598,22 +1598,32 @@ export async function enterMarks(
   institutionId: string, authUserId: string, userId: string, examSubjectId: string, entries: z.infer<typeof markEntrySchema>,
   scopedClient?: DbClient, opts: { allowWhenClosed?: boolean } = {}
 ): Promise<{ updated: number; skippedLocked: number }> {
-  const data = markEntrySchema.parse(entries);
+  // One entry per student (the last one wins, as when rows were saved one by one).
+  const data = [...new Map(markEntrySchema.parse(entries).map((e) => [e.studentId, e])).values()];
   const run = async (scoped: DbClient) => {
     await assertExamSubjectNotFinalized(scoped, examSubjectId);
     if (!opts.allowWhenClosed) await assertMarkEntryOpenForTeachers(scoped, examSubjectId);
     const { rows: subj } = await scoped.query<{ max_marks: string }>("select max_marks from exam_subjects where id = $1", [examSubjectId]);
     const max = subj[0] ? Number(subj[0].max_marks) : null;
-    let updated = 0;
     for (const e of data) {
       if (!e.isAbsent && e.marksObtained != null && (!Number.isFinite(e.marksObtained) || e.marksObtained < 0 || (max != null && e.marksObtained > max))) {
         throw new Error(`Marks must be between 0 and ${max ?? "the subject maximum"}.`);
       }
-      const { rows: existing } = await scoped.query<{ id: string; entry_status: string; marks_obtained: string | null; is_absent: boolean }>(
-        "select id, entry_status, marks_obtained, is_absent from marks where exam_subject_id = $1 and student_id = $2",
-        [examSubjectId, e.studentId]
-      );
-      const prev = existing[0] ?? null;
+    }
+    // §Speed: read every existing mark of these students in one query and
+    // write the changes in at most three statements (was 2–3 round trips per
+    // student). Same rules as before, decided per student below.
+    const { rows: existingRows } = await scoped.query<{ id: string; student_id: string; entry_status: string; marks_obtained: string | null; is_absent: boolean }>(
+      "select id, student_id, entry_status, marks_obtained, is_absent from marks where exam_subject_id = $1 and student_id = any($2::uuid[])",
+      [examSubjectId, data.map((e) => e.studentId)]
+    );
+    const prevBy = new Map(existingRows.map((r) => [r.student_id, r]));
+    const deleteIds: string[] = [];
+    const up: { student: string[]; value: (number | null)[]; absent: boolean[] } = { student: [], value: [], absent: [] };
+    const hist: { markId: string[]; old: (number | null)[]; value: (number | null)[]; reason: string[] } = { markId: [], old: [], value: [], reason: [] };
+    let updated = 0;
+    for (const e of data) {
+      const prev = prevBy.get(e.studentId) ?? null;
       // §1.2: a blank, Present cell is "not entered yet" — never a row.
       // Blanking a previously saved draft value clears it (row removed), so
       // Mark Entry Status and the live result both see it as not entered.
@@ -1621,31 +1631,38 @@ export async function enterMarks(
       // relies on "blank = don't touch"); it can still be changed or marked
       // Absent.
       if (!e.isAbsent && e.marksObtained == null) {
-        if (prev && prev.entry_status === "draft") {
-          await scoped.query("delete from marks where id = $1", [prev.id]);
-          updated++;
-        }
+        if (prev && prev.entry_status === "draft") { deleteIds.push(prev.id); updated++; }
         continue;
       }
-      const newValue = e.isAbsent ? null : e.marksObtained;
+      const newValue = e.isAbsent ? null : e.marksObtained ?? null;
       const oldValue = prev?.marks_obtained == null ? null : Number(prev.marks_obtained);
       if (prev && oldValue === newValue && prev.is_absent === e.isAbsent) continue; // unchanged
+      up.student.push(e.studentId); up.value.push(newValue); up.absent.push(e.isAbsent);
+      if (prev && prev.entry_status !== "draft") {
+        hist.markId.push(prev.id); hist.old.push(oldValue); hist.value.push(newValue);
+        hist.reason.push(e.isAbsent ? "Edited in mark entry (marked absent)" : "Edited in mark entry");
+      }
+      updated++;
+    }
+    if (deleteIds.length) await scoped.query("delete from marks where id = any($1::uuid[])", [deleteIds]);
+    if (up.student.length) {
       await scoped.query(
         `insert into marks (institution_id, exam_subject_id, student_id, marks_obtained, is_absent, entry_status, entered_by)
-         values ($1, $2, $3, $4, $5, 'draft', $6)
+         select $1, $2, x.student_id, x.marks, x.absent, 'draft', $3
+           from unnest($4::uuid[], $5::numeric[], $6::boolean[]) as x(student_id, marks, absent)
          on conflict (institution_id, exam_subject_id, student_id)
          do update set marks_obtained = excluded.marks_obtained, is_absent = excluded.is_absent,
                         entered_by = excluded.entered_by, updated_at = now()`,
-        [institutionId, examSubjectId, e.studentId, newValue, e.isAbsent, userId]
+        [institutionId, examSubjectId, userId, up.student, up.value, up.absent]
       );
-      if (prev && prev.entry_status !== "draft") {
-        await scoped.query(
-          `insert into mark_change_history (institution_id, mark_id, old_value, new_value, changed_by, reason)
-           values ($1, $2, $3, $4, $5, $6)`,
-          [institutionId, prev.id, oldValue, newValue, userId, e.isAbsent ? "Edited in mark entry (marked absent)" : "Edited in mark entry"]
-        );
-      }
-      updated++;
+    }
+    if (hist.markId.length) {
+      await scoped.query(
+        `insert into mark_change_history (institution_id, mark_id, old_value, new_value, changed_by, reason)
+         select $1, x.mark_id, x.old_value, x.new_value, $2, x.reason
+           from unnest($3::uuid[], $4::numeric[], $5::numeric[], $6::text[]) as x(mark_id, old_value, new_value, reason)`,
+        [institutionId, userId, hist.markId, hist.old, hist.value, hist.reason]
+      );
     }
     return { updated, skippedLocked: 0 };
   };
@@ -2215,7 +2232,13 @@ async function computeResultsScoped(
 
   const applicable = await loadStudentApplicableSubjects(scoped, examinationId);
 
-  let computed = 0;
+  // §Speed: compute every student first, then write all results in ONE
+  // statement (was one round trip per student).
+  const cols = {
+    student: [] as string[], total: [] as number[], max: [] as number[], pct: [] as number[], band: [] as (string | null)[],
+    label: [] as (string | null)[], color: [] as (string | null)[], pass: [] as (boolean | null)[], failed: [] as number[],
+    absent: [] as number[], entered: [] as number[], expected: [] as number[], provisional: [] as boolean[],
+  };
   for (const [studentId, entries] of byStudent) {
     const mine = applicable.get(studentId);
     const studentSubjects = mine ? subjects.filter((s) => mine.has(s.id)) : subjects;
@@ -2223,11 +2246,21 @@ async function computeResultsScoped(
     const r = computeStudentResult({ subjects: studentSubjects, entries, subjectPassPct, overallPassPct });
     // No sat subject at all (e.g. absent everywhere) => no percentage to grade.
     const band = r.maxTotal > 0 ? resolveGradeBand(bands, r.percentage) : null;
+    cols.student.push(studentId); cols.total.push(r.total); cols.max.push(r.maxTotal); cols.pct.push(r.percentage);
+    cols.band.push(band?.id ?? null); cols.label.push(band?.grade_label ?? null); cols.color.push(band?.color ?? null);
+    cols.pass.push(r.isPass); cols.failed.push(r.failedSubjectCount); cols.absent.push(r.absentSubjectCount);
+    cols.entered.push(r.subjectsEntered); cols.expected.push(r.subjectsExpected); cols.provisional.push(r.isProvisional);
+  }
+  if (cols.student.length) {
     await scoped.query(
       `insert into results (institution_id, examination_id, student_id, total_marks, max_total_marks, percentage, grade_band_id,
                             grade_label, grade_color, is_pass, failed_subject_count, absent_subject_count, pass_threshold_pct,
                             subjects_entered, subjects_expected, is_provisional, computed_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, now())
+       select $1, $2, x.student_id, x.total, x.max_total, x.pct, x.band, x.label, x.color, x.pass, x.failed, x.absent, $3,
+              x.entered, x.expected, x.provisional, now()
+         from unnest($4::uuid[], $5::numeric[], $6::numeric[], $7::numeric[], $8::uuid[], $9::text[], $10::text[], $11::boolean[],
+                     $12::int[], $13::int[], $14::int[], $15::int[], $16::boolean[])
+           as x(student_id, total, max_total, pct, band, label, color, pass, failed, absent, entered, expected, provisional)
        on conflict (institution_id, examination_id, student_id)
        do update set total_marks = excluded.total_marks, max_total_marks = excluded.max_total_marks,
                       percentage = excluded.percentage, grade_band_id = excluded.grade_band_id,
@@ -2237,12 +2270,11 @@ async function computeResultsScoped(
                       subjects_entered = excluded.subjects_entered, subjects_expected = excluded.subjects_expected,
                       is_provisional = excluded.is_provisional, computed_at = now()
        where results.is_frozen = false`,
-      [institutionId, examinationId, studentId, r.total, r.maxTotal, r.percentage, band?.id ?? null,
-       band?.grade_label ?? null, band?.color ?? null, r.isPass, r.failedSubjectCount, r.absentSubjectCount, overallPassPct,
-       r.subjectsEntered, r.subjectsExpected, r.isProvisional]
+      [institutionId, examinationId, overallPassPct, cols.student, cols.total, cols.max, cols.pct, cols.band, cols.label, cols.color,
+       cols.pass, cols.failed, cols.absent, cols.entered, cols.expected, cols.provisional]
     );
-    computed++;
   }
+  const computed = cols.student.length;
 
   // §Consolidated-marks follow-up ("compute rank and give") — `results.rank`
   // (migration 0005) existed but was never written, so every Rank cell read
