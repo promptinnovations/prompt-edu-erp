@@ -6,9 +6,10 @@ import LearnerRecordView from "../../../../components/portal/LearnerRecordView";
 /** Learner Record — the student's consolidated, printable portfolio
  *  (academics, verified awards, service & activities, skills, character,
  *  teacher goals, reading). */
-export default async function StudentLearnerRecordPage() {
+export default async function StudentLearnerRecordPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
+  const { year } = await searchParams;
   const { institutionId, authUserId, ownStudentId } = await requireOwnStudentId();
   if (!ownStudentId) return <NotLinkedNotice />;
-  const record = await loadLearnerRecord(institutionId, authUserId, ownStudentId);
+  const record = await loadLearnerRecord(institutionId, authUserId, ownStudentId, year ?? null);
   return <LearnerRecordView record={record} backHref="/portal/student" studentForm={<OwnLearnerEntryForm />} />;
 }

@@ -5,6 +5,7 @@ import { SECTION_META } from "../../../modules/learner-record/meta";
 import type { LearnerEntry, LearnerSection } from "../../../modules/learner-record/service";
 import PrintLetterhead from "../PrintLetterhead";
 import PrintButton from "../PrintButton";
+import YearSelect from "./YearSelect";
 import RecordQr from "./RecordQr";
 import { PromptCredit } from "../PromptLogo";
 import { StudentDetailsCard } from "./ProfileSections";
@@ -118,7 +119,7 @@ export default async function LearnerRecordView({
 
   const tiles = [
     overallAvg != null ? { v: `${overallAvg.toFixed(1)}%`, l: `Average across ${bundle.progress.length} exam${bundle.progress.length === 1 ? "" : "s"}` } : null,
-    record.attendance && record.attendance.total_days > 0 ? { v: `${record.attendance.present_percent}%`, l: "Attendance this year" } : null,
+    record.attendance && record.attendance.total_days > 0 ? { v: `${record.attendance.present_percent}%`, l: record.selectedYearId ? "Attendance" : "Attendance this year" } : null,
     approved.length > 0 ? { v: String(approved.length), l: `Verified achievements · ${podium} on the podium` } : null,
     serviceHours > 0 ? { v: `${serviceHours}`, l: "Service & activity hours" } : null,
   ].filter((t): t is { v: string; l: string } => !!t);
@@ -131,9 +132,12 @@ export default async function LearnerRecordView({
 
   return (
     <div className="space-y-5">
-      <div className="no-print flex items-center justify-between">
+      <div className="no-print flex flex-wrap items-center justify-between gap-3">
         {backHref ? <a href={backHref} className="text-sm text-zinc-500 underline">← Back</a> : <span />}
-        <PrintButton label="Print / Save as PDF" />
+        <div className="flex flex-wrap items-center gap-3">
+          {record.years.length > 1 ? <YearSelect years={record.years} selected={record.selectedYearId} /> : null}
+          <PrintButton label="Print / Save as PDF" />
+        </div>
       </div>
 
       <div className="print-area space-y-5">

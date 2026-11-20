@@ -6,11 +6,11 @@ import LearnerRecordView from "../../../../components/portal/LearnerRecordView";
 export default async function ParentLearnerRecordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ childId?: string }>;
+  searchParams: Promise<{ childId?: string; year?: string }>;
 }) {
-  const { childId } = await searchParams;
+  const { childId, year } = await searchParams;
   const { institutionId, authUserId, selectedChildId } = await requireOwnParentContext(childId);
   if (!selectedChildId) return <NotLinkedNotice />;
-  const record = await loadLearnerRecord(institutionId, authUserId, selectedChildId);
+  const record = await loadLearnerRecord(institutionId, authUserId, selectedChildId, year ?? null);
   return <LearnerRecordView record={record} backHref={`/portal/parent?childId=${selectedChildId}`} />;
 }

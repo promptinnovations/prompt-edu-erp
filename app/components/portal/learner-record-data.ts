@@ -8,6 +8,7 @@ import { listAcademicYears } from "../../../modules/academic/service";
 import { getInstitution, institutionReportName } from "../../../services/institution/institution-service";
 import { todayIST } from "../../../services/datetime/ist";
 import { listLearnerEntries, type LearnerEntry } from "../../../modules/learner-record/service";
+import { listStudentYears, getYearRecordIds, inYear, type StudentYear } from "../../../modules/portfolio/year-service";
 
 /** Achievement categories whose name matches this are shown under
  *  "Service, leadership & activities" (IB CAS-style) instead of the
@@ -32,12 +33,20 @@ export interface LearnerRecord {
   mentoring: MentoringRecordRow[];
   reading: ReadingRecordRow[];
   entries: LearnerEntry[];
+  /** §Portfolio-years: the years the student has a record in (newest
+   *  first) and the one shown — null = every year. */
+  years: StudentYear[];
+  selectedYearId: string | null;
 }
 
 export async function loadLearnerRecord(
-  institutionId: string, authUserId: string, studentId: string
+  institutionId: string, authUserId: string, studentId: string, yearId?: string | null
 ): Promise<LearnerRecord> {
-  const [bundle, institution, years, skills, assessments, labels, mentoring, reading, entries] = await Promise.all([
+  const [studentYears, yearIds] = await Promise.all([
+    listStudentYears(institutionId, authUserId, studentId),
+    yearId ? getYearRecordIds(institutionId, authUserId, studentId, yearId) : Promise.resolve(null),
+  ]);
+  const [bundleAll, institution, years, skillsAll, assessmentsAll, labels, mentoringAll, readingAll, entriesAll] = await Promise.all([
     loadPortalProfileBundle(institutionId, authUserId, studentId),
     getInstitution(institutionId, authUserId),
     listAcademicYears(institutionId, authUserId),
@@ -49,8 +58,19 @@ export async function loadLearnerRecord(
     listLearnerEntries(institutionId, authUserId, studentId),
   ]);
 
+  // One year selected → only that year's records (and that year's attendance).
+  const bundle = yearIds
+    ? { ...bundleAll, achievements: inYear(bundleAll.achievements, yearIds.achievements), progress: bundleAll.progress.filter((e) => yearIds.exams.has(e.examination_id)) }
+    : bundleAll;
+  const skills = inYear(skillsAll, yearIds?.skills);
+  const assessments = inYear(assessmentsAll, yearIds?.character);
+  const mentoring = inYear(mentoringAll, yearIds?.mentoring);
+  const reading = inYear(readingAll, yearIds?.reading);
+  const entries = inYear(entriesAll, yearIds?.entries);
+
   const today = todayIST();
-  const current = years.find((y) => y.start_date <= today && today <= y.end_date) ?? years[0] ?? null;
+  const current = (yearIds ? years.find((y) => y.id === yearIds.year.id) : null)
+    ?? years.find((y) => y.start_date <= today && today <= y.end_date) ?? years[0] ?? null;
   const attendance = current
     ? await getStudentAttendanceSummary(
         institutionId, authUserId, studentId, current.start_date, current.end_date < today ? current.end_date : today
@@ -85,9 +105,11 @@ export async function loadLearnerRecord(
     bundle,
     institutionName: institutionReportName(institution),
     logoCode: institution?.logoFileId ? institution.code : null,
-    academicYear: current?.name ?? null,
+    academicYear: yearIds ? yearIds.year.name : studentYears.length > 1 ? "All years" : current?.name ?? null,
     attendance, strengths, skills,
     character: { periods, rows: [...attrs.values()] },
     mentoring, reading, entries,
+    years: studentYears,
+    selectedYearId: yearIds?.year.id ?? null,
   };
 }

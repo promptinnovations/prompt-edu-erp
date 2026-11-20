@@ -42,6 +42,7 @@ const ROUTES: Record<string, Crumb[]> = {
   "/students/details": [STUDENTS, ["Complete student details"]],
   "/students/*": [STUDENTS, ["Student profile"]],
   "/students/*/portfolio": [STUDENTS, ["Student profile", "/students/*"], ["Portfolio"]],
+  "/students/*/record": [STUDENTS, ["Student profile", "/students/*?tab=portfolio"], ["Learner Record"]],
   "/attendance": [["Attendance"]],
   "/attendance/register": [["Attendance", "/attendance"], ["Monthly register"]],
   "/examinations": [EXAMS],

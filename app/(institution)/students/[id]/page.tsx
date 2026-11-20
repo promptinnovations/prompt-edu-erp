@@ -20,6 +20,8 @@ import { getPortfolioSummary } from "../../../../modules/portfolio-summary/servi
 import { buildPortfolioDashboardData, ALL_PORTFOLIO_SECTIONS } from "../../../../modules/portfolio/dashboard-service";
 import RichTextContent from "../../../components/RichTextContent";
 import StudentPortfolioDashboard from "../../../components/portfolio/StudentPortfolioDashboard";
+import YearSelect from "../../../components/portal/YearSelect";
+import { listStudentYears, getYearRecordIds, inYear } from "../../../../modules/portfolio/year-service";
 import EnrollForm from "../EnrollForm";
 import ClassEnrollmentSection from "../ClassEnrollmentSection";
 import ParentSection, { ProvisionStudentAccountForm } from "../ParentSection";
@@ -53,10 +55,10 @@ export default async function StudentDetailPage({
   params, searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; year?: string }>;
 }) {
   const { id } = await params;
-  const { tab } = await searchParams;
+  const { tab, year: yearParam } = await searchParams;
   const ctx = await requireRequestContext();
   const institutionId = ctx.institutionId!;
   const authUserId = ctx.session.authUserId;
@@ -136,28 +138,39 @@ export default async function StudentDetailPage({
   // have on hand for its other tabs (everything else below reuses
   // student360/examReport/approvedAchievements/approvedSkillSubmissions/
   // disciplineRecords/characterAssessments, already fetched above).
+  // §Portfolio-years: the Portfolio tab shows one academic year at a time
+  // (?year=, default the current one) — that year's attendance, marks,
+  // remark, achievements, activities and conduct.
+  const studentYears = await listStudentYears(institutionId, authUserId, id);
+  const portfolioYearRow = studentYears.find((y) => y.id === yearParam) ?? studentYears.find((y) => y.id === academicYear?.id) ?? null;
+  const portfolioYear = portfolioYearRow ?? academicYear;
+  const yearIds = portfolioYear ? await getYearRecordIds(institutionId, authUserId, id, portfolioYear.id) : null;
   const [attendanceSummary, academicPerformance, skillTypes, skillActivities, characterRatingLabels, portfolioSummary] = await Promise.all([
-    academicYear
-      ? getStudentAttendanceSummary(institutionId, authUserId, id, academicYear.start_date, academicYear.end_date)
+    portfolioYear
+      ? getStudentAttendanceSummary(institutionId, authUserId, id, portfolioYear.start_date, portfolioYear.end_date)
       : Promise.resolve({ student_id: id, total_days: 0, present_days: 0, absent_days: 0, late_days: 0, present_percent: 0 }),
-    academicYear
-      ? getStudentAcademicPerformanceByTerm(institutionId, authUserId, id, academicYear.id)
+    portfolioYear
+      ? getStudentAcademicPerformanceByTerm(institutionId, authUserId, id, portfolioYear.id)
       : Promise.resolve({ columns: [], rows: [] }),
     listSkillTypes(institutionId, authUserId),
     listSkillActivities(institutionId, authUserId),
     listCharacterRatingLabels(institutionId, authUserId),
-    academicYear ? getPortfolioSummary(institutionId, authUserId, id, academicYear.id) : Promise.resolve(null),
+    portfolioYear ? getPortfolioSummary(institutionId, authUserId, id, portfolioYear.id) : Promise.resolve(null),
   ]);
+  const isCurrentPortfolioYear = !portfolioYear || portfolioYear.id === academicYear?.id;
   // Staff always sees discipline/character gated by discipline.view (same
   // permission the old "Discipline & character" section used) — every
   // other section is visible to staff regardless of the parent-portal
   // config, which only applies to the parent-facing surface.
   const portfolioDashboardData = buildPortfolioDashboardData({
-    student: profile, enrollment, classLabel: classDivisionLabel, academicYear,
-    latestResult: student360.latestResult, attendanceSummary, academicPerformance,
-    achievements: approvedAchievements, skillSubmissions: approvedSkillSubmissions, skillTypes, skillActivities,
-    characterAssessments, characterRatingLabels,
-    disciplineRecords: canViewDiscipline ? disciplineRecords : null,
+    student: profile, enrollment,
+    classLabel: isCurrentPortfolioYear ? classDivisionLabel : portfolioYearRow?.class_label ?? classDivisionLabel,
+    academicYear: portfolioYear ? { id: portfolioYear.id, name: portfolioYear.name } : null,
+    latestResult: isCurrentPortfolioYear ? student360.latestResult : null, attendanceSummary, academicPerformance,
+    achievements: inYear(approvedAchievements, yearIds?.achievements),
+    skillSubmissions: inYear(approvedSkillSubmissions, yearIds?.skills), skillTypes, skillActivities,
+    characterAssessments: inYear(characterAssessments, yearIds?.character), characterRatingLabels,
+    disciplineRecords: canViewDiscipline ? inYear(disciplineRecords, yearIds?.discipline) : null,
     portfolioSummary,
     sections: { ...ALL_PORTFOLIO_SECTIONS, discipline: canViewDiscipline, character: canViewDiscipline },
   });
@@ -381,11 +394,18 @@ export default async function StudentDetailPage({
 
       <StudentPortfolioDashboard
         data={portfolioDashboardData}
+        academicYearSwitcher={studentYears.length > 1 ? <YearSelect years={studentYears} selected={portfolioYear?.id ?? null} allLabel={null} /> : undefined}
+        headerActions={
+          <a href={`/students/${id}/record${portfolioYear && !isCurrentPortfolioYear ? `?year=${portfolioYear.id}` : ""}`}
+            className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-hover)]">
+            Print / PDF
+          </a>
+        }
         remarkEditor={
-          canManage && academicYear ? (
+          canManage && portfolioYear ? (
             <PortfolioSummaryEditorForm
               studentId={id}
-              academicYearId={academicYear.id}
+              academicYearId={portfolioYear.id}
               initial={{
                 overallRemark: portfolioSummary?.overall_remark ?? null,
                 strengths: portfolioSummary?.strengths ?? [],
