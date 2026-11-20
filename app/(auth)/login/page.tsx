@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 import LoginForm from "./LoginForm";
 import { getInstitutionPublicSummaryByCode } from "../../../services/institution/institution-service";
-import { APP_PALETTE, paletteCssVars } from "../../../services/branding/palettes";
+import { resolveInstitutionPalette, paletteCssVars } from "../../../services/branding/palettes";
 import { ACTIVE_INSTITUTION_COOKIE } from "../../../services/tenant/institution-cookie";
 
 /**
@@ -19,8 +19,9 @@ export default async function LoginPage() {
   const institution = code ? await getInstitutionPublicSummaryByCode(code).catch(() => null) : null;
   const institutionName = institution?.appName || institution?.name || undefined;
   const logoUrl = institution?.hasLogo ? `/api/institution-logo/${institution.code}` : undefined;
-  // §Fixed-look: one colour scheme for the whole app (APP_PALETTE).
-  const palette = APP_PALETTE;
+  // §Brand-kit: an institution's own login page wears its chosen colours;
+  // the generic login uses the default (Scholar Teal).
+  const palette = resolveInstitutionPalette(institution?.themePalette);
   // §Palette-picker follow-up ("colour palette is still not working"):
   // middleware.ts's CSP sends `style-src 'self' 'nonce-<value>'` in
   // production -- NOT 'unsafe-inline' -- so a bare <style> tag with no

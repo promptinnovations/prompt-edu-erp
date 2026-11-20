@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRequestContext } from "../../../services/request-context";
 import { requirePermission } from "../../../services/permissions/permission-service";
 import {
-  updateInstitutionLogo,
+  updateInstitutionLogo, updateInstitutionTheme,
   updateParentPortalSections, PARENT_PORTAL_SECTION_KEYS,
   updateExamSeatingGenderRule,
   type ParentPortalSections,
@@ -45,6 +45,24 @@ export async function uploadInstitutionLogoAction(_prevState: { error: string | 
     return { error: null };
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to upload logo." };
+  }
+}
+
+/** §Brand-kit — Settings → Appearance: the institution's colour direction
+ *  (one of services/branding/palettes.ts's THEME_PALETTES). The whole app
+ *  lives under the (institution)/(portals) layouts, so revalidating the
+ *  root layout repaints every page with the new colours. */
+export async function updateInstitutionThemeAction(_prevState: { error: string | null; saved?: boolean }, formData: FormData) {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "settings.manage");
+    const themePalette = String(formData.get("themePalette") ?? "");
+    await updateInstitutionTheme(ctx.institutionId, ctx.session.authUserId, ctx.userId, { themePalette });
+    revalidatePath("/", "layout");
+    return { error: null, saved: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to save the colours." };
   }
 }
 

@@ -25,7 +25,7 @@
  *      `id`.
  */
 import { getInstitution, getInstitutionPublicSummaryByCode } from "../institution/institution-service";
-import { APP_PALETTE } from "./palettes";
+import { APP_PALETTE, resolveInstitutionPalette } from "./palettes";
 import type { RequestContext } from "../../types/context";
 
 export interface AppIdentity {
@@ -95,11 +95,11 @@ function genericIdentity(gradient: [string, string, string]): AppIdentity {
   };
 }
 
-// §Fixed-look: the app has one colour scheme, so every generated install
-// icon uses its gradient (indigo → violet → fuchsia). The argument is kept
-// for call-site compatibility and ignored.
-async function resolveBadgeGradient(_themePalette: string | null): Promise<[string, string, string]> {
-  return [APP_PALETTE.vars.brandFrom, APP_PALETTE.vars.brandVia, APP_PALETTE.vars.brandTo];
+// §Brand-kit: the install icon uses the institution's chosen colours
+// (Scholar Teal by default, and for the generic platform app).
+async function resolveBadgeGradient(themePalette: string | null): Promise<[string, string, string]> {
+  const palette = themePalette ? resolveInstitutionPalette(themePalette) : APP_PALETTE;
+  return [palette.vars.brandFrom, palette.vars.brandVia, palette.vars.brandTo];
 }
 
 export async function resolveAppIdentity(ctx: RequestContext | null): Promise<AppIdentity> {

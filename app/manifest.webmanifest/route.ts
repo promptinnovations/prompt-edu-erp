@@ -1,6 +1,5 @@
 import { getRequestContext } from "../../services/request-context";
 import { resolveAppIdentity, resolveAppIdentityByCode } from "../../services/branding/app-identity";
-import { APP_PALETTE } from "../../services/branding/palettes";
 
 /**
  * PROMPT EDU ERP — dynamic PWA manifest (ARCHITECTURE.md §R.1), served at
@@ -46,7 +45,9 @@ export async function GET(request: Request) {
     scope: identity.scope,
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: APP_PALETTE.vars.brand,
+    // §Brand-kit: the institution's chosen brand colour (the badge
+    // gradient starts at it), the default otherwise.
+    theme_color: identity.badgeGradient[0],
     // §Install-button: "any" + "maskable" so Android draws the icon edge to
     // edge in its adaptive shape (the artwork is a full-bleed gradient with
     // a centred label, safe for masking) instead of a small icon on white.

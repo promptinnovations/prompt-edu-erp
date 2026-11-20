@@ -81,213 +81,141 @@ export interface PaletteSystem {
   shadowRgb: string;
 }
 
-// Cool, neutral grey ramp shared by the modern palettes (the grey scale
-// most current SaaS products use): white cards on an off-white canvas,
-// hairline borders, slate-blue text tones. Muted text is 4.97:1 on white.
-const MODERN_NEUTRAL: Pick<PaletteSystem, "neutral" | "text" | "shadowRgb"> = {
-  neutral: { "50": "#f9fafb", "100": "#f2f4f7", "200": "#eaecf0", "300": "#e4e7ec", "400": "#98a2b3" },
-  text: { muted: "#667085", body: "#475467", ink: "#1d2939" },
-  shadowRgb: "16, 24, 40",
-};
-
+// §Brand-kit ("i will choose 2 Scholar Teal as the primary UI — add 1, 3,
+// 4, 5, 7, 10, 12 as options an institution can choose at their wish"):
+// the eight colour directions approved from the brand kit PDF. Scholar
+// Teal is the default for every institution, the login screen and the
+// Super Admin console; an institution can switch to any of the others
+// under Settings → Appearance. Each one carries a full colour system, so
+// the whole app (not only the shell) follows it, and every text pair is
+// WCAG AA (white on brand / accent, sidebar text, active nav, captions).
+// Generated from the brand-kit tokens — keep the two in step.
 export const THEME_PALETTES: ThemePalette[] = [
-  // §Modern-palettes ("change the colour of the website — use the best of
-  // modern web apps"): the current SaaS look — off-white canvas, white
-  // cards with hairline borders, a light sidebar with a tinted active pill,
-  // one vivid brand colour and a soft gradient for heroes. All text pairs
-  // are WCAG AA (white on brand ≥ 5.4:1, active nav text ≥ 5.2:1).
   {
-    id: "modern-indigo",
-    label: "Modern Indigo",
-    swatch: ["#ffffff", "#4f46e5", "#a21caf"],
-    vars: {
-      background: "#f9fafb", foreground: "#1d2939", heading: "#1d2939", surface: "#ffffff", surfaceMuted: "#f9fafb", borderSubtle: "#eaecf0",
-      brand: "#4f46e5", brandHover: "#4338ca", brandFrom: "#4f46e5", brandVia: "#7c3aed", brandTo: "#a21caf",
-      accentTeal: "#7c3aed", accentTealHover: "#6d28d9",
-      sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#eef2ff", sidebarBorder: "#eaecf0",
-      sidebarText: "#344054", sidebarTextMuted: "#667085", sidebarIcon: "#667085",
-      sidebarStrong: "#1d2939", sidebarActiveText: "#4338ca",
-    },
+    // Brand kit option 02.
+    id: "scholar-teal",
+    label: "Scholar Teal",
+    swatch: ["#ffffff", "#0f766e", "#f97316"],
+    vars: { background: "#f4f8f7", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#fafcfb", borderSubtle: "#dee2e3", brand: "#0f766e", brandHover: "#0e6460", brandFrom: "#0f766e", brandVia: "#0e6460", brandTo: "#0e5353", accentTeal: "#c2410c", accentTealHover: "#a13810", sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f1f7f6", sidebarBorder: "#dee2e3", sidebarText: "#3a4152", sidebarTextMuted: "#646a76", sidebarIcon: "#646a76", sidebarStrong: "#172033", sidebarActiveText: "#0e6460" },
     system: {
-      ...MODERN_NEUTRAL,
-      brand: {
-        "50": "#eef2ff", "100": "#e0e7ff", "200": "#c7d2fe", "300": "#a5b4fc", "400": "#818cf8", "500": "#6366f1",
-        "600": "#4f46e5", "700": "#4338ca", "800": "#3730a3", "900": "#312e81", "950": "#1e1b4b",
-      },
+      brand: { "50": "#f1f7f6", "100": "#e0edec", "200": "#c1dbd9", "300": "#95c3bf", "400": "#65a7a2", "500": "#358c85", "600": "#0f766e", "700": "#0e6460", "800": "#0e5353", "900": "#0d4549", "950": "#0c353c" },
+      neutral: { "50": "#fafcfb", "100": "#f4f8f7", "200": "#e7ebeb", "300": "#dee2e3", "400": "#a4aab0" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "21, 54, 66",
     },
   },
   {
-    id: "modern-teal",
-    label: "Modern Teal",
-    swatch: ["#ffffff", "#0f766e", "#1d4ed8"],
-    vars: {
-      background: "#f9fafb", foreground: "#1d2939", heading: "#1d2939", surface: "#ffffff", surfaceMuted: "#f9fafb", borderSubtle: "#eaecf0",
-      brand: "#0f766e", brandHover: "#115e59", brandFrom: "#0f766e", brandVia: "#0e7490", brandTo: "#1d4ed8",
-      accentTeal: "#0e7490", accentTealHover: "#155e75",
-      sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f0fdfa", sidebarBorder: "#eaecf0",
-      sidebarText: "#344054", sidebarTextMuted: "#667085", sidebarIcon: "#667085",
-      sidebarStrong: "#1d2939", sidebarActiveText: "#0f766e",
-    },
+    // Brand kit option 01.
+    id: "royal-indigo",
+    label: "Royal Indigo",
+    swatch: ["#ffffff", "#4f46e5", "#f59e0b"],
+    vars: { background: "#f6f7fb", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#fafbfd", borderSubtle: "#e0e2e7", brand: "#4f46e5", brandHover: "#433cc2", brandFrom: "#4f46e5", brandVia: "#433cc2", brandTo: "#3834a2", accentTeal: "#b45309", accentTealHover: "#96470d", sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f4f4fd", sidebarBorder: "#e0e2e7", sidebarText: "#3a4152", sidebarTextMuted: "#646a76", sidebarIcon: "#646a76", sidebarStrong: "#172033", sidebarActiveText: "#433cc2" },
     system: {
-      ...MODERN_NEUTRAL,
-      // Shifted one step darker than the stock teal ramp so 600 (the step
-      // the app puts white text on) still passes AA.
-      brand: {
-        "50": "#f0fdfa", "100": "#ccfbf1", "200": "#99f6e4", "300": "#5eead4", "400": "#2dd4bf", "500": "#0d9488",
-        "600": "#0f766e", "700": "#115e59", "800": "#134e4a", "900": "#123f3c", "950": "#042f2e",
-      },
+      brand: { "50": "#f4f4fd", "100": "#e8e7fc", "200": "#d1cff8", "300": "#b2aef4", "400": "#8e89ee", "500": "#6b64e9", "600": "#4f46e5", "700": "#433cc2", "800": "#3834a2", "900": "#2e2c86", "950": "#232367" },
+      neutral: { "50": "#fafbfd", "100": "#f6f7fb", "200": "#e9eaef", "300": "#e0e2e7", "400": "#a6aab3" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "37, 42, 96",
     },
   },
   {
-    id: "modern-midnight",
-    label: "Midnight Blue",
-    swatch: ["#1e293b", "#2563eb", "#7c3aed"],
-    vars: {
-      background: "#f9fafb", foreground: "#1d2939", heading: "#1d2939", surface: "#ffffff", surfaceMuted: "#f9fafb", borderSubtle: "#eaecf0",
-      brand: "#2563eb", brandHover: "#1d4ed8", brandFrom: "#2563eb", brandVia: "#4f46e5", brandTo: "#7c3aed",
-      accentTeal: "#4f46e5", accentTealHover: "#4338ca",
-      sidebarBg: "#1e293b", sidebarBg2: "#1e293b", sidebarActive: "#334155", sidebarBorder: "#2c3a50",
-      sidebarText: "#e2e8f0", sidebarTextMuted: "#94a3b8", sidebarIcon: "#a5b4c8",
-    },
+    // Brand kit option 03.
+    id: "navy-gold",
+    label: "Navy & Gold Heritage",
+    swatch: ["#0b1f3a", "#1d3a6e", "#c8a84b"],
+    vars: { background: "#f7f5f0", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#fbfaf8", borderSubtle: "#e1e0dd", brand: "#1d3a6e", brandHover: "#1a3260", brandFrom: "#1d3a6e", brandVia: "#1a3260", brandTo: "#172c53", accentTeal: "#7a6420", accentTealHover: "#665520", sidebarBg: "#0b1f3a", sidebarBg2: "#0e2443", sidebarActive: "#2d3e56", sidebarBorder: "#23354e", sidebarText: "#e8ecf6", sidebarTextMuted: "#a2aab4", sidebarIcon: "#bbc0c8", sidebarStrong: "#ffffff", sidebarActiveText: "#ffffff" },
     system: {
-      ...MODERN_NEUTRAL,
-      brand: {
-        "50": "#eff6ff", "100": "#dbeafe", "200": "#bfdbfe", "300": "#93c5fd", "400": "#60a5fa", "500": "#3b82f6",
-        "600": "#2563eb", "700": "#1d4ed8", "800": "#1e40af", "900": "#1e3a8a", "950": "#172554",
-      },
+      brand: { "50": "#f1f3f6", "100": "#e2e5ec", "200": "#c4ccd9", "300": "#9ca8bf", "400": "#6e81a2", "500": "#415a85", "600": "#1d3a6e", "700": "#1a3260", "800": "#172c53", "900": "#142649", "950": "#111f3c" },
+      neutral: { "50": "#fbfaf8", "100": "#f7f5f0", "200": "#eae8e5", "300": "#e1e0dd", "400": "#a6a8ac" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "24, 38, 66",
     },
   },
   {
-    id: "navy-teal",
-    label: "Navy & Teal",
-    swatch: ["#16215c", "#1d4ed8", "#0d9488"],
-    vars: {
-      background: "#f4f6fb", foreground: "#1e293b", surface: "#ffffff", surfaceMuted: "#eef1f8", borderSubtle: "#dde3ef",
-      brand: "#1d4ed8", brandHover: "#1e40af", brandFrom: "#1d4ed8", brandVia: "#2563eb", brandTo: "#0d9488",
-      accentTeal: "#0d9488", accentTealHover: "#0f766e",
-      sidebarBg: "#16215c", sidebarBg2: "#1e2c78", sidebarActive: "#2c3d9e", sidebarBorder: "#263070",
-      sidebarText: "#e4e8fb", sidebarTextMuted: "#9aa4d6", sidebarIcon: "#b9c1ec",
+    // Brand kit option 04.
+    id: "emerald-madrasa",
+    label: "Emerald Madrasa",
+    swatch: ["#053b2e", "#047857", "#d4a017"],
+    vars: { background: "#f4f7f3", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#fafbf9", borderSubtle: "#dee2e0", brand: "#047857", brandHover: "#05654d", brandFrom: "#047857", brandVia: "#05654d", brandTo: "#065544", accentTeal: "#7c5e06", accentTealHover: "#68500b", sidebarBg: "#053b2e", sidebarBg2: "#054635", sidebarActive: "#28564b", sidebarBorder: "#1e4f43", sidebarText: "#e8ecf6", sidebarTextMuted: "#a0b5b0", sidebarIcon: "#b9c8c4", sidebarStrong: "#ffffff", sidebarActiveText: "#ffffff" },
+    system: {
+      brand: { "50": "#f0f7f5", "100": "#deede9", "200": "#bedcd3", "300": "#91c4b5", "400": "#5ea993", "500": "#2c8e72", "600": "#047857", "700": "#05654d", "800": "#065544", "900": "#07463d", "950": "#083534" },
+      neutral: { "50": "#fafbf9", "100": "#f4f7f3", "200": "#e7eae7", "300": "#dee2e0", "400": "#a4aaae" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "18, 54, 60",
     },
   },
   {
-    id: "indigo-violet",
-    label: "Indigo & Violet",
-    swatch: ["#312e81", "#6366f1", "#a855f7"],
-    vars: {
-      background: "#f6f5fd", foreground: "#221f3d", surface: "#ffffff", surfaceMuted: "#efeefb", borderSubtle: "#e0defa",
-      brand: "#6366f1", brandHover: "#4f46e5", brandFrom: "#6366f1", brandVia: "#8b5cf6", brandTo: "#a855f7",
-      accentTeal: "#a855f7", accentTealHover: "#9333ea",
-      sidebarBg: "#312e81", sidebarBg2: "#3c3893", sidebarActive: "#4c46b3", sidebarBorder: "#413d99",
-      sidebarText: "#ece9fd", sidebarTextMuted: "#b3aef0", sidebarIcon: "#c7c2f6",
-    },
-  },
-  {
-    id: "emerald-forest",
-    label: "Emerald & Forest",
-    swatch: ["#064e3b", "#059669", "#34d399"],
-    vars: {
-      background: "#f2faf6", foreground: "#132e26", surface: "#ffffff", surfaceMuted: "#e6f6ee", borderSubtle: "#d3ecdf",
-      brand: "#059669", brandHover: "#047857", brandFrom: "#065f46", brandVia: "#059669", brandTo: "#34d399",
-      accentTeal: "#0d9488", accentTealHover: "#0f766e",
-      sidebarBg: "#064e3b", sidebarBg2: "#0b6049", sidebarActive: "#137a5e", sidebarBorder: "#0d5c46",
-      sidebarText: "#e2faf1", sidebarTextMuted: "#8fd4b8", sidebarIcon: "#a9e4c9",
-    },
-  },
-  {
-    id: "slate-amber",
-    label: "Slate & Amber",
-    swatch: ["#334155", "#d97706", "#fbbf24"],
-    vars: {
-      background: "#f8f7f4", foreground: "#292524", surface: "#ffffff", surfaceMuted: "#f1efe9", borderSubtle: "#e6e2d8",
-      brand: "#d97706", brandHover: "#b45309", brandFrom: "#334155", brandVia: "#d97706", brandTo: "#fbbf24",
-      accentTeal: "#0e7490", accentTealHover: "#155e75",
-      sidebarBg: "#334155", sidebarBg2: "#3e4f68", sidebarActive: "#4d6280", sidebarBorder: "#425368",
-      sidebarText: "#f1f5f9", sidebarTextMuted: "#aab7c8", sidebarIcon: "#c2ccdb",
-    },
-  },
-  {
-    id: "rose-plum",
-    label: "Rose & Plum",
-    swatch: ["#4a044e", "#be185d", "#f472b6"],
-    vars: {
-      background: "#fdf5f9", foreground: "#3b0f2e", surface: "#ffffff", surfaceMuted: "#fbe9f2", borderSubtle: "#f6d9e9",
-      brand: "#be185d", brandHover: "#9d174d", brandFrom: "#701a75", brandVia: "#be185d", brandTo: "#f472b6",
-      accentTeal: "#a21caf", accentTealHover: "#86198f",
-      sidebarBg: "#4a044e", sidebarBg2: "#5c0f63", sidebarActive: "#75207c", sidebarBorder: "#650f6c",
-      sidebarText: "#fbe9f5", sidebarTextMuted: "#d69fd8", sidebarIcon: "#e2b8e3",
-    },
-  },
-  {
+    // Brand kit option 05.
     id: "ocean-blue",
     label: "Ocean Blue",
-    swatch: ["#0c4a6e", "#0284c7", "#38bdf8"],
-    vars: {
-      background: "#f2f9fd", foreground: "#0c2233", surface: "#ffffff", surfaceMuted: "#e3f2fb", borderSubtle: "#cfe8f7",
-      brand: "#0284c7", brandHover: "#0369a1", brandFrom: "#0c4a6e", brandVia: "#0284c7", brandTo: "#38bdf8",
-      accentTeal: "#0891b2", accentTealHover: "#0e7490",
-      sidebarBg: "#0c4a6e", sidebarBg2: "#105a84", sidebarActive: "#16719f", sidebarBorder: "#0f5a86",
-      sidebarText: "#e3f4fc", sidebarTextMuted: "#8fc6e3", sidebarIcon: "#addcf0",
+    swatch: ["#ffffff", "#0369a1", "#f97316"],
+    vars: { background: "#f6f7fb", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#fafbfd", borderSubtle: "#e0e2e7", brand: "#0369a1", brandHover: "#04598a", brandFrom: "#0369a1", brandVia: "#04598a", brandTo: "#064b75", accentTeal: "#c2410c", accentTealHover: "#a13810", sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f0f6f9", sidebarBorder: "#e0e2e7", sidebarText: "#3a4152", sidebarTextMuted: "#646a76", sidebarIcon: "#646a76", sidebarStrong: "#172033", sidebarActiveText: "#04598a" },
+    system: {
+      brand: { "50": "#f0f6f9", "100": "#deecf3", "200": "#bdd8e7", "300": "#90bdd6", "400": "#5e9fc3", "500": "#2b81b0", "600": "#0369a1", "700": "#04598a", "800": "#064b75", "900": "#073e63", "950": "#08304e" },
+      neutral: { "50": "#fafbfd", "100": "#f6f7fb", "200": "#e9eaef", "300": "#e0e2e7", "400": "#a6aab3" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "18, 50, 78",
     },
   },
   {
-    id: "crimson-maroon",
-    label: "Crimson & Maroon",
-    swatch: ["#450a0a", "#dc2626", "#fb923c"],
-    vars: {
-      background: "#fdf5f4", foreground: "#3a0d0d", surface: "#ffffff", surfaceMuted: "#fbe8e6", borderSubtle: "#f6d5d2",
-      brand: "#dc2626", brandHover: "#b91c1c", brandFrom: "#450a0a", brandVia: "#dc2626", brandTo: "#fb923c",
-      accentTeal: "#c2410c", accentTealHover: "#9a3412",
-      sidebarBg: "#450a0a", sidebarBg2: "#5c1212", sidebarActive: "#7a1c1c", sidebarBorder: "#661515",
-      sidebarText: "#fbe9e7", sidebarTextMuted: "#dc9b96", sidebarIcon: "#e7b3af",
+    // Brand kit option 07.
+    id: "slate-lime",
+    label: "Slate & Lime",
+    swatch: ["#ffffff", "#334155", "#65a30d"],
+    vars: { background: "#f5f6f8", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#fafafc", borderSubtle: "#dfe1e4", brand: "#334155", brandHover: "#2c384b", brandFrom: "#334155", brandVia: "#2c384b", brandTo: "#253043", accentTeal: "#4d7c0f", accentTealHover: "#416912", sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f3f4f5", sidebarBorder: "#dfe1e4", sidebarText: "#3a4152", sidebarTextMuted: "#646a76", sidebarIcon: "#646a76", sidebarStrong: "#172033", sidebarActiveText: "#2c384b" },
+    system: {
+      brand: { "50": "#f3f4f5", "100": "#e4e6e9", "200": "#caced3", "300": "#a5abb4", "400": "#7c8592", "500": "#545f70", "600": "#334155", "700": "#2c384b", "800": "#253043", "900": "#20293c", "950": "#192233" },
+      neutral: { "50": "#fafafc", "100": "#f5f6f8", "200": "#e8e9ec", "300": "#dfe1e4", "400": "#a5a9b1" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "30, 40, 60",
     },
   },
   {
-    id: "sunset-orange",
-    label: "Sunset Orange",
-    swatch: ["#431407", "#ea580c", "#f59e0b"],
-    vars: {
-      background: "#fdf7f2", foreground: "#3a1c0d", surface: "#ffffff", surfaceMuted: "#fbeee1", borderSubtle: "#f6ddc4",
-      brand: "#ea580c", brandHover: "#c2410c", brandFrom: "#431407", brandVia: "#ea580c", brandTo: "#f59e0b",
-      accentTeal: "#b45309", accentTealHover: "#92400e",
-      sidebarBg: "#431407", sidebarBg2: "#5a1e0d", sidebarActive: "#7c2d0f", sidebarBorder: "#66240c",
-      sidebarText: "#fdece0", sidebarTextMuted: "#e0a789", sidebarIcon: "#ecc0a4",
+    // Brand kit option 10.
+    id: "forest-sand",
+    label: "Forest & Sand",
+    swatch: ["#ffffff", "#166534", "#a16207"],
+    vars: { background: "#f7f3ea", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#fbf9f4", borderSubtle: "#e1ded8", brand: "#166534", brandHover: "#145630", brandFrom: "#166534", brandVia: "#145630", brandTo: "#12482d", accentTeal: "#a16207", accentTealHover: "#86530c", sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f1f6f3", sidebarBorder: "#e1ded8", sidebarText: "#3a4152", sidebarTextMuted: "#646a76", sidebarIcon: "#646a76", sidebarStrong: "#172033", sidebarActiveText: "#145630" },
+    system: {
+      brand: { "50": "#f1f6f3", "100": "#e1ebe5", "200": "#c2d7ca", "300": "#98bba6", "400": "#6a9c7d", "500": "#3b7e54", "600": "#166534", "700": "#145630", "800": "#12482d", "900": "#113c2a", "950": "#0f2f27" },
+      neutral: { "50": "#fbf9f4", "100": "#f7f3ea", "200": "#eae6df", "300": "#e1ded8", "400": "#a6a7a8" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "23, 49, 51",
     },
   },
   {
-    // Prompt Innovations UI standard: deep navy primary, gold accent, warm
-    // sand ground (the brand scales live in globals.css's @theme block).
-    // Gold 500 is too light for white text, so the accent slot — which is
-    // used under white text — takes the readable gold 700/800 steps.
-    id: "navy-gold",
-    label: "Navy & Gold",
-    swatch: ["#0b1f3a", "#c8a84b", "#f7f4ee"],
-    vars: {
-      background: "#f7f4ee", foreground: "#1d2430", heading: "#0b1f3a", surface: "#ffffff", surfaceMuted: "#fbf9f5", borderSubtle: "#e2dbcc",
-      brand: "#0b1f3a", brandHover: "#183c6d", brandFrom: "#0b1f3a", brandVia: "#183c6d", brandTo: "#234f8b",
-      accentTeal: "#896f24", accentTealHover: "#66521a",
-      sidebarBg: "#0b1f3a", sidebarBg2: "#102c50", sidebarActive: "#183c6d", sidebarBorder: "#183c6d",
-      sidebarText: "#f4f7fa", sidebarTextMuted: "#99b5db", sidebarIcon: "#c8d6ea",
+    // Brand kit option 12.
+    id: "aqua-fresh",
+    label: "Aqua Fresh",
+    swatch: ["#ffffff", "#0e7490", "#84cc16"],
+    vars: { background: "#f3f8fa", foreground: "#172033", heading: "#172033", surface: "#ffffff", surfaceMuted: "#f9fcfc", borderSubtle: "#dde2e6", brand: "#0e7490", brandHover: "#0d627c", brandFrom: "#0e7490", brandVia: "#0d627c", brandTo: "#0d526a", accentTeal: "#4d7c0f", accentTealHover: "#416912", sidebarBg: "#ffffff", sidebarBg2: "#ffffff", sidebarActive: "#f1f7f8", sidebarBorder: "#dde2e6", sidebarText: "#3a4152", sidebarTextMuted: "#646a76", sidebarIcon: "#646a76", sidebarStrong: "#172033", sidebarActiveText: "#0d627c" },
+    system: {
+      brand: { "50": "#f1f7f8", "100": "#e0edf1", "200": "#c0dbe2", "300": "#95c2ce", "400": "#65a6b8", "500": "#358aa2", "600": "#0e7490", "700": "#0d627c", "800": "#0d526a", "900": "#0d445a", "950": "#0c3448" },
+      neutral: { "50": "#f9fcfc", "100": "#f3f8fa", "200": "#e6ebee", "300": "#dde2e6", "400": "#a4aab2" },
+      text: { muted: "#646a76", body: "#4a5160", ink: "#172033" },
+      shadowRgb: "21, 53, 74",
     },
   },
 ];
 
-// Mirrors the platform default seeded by migration 0040
-// (platform_settings.default_theme_palette) — it's only the fallback when
-// that row is missing. To roll a palette out to institutions that never
-// chose one, change the platform default in the Super Admin console.
-export const DEFAULT_PALETTE_ID = "modern-indigo";
+// The default look (migration 0069 stores the same value as the platform
+// default and returns every institution to it).
+export const DEFAULT_PALETTE_ID = "scholar-teal";
 export const PALETTE_IDS = THEME_PALETTES.map((p) => p.id);
 
 export function getPalette(id: string | null | undefined): ThemePalette {
   return THEME_PALETTES.find((p) => p.id === id) ?? THEME_PALETTES.find((p) => p.id === DEFAULT_PALETTE_ID)!;
 }
 
-/** §Fixed-look ("this is not required — fix the latest update"): the app
- *  has ONE colour scheme, Modern Indigo, for every institution, portal,
- *  login screen and the Super Admin console. The palette picker UI is
- *  gone; the stored institutions.theme_palette / platform default values
- *  are no longer read for rendering. */
+/** The platform look — Scholar Teal — used wherever no institution is in
+ *  context (generic login, Super Admin console, generic install icon). */
 export const APP_PALETTE: ThemePalette = getPalette(DEFAULT_PALETTE_ID);
+
+/** §Brand-kit: an institution's own choice (institutions.theme_palette,
+ *  set under Settings → Appearance), or the default when it hasn't chosen
+ *  one / the stored id isn't one of the current options. */
+export function resolveInstitutionPalette(themePalette: string | null | undefined): ThemePalette {
+  return getPalette(themePalette);
+}
 
 /** Renders a palette's `vars` map as `--name: value;` CSS custom-property
  *  declarations — the body of a `:root { ... }` (or scoped selector)

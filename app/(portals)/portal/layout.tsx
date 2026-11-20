@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireRequestContext } from "../../../services/request-context";
 import { getInstitution } from "../../../services/institution/institution-service";
-import { APP_PALETTE, paletteCssVars } from "../../../services/branding/palettes";
+import { resolveInstitutionPalette, paletteCssVars } from "../../../services/branding/palettes";
 import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { listMyNotifications, getUnreadNotificationCount } from "../../../services/notification/notification-service";
 import { getStudent } from "../../../modules/students/service";
@@ -108,7 +108,8 @@ export default async function PortalLayout({ children }: { children: React.React
     : null;
 
   // §Fixed-look: one colour scheme for the whole app.
-  const palette = APP_PALETTE;
+  // §Brand-kit: same colours as the institution's staff app.
+  const palette = resolveInstitutionPalette(institution?.themePalette);
   // §Palette-picker follow-up ("colour palette is still not working"):
   // same nonce-based CSP fix as (institution)/layout.tsx -- an inline
   // <style> tag with no `nonce` attribute is silently dropped under this
@@ -161,7 +162,7 @@ export default async function PortalLayout({ children }: { children: React.React
         {viewer ? <SignedInAs fullName={viewer.fullName} email={viewer.email} /> : null}
         <NotificationBell initialItems={notifications} initialUnreadCount={unreadCount} />
         <form action={signOutAction}>
-          <button type="submit" className="rounded-full px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-[var(--surface-muted)] sm:px-3">
+          <button type="submit" className="whitespace-nowrap rounded-full px-2.5 py-1.5 text-sm text-zinc-500 hover:bg-[var(--surface-muted)] sm:px-3">
             Sign out
           </button>
         </form>

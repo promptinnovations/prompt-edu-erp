@@ -4,6 +4,8 @@ import { requireRequestContext } from "../../../services/request-context";
 import { can } from "../../../services/permissions/permission-service";
 import { getInstitution, getParentPortalSections } from "../../../services/institution/institution-service";
 import LogoForm from "./LogoForm";
+import AppearanceForm from "./AppearanceForm";
+import { THEME_PALETTES, DEFAULT_PALETTE_ID, resolveInstitutionPalette } from "../../../services/branding/palettes";
 import InstallAppButton from "./InstallAppButton";
 import ParentPortalSectionsForm from "./ParentPortalSectionsForm";
 import SeatingGenderRuleForm from "./SeatingGenderRuleForm";
@@ -36,6 +38,27 @@ export default async function SettingsPage() {
           app currently shows one.
         </p>
         <LogoForm logoUrl={institution?.logoFileId && institution.code ? `/api/institution-logo/${institution.code}` : null} />
+      </section>
+
+      <section className="rounded-card border bg-white p-5">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Appearance — app colours</h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          Choose the colours of your institution&apos;s app. Staff pages, the student and parent portals, the login
+          screen, report cards and the installed app icon all follow this choice.
+        </p>
+        <AppearanceForm
+          current={resolveInstitutionPalette(institution?.themePalette).id}
+          defaultId={DEFAULT_PALETTE_ID}
+          choices={THEME_PALETTES.map((p) => ({
+            id: p.id,
+            label: p.label,
+            primary: p.vars.brand,
+            accent: p.swatch[2],
+            sidebar: p.vars.sidebarBg,
+            ground: p.vars.background,
+            darkSidebar: p.vars.sidebarBg.toLowerCase() !== "#ffffff",
+          }))}
+        />
       </section>
 
       <section className="rounded-card border bg-white p-5">

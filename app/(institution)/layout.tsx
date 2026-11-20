@@ -4,7 +4,7 @@ import type { ComponentType, SVGProps } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireRequestContext } from "../../services/request-context";
 import { getInstitution, getEnabledUiLanguages } from "../../services/institution/institution-service";
-import { APP_PALETTE, paletteCssVars } from "../../services/branding/palettes";
+import { resolveInstitutionPalette, paletteCssVars } from "../../services/branding/palettes";
 import { getEnabledModuleCodes } from "../../services/modules/module-service";
 import { getRoleCodesForUser, can } from "../../services/permissions/permission-service";
 import { resolvePortalDestination } from "../../modules/portal/service";
@@ -384,7 +384,9 @@ export default async function InstitutionLayout({ children }: { children: React.
   // globals.css's `:root` defines (--brand, --sidebar-bg, etc.), so this
   // one block re-colours the whole institution app at once.
   // §Fixed-look: one colour scheme for the whole app.
-  const palette = APP_PALETTE;
+  // §Brand-kit: the institution's own choice (Settings → Appearance),
+  // Scholar Teal by default.
+  const palette = resolveInstitutionPalette(institution?.themePalette);
   // §Palette-picker follow-up ("colour palette is still not working"):
   // middleware.ts's CSP is nonce-based in production (`style-src 'self'
   // 'nonce-<value>'`, not 'unsafe-inline'), so this inline <style> tag was

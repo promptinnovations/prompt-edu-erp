@@ -61,9 +61,9 @@ describe("reading an institution's theme", () => {
 
 describe("updateInstitutionTheme", () => {
   it("lets the institution's own admin set a valid palette, reflected immediately by getInstitution", async () => {
-    await updateInstitutionTheme(institutionA, adminAuthA, adminUserIdA, { themePalette: "emerald-forest" });
+    await updateInstitutionTheme(institutionA, adminAuthA, adminUserIdA, { themePalette: "emerald-madrasa" });
     const institution = await getInstitution(institutionA, adminAuthA);
-    expect(institution?.themePalette).toBe("emerald-forest");
+    expect(institution?.themePalette).toBe("emerald-madrasa");
   });
 
   it("rejects a palette id that isn't in the curated list and leaves the stored value unchanged", async () => {
@@ -71,7 +71,7 @@ describe("updateInstitutionTheme", () => {
       updateInstitutionTheme(institutionA, adminAuthA, adminUserIdA, { themePalette: "midnight-goth" })
     ).rejects.toThrow();
     const institution = await getInstitution(institutionA, adminAuthA);
-    expect(institution?.themePalette).toBe("emerald-forest"); // unchanged from the previous test
+    expect(institution?.themePalette).toBe("emerald-madrasa"); // unchanged from the previous test
   });
 
   it("resets back to null (platform default) when explicitly asked to", async () => {
@@ -81,12 +81,12 @@ describe("updateInstitutionTheme", () => {
   });
 
   it("never touches another institution's theme — full tenant isolation, same as every other table", async () => {
-    await updateInstitutionTheme(institutionA, adminAuthA, adminUserIdA, { themePalette: "rose-plum" });
+    await updateInstitutionTheme(institutionA, adminAuthA, adminUserIdA, { themePalette: "forest-sand" });
     await updateInstitutionTheme(institutionB, adminAuthB, adminUserIdB, { themePalette: "ocean-blue" });
 
     const a = await getInstitution(institutionA, adminAuthA);
     const b = await getInstitution(institutionB, adminAuthB);
-    expect(a?.themePalette).toBe("rose-plum");
+    expect(a?.themePalette).toBe("forest-sand");
     expect(b?.themePalette).toBe("ocean-blue");
   });
 });
@@ -97,8 +97,8 @@ describe("platform default palette (migration 0040 platform_settings)", () => {
   });
 
   it("a real Super Admin can change it, and the new value is read back", async () => {
-    await setPlatformDefaultPalette(superAdminAuth, { themePalette: "sunset-orange" });
-    expect(await getPlatformDefaultPalette()).toBe("sunset-orange");
+    await setPlatformDefaultPalette(superAdminAuth, { themePalette: "royal-indigo" });
+    expect(await getPlatformDefaultPalette()).toBe("royal-indigo");
   });
 
   it("rejects a non-Super-Admin caller", async () => {
