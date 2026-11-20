@@ -40,6 +40,8 @@ export const RESERVED_INSTITUTION_CODES = new Set([
   // (since "messages" matched no reserved name), redirecting to
   // /messages/login instead of rendering the Messages page.
   "messages",
+  // events/ — Events & Activities (migration 0070), same reason as above.
+  "events",
   // Public Learner Record verification page (app/verify/[token]).
   "verify",
 ]);

@@ -17,6 +17,7 @@ import { getOwnStudentId, getOwnParentId } from "../../../modules/portal/service
 import PortalRoleToggle from "./PortalRoleToggle";
 import { getParentPortalSections } from "../../../services/institution/institution-service";
 import { can } from "../../../services/permissions/permission-service";
+import { getEnabledModuleCodes } from "../../../services/modules/module-service";
 
 // §Student-portal-visual-redesign — one page per area, each with its own
 // visuals and no data repeated from another page: Dashboard (at a glance +
@@ -31,6 +32,14 @@ const STUDENT_NAV_ITEMS: NavItem[] = [
   { href: "/portal/student/library", label: "Library & reading" },
   { href: "/portal/student/record", label: "Learner Record" },
 ];
+// Events & Activities (migration 0070) — shown only when the school has the
+// module, placed after Achievements.
+const withEvents = (items: NavItem[], href: string, on: boolean): NavItem[] => {
+  if (!on) return items;
+  const at = items.findIndex((i) => i.href.endsWith("/portfolio"));
+  const entry = { href, label: "Events & houses" };
+  return at >= 0 ? [...items.slice(0, at + 1), entry, ...items.slice(at + 1)] : [...items, entry];
+};
 
 // §"Parent & Student portal side panel + app download button" — the parent
 // side previously had no sidebar at all (single-column layout, "out of
@@ -100,6 +109,7 @@ export default async function PortalLayout({ children }: { children: React.React
   // (the common case) never gets this toggle by design — there's no
   // parent record for it to switch to.
   const hasDualPortalAccess = Boolean(ownStudentId && ownParentId);
+  const eventsOn = showSidebar && (await getEnabledModuleCodes(ctx.institutionId, ctx.session.authUserId)).has("events");
 
   // §student-portal redesign "photo of the student is not seen" — sidebar
   // profile block, student side only. getStudent() (not the heavier
@@ -229,7 +239,9 @@ export default async function PortalLayout({ children }: { children: React.React
               </div>
             </div>
           ) : null}
-          <NavLinks items={isParentSide ? parentNavItems(await getParentPortalSections(ctx.institutionId, ctx.session.authUserId), ctx.permissions) : STUDENT_NAV_ITEMS} />
+          <NavLinks items={isParentSide
+            ? withEvents(parentNavItems(await getParentPortalSections(ctx.institutionId, ctx.session.authUserId), ctx.permissions), "/portal/parent/events", eventsOn && can(ctx.permissions, "events.view"))
+            : withEvents(STUDENT_NAV_ITEMS, "/portal/student/events", eventsOn && can(ctx.permissions, "events.view"))} />
         </ResponsiveSidebar>
         <div className="flex min-w-0 flex-1 flex-col">
           {header}

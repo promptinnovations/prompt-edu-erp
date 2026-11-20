@@ -65,6 +65,10 @@ const ROUTES: Record<string, Crumb[]> = {
   "/skills": [["Skills"]],
   "/achievements": [["Achievements"]],
   "/library": [["Library"]],
+  "/events": [["Events & Activities"]],
+  "/events/houses": [["Events & Activities", "/events"], ["Houses"]],
+  "/events/*": [["Events & Activities", "/events"], ["Event"]],
+  "/events/*/items/*": [["Events & Activities", "/events"], ["Event", "/events/*"], ["Item"]],
   "/staff": [STAFF],
   "/staff/directory": [STAFF, ["Staff profiles"]],
   "/staff/register": [STAFF, ["Monthly register"]],
@@ -95,6 +99,8 @@ const ROUTES: Record<string, Crumb[]> = {
   "/super-admin/institutions/*": [SUPER, ["Institution"]],
   "/portal/student": [["Student Portal"]],
   "/portal/parent": [["Parent Portal"]],
+  "/portal/student/events": [["Student Portal", "/portal/student"], ["Events"]],
+  "/portal/parent/events": [["Parent Portal", "/portal/parent"], ["Events"]],
 };
 
 function humanize(segment: string): string {

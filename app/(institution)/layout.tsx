@@ -20,7 +20,7 @@ import {
   DashboardIcon, AcademicIcon, StudentIcon, AttendanceIcon, ExamIcon, ResultIcon, LibraryIcon,
   StaffIcon, SkillsIcon, DisciplineIcon, MentoringIcon, AnalysisIcon, PrintIcon,
   UsersIcon, SettingsIcon, SuperAdminIcon, ImportIcon, AnnouncementIcon, StorageIcon,
-  CalendarIcon, SubstitutionIcon, FeesIcon, AccountsIcon, MessagesIcon,
+  CalendarIcon, SubstitutionIcon, FeesIcon, AccountsIcon, MessagesIcon, EventsIcon,
 } from "../components/NavIcons";
 import { setLocaleAction, signOutAction, exitSuperAdminViewAction, exitSamplePortalAction } from "./actions";
 
@@ -99,6 +99,10 @@ export default async function InstitutionLayout({ children }: { children: React.
   const hasReportsAccess = can(ctx.permissions, "reports.view");
   const hasSettingsAccess = can(ctx.permissions, "settings.manage");
   const hasCalendarAccess = enabledModules.has("calendar") && can(ctx.permissions, "calendar.view");
+  // Events & Activities (migration 0070): staff with view / judge / manage.
+  const hasEventsAccess = enabledModules.has("events")
+    && (ctx.isSuperAdmin || can(ctx.permissions, "events.manage") || can(ctx.permissions, "events.judge") || can(ctx.permissions, "events.view"));
+  const canManageEvents = ctx.isSuperAdmin || can(ctx.permissions, "events.manage");
   const hasSubstitutionAccess = enabledModules.has("substitution") && can(ctx.permissions, "substitution.view");
   // Phase D §1/§2 — Fee/Accounts modules.
   const hasFeesAccess = enabledModules.has("fees") && can(ctx.permissions, "fees.view");
@@ -311,6 +315,14 @@ export default async function InstitutionLayout({ children }: { children: React.
       ],
     }] : []),
 
+    ...(hasEventsAccess ? [{
+      kind: "group" as const, label: "Events & Activities", icon: ni(EventsIcon),
+      items: [
+        { href: "/events", label: "Events & results", match: ["/events"] },
+        ...(canManageEvents ? [{ href: "/events/houses", label: "Houses" }] : []),
+      ],
+    }] : []),
+
     ...(hasMentoringAccess ? [{
       kind: "group" as const, label: "Mentoring", icon: ni(MentoringIcon),
       // §Sidebar-audit: "Goals" and "Action plans" were removed as separate
@@ -362,7 +374,7 @@ export default async function InstitutionLayout({ children }: { children: React.
     "/dashboard",
     { heading: "Academics" }, "/classes", "Academic Structure", "Attendance", "Examination", "Result", "/calendar", "/substitution",
     { heading: "People" }, "Student Management", "Staff",
-    { heading: "Student life" }, "Skills & Achievements", "Discipline", "Mentoring", "Library",
+    { heading: "Student life" }, "Skills & Achievements", "Events & Activities", "Discipline", "Mentoring", "Library",
     { heading: "Reports" }, "/analysis", "/print",
     { heading: "Finance & messages" }, "/fees", "/accounts", "/messages", "/announcements",
     { heading: "Administration" }, "/import", "/storage", "/users", "/settings", "/super-admin",

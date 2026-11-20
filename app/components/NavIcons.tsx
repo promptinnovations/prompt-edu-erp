@@ -113,6 +113,11 @@ export const SubstitutionIcon = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}><circle cx="8" cy="8" r="3" /><path d="M2.5 20c0-3.3 2.5-5.7 5.5-5.7 1.2 0 2.3.4 3.2 1" /><path d="M14.5 6.5h6M17.5 3.5v6" /><path d="M14.5 14.5h6M17.5 11.5v6" /></Base>
 );
 
+// Events & Activities (migration 0070) — a trophy.
+export const EventsIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Base {...p}><path d="M8 20.5h8M12 16v4.5" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.6M17 6h2.5a2.5 2.5 0 0 1-2.6 3.6" /></Base>
+);
+
 // Phase D — Fee/Accounts/Communication modules.
 export const FeesIcon = (p: SVGProps<SVGSVGElement>) => (
   <Base {...p}><rect x="3.5" y="6" width="17" height="12" rx="2" /><path d="M3.5 10h17" /><path d="M7 14.5h4" /></Base>
