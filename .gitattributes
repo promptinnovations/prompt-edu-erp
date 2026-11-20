@@ -1,0 +1,19 @@
+# Normalise line endings: LF in the repository, native endings in the
+# working copy (CRLF on Windows). Stops GitHub Desktop from listing every
+# file as changed when only the line endings differ.
+* text=auto
+
+# Binary files: never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.xlsx binary
+*.zip binary
+*.tgz binary
