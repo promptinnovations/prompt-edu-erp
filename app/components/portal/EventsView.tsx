@@ -9,7 +9,7 @@ import { EVENT_STATUS_LABEL } from "../../../modules/events/service";
 import { Panel, EmptyNote, StatTile } from "./viz/blocks";
 import { decorColor, tint } from "./viz/palette";
 import { HouseBoard, PlaceBadge, HouseDot, fmt, KIND_LABEL } from "../../(institution)/events/parts";
-import ActionForm, { type ActionResult } from "../../(institution)/events/ActionForm";
+import ActionForm, { type ActionResult } from "../ui/ActionForm";
 import { formatDateIST } from "../../../services/datetime/ist";
 
 type Act = (p: ActionResult, fd: FormData) => Promise<ActionResult>;

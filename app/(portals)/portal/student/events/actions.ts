@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireOwnStudentId } from "../_lib";
 import { can } from "../../../../../services/permissions/permission-service";
 import { enrolEntry, withdrawEntry, EventsError } from "../../../../../modules/events/service";
-import type { ActionResult } from "../../../../(institution)/events/ActionForm";
+import type { ActionResult } from "../../../../components/ui/ActionForm";
 
 /** A student enrolling themself in an open individual item, or taking that
  *  entry back while enrolment is open. The service re-checks eligibility,

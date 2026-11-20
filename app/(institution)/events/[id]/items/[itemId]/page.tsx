@@ -10,9 +10,9 @@ import {
 } from "../../../../../../modules/events/service";
 import { PageHeader, Panel, EmptyNote } from "../../../../../components/portal/viz/blocks";
 import { decorColor } from "../../../../../components/portal/viz/palette";
-import ActionForm from "../../../ActionForm";
+import ActionForm from "../../../../../components/ui/ActionForm";
 import { enrolAction, withdrawEntryAction, setEntryStatusAction, setJudgesAction, saveScoresAction, deleteItemAction } from "../../../actions";
-import { inputClass, labelClass } from "../../../ui";
+import { inputClass, labelClass } from "../../../../../components/ui/form-classes";
 import { StatusBadge, PlaceBadge, HouseDot, fmt } from "../../../parts";
 import ItemForm from "../../../ItemForm";
 
@@ -88,8 +88,8 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
                         <td className="py-1.5 pr-3 font-semibold text-[var(--foreground)]">No. {e.entry_no}{e.team_name ? <span className="ml-1 text-xs font-normal text-zinc-500">{e.team_name}</span> : null}</td>
                         {item.criteria.map((c, ci) => (
                           <td key={c} className="py-1.5 pr-3">
-                            <input aria-label={`Entry ${e.entry_no} ${c}`} name={`m:${e.id}:${ci}`} type="number" inputMode="decimal" min={0} max={item.max_mark_per_criterion} step="0.25"
-                              defaultValue={e.marks[c] ?? ""} className={`${inputClass} max-w-[6rem]`} />
+                            <div className="w-24"><input aria-label={`Entry ${e.entry_no} ${c}`} name={`m:${e.id}:${ci}`} type="number" inputMode="decimal" min={0} max={item.max_mark_per_criterion} step="0.25"
+                              defaultValue={e.marks[c] ?? ""} className={inputClass} /></div>
                           </td>
                         ))}
                       </tr>

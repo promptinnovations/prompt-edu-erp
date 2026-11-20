@@ -6,9 +6,9 @@ import { can } from "../../../../services/permissions/permission-service";
 import { listHouses, listStudentHouses } from "../../../../modules/events/service";
 import { PageHeader, Panel, EmptyNote } from "../../../components/portal/viz/blocks";
 import { decorColor } from "../../../components/portal/viz/palette";
-import ActionForm from "../ActionForm";
+import ActionForm from "../../../components/ui/ActionForm";
 import { saveHouseAction, deleteHouseAction, autoAssignHousesAction, assignHousesAction } from "../actions";
-import { inputClass, labelClass } from "../ui";
+import { inputClass, labelClass } from "../../../components/ui/form-classes";
 import { HouseDot } from "../parts";
 
 export default async function HousesPage({ searchParams }: { searchParams: Promise<{ class?: string }> }) {
@@ -104,10 +104,10 @@ export default async function HousesPage({ searchParams }: { searchParams: Promi
                         <td className="py-1.5 pr-3 capitalize text-zinc-600">{r.gender ?? "—"}</td>
                         <td className="py-1.5">
                           <input type="hidden" name={`was:${r.student_id}`} value={r.house_id ?? ""} />
-                          <select aria-label={`House for ${r.full_name}`} name={`house:${r.student_id}`} defaultValue={r.house_id ?? ""} className={`${inputClass} max-w-[12rem]`}>
+                          <div className="w-48"><select aria-label={`House for ${r.full_name}`} name={`house:${r.student_id}`} defaultValue={r.house_id ?? ""} className={inputClass}>
                             <option value="">— No house —</option>
                             {houses.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-                          </select>
+                          </select></div>
                         </td>
                       </tr>
                     ))}

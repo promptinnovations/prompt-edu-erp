@@ -5,8 +5,11 @@ import { listStudents } from "../../../modules/students/service";
 import {
   listBooks, listAvailableCopies, listAvailableCopiesByBook, listIssuedBooks, listReadingRecords,
   listAuthors, listPublishers, listBookCategories, listShelves,
-  listPendingHolds, listApprovedReviews,
+  listPendingHolds, listApprovedReviews, getLibraryConfig,
 } from "../../../modules/library/service";
+import ActionForm from "../../components/ui/ActionForm";
+import { inputClass, labelClass } from "../../components/ui/form-classes";
+import { saveLibrarySettingsAction } from "./actions";
 import AddBookForm from "./AddBookForm";
 import IssueBookForm from "./IssueBookForm";
 import ReturnBookForm from "./ReturnBookForm";
@@ -24,7 +27,7 @@ export default async function LibraryPage() {
   const authUserId = ctx.session.authUserId;
   await requireModuleEnabledOrRedirect(institutionId, authUserId, "library");
 
-  const [students, books, issued, pendingReviews, authors, publishers, categories, shelves, holds, approvedReviews] = await Promise.all([
+  const [students, books, issued, pendingReviews, authors, publishers, categories, shelves, holds, approvedReviews, config] = await Promise.all([
     listStudents(institutionId, authUserId),
     listBooks(institutionId, authUserId),
     listIssuedBooks(institutionId, authUserId),
@@ -35,6 +38,7 @@ export default async function LibraryPage() {
     listShelves(institutionId, authUserId),
     listPendingHolds(institutionId, authUserId),
     listApprovedReviews(institutionId, authUserId),
+    getLibraryConfig(institutionId, authUserId),
   ]);
 
   // One query for every book's available copies (was one per book).
@@ -98,7 +102,9 @@ export default async function LibraryPage() {
             </div>
           </details>
         ) : null}
+        {canManage ? <p className="mb-3 text-xs text-zinc-500">Tap a book to edit its details or copies.</p> : null}
         <LibraryCatalogueGrid
+          hrefBase={canManage ? "/library/books" : undefined}
           books={books.map((b) => ({
             id: b.id, title: b.title, subtitle: b.subtitle, author_name: b.author_name,
             category_name: b.category_name, shelf_name: b.shelf_name,
@@ -157,9 +163,41 @@ export default async function LibraryPage() {
         <p className="mb-3 text-xs text-zinc-500">
           &ldquo;Ready to collect&rdquo; = a student tapped <em>Take this book</em> in their portal and is on their way — issue them a copy and the booking closes itself.
           &ldquo;Waiting&rdquo; = every copy was out; they&rsquo;re notified automatically (in-app + WhatsApp) the moment one is returned.
+          A booking not collected within {config.holdCollectDays} day{config.holdCollectDays === 1 ? "" : "s"} lapses and the copy passes to the next student waiting.
         </p>
-        <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at }))} />
+        <HoldsWaitlist holds={holds.map((h) => ({ id: h.id, book_title: h.book_title, student_name: h.student_name, status: h.status, requested_at: h.requested_at, collect_by: h.collect_by ?? null }))} />
       </section>
+
+      {canManage ? (
+        <section id="settings" className="rounded-card border bg-white p-5">
+          <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">Library settings</h2>
+          <p className="mb-3 text-xs text-zinc-500">Loan period, fines and bookings for this library.</p>
+          <ActionForm action={saveLibrarySettingsAction} submitLabel="Save settings" className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <label className={labelClass} htmlFor="ls-loan">Loan period (days)</label>
+                <input id="ls-loan" name="loanPeriodDays" type="number" min={1} max={365} required defaultValue={config.loanPeriodDays} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="ls-fine">Fine per late day (₹)</label>
+                <input id="ls-fine" name="finePerDay" type="number" min={0} step="0.5" defaultValue={config.finePerDay} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="ls-grace">Grace days before a fine</label>
+                <input id="ls-grace" name="graceDays" type="number" min={0} max={60} defaultValue={config.graceDays} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="ls-collect">Collect a booking within (days)</label>
+                <input id="ls-collect" name="holdCollectDays" type="number" min={1} max={60} defaultValue={config.holdCollectDays} className={inputClass} />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-zinc-700">
+              <input type="checkbox" name="requiresReadingReview" defaultChecked={config.requiresReadingReview} className="accent-[var(--brand)]" />
+              Students write a short review after returning a book
+            </label>
+          </ActionForm>
+        </section>
+      ) : null}
 
       <section id="review-corner" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Review Corner</h2>

@@ -65,6 +65,7 @@ const ROUTES: Record<string, Crumb[]> = {
   "/skills": [["Skills"]],
   "/achievements": [["Achievements"]],
   "/library": [["Library"]],
+  "/library/books/*": [["Library", "/library"], ["Book"]],
   "/events": [["Events & Activities"]],
   "/events/houses": [["Events & Activities", "/events"], ["Houses"]],
   "/events/*": [["Events & Activities", "/events"], ["Event"]],

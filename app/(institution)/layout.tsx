@@ -256,12 +256,13 @@ export default async function InstitutionLayout({ children }: { children: React.
       // real sections (user's explicit go-ahead) — "Issue/return" and
       // "Reading history" didn't match any actual section.
       items: [
-        { href: "/library#catalogue", label: "Catalogue" },
+        { href: "/library#catalogue", label: "Catalogue", match: ["/library/books"] },
         { href: "/library#issue", label: "Issue a book" },
         { href: "/library#currently-issued", label: "Currently issued" },
         { href: "/library#reading-reviews", label: "Reading reviews" },
         { href: "/library#pre-bookings", label: "Pre-bookings (waitlist)" },
         { href: "/library#review-corner", label: "Review Corner" },
+        ...(can(ctx.permissions, "library.manage") ? [{ href: "/library#settings", label: "Library settings" }] : []),
       ],
     }] : []),
 

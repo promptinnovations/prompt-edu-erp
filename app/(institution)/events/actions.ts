@@ -11,7 +11,7 @@ import {
   setItemJudges, enrolEntry, withdrawEntry, setEntryStatus, saveScores, EventsError, EVENT_STATUSES,
   type EventStatus,
 } from "../../../modules/events/service";
-import type { ActionResult } from "./ActionForm";
+import type { ActionResult } from "../../components/ui/ActionForm";
 
 type Ctx = Awaited<ReturnType<typeof requireRequestContext>>;
 

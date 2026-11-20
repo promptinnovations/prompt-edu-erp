@@ -7,7 +7,8 @@ export type ActionResult = { error: string | null; ok?: string | null };
 type Action = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
 
 /**
- * One small wrapper for every Events & Activities form: runs the server
+ * One small wrapper for a server-action form (Events & Activities, Library
+ * edit pages …): runs the server
  * action, shows its error or success line next to the button, and clears
  * the form after a successful "add" (resetOnSuccess).
  */

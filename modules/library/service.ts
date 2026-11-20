@@ -52,9 +52,12 @@ export interface LibraryConfig {
   finePerDay: number;
   graceDays: number;
   requiresReadingReview: boolean;
+  /** Days a "ready to collect" booking is held before it lapses and the
+   *  copy passes to the next student waiting (migration 0071). */
+  holdCollectDays: number;
 }
 const DEFAULT_LIBRARY_CONFIG: LibraryConfig = {
-  loanPeriodDays: 14, finePerDay: 0, graceDays: 0, requiresReadingReview: true,
+  loanPeriodDays: 14, finePerDay: 0, graceDays: 0, requiresReadingReview: true, holdCollectDays: 3,
 };
 
 // ---------------------------------------------------------------------------
@@ -77,10 +80,11 @@ const setLibraryConfigSchema = z.object({
   finePerDay: z.number().nonnegative(),
   graceDays: z.number().int().nonnegative(),
   requiresReadingReview: z.boolean(),
+  holdCollectDays: z.number().int().min(1).max(60).default(3),
 });
 
 export async function setLibraryConfig(
-  institutionId: string, authUserId: string, userId: string, input: z.infer<typeof setLibraryConfigSchema>
+  institutionId: string, authUserId: string, userId: string, input: z.input<typeof setLibraryConfigSchema>
 ): Promise<LibraryConfig> {
   const data = setLibraryConfigSchema.parse(input);
   const db = await getDbClient();
@@ -254,7 +258,7 @@ function normalizeBookRow(r: BookRow): BookRow {
  *  in another institution (RLS makes those indistinguishable, by design). */
 export interface BookDetail {
   book: BookRow;
-  myHold: { id: string; status: string } | null;
+  myHold: { id: string; status: string; collect_by: string | null } | null;
   myIssue: { id: string; issue_date: string; due_date: string; is_overdue: boolean } | null;
   myPendingReview: { reading_record_id: string } | null;
   timesRead: number; // this student's completed reads of this book
@@ -262,8 +266,10 @@ export interface BookDetail {
 export async function getBookDetail(
   institutionId: string, authUserId: string, bookId: string, viewerStudentId?: string | null
 ): Promise<BookDetail | null> {
+  const config = viewerStudentId ? await getLibraryConfig(institutionId, authUserId) : null;
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    if (config) await expireUncollectedHoldsIn(scoped, institutionId, authUserId, config.holdCollectDays);
     const { rows } = await scoped.query<BookRow>(
       `${BOOK_ROW_SELECT}
         where b.id = $1 and b.status = 'active'
@@ -275,10 +281,13 @@ export async function getBookDetail(
     if (!viewerStudentId) return { book, myHold: null, myIssue: null, myPendingReview: null, timesRead: 0 };
 
     const [{ rows: holdRows }, { rows: issueRows }, { rows: reviewRows }, { rows: readRows }] = await Promise.all([
-      scoped.query<{ id: string; status: string }>(
-        `select id, status from book_holds where book_id = $1 and student_id = $2 and status in ('pending', 'notified')
+      scoped.query<{ id: string; status: string; collect_by: string | null }>(
+        `select id, status,
+                case when status = 'notified' and notified_at is not null
+                     then (notified_at + make_interval(days => $3::int))::text end as collect_by
+           from book_holds where book_id = $1 and student_id = $2 and status in ('pending', 'notified')
           order by requested_at desc limit 1`,
-        [bookId, viewerStudentId]
+        [bookId, viewerStudentId, config?.holdCollectDays ?? 3]
       ),
       scoped.query<{ id: string; issue_date: string; due_date: string; is_overdue: boolean }>(
         `select bi.id, bi.issue_date::text as issue_date, bi.due_date::text as due_date, (bi.due_date < current_date) as is_overdue
@@ -349,6 +358,107 @@ export async function listAvailableCopies(institutionId: string, authUserId: str
 // ---------------------------------------------------------------------------
 // Issue / return (§M.2)
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// §Library-gaps — editing the catalogue after a book is added: its details,
+// its copies (add more, mark damaged / lost / withdrawn, back to available)
+// and taking a whole title out of the catalogue.
+// ---------------------------------------------------------------------------
+export const updateBookSchema = createBookSchema.omit({ copyCount: true });
+
+export async function updateBook(
+  institutionId: string, authUserId: string, userId: string, bookId: string, input: z.input<typeof updateBookSchema>
+): Promise<void> {
+  const data = updateBookSchema.parse(input);
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: before } = await scoped.query("select * from books where id = $1", [bookId]);
+    if (!before[0]) throw new Error("Book not found.");
+    await scoped.query(
+      `update books set title = $2, subtitle = $3, isbn = $4, author_id = $5, publisher_id = $6, category_id = $7, shelf_id = $8,
+              language = $9, edition = $10, publication_year = $11, original_language = $12, description = $13
+        where id = $1`,
+      [bookId, data.title, data.subtitle ?? null, data.isbn ?? null, data.authorId ?? null, data.publisherId ?? null, data.categoryId ?? null,
+        data.shelfId ?? null, data.language ?? null, data.edition ?? null, data.publicationYear ?? null, data.originalLanguage ?? null, data.description ?? null]
+    );
+    await recordAudit(scoped, { institutionId, userId, action: "update", module: "library", entityType: "books", entityId: bookId, before: before[0], after: data });
+  });
+}
+
+export interface BookCopyRow extends BookCopyRecord { borrower_name: string | null; due_date: string | null }
+
+/** Every copy of a book (any status) with who has it, for the edit page. */
+export async function listBookCopies(institutionId: string, authUserId: string, bookId: string): Promise<BookCopyRow[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<BookCopyRow>(
+      `select bc.id, bc.book_id, bc.copy_code, bc.condition, bc.status, s.full_name as borrower_name, bi.due_date::text as due_date
+         from book_copies bc
+         left join book_issues bi on bi.book_copy_id = bc.id and bi.status = 'issued'
+         left join students s on s.id = bi.student_id
+        where bc.book_id = $1
+        order by bc.copy_code`,
+      [bookId]
+    );
+    return rows;
+  });
+}
+
+export async function addBookCopies(institutionId: string, authUserId: string, userId: string, bookId: string, count: number): Promise<number> {
+  const n = z.number().int().min(1).max(200).parse(count);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows: b } = await scoped.query<{ n: string }>("select count(*)::text as n from book_copies where book_id = $1", [bookId]);
+    const start = Number(b[0]?.n ?? 0);
+    for (let i = 1; i <= n; i++) {
+      // Copy codes keep counting up; a clash with a hand-made code just skips ahead.
+      let k = start + i;
+      for (;;) {
+        const code = `${bookId.slice(0, 8)}-${k}`;
+        const { rows } = await scoped.query<{ id: string }>("select id from book_copies where book_id = $1 and copy_code = $2", [bookId, code]);
+        if (!rows[0]) { await scoped.query("insert into book_copies (institution_id, book_id, copy_code) values ($1, $2, $3)", [institutionId, bookId, code]); break; }
+        k += n;
+      }
+    }
+    await recordAudit(scoped, { institutionId, userId, action: "add_copies", module: "library", entityType: "books", entityId: bookId, after: { count: n } });
+    // A new free copy can go straight to the next student waiting.
+    for (let i = 0; i < n; i++) if (!(await promoteNextHoldIn(scoped, institutionId, authUserId, bookId))) break;
+    return n;
+  });
+}
+
+export const COPY_STATUSES = ["available", "damaged", "lost", "withdrawn"] as const;
+
+/** Sets a copy that is on the shelf (not issued) to available / damaged /
+ *  lost / withdrawn. Issued copies change only through a return. */
+export async function setCopyStatus(
+  institutionId: string, authUserId: string, userId: string, copyId: string, status: (typeof COPY_STATUSES)[number]
+): Promise<void> {
+  if (!COPY_STATUSES.includes(status)) throw new Error("Unknown status.");
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ status: string; book_id: string }>("select status, book_id from book_copies where id = $1", [copyId]);
+    if (!rows[0]) throw new Error("Copy not found.");
+    if (rows[0].status === "issued") throw new Error("This copy is out on loan — return it first.");
+    await scoped.query("update book_copies set status = $2 where id = $1", [copyId, status]);
+    await recordAudit(scoped, { institutionId, userId, action: "set_copy_status", module: "library", entityType: "book_copies", entityId: copyId, before: { status: rows[0].status }, after: { status } });
+    if (status === "available" && rows[0].status !== "available") await promoteNextHoldIn(scoped, institutionId, authUserId, rows[0].book_id);
+  });
+}
+
+/** Takes a title out of the catalogue (kept for reading history). Refused
+ *  while a copy is out on loan; open bookings for it are cancelled. */
+export async function withdrawBook(institutionId: string, authUserId: string, userId: string, bookId: string): Promise<void> {
+  const db = await getDbClient();
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ n: string }>("select count(*)::text as n from book_copies where book_id = $1 and status = 'issued'", [bookId]);
+    if (Number(rows[0]?.n ?? 0) > 0) throw new Error("A copy of this book is out on loan — return it first.");
+    await scoped.query("update books set status = 'withdrawn' where id = $1", [bookId]);
+    await scoped.query("update book_copies set status = 'withdrawn' where book_id = $1 and status = 'available'", [bookId]);
+    await scoped.query("update book_holds set status = 'cancelled' where book_id = $1 and status in ('pending', 'notified')", [bookId]);
+    await recordAudit(scoped, { institutionId, userId, action: "withdraw", module: "library", entityType: "books", entityId: bookId });
+  });
+}
+
 export async function issueBook(
   institutionId: string, authUserId: string, userId: string, studentId: string, bookCopyId: string
 ): Promise<BookIssueRecord> {
@@ -485,31 +595,7 @@ export async function returnBook(
     // already degrades to 'skipped' rows rather than throwing, same
     // contract every other caller of it relies on.
     if (newCopyStatus === "available") {
-      const { rows: holdRows } = await scoped.query<{ id: string; student_id: string }>(
-        `select id, student_id from book_holds
-          where book_id = $1 and status = 'pending'
-          order by requested_at asc limit 1`,
-        [bookRows[0].book_id]
-      );
-      if (holdRows[0]) {
-        await scoped.query(
-          "update book_holds set status = 'notified', notified_at = now() where id = $1",
-          [holdRows[0].id]
-        );
-        const { rows: studentRows } = await scoped.query<{ user_id: string | null }>(
-          "select user_id from students where id = $1", [holdRows[0].student_id]
-        );
-        const { rows: titleRows } = await scoped.query<{ title: string }>("select title from books where id = $1", [bookRows[0].book_id]);
-        if (studentRows[0]?.user_id) {
-          await notifyUser(institutionId, authUserId, studentRows[0].user_id, {
-            type: "book_hold_available",
-            title: "A book you're waiting for is available",
-            body: `"${titleRows[0]?.title ?? "Your requested book"}" has just been returned and is available at the library — come collect it.`,
-            channels: ["in_app", "whatsapp"],
-            relatedEntityType: "book_holds", relatedEntityId: holdRows[0].id,
-          }, scoped);
-        }
-      }
+      await promoteNextHoldIn(scoped, institutionId, authUserId, bookRows[0].book_id);
     }
 
     return { fineAmount, readingRecordId: readingRows[0]?.id ?? null };
@@ -523,15 +609,87 @@ export async function returnBook(
 export interface BookHoldRow {
   id: string; book_id: string; book_title: string; student_id: string; student_name: string;
   status: string; requested_at: string; notified_at: string | null;
+  /** "Ready to collect" bookings only: when the booking lapses. */
+  collect_by?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// §Library-gaps — uncollected bookings lapse (migration 0071). There is no
+// job scheduler, so this runs whenever bookings are read (the librarian's
+// waitlist, a student's own list or book page, a new booking): every
+// "ready to collect" booking older than the collect-within days becomes
+// 'expired', and for each book that freed up, the next student waiting is
+// promoted to "ready to collect" and notified — exactly what a return does.
+// ---------------------------------------------------------------------------
+async function promoteNextHoldIn(scoped: DbClient, institutionId: string, authUserId: string, bookId: string): Promise<string | null> {
+  const { rows: holdRows } = await scoped.query<{ id: string; student_id: string }>(
+    `select id, student_id from book_holds
+      where book_id = $1 and status = 'pending'
+      order by requested_at asc limit 1`,
+    [bookId]
+  );
+  if (!holdRows[0]) return null;
+  await scoped.query("update book_holds set status = 'notified', notified_at = now() where id = $1", [holdRows[0].id]);
+  const { rows: studentRows } = await scoped.query<{ user_id: string | null }>("select user_id from students where id = $1", [holdRows[0].student_id]);
+  const { rows: titleRows } = await scoped.query<{ title: string }>("select title from books where id = $1", [bookId]);
+  if (studentRows[0]?.user_id) {
+    await notifyUser(institutionId, authUserId, studentRows[0].user_id, {
+      type: "book_hold_available",
+      title: "A book you're waiting for is available",
+      body: `"${titleRows[0]?.title ?? "Your requested book"}" is available at the library — come collect it.`,
+      channels: ["in_app", "whatsapp"],
+      relatedEntityType: "book_holds", relatedEntityId: holdRows[0].id,
+    }, scoped);
+  }
+  return holdRows[0].id;
+}
+
+async function expireUncollectedHoldsIn(scoped: DbClient, institutionId: string, authUserId: string, collectDays: number): Promise<number> {
+  const { rows } = await scoped.query<{ book_id: string }>(
+    `update book_holds set status = 'expired'
+      where status = 'notified' and notified_at is not null
+        and notified_at < now() - make_interval(days => $1::int)
+      returning book_id`,
+    [collectDays]
+  );
+  for (const bookId of new Set(rows.map((r) => r.book_id))) {
+    // Free copies not already promised to someone "ready to collect".
+    const { rows: c } = await scoped.query<{ free: number }>(
+      `select (select count(*) from book_copies where book_id = $1 and status = 'available')
+            - (select count(*) from book_holds where book_id = $1 and status = 'notified') as free`,
+      [bookId]
+    );
+    let free = Number(c[0]?.free ?? 0);
+    while (free > 0 && (await promoteNextHoldIn(scoped, institutionId, authUserId, bookId))) free--;
+  }
+  return rows.length;
+}
+
+/** Lapses uncollected bookings now (also runs automatically on every
+ *  booking read). Returns how many lapsed. */
+export async function expireUncollectedHolds(institutionId: string, authUserId: string): Promise<number> {
+  const config = await getLibraryConfig(institutionId, authUserId);
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, (scoped) => expireUncollectedHoldsIn(scoped, institutionId, authUserId, config.holdCollectDays));
+}
+
+const HOLD_SELECT = `select bh.id, bh.book_id, b.title as book_title, bh.student_id, s.full_name as student_name,
+              bh.status, bh.requested_at, bh.notified_at,
+              case when bh.status = 'notified' and bh.notified_at is not null
+                   then (bh.notified_at + make_interval(days => $DAYS::int))::text end as collect_by
+         from book_holds bh join books b on b.id = bh.book_id join students s on s.id = bh.student_id`;
 
 export async function placeHold(
   institutionId: string, authUserId: string, userId: string, studentId: string, bookId: string
 ): Promise<BookHoldRow> {
+  const config = await getLibraryConfig(institutionId, authUserId);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await expireUncollectedHoldsIn(scoped, institutionId, authUserId, config.holdCollectDays);
     const { rows: availRows } = await scoped.query<{ available: string }>(
-      "select count(*)::text as available from book_copies where book_id = $1 and status = 'available'",
+      // Free copies not already promised to a "ready to collect" booking.
+      `select ((select count(*) from book_copies where book_id = $1 and status = 'available')
+             - (select count(*) from book_holds where book_id = $1 and status = 'notified'))::text as available`,
       [bookId]
     );
     // §Library-workflow ("then should be able to take by clicking book, if
@@ -602,15 +760,15 @@ export async function cancelHold(
 
 /** A student's own active (pending/notified) holds — self-service list. */
 export async function listMyHolds(institutionId: string, authUserId: string, studentId: string): Promise<BookHoldRow[]> {
+  const config = await getLibraryConfig(institutionId, authUserId);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await expireUncollectedHoldsIn(scoped, institutionId, authUserId, config.holdCollectDays);
     const { rows } = await scoped.query<BookHoldRow>(
-      `select bh.id, bh.book_id, b.title as book_title, bh.student_id, s.full_name as student_name,
-              bh.status, bh.requested_at, bh.notified_at
-         from book_holds bh join books b on b.id = bh.book_id join students s on s.id = bh.student_id
+      `${HOLD_SELECT.replace("$DAYS", "$2")}
         where bh.student_id = $1 and bh.status in ('pending', 'notified')
         order by bh.requested_at`,
-      [studentId]
+      [studentId, config.holdCollectDays]
     );
     return rows;
   });
@@ -618,14 +776,15 @@ export async function listMyHolds(institutionId: string, authUserId: string, stu
 
 /** Every active hold across the library — the librarian's waitlist view. */
 export async function listPendingHolds(institutionId: string, authUserId: string): Promise<BookHoldRow[]> {
+  const config = await getLibraryConfig(institutionId, authUserId);
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    await expireUncollectedHoldsIn(scoped, institutionId, authUserId, config.holdCollectDays);
     const { rows } = await scoped.query<BookHoldRow>(
-      `select bh.id, bh.book_id, b.title as book_title, bh.student_id, s.full_name as student_name,
-              bh.status, bh.requested_at, bh.notified_at
-         from book_holds bh join books b on b.id = bh.book_id join students s on s.id = bh.student_id
+      `${HOLD_SELECT.replace("$DAYS", "$1")}
         where bh.status in ('pending', 'notified')
-        order by bh.requested_at`
+        order by bh.requested_at`,
+      [config.holdCollectDays]
     );
     return rows;
   });

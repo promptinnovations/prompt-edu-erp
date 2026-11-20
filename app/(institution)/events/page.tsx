@@ -7,9 +7,9 @@ import { listEvents, listHouses, getHouseLeaderboard, listMyJudgingItems, EVENT_
 import { PageHeader, Panel, StatTile, EmptyNote } from "../../components/portal/viz/blocks";
 import { decorColor } from "../../components/portal/viz/palette";
 import { formatDateIST } from "../../../services/datetime/ist";
-import ActionForm from "./ActionForm";
+import ActionForm from "../../components/ui/ActionForm";
 import { createEventAction } from "./actions";
-import { inputClass, labelClass } from "./ui";
+import { inputClass, labelClass } from "../../components/ui/form-classes";
 import { StatusBadge, HouseBoard, KIND_LABEL } from "./parts";
 
 export default async function EventsPage() {

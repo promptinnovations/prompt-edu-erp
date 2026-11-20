@@ -11,9 +11,9 @@ import {
 import { PageHeader, Panel, StatTile, EmptyNote } from "../../../components/portal/viz/blocks";
 import { decorColor } from "../../../components/portal/viz/palette";
 import { formatDateIST } from "../../../../services/datetime/ist";
-import ActionForm from "../ActionForm";
+import ActionForm from "../../../components/ui/ActionForm";
 import { setEventStatusAction, updateEventAction, deleteEventAction } from "../actions";
-import { inputClass, labelClass } from "../ui";
+import { inputClass, labelClass } from "../../../components/ui/form-classes";
 import { StatusBadge, HouseBoard, Champions, PlaceBadge, HouseDot, KIND_LABEL } from "../parts";
 import ItemForm from "../ItemForm";
 

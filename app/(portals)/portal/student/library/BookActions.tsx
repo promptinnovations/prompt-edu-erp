@@ -20,7 +20,7 @@ export default function BookActions({
 }: {
   bookId: string;
   available: boolean;
-  myHold: { id: string; status: string } | null;
+  myHold: { id: string; status: string; collect_by?: string | null } | null;
   myIssue: { due_date: string; is_overdue: boolean } | null;
 }) {
   const [holdState, holdAction, holdPending] = useActionState<{ error: string | null }, FormData>(placeHoldAction, { error: null });
@@ -48,7 +48,7 @@ export default function BookActions({
         </p>
         <p className="mt-0.5 text-xs text-zinc-600">
           {ready
-            ? "Tell the librarian your name; the book is reserved under it."
+            ? `Tell the librarian your name; the book is reserved under it${myHold.collect_by ? ` until ${new Date(myHold.collect_by).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}. If it isn't collected by then, it goes to the next student waiting.`
             : "Every copy is out right now. The moment one comes back, you'll get a notification and it will be held for you."}
         </p>
         <form action={cancelAction} className="mt-2 flex items-center gap-2">

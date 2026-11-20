@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { cancelHoldAdminAction } from "./actions";
 
-export interface HoldRow { id: string; book_title: string; student_name: string; status: string; requested_at: string }
+export interface HoldRow { id: string; book_title: string; student_name: string; status: string; requested_at: string; collect_by?: string | null }
 
 function CancelButton({ holdId }: { holdId: string }) {
   const [state, formAction, pending] = useActionState<{ error: string | null }, FormData>(cancelHoldAdminAction, { error: null });
@@ -37,9 +37,12 @@ export default function HoldsWaitlist({ holds }: { holds: HoldRow[] }) {
               <td className="py-1.5">{h.book_title}</td>
               <td className="py-1.5">{h.student_name} <span className="text-xs text-zinc-400">· {new Date(h.requested_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span></td>
               <td className="py-1.5">
-                <span className={`rounded-full px-2 py-0.5 text-xs ${h.status === "notified" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs ${h.status === "notified" ? "bg-[#15803d]/10 text-[#15803d]" : "bg-accent-100 text-accent-800"}`}>
                   {h.status === "notified" ? "Ready to collect" : "Waiting for a return"}
                 </span>
+                {h.status === "notified" && h.collect_by ? (
+                  <span className="ml-1.5 text-xs text-zinc-500">by {new Date(h.collect_by).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                ) : null}
               </td>
               <td className="py-1.5"><CancelButton holdId={h.id} /></td>
             </tr>

@@ -6,7 +6,10 @@ import { requirePermission } from "../../../services/permissions/permission-serv
 import {
   createBook, issueBook, returnBook, submitReadingReview, reviewReadingRecord,
   createAuthor, createPublisher, createBookCategory, createShelf, cancelHold,
+  updateBook, addBookCopies, setCopyStatus, withdrawBook, setLibraryConfig,
 } from "../../../modules/library/service";
+import { redirect } from "next/navigation";
+import { ZodError } from "zod";
 import { sanitizeRichText } from "../../../services/content/rich-text";
 
 // A blank string from an unselected <select> and a blank string from an
@@ -154,4 +157,84 @@ export async function cancelHoldAdminAction(_prevState: { error: string | null }
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to cancel hold." };
   }
+}
+
+// ---------------------------------------------------------------------------
+// §Library-gaps — book edit page (/library/books/[id]) and library settings.
+// ---------------------------------------------------------------------------
+type FormResult = { error: string | null; ok?: string | null };
+
+async function manage(fn: (institutionId: string, authUserId: string, userId: string) => Promise<string>, path = "/library"): Promise<FormResult> {
+  const ctx = await requireRequestContext();
+  if (!ctx.institutionId) return { error: "No active institution." };
+  try {
+    requirePermission(ctx.permissions, "library.manage");
+    const ok = await fn(ctx.institutionId, ctx.session.authUserId, ctx.userId);
+    revalidatePath(path, "layout");
+    return { error: null, ok };
+  } catch (err) {
+    if (err instanceof ZodError) return { error: err.issues[0]?.message ?? "Check the form." };
+    return { error: err instanceof Error ? err.message : "Something went wrong." };
+  }
+}
+
+export async function updateBookAction(_p: FormResult, formData: FormData): Promise<FormResult> {
+  return manage(async (institutionId, authUserId, userId) => {
+    const bookId = String(formData.get("bookId") ?? "");
+    const pick = async (newKey: string, idKey: string, create: (name: string) => Promise<{ id: string }>) => {
+      const fresh = nonEmpty(formData.get(newKey));
+      return fresh ? (await create(fresh)).id : nonEmpty(formData.get(idKey)) ?? null;
+    };
+    await updateBook(institutionId, authUserId, userId, bookId, {
+      title: String(formData.get("title") ?? "").trim(),
+      subtitle: nonEmpty(formData.get("subtitle")) ?? null,
+      isbn: nonEmpty(formData.get("isbn")) ?? null,
+      authorId: await pick("newAuthorName", "authorId", (n) => createAuthor(institutionId, authUserId, n)),
+      publisherId: await pick("newPublisherName", "publisherId", (n) => createPublisher(institutionId, authUserId, n)),
+      categoryId: await pick("newCategoryName", "categoryId", (n) => createBookCategory(institutionId, authUserId, n)),
+      shelfId: await pick("newShelfName", "shelfId", (n) => createShelf(institutionId, authUserId, n, null)),
+      language: nonEmpty(formData.get("language")) ?? null,
+      edition: nonEmpty(formData.get("edition")) ?? null,
+      publicationYear: nonEmpty(formData.get("publicationYear")) ? Number(formData.get("publicationYear")) : null,
+      originalLanguage: nonEmpty(formData.get("originalLanguage")) ?? null,
+      description: nonEmpty(formData.get("description")) ?? null,
+    });
+    return "Book details saved.";
+  });
+}
+
+export async function addCopiesAction(_p: FormResult, formData: FormData): Promise<FormResult> {
+  return manage(async (i, a, u) => {
+    const n = await addBookCopies(i, a, u, String(formData.get("bookId") ?? ""), Number(formData.get("count") ?? 1));
+    return `${n} cop${n === 1 ? "y" : "ies"} added.`;
+  });
+}
+
+export async function setCopyStatusAction(_p: FormResult, formData: FormData): Promise<FormResult> {
+  return manage(async (i, a, u) => {
+    await setCopyStatus(i, a, u, String(formData.get("copyId") ?? ""), String(formData.get("status") ?? "") as "available");
+    return "Saved.";
+  });
+}
+
+export async function withdrawBookAction(_p: FormResult, formData: FormData): Promise<FormResult> {
+  const r = await manage(async (i, a, u) => {
+    await withdrawBook(i, a, u, String(formData.get("bookId") ?? ""));
+    return "Book withdrawn.";
+  });
+  if (!r.error) redirect("/library#catalogue");
+  return r;
+}
+
+export async function saveLibrarySettingsAction(_p: FormResult, formData: FormData): Promise<FormResult> {
+  return manage(async (i, a, u) => {
+    await setLibraryConfig(i, a, u, {
+      loanPeriodDays: Number(formData.get("loanPeriodDays")),
+      finePerDay: Number(formData.get("finePerDay") || 0),
+      graceDays: Number(formData.get("graceDays") || 0),
+      requiresReadingReview: formData.get("requiresReadingReview") === "on",
+      holdCollectDays: Number(formData.get("holdCollectDays") || 3),
+    });
+    return "Library settings saved.";
+  });
 }

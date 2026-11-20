@@ -1,7 +1,7 @@
 import type { ItemRecord } from "../../../modules/events/service";
-import ActionForm from "./ActionForm";
+import ActionForm from "../../components/ui/ActionForm";
 import { saveItemAction } from "./actions";
-import { inputClass, labelClass } from "./ui";
+import { inputClass, labelClass } from "../../components/ui/form-classes";
 
 /** Add / edit an item (competition). Server component around ActionForm. */
 export default function ItemForm({ eventId, classes, item }: { eventId: string; classes: Array<{ id: string; name: string }>; item?: ItemRecord }) {

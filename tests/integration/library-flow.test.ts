@@ -20,6 +20,7 @@ import {
   getLibraryConfig, setLibraryConfig, listBooks, listAvailableCopies, createBook,
   issueBook, returnBook, listIssuedBooks, listReadingRecords, submitReadingReview, reviewReadingRecord,
   createAuthor, createPublisher, createBookCategory, createShelf,
+  placeHold, listPendingHolds, listMyHolds, updateBook, listBookCopies, addBookCopies, setCopyStatus, withdrawBook,
 } from "../../modules/library/service";
 
 let institutionA: string;
@@ -251,6 +252,52 @@ describe("Catalogue: full 'Add book' fields (§125 follow-up — author/publishe
       );
     })();
     expect(categoriesA.rows).toHaveLength(0); // RLS hides institution B's row from institution A's context
+  });
+});
+
+describe("Library gaps (migration 0071): editing books and copies, uncollected bookings lapse", () => {
+  it("edits a book's details, adds copies, marks a copy withdrawn and withdraws the title", async () => {
+    const b = await createBook(institutionA, librarianAuth, librarianUserId, { title: "Old title", copyCount: 1 });
+    await updateBook(institutionA, librarianAuth, librarianUserId, b.id, { title: "New title", edition: "2nd", publicationYear: 2020 });
+    const row = (await listBooks(institutionA, librarianAuth)).find((x) => x.id === b.id)!;
+    expect([row.title, row.edition, row.publication_year]).toEqual(["New title", "2nd", 2020]);
+
+    expect(await addBookCopies(institutionA, librarianAuth, librarianUserId, b.id, 2)).toBe(2);
+    let copies = await listBookCopies(institutionA, librarianAuth, b.id);
+    expect(copies).toHaveLength(3);
+    expect(new Set(copies.map((c) => c.copy_code)).size).toBe(3);
+    await setCopyStatus(institutionA, librarianAuth, librarianUserId, copies[0].id, "withdrawn");
+    copies = await listBookCopies(institutionA, librarianAuth, b.id);
+    expect(copies.filter((c) => c.status === "available")).toHaveLength(2);
+
+    await issueBook(institutionA, librarianAuth, librarianUserId, student1, copies.find((c) => c.status === "available")!.id);
+    await expect(withdrawBook(institutionA, librarianAuth, librarianUserId, b.id)).rejects.toThrow(/out on loan/);
+    const issued = (await listIssuedBooks(institutionA, librarianAuth, student1)).find((i) => i.book_title === "New title")!;
+    await returnBook(institutionA, librarianAuth, librarianUserId, { bookIssueId: issued.id, conditionOnReturn: "good" });
+    await withdrawBook(institutionA, librarianAuth, librarianUserId, b.id);
+    expect((await listBooks(institutionA, librarianAuth)).some((x) => x.id === b.id)).toBe(false);
+  });
+
+  it("a 'ready to collect' booking not collected in time lapses and the next student waiting is promoted", async () => {
+    const s2 = (await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "LIB-H2", fullName: "Second Reader" })).id;
+    const s3 = (await createStudent(institutionA, adminAuth, adminUserId, { admissionNumber: "LIB-H3", fullName: "Third Reader" })).id;
+    const book = await createBook(institutionA, librarianAuth, librarianUserId, { title: "One Copy Book", copyCount: 1 });
+
+    const first = await placeHold(institutionA, librarianAuth, librarianUserId, s2, book.id);
+    expect(first.status).toBe("notified"); // a free copy: ready to collect
+    const second = await placeHold(institutionA, librarianAuth, librarianUserId, s3, book.id);
+    expect(second.status).toBe("pending"); // the only copy is already promised
+
+    const holds = await listPendingHolds(institutionA, librarianAuth);
+    expect(holds.find((h) => h.id === first.id)!.collect_by).toBeTruthy();
+
+    // 4 days later (collect-within defaults to 3 days) …
+    const db = await getDbClient();
+    await db.withInstitutionContext({ institutionId: institutionA, authUserId: librarianAuth }, (scoped) =>
+      scoped.query("update book_holds set notified_at = now() - interval '4 days' where id = $1", [first.id]));
+    const mine = await listMyHolds(institutionA, librarianAuth, s3);
+    expect(mine.find((h) => h.id === second.id)!.status).toBe("notified");
+    expect((await listMyHolds(institutionA, librarianAuth, s2)).some((h) => h.id === first.id)).toBe(false);
   });
 });
 
