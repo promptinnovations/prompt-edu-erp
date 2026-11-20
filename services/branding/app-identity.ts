@@ -83,8 +83,11 @@ export interface AppIdentity {
 
 function genericIdentity(gradient: [string, string, string]): AppIdentity {
   return {
-    name: "PROMPT EDU ERP",
-    shortName: "PROMPT",
+    // §App-name ("name of the app must be written as EduErp at the app
+    // icon in phones and desktops once downloaded" — it showed a truncated
+    // "Prompt E…"): the installed platform app's name and home-screen label.
+    name: "EduErp",
+    shortName: "EduErp",
     badgeText: "P",
     dynamicIcon: false,
     appId: "/app/platform",
