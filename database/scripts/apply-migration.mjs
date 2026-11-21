@@ -43,6 +43,17 @@ try {
       }
       const sql = readFileSync(new URL(`../migrations/${file}`, import.meta.url), "utf8");
       await c.query("begin");
+      // Two deploy pipelines (Hostinger and Vercel) build every push against
+      // the SAME database. A transaction-level advisory lock (safe through
+      // the Supabase pooler too) makes a second build wait for the first,
+      // then re-check the ledger — so a migration is never run twice at once.
+      await c.query("select pg_advisory_xact_lock(727001)");
+      const again = await c.query("select 1 from _migrations where filename=$1", [file]);
+      if (again.rowCount) {
+        await c.query("commit");
+        console.log(`[apply-migration] ${file} already applied (by a parallel build)`);
+        continue;
+      }
       await c.query(sql);
       await c.query("insert into _migrations (filename) values ($1)", [file]);
       await c.query("commit");
