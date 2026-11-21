@@ -83,7 +83,7 @@ describe("homework", () => {
     await expect(createHomework(A, teacherAuth, teacherId, { classId: otherCls, subjectId: maths, title: "Other class", dueDate: inDays(2) }, { broad: false })).rejects.toThrow(/only for the classes/);
     const hw = await createHomework(A, teacherAuth, teacherId, { classId: cls, sectionId: secA, subjectId: maths, title: "Exercise 4.2", dueDate: inDays(2) }, { broad: false });
     expect(hw.id).toBeTruthy();
-    expect((await listHomeworkTargets(A, adminAuth, adminId, true)).length).toBe(2);
+    expect((await listHomeworkTargets(A, adminAuth, adminId, true)).length).toBe(6); // 2 subjects × (whole class + 2 divisions)
   });
 
   it("students see their division's homework (and all-division homework) and tick it done", async () => {

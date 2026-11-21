@@ -9,6 +9,7 @@ import ActionForm from "../../components/ui/ActionForm";
 import { inputClass, labelClass } from "../../components/ui/form-classes";
 import { formatDateIST, todayIST } from "../../../services/datetime/ist";
 import { createHomeworkAction, deleteHomeworkAction } from "./actions";
+import TargetPicker from "./TargetPicker";
 
 /**
  * Homework (migration 0072) — teachers set homework for the classes and
@@ -40,7 +41,7 @@ export default async function HomeworkPage() {
         <StatTile label="Set this year" value={list.length} icon="📝" color={decorColor(0)} />
         <StatTile label="Still open" value={open.length} sub="due today or later" icon="⏳" color={decorColor(1)} />
         <StatTile label="Done on average" value={`${avgDone}%`} sub="of each class ticked done" icon="👍" color={decorColor(2)} />
-        <StatTile label="Classes" value={new Set(targets.map((t) => `${t.class_id}|${t.section_id}`)).size} sub={broad ? "in the school" : "you teach"} icon="🏫" color={decorColor(3)} />
+        <StatTile label="Classes" value={new Set(targets.map((t) => t.class_id)).size} sub={broad ? "in the school" : "you teach"} icon="🏫" color={decorColor(3)} />
       </div>
 
       <Panel title="Set homework" color={decorColor(1)}>
@@ -49,15 +50,7 @@ export default async function HomeworkPage() {
         ) : (
           <ActionForm action={createHomeworkAction} submitLabel="Set homework" resetOnSuccess className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="sm:col-span-2">
-                <label className={labelClass} htmlFor="hw-target">Class and subject</label>
-                <select id="hw-target" name="target" required defaultValue="" className={inputClass}>
-                  <option value="" disabled>Choose…</option>
-                  {targets.map((t) => (
-                    <option key={`${t.class_id}|${t.section_id ?? ""}|${t.subject_id ?? ""}`} value={`${t.class_id}|${t.section_id ?? ""}|${t.subject_id ?? ""}`}>{label(t)}</option>
-                  ))}
-                </select>
-              </div>
+              <TargetPicker targets={targets} />
               <div>
                 <label className={labelClass} htmlFor="hw-due">Due</label>
                 <input id="hw-due" name="dueDate" type="date" required min={today} defaultValue={tomorrow} className={inputClass} />

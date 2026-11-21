@@ -37,10 +37,14 @@ export async function listHomeworkTargets(institutionId: string, authUserId: str
   return scopedRun({ institutionId, authUserId }, async (s) => {
     const { rows } = broad
       ? await s.query<HomeworkTarget>(
-        `select c.id as class_id, c.name as class_name, null::uuid as section_id, null::text as section_name,
+        // Every subject of every class, for the whole class (section null)
+        // and for each of its divisions.
+        `select c.id as class_id, c.name as class_name, sec.id as section_id, sec.name as section_name,
                 sub.id as subject_id, sub.name as subject_name
            from class_subjects cs join classes c on c.id = cs.class_id join subjects sub on sub.id = cs.subject_id
-          order by c.sort_order, c.name, sub.name`)
+           left join lateral (select null::uuid as id, null::text as name
+                              union all select id, name from sections where class_id = c.id) sec on true
+          order by c.sort_order, c.name, sec.name nulls first, sub.name`)
       : await s.query<HomeworkTarget>(
         `select distinct c.id as class_id, c.name as class_name, sec.id as section_id, sec.name as section_name,
                 sub.id as subject_id, sub.name as subject_name, c.sort_order
