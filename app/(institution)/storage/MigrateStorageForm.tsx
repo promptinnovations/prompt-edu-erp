@@ -6,7 +6,7 @@ import type { MigrateActionState } from "./actions";
 
 const initialState: MigrateActionState = { result: null, error: null };
 
-export default function MigrateStorageForm({ activeProvider }: { activeProvider: string }) {
+export default function MigrateStorageForm({ activeProvider, driveConnected = false }: { activeProvider: string; driveConnected?: boolean }) {
   const [state, formAction, pending] = useActionState(migrateStorageAction, initialState);
 
   return (
@@ -17,6 +17,7 @@ export default function MigrateStorageForm({ activeProvider }: { activeProvider:
           <select name="targetProvider" defaultValue={activeProvider} className="rounded-full border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
             <option value="local">Local</option>
             <option value="supabase">Supabase</option>
+            {driveConnected ? <option value="google_drive">Our Google Drive</option> : null}
           </select>
         </div>
         <button type="submit" disabled={pending} className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">

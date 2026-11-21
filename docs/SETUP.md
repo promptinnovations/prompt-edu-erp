@@ -131,27 +131,38 @@ dashboard step is needed there either. Visit `/storage` (requires the
 to see the active provider, browse recent files, and trigger a migration of
 every existing file to a chosen provider.
 
-### Adding Google Drive later
+### Google Drive storage per institution (migration 0073)
 
-The original architecture draft (ARCHITECTURE.md §T) named Google Drive as
-a third possible storage provider. It is **not implemented** in this build
-— no `googleapis` dependency, no `google-drive-provider.ts` — by explicit
-decision, to avoid that package's size/build-time cost until it's actually
-needed. Adding it later is additive, not a redesign:
+The database always stays in Supabase. Each institution may connect **its
+own** Google Drive on the Storage page; new uploads (photos, certificates,
+documents) then go to one folder in that Drive ("EduErp — <institution>"),
+and existing files can be moved there with "Move existing files". The
+institution logo always stays in the app's storage (it is needed before
+sign-in and for the app icon). No `googleapis` dependency — plain `fetch`
+to the Drive v3 REST API (`services/storage/google-drive.ts`).
 
-1. `npm install googleapis` and write `services/storage/google-drive-provider.ts`
-   implementing the same `StorageProvider` interface (`upload`/`download`/
-   `getDownloadUrl`/`remove`) as `local-file-provider.ts`/
-   `supabase-storage-provider.ts`.
-2. Add a migration that runs
-   `alter table files drop constraint files_storage_provider_check, add constraint files_storage_provider_check check (storage_provider in ('local', 'supabase', 'google_drive'));`
-3. Add one more branch to `getStorageProvider()`/`getStorageProviderByName()`
-   in `services/storage/storage-provider.ts` (mirroring the existing
-   Supabase branch) and document the new env vars in `.env.example`.
+One-time platform set-up:
 
-No change is needed to `FileService`, `migration-job.ts`, or any calling
-module (achievements, the `/storage` UI, the `/api/files/[fileId]` route) —
-that is the entire point of the `StorageProvider` abstraction.
+1. In Google Cloud: create a project, enable the **Google Drive API**, set
+   up the OAuth consent screen (External; scopes `drive.file`, `openid`,
+   `email` — `drive.file` lets the app see only the files it creates), and
+   create an **OAuth client ID → Web application** with the authorised
+   redirect URI `https://eduerp.promptinnovations.net/api/storage/google/callback`
+   (one per host you serve from).
+2. Set these environment variables on the server, then rebuild:
+   - `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET` — from step 1;
+   - `GOOGLE_DRIVE_TOKEN_KEY` — a long random secret (e.g. `openssl rand -base64 48`).
+     It encrypts the stored refresh tokens (AES-256-GCM) and signs the OAuth
+     state. **Never change it** once institutions have connected — their
+     stored tokens would become unreadable and they would have to reconnect;
+   - optional `GOOGLE_DRIVE_REDIRECT_URI` — only if the redirect URI must
+     differ from `https://<request host>/api/storage/google/callback`.
+3. An institution admin (`files.manage`) opens Storage → **Connect Google
+   Drive** and signs in with the institution's Google account.
+
+Disconnecting is refused while any file is still in Drive (move them back
+first), so no file ever becomes unreachable. Drive files are private and
+are streamed through `/api/files/[fileId]` like local files.
 
 ## Known follow-ups (tracked, not blocking Phase 0 sign-off)
 

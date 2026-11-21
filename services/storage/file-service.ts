@@ -9,7 +9,31 @@ import { getDbClient } from "../db/client";
 import type { DbClient } from "../db/client";
 import { recordAudit } from "../audit/audit-service";
 import { getStorageProvider, getStorageProviderByName } from "./storage-provider";
-import type { StorageProvider } from "./storage-provider";
+import type { StorageProvider, StorageProviderName } from "./storage-provider";
+import { createGoogleDriveProvider } from "./google-drive";
+import { getDriveConnection } from "./institution-storage";
+
+/** The provider holding a file. Google Drive is per institution, so it is
+ *  built from that institution's own connection. */
+async function providerFor(institutionId: string, authUserId: string, name: string, scoped?: DbClient): Promise<StorageProvider> {
+  if (name === "google_drive") {
+    const conn = await getDriveConnection(institutionId, authUserId, scoped);
+    if (!conn) throw new Error("This institution's Google Drive is not connected — the file can't be reached.");
+    return createGoogleDriveProvider(conn);
+  }
+  return getStorageProviderByName(name as "local" | "supabase");
+}
+
+/** Where a NEW upload goes: the institution's own Google Drive when it has
+ *  connected one — except the logo, which must be readable before sign-in
+ *  and for the app icon — otherwise the app's own storage. */
+async function providerForUpload(institutionId: string, authUserId: string, entityType: string | null): Promise<StorageProvider> {
+  if (entityType !== "institution_logo") {
+    const conn = await getDriveConnection(institutionId, authUserId).catch(() => null);
+    if (conn) return createGoogleDriveProvider(conn);
+  }
+  return getStorageProvider();
+}
 import { assertBelowLimit } from "../limits/limit-service";
 
 export interface FileRecord {
@@ -102,7 +126,7 @@ export async function uploadFile(
       await assertBelowLimit(scoped, institutionId, "storage");
     });
   }
-  const provider = getStorageProvider();
+  const provider = await providerForUpload(institutionId, authUserId, data.entityType ?? null);
   const key = buildKey(institutionId, data.entityType ?? null, data.fileName);
   const { storageFileId, fileUrl } = await provider.upload(key, input.bytes, data.mimeType ?? null);
 
@@ -193,8 +217,9 @@ export async function resolveFileForServing(
 ): Promise<{ file: FileRecord; bytes: Buffer } | { file: FileRecord; url: string } | null> {
   const file = await getFile(institutionId, authUserId, fileId);
   if (!file) return null;
-  const provider = getStorageProviderByName(file.storage_provider as "local" | "supabase");
-  if (file.storage_provider === "local") return { file, bytes: await provider.download(file.storage_file_id) };
+  const provider = await providerFor(institutionId, authUserId, file.storage_provider);
+  // Local and Google Drive files are private: stream the bytes.
+  if (file.storage_provider === "local" || file.storage_provider === "google_drive") return { file, bytes: await provider.download(file.storage_file_id) };
   return { file, url: await provider.getDownloadUrl(file.storage_file_id) };
 }
 
@@ -203,7 +228,7 @@ export async function resolveFileForServing(
 export async function downloadFileBytes(institutionId: string, authUserId: string, fileId: string): Promise<{ bytes: Buffer; file: FileRecord } | null> {
   const file = await getFile(institutionId, authUserId, fileId);
   if (!file) return null;
-  const provider = getStorageProviderByName(file.storage_provider as "local" | "supabase");
+  const provider = await providerFor(institutionId, authUserId, file.storage_provider);
   const bytes = await provider.download(file.storage_file_id);
   return { bytes, file };
 }
@@ -214,7 +239,7 @@ export async function deleteFile(institutionId: string, authUserId: string, user
     const { rows } = await scoped.query<FileRecord>(`select ${FILE_COLUMNS} from files where id = $1`, [fileId]);
     if (rows.length === 0) return false;
     const file = rows[0];
-    const provider = getStorageProviderByName(file.storage_provider as "local" | "supabase");
+    const provider = await providerFor(institutionId, authUserId, file.storage_provider, scoped);
     await provider.remove(file.storage_file_id);
     await scoped.query("delete from files where id = $1", [fileId]);
     await recordAudit(scoped, { institutionId, userId, action: "delete", module: "storage", entityType: "files", entityId: fileId, before: { fileName: file.file_name } });
@@ -238,7 +263,7 @@ export async function moveFile(
   authUserId: string,
   userId: string,
   fileId: string,
-  targetProvider: "local" | "supabase"
+  targetProvider: StorageProviderName
 ): Promise<FileRecord | null> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -247,8 +272,9 @@ export async function moveFile(
     const file = rows[0];
     if (file.storage_provider === targetProvider) return file; // already there — no-op
 
-    const source: StorageProvider = getStorageProviderByName(file.storage_provider as "local" | "supabase");
-    const target: StorageProvider = getStorageProviderByName(targetProvider);
+    if (targetProvider === "google_drive" && file.entity_type === "institution_logo") return file; // the logo stays in the app's storage
+    const source: StorageProvider = await providerFor(institutionId, authUserId, file.storage_provider, scoped);
+    const target: StorageProvider = await providerFor(institutionId, authUserId, targetProvider, scoped);
 
     const bytes = await source.download(file.storage_file_id);
     if (bytes.length !== Number(file.size_bytes)) {

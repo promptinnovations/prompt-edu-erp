@@ -18,17 +18,19 @@
  *     directory, used whenever Supabase credentials are absent (this
  *     build's default — no external accounts needed for local dev/test).
  *
- * A `google_drive` provider is intentionally NOT implemented in this build
- * (§D.13 migration note) — this interface is provider-agnostic specifically
- * so one can be added later (a new module + one more branch here + a check
- * constraint update in a follow-up migration) with zero change to any
- * calling module. See docs/SETUP.md.
+ * A third provider, `google_drive` (migration 0073), stores an institution's
+ * files in ITS OWN Google Drive once it connects one — see google-drive.ts
+ * and file-service.ts, which picks it per institution.
  */
 import { createLocalFileProvider } from "./local-file-provider";
 import { createSupabaseStorageProvider } from "./supabase-storage-provider";
 
+/** google_drive (migration 0073) is per institution — built from that
+ *  institution's own connection in file-service.ts, never chosen here. */
+export type StorageProviderName = "local" | "supabase" | "google_drive";
+
 export interface StorageProvider {
-  readonly name: "local" | "supabase";
+  readonly name: StorageProviderName;
   /** Uploads bytes under a caller-chosen relative key (e.g.
    *  `institutionId/entityType/uuid-filename.ext`) and returns the
    *  provider-specific handle to store in files.storage_file_id, plus a

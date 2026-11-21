@@ -11,6 +11,7 @@
  * (see app/(institution)/storage/MigrateStorageForm.tsx's summary).
  */
 import { listFiles, moveFile } from "./file-service";
+import type { StorageProviderName } from "./storage-provider";
 
 
 
@@ -25,7 +26,7 @@ export async function migrateInstitutionFiles(
   institutionId: string,
   authUserId: string,
   userId: string,
-  targetProvider: "local" | "supabase"
+  targetProvider: StorageProviderName
 ): Promise<MigrationResult> {
   // Re-fetch the full file list every iteration is unnecessary — files
   // are listed once up front (bounded at 200 per listFiles(), matching the
@@ -37,7 +38,7 @@ export async function migrateInstitutionFiles(
   const result: MigrationResult = { totalConsidered: files.length, migrated: 0, alreadyOnTarget: 0, failed: [] };
 
   for (const file of files) {
-    if (file.storage_provider === targetProvider) {
+    if (file.storage_provider === targetProvider || (targetProvider === "google_drive" && file.entity_type === "institution_logo")) {
       result.alreadyOnTarget += 1;
       continue;
     }
