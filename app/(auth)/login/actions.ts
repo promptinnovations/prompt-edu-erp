@@ -28,7 +28,9 @@ export interface LoginState {
  * three-outcome design.
  */
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
-  let email = String(formData.get("email") ?? "").trim();
+  // Lower-cased: phone keyboards often capitalise the first letter
+  // ("Name@gmail.com"), and login e-mails are stored lower-case.
+  let email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const intent = String(formData.get("intent") ?? "signin");
 

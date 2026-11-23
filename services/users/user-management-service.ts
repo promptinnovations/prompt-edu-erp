@@ -439,6 +439,14 @@ export async function setUserPassword(
     if (auth_user_id) {
       const result = await authService.adminUpdatePassword(auth_user_id, data.password);
       if (result && "error" in result) throw new Error(`Could not set the password (${result.error}).`);
+      // Re-align the sign-in e-mail with the one shown on the Staff / Users
+      // page, so "Reset password" always yields a login that works with
+      // exactly the e-mail the admin sees (an e-mail edited outside the app
+      // used to leave the two different, and the person could never sign in).
+      if (email) {
+        const synced = await authService.adminUpdateEmail(auth_user_id, email.trim().toLowerCase());
+        if (synced && "error" in synced) console.warn(`[set_password] login e-mail not re-synced for user ${targetUserId}: ${synced.error}`);
+      }
       await scoped.query("select set_login_credentials($1, null, $2)", [targetUserId, data.password]);
     } else {
       if (!email) throw new Error("This user has no email on file.");
