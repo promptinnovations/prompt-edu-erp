@@ -18,6 +18,7 @@ import PhoneAlerts from "./PhoneAlerts";
 import MySubstitutions from "../../components/staff/MySubstitutions";
 import { getVapidKeys } from "../../../services/notification/web-push";
 import TimetablePicker, { type PickerOption } from "./TimetablePicker";
+import TimetableNavigator, { type NavItem } from "./TimetableNavigator";
 
 /**
  * Timetable.
@@ -80,6 +81,7 @@ export default async function TimetablePage({ searchParams }: { searchParams: Pr
   let kind: "t" | "c" = "t";
   let a = "", b = "";
   let teacherNames = new Map<string, string>();
+  let navClasses: NavItem[] = [], navTeachers: NavItem[] = [];
 
   if (viewAll) {
     const all = await listTimetable(institutionId, authUserId);
@@ -91,6 +93,9 @@ export default async function TimetablePage({ searchParams }: { searchParams: Pr
       ...classes,
       ...[...teacherNames.entries()].filter(([id]) => id !== myStaffId).sort((x, y) => x[1].localeCompare(y[1])).map(([id, name]) => ({ key: `t:${id}`, label: `${name} — teacher` })),
     ];
+    // Classes keep the school's own order (sort order, then division); teachers A-Z.
+    navClasses = classes.map((c) => ({ key: c.key, label: c.label.replace(" — class", "") }));
+    navTeachers = [...teacherNames.entries()].filter(([id]) => id !== myStaffId).sort((x, y) => x[1].localeCompare(y[1])).map(([id, name]) => ({ key: `t:${id}`, label: name }));
     selected = options.some((o) => o.key === show) ? show! : hasMine ? `t:${myStaffId}` : options[0]?.key ?? "";
     [kind, a, b] = selected.split(":") as ["t" | "c", string, string];
     rows = kind === "t" ? all.filter((p) => p.teacherStaffId === a) : all.filter((p) => p.classId === a && p.sectionId === b);
@@ -223,6 +228,10 @@ export default async function TimetablePage({ searchParams }: { searchParams: Pr
         </Panel>
       ) : null}
 
+      {viewAll && options.length > 0 ? (
+        <TimetableNavigator classes={navClasses} teachers={navTeachers} mineKey={myStaffId && teacherNames.has(myStaffId) ? `t:${myStaffId}` : null} selectedKey={selected} />
+      ) : null}
+
       {options.length === 0 ? (
         <Panel title="Timetable"><EmptyNote>No timetable has been set up yet.{canManage ? " Add periods in Substitution → Timetable, or upload it from Import / Export." : ""}</EmptyNote></Panel>
       ) : (
@@ -232,7 +241,7 @@ export default async function TimetablePage({ searchParams }: { searchParams: Pr
           color={decorColor(1)}
           action={
             <div className="no-print flex flex-wrap items-center gap-2">
-              <TimetablePicker options={options} selectedKey={selected} />
+              {viewAll ? null : <TimetablePicker options={options} selectedKey={selected} />}
               <PrintButton label="Print" />
             </div>
           }
