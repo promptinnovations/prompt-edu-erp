@@ -5,6 +5,20 @@ import { decorColor, tint } from "../../../components/portal/viz/palette";
 import FitToPage from "../../results/[id]/report-cards/FitToPage";
 
 /**
+ * Space is used according to how many papers the grade has: a lower class with
+ * 3 papers gets tall rows, large type and generous gaps so the page is filled
+ * well; a higher class with 14+ papers gets tight rows. FitToPage is the final
+ * guarantee — whatever the tier, nothing ever spills onto a second page.
+ */
+function density(papers: number) {
+  if (papers <= 3) return { row: 17, table: 13.5, base: 14, gap: 11, head: 22, title: 19, gapSm: 4 };
+  if (papers <= 6) return { row: 12.5, table: 12.5, base: 13, gap: 8.5, head: 20, title: 17, gapSm: 3.2 };
+  if (papers <= 10) return { row: 9, table: 11, base: 12, gap: 6, head: 18, title: 15, gapSm: 2.4 };
+  if (papers <= 16) return { row: 7, table: 10, base: 11, gap: 4.5, head: 17, title: 14, gapSm: 1.8 };
+  return { row: 5.6, table: 9, base: 10, gap: 3, head: 16, title: 13, gapSm: 1.2 };
+}
+
+/**
  * One hall ticket = one A4 sheet (the same `.report-sheet` + FitToPage
  * machinery as report cards, so a long timetable shrinks to fit and a ticket
  * never spills onto a second page). Layout follows the school's sample:
@@ -16,32 +30,35 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
   institutionName: string; logoCode: string | null; showSeat: boolean;
 }) {
   const shade = { backgroundColor: tint(decorColor(0), 0.16), printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" } as const;
-  const cell = "border border-zinc-500 px-[2mm] py-[1.6mm] text-[10pt]";
+  const n = ticket.days.reduce((a, d) => a + d.papers.length, 0);
+  const k = density(n);
+  const cell = "border border-zinc-500 px-[2mm]";
+  const cellStyle = { height: `${k.row}mm`, fontSize: `${k.table}pt` } as const;
   const classLine = `${ticket.className}${ticket.sectionName ? ` ${ticket.sectionName}` : ""}`;
   const contact = [settings.address, settings.email, settings.phones].filter(Boolean);
 
   return (
     <article data-hall-ticket={`${ticket.className}_${ticket.admissionNumber ?? ""}_${ticket.name}`} className="report-sheet mx-auto w-full max-w-[210mm] bg-white p-[4mm] shadow-raised sm:min-h-[297mm] sm:p-[10mm] print:p-[10mm]">
       <div className="flex flex-col p-[2mm] sm:min-h-[276mm] print:min-h-[276mm]">
-        <FitToPage className="flex flex-1 flex-col">
-          <header className="flex items-center gap-[5mm] border-b-[1.5pt] border-[var(--brand)] pb-[3mm]">
+        <FitToPage className="flex flex-1 flex-col justify-between">
+          <header className="flex items-center gap-[5mm] border-b-[1.5pt] border-[var(--brand)] pb-[3mm]" style={{ fontSize: `${k.base}pt` }}>
             {logoCode ? (
               // eslint-disable-next-line @next/next/no-img-element -- dynamic per-institution URL, printed letterhead
-              <img src={`/api/institution-logo/${logoCode}`} alt="" className="h-[22mm] w-[22mm] shrink-0 object-contain" />
+              <img src={`/api/institution-logo/${logoCode}`} alt="" className="h-[24mm] w-[24mm] shrink-0 object-contain" />
             ) : null}
             <div className="min-w-0 flex-1 text-right">
-              <p className="text-[18pt] font-bold uppercase leading-tight text-[var(--heading)]">{institutionName}</p>
+              <p className="font-bold uppercase leading-tight text-[var(--heading)]" style={{ fontSize: `${k.head}pt` }}>{institutionName}</p>
               {contact.map((line) => <p key={line} className="text-[9.5pt] text-zinc-600">{line}</p>)}
             </div>
           </header>
 
-          <div className="mt-[6mm] text-center">
-            <p className="text-[15pt] font-bold uppercase text-[var(--brand)]">{examinationName}</p>
+          <div className="text-center" style={{ marginTop: `${k.gap}mm` }}>
+            <p className="font-bold uppercase text-[var(--brand)]" style={{ fontSize: `${k.title}pt` }}>{examinationName}</p>
             <p className="mt-[1mm] text-[11pt] font-bold uppercase tracking-[0.1em]" style={{ color: decorColor(2) }}>{settings.ticketTitle}</p>
           </div>
 
-          <div className="mt-[6mm] flex items-start justify-between gap-[6mm]">
-          <dl className="grid min-w-0 flex-1 grid-cols-[48mm_6mm_1fr] gap-y-[2mm] text-[12pt]">
+          <div className="flex items-start justify-between gap-[6mm]" style={{ marginTop: `${k.gap}mm` }}>
+          <dl className="grid min-w-0 flex-1 grid-cols-[48mm_6mm_1fr]" style={{ fontSize: `${k.base}pt`, rowGap: `${k.gapSm + 1}mm` }}>
             <dt className="font-bold">Name of Candidate</dt><dd className="font-bold">:</dd><dd>{ticket.name}</dd>
             <dt className="font-bold">Admission no</dt><dd className="font-bold">:</dd><dd>{ticket.admissionNumber ?? "—"}</dd>
             <dt className="font-bold">Class &amp; Division</dt><dd className="font-bold">:</dd><dd>{classLine}</dd>
@@ -58,14 +75,14 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
           ) : null}
           </div>
 
-          <p className="mt-[6mm] text-center text-[11pt] font-bold uppercase text-[var(--brand)]">Time table for {examinationName}</p>
-          <table className="mt-[2mm] w-full border-collapse text-center">
+          <p className="text-center font-bold uppercase text-[var(--brand)]" style={{ marginTop: `${k.gap}mm`, fontSize: `${k.base}pt` }}>Time table for {examinationName}</p>
+          <table className="w-full border-collapse text-center" style={{ marginTop: `${k.gapSm}mm` }}>
             <thead>
               <tr>
-                <th className={`${cell} font-bold`}>DATE</th>
-                <th className={`${cell} font-bold`}>TIME</th>
-                <th className={`${cell} font-bold`}>Subject</th>
-                {settings.showSignature ? <th className={`${cell} font-bold`}>Signature</th> : null}
+                <th className={`${cell} font-bold`} style={cellStyle}>DATE</th>
+                <th className={`${cell} font-bold`} style={cellStyle}>TIME</th>
+                <th className={`${cell} font-bold`} style={cellStyle}>Subject</th>
+                {settings.showSignature ? <th className={`${cell} font-bold`} style={cellStyle}>Signature</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -73,22 +90,22 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
                 day.papers.map((p, pi) => (
                   <tr key={`${day.date}-${p.startTime}`} style={di % 2 === 0 ? shade : undefined}>
                     {pi === 0 ? (
-                      <td rowSpan={day.papers.length} className={`${cell} font-semibold`} style={di % 2 === 0 ? shade : undefined}>
+                      <td rowSpan={day.papers.length} className={`${cell} font-semibold`} style={{ ...cellStyle, ...(di % 2 === 0 ? shade : {}) }}>
                         {formatDateIST(day.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
                       </td>
                     ) : null}
-                    <td className={cell}>{formatClock(p.startTime)}{p.endTime ? ` – ${formatClock(p.endTime)}` : ""}</td>
-                    <td className={`${cell} font-medium`}>{p.subject}</td>
-                    {settings.showSignature ? <td className={`${cell} h-[8mm]`} /> : null}
+                    <td className={cell} style={cellStyle}>{formatClock(p.startTime)}{p.endTime ? ` – ${formatClock(p.endTime)}` : ""}</td>
+                    <td className={`${cell} font-medium`} style={cellStyle}>{p.subject}</td>
+                    {settings.showSignature ? <td className={cell} style={cellStyle} /> : null}
                   </tr>
                 ))
               )}
             </tbody>
           </table>
 
-          <section className="mt-[6mm]">
-            <h2 className="text-[11pt] font-bold uppercase underline">Instructions</h2>
-            <ul className="mt-[2mm] space-y-[1.5mm] text-[10.5pt]">
+          <section style={{ marginTop: `${k.gap}mm`, fontSize: `${k.base}pt` }}>
+            <h2 className="font-bold uppercase underline">Instructions</h2>
+            <ul style={{ marginTop: `${k.gapSm}mm`, display: "grid", rowGap: `${k.gapSm}mm`, fontSize: "0.92em" }}>
               {settings.instructions.map((line, i) => (
                 <li key={i} className="flex gap-[2.5mm]"><span aria-hidden>➢</span><span>{line}</span></li>
               ))}
