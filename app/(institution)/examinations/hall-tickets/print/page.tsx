@@ -7,7 +7,7 @@ import { getInstitution, institutionReportName } from "../../../../../services/i
 import { buildHallTickets } from "../../../../../modules/examination/hall-ticket-service";
 import PrintButton from "../../../../components/PrintButton";
 import HallTicketDocument from "../HallTicketDocument";
-import { DownloadAllImages, DownloadOneImage } from "../TicketImageButtons";
+import { DownloadAllImages, DownloadOneImage, DownloadPdf } from "../TicketImageButtons";
 
 /**
  * Printable hall tickets — one A4 sheet per student for the chosen grade /
@@ -55,7 +55,7 @@ export default async function HallTicketsPrintPage({
             <p className="mt-1 text-sm text-amber-700">Some students have no seat in the seating plan (marked “To be announced”). Regenerate the plan if students were added after it was made.</p>
           ) : null}
         </div>
-        {bundle.tickets.length > 0 ? <div className="flex flex-wrap gap-2"><DownloadAllImages /><PrintButton label="Print all" /></div> : null}
+        {bundle.tickets.length > 0 ? <div className="flex flex-wrap gap-2"><DownloadPdf /><DownloadAllImages /><PrintButton label="Print all" /></div> : null}
       </div>
 
       {bundle.tickets.length === 0 ? (
