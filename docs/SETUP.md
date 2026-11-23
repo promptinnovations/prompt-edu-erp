@@ -1643,3 +1643,23 @@ profile fields and observation criteria.
 ## Environment variables reference
 
 See `.env.example` for the full list with comments.
+
+## Phone alerts (substitutions)
+
+A teacher who is given a substitution gets a bell notification and, if they
+switched "Get alerts on this phone" on (Dashboard or Timetable), a phone
+notification with the phone's normal notification sound and vibration.
+
+1. Run `node scripts/generate-vapid-keys.mjs` once (or use the keys file Claude
+   saved in `Claude outputs`).
+2. Set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` on the host and redeploy.
+   Never change them later: every phone would have to switch alerts on again.
+3. Each teacher opens the app on their phone, taps "Get alerts on this phone"
+   and allows notifications. On iPhone: Share → Add to Home Screen first, then
+   open the app from the Home Screen icon.
+4. "Send test" next to the switch sends a test alert to that phone.
+
+Alerts are sent when a substitution is confirmed in Substitution (only for a
+teacher newly given a period). The covering teacher then taps the highlighted
+period to confirm; the principal / section heads see who has and has not
+confirmed under Timetable and on the Dashboard.

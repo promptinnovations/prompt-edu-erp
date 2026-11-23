@@ -21,6 +21,7 @@ import { getDbClient } from "../db/client";
 import type { DbClient } from "../db/client";
 import { getEmailProvider } from "./email-provider";
 import { getWhatsAppProvider } from "./whatsapp-provider";
+import { isPushConfigured, sendWebPush } from "./web-push";
 
 export type NotificationChannel = "in_app" | "email" | "sms" | "whatsapp" | "push";
 export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
@@ -33,9 +34,11 @@ export interface NotifyInput {
   channels?: NotificationChannel[];
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
+  /** Where tapping a phone (push) notification opens, e.g. "/timetable". */
+  url?: string;
 }
 
-const CHANNELS_WITHOUT_A_PROVIDER: NotificationChannel[] = ["sms", "push"];
+const CHANNELS_WITHOUT_A_PROVIDER: NotificationChannel[] = ["sms"];
 
 /** Notifies ONE user. Fan-out to many users (e.g. an announcement's
  *  audience) is the CALLER's job — looping this per recipient, inside the
@@ -115,6 +118,29 @@ export async function notifyUser(
             const result = await provider.sendMessage(recipientPhone, input.body);
             status = result.ok ? "sent" : "failed";
             if (result.ok) sentAt = new Date().toISOString();
+          }
+        }
+      } else if (channel === "push") {
+        // Phone alert: one push per phone the person switched alerts on for.
+        // 'skipped' when push is not configured or they have no phone enrolled.
+        if (!isPushConfigured()) {
+          status = "skipped";
+        } else {
+          const { rows: subs } = await scoped.query<{ id: string; endpoint: string; p256dh: string; auth: string }>(
+            "select id, endpoint, p256dh, auth from push_subscriptions where user_id = $1",
+            [targetUserId]
+          );
+          if (subs.length === 0) {
+            status = "skipped";
+          } else {
+            let delivered = 0;
+            for (const sub of subs) {
+              const outcome = await sendWebPush(sub, { title: input.title, body: input.body, url: input.url ?? "/dashboard", tag: input.relatedEntityId ?? input.type });
+              if (outcome === "sent") delivered++;
+              if (outcome === "gone") await scoped.query("delete from push_subscriptions where id = $1", [sub.id]);
+            }
+            status = delivered > 0 ? "sent" : "failed";
+            if (delivered > 0) sentAt = new Date().toISOString();
           }
         }
       } else if (CHANNELS_WITHOUT_A_PROVIDER.includes(channel)) {

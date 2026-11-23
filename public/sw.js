@@ -45,3 +45,44 @@ self.addEventListener("fetch", (event) => {
     })()
   );
 });
+
+/*
+ * Phone alerts (web push). The server sends an encrypted message; this shows
+ * it as a normal phone notification — in the notification shade, with the
+ * phone's own notification sound and vibration — even when the app is closed.
+ */
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : "" }; }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Prompt EDU ERP", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag || "prompt-erp",
+      renotify: true,
+      requireInteraction: true,
+      vibrate: [250, 120, 250, 120, 250],
+      silent: false,
+      data: { url: data.url || "/dashboard" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/dashboard";
+  event.waitUntil(
+    (async () => {
+      const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const c of open) {
+        if ("focus" in c) {
+          await c.focus();
+          if ("navigate" in c) { try { await c.navigate(url); } catch { /* cross-origin or closed */ } }
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })()
+  );
+});

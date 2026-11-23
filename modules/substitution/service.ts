@@ -28,6 +28,9 @@ import ExcelJS from "exceljs";
 import { getDbClient } from "../../services/db/client";
 import type { DbClient } from "../../services/db/client";
 import { recordAudit } from "../../services/audit/audit-service";
+import { notifyUser } from "../../services/notification/notification-service";
+import { runAfterResponse } from "../../services/runtime/background";
+import { formatDateIST, todayIST } from "../../services/datetime/ist";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -356,11 +359,18 @@ export async function confirmSubstitutions(
 ): Promise<void> {
   const data = confirmSchema.parse(input);
   const db = await getDbClient();
-  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+  // Teachers who are NEWLY given a period (not just re-confirmed with the same
+  // teacher) get a phone + in-app alert once the records are saved.
+  const newlyAssigned: { staffId: string; className: string; sectionName: string; periodNo: number; absentName: string }[] = [];
+  await db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
     for (const row of data.rows) {
       if (row.coveringStaffId === data.absentStaffId) {
         throw new Error("The covering staff member cannot be the same as the absent staff member.");
       }
+      const { rows: previous } = await scoped.query<{ covering_staff_id: string | null }>(
+        "select covering_staff_id from staff_substitutions where date = $1 and class_id = $2 and section_id = $3 and period_no = $4",
+        [data.date, row.classId, row.sectionId, row.periodNo]
+      );
       const { rows: upserted } = await scoped.query<{ id: string }>(
         `insert into staff_substitutions (institution_id, date, period_no, class_id, section_id, subject_id, absent_staff_id, covering_staff_id, note, created_by)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -377,8 +387,52 @@ export async function confirmSubstitutions(
         institutionId, userId, action: "upsert", module: "substitution",
         entityType: "staff_substitutions", entityId: upserted[0].id, after: { ...row, date: data.date, absentStaffId: data.absentStaffId },
       });
+      if (row.coveringStaffId && previous[0]?.covering_staff_id !== row.coveringStaffId) {
+        const { rows: names } = await scoped.query<{ class_name: string; section_name: string; absent_name: string }>(
+          `select c.name as class_name, sec.name as section_name, u.full_name as absent_name
+             from classes c, sections sec, staff st join users u on u.id = st.user_id
+            where c.id = $1 and sec.id = $2 and st.id = $3`,
+          [row.classId, row.sectionId, data.absentStaffId]
+        );
+        newlyAssigned.push({ staffId: row.coveringStaffId, className: names[0]?.class_name ?? "", sectionName: names[0]?.section_name ?? "", periodNo: row.periodNo, absentName: names[0]?.absent_name ?? "" });
+      }
     }
   });
+  if (newlyAssigned.length > 0) {
+    await runAfterResponse("substitution-alerts", () => notifyCoveringTeachers(institutionId, authUserId, data.date, newlyAssigned));
+  }
+}
+
+/** One alert per teacher (not per period): in the bell + on their phone. */
+async function notifyCoveringTeachers(
+  institutionId: string, authUserId: string, date: string,
+  items: { staffId: string; className: string; sectionName: string; periodNo: number; absentName: string }[]
+): Promise<void> {
+  const byStaff = new Map<string, typeof items>();
+  for (const it of items) byStaff.set(it.staffId, [...(byStaff.get(it.staffId) ?? []), it]);
+  const db = await getDbClient();
+  const when = date === todayIST() ? "today" : formatDateIST(date, { weekday: "short", day: "numeric", month: "short" });
+  for (const [staffId, list] of byStaff) {
+    try {
+      const { rows } = await db.withInstitutionContext({ institutionId, authUserId }, (scoped) =>
+        scoped.query<{ user_id: string }>("select user_id from staff where id = $1", [staffId])
+      );
+      const userId = rows[0]?.user_id;
+      if (!userId) continue;
+      const periods = list.sort((a, b) => a.periodNo - b.periodNo).map((i) => `P${i.periodNo} ${i.className} ${i.sectionName}`).join(", ");
+      await notifyUser(institutionId, authUserId, userId, {
+        type: "substitution",
+        title: list.length === 1 ? "Substitution assigned to you" : `${list.length} substitutions assigned to you`,
+        body: `${when}: ${periods} (for ${[...new Set(list.map((i) => i.absentName))].join(", ")}). Open the app and tap to confirm.`,
+        channels: ["in_app", "push"],
+        relatedEntityType: "staff_substitutions",
+        relatedEntityId: null,
+        url: "/dashboard",
+      });
+    } catch (err) {
+      console.error("[substitution-alert]", err);
+    }
+  }
 }
 
 export async function deleteSubstitution(institutionId: string, authUserId: string, userId: string, substitutionId: string): Promise<void> {

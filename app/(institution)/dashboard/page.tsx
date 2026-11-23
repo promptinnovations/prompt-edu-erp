@@ -31,8 +31,13 @@ import { getUserDisplayInfo } from "../../../services/tenant/tenant-service";
 import { getMyRoleNames, getLibrarySnapshot, getFeeSnapshot } from "../../../services/home/dashboard-insights";
 import { Panel, StatTile, EmptyNote } from "../../components/portal/viz/blocks";
 import { RingGauge, HBars, Timeline, ColumnBars } from "../../components/portal/viz/charts";
-import { decorColor, tint } from "../../components/portal/viz/palette";
+import { decorColor, tint, STATUS_COLOR } from "../../components/portal/viz/palette";
 import ThemeIcon from "../../components/portal/viz/ThemeIcon";
+import { listSubstitutions, getMyStaffId } from "../../../modules/substitution/service";
+import MySubstitutions from "../../components/staff/MySubstitutions";
+import PhoneAlerts from "../timetable/PhoneAlerts";
+import SubstitutionWatcher from "../timetable/SubstitutionWatcher";
+import { getVapidKeys } from "../../../services/notification/web-push";
 
 interface QuickButton { label: string; href: string; icon: ReactNode }
 
@@ -49,6 +54,17 @@ export default async function DashboardPage() {
   const today = todayIST();
 
   const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
+  // Substitutions: a teacher's own (today + the coming week) with tap-to-confirm,
+  // and for the principal / section heads / admins the day's confirmation status.
+  const hasSubstitution = enabledModules.has("substitution");
+  const canVerifySubs = hasSubstitution && (ctx.isSuperAdmin || can(ctx.permissions, "timetable.view_all") || can(ctx.permissions, "substitution.manage"));
+  const myStaffId = hasSubstitution ? await getMyStaffId(institutionId, authUserId, ctx.userId) : null;
+  const weekEnd = (() => { const d = new Date(`${today}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + 7); return d.toISOString().slice(0, 10); })();
+  const [mySubs, todaySubs] = await Promise.all([
+    myStaffId ? listSubstitutions(institutionId, authUserId, { from: today, to: weekEnd, coveringStaffId: myStaffId }) : Promise.resolve([]),
+    canVerifySubs ? listSubstitutions(institutionId, authUserId, { from: today, to: today }) : Promise.resolve([]),
+  ]);
+  const vapidPublicKey = getVapidKeys()?.publicKey ?? null;
   const hasExaminationAccess = enabledModules.has("examination") && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter"));
   // §CS.3 "Mark entry status visible only for principal/management/admin
   //  not for teachers" -- marks.approve is the institution-wide "sees
@@ -243,6 +259,33 @@ export default async function DashboardPage() {
       </section>
 
       <StarOfTheMonthBanner institutionId={institutionId} authUserId={authUserId} />
+
+      {myStaffId ? <SubstitutionWatcher pendingIds={mySubs.filter((s) => !s.acknowledgedAt).map((s) => s.id)} /> : null}
+      {myStaffId && mySubs.length > 0 ? <MySubstitutions subs={mySubs} today={today} action={<PhoneAlerts publicKey={vapidPublicKey} />} /> : null}
+      {myStaffId && mySubs.length === 0 && vapidPublicKey ? <div className="rounded-card border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-sm"><PhoneAlerts publicKey={vapidPublicKey} /></div> : null}
+      {canVerifySubs && todaySubs.length > 0 ? (() => {
+        const open = todaySubs.filter((s) => !s.acknowledgedAt);
+        const done = todaySubs.length - open.length;
+        return (
+          <Panel
+            title="Today's substitutions"
+            subtitle={`${done} of ${todaySubs.length} confirmed by the teachers${open.length ? ` · ${open.length} waiting` : ""}`}
+            color={open.length ? STATUS_COLOR.late : STATUS_COLOR.present}
+            action={<Link href="/timetable" className="text-xs text-[var(--brand)] underline hover:text-[var(--brand-hover)]">Verify all →</Link>}
+          >
+            {open.length === 0 ? <EmptyNote>Every substitution today has been confirmed.</EmptyNote> : (
+              <ul className="divide-y divide-[var(--border-subtle)] text-sm">
+                {open.slice(0, 8).map((s) => (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+                    <span><span className="font-semibold">P{s.periodNo}</span> · {s.className} {s.sectionName} · {s.coveringStaffName ?? "no teacher assigned"}</span>
+                    <span className="text-xs font-semibold" style={{ color: s.coveringStaffId ? STATUS_COLOR.late : STATUS_COLOR.absent }}>{s.coveringStaffId ? "Not confirmed" : "No teacher"}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        );
+      })() : null}
 
       <section aria-label="Institution at a glance" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {statCards.map((s, i) => (
