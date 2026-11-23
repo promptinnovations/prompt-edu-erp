@@ -7,6 +7,7 @@ import { getInstitution, institutionReportName } from "../../../../../services/i
 import { buildHallTickets } from "../../../../../modules/examination/hall-ticket-service";
 import PrintButton from "../../../../components/PrintButton";
 import HallTicketDocument from "../HallTicketDocument";
+import { DownloadAllImages, DownloadOneImage } from "../TicketImageButtons";
 
 /**
  * Printable hall tickets — one A4 sheet per student for the chosen grade /
@@ -54,7 +55,7 @@ export default async function HallTicketsPrintPage({
             <p className="mt-1 text-sm text-amber-700">Some students have no seat in the seating plan (marked “To be announced”). Regenerate the plan if students were added after it was made.</p>
           ) : null}
         </div>
-        {bundle.tickets.length > 0 ? <PrintButton label="Print all" /> : null}
+        {bundle.tickets.length > 0 ? <div className="flex flex-wrap gap-2"><DownloadAllImages /><PrintButton label="Print all" /></div> : null}
       </div>
 
       {bundle.tickets.length === 0 ? (
@@ -62,15 +63,17 @@ export default async function HallTicketsPrintPage({
       ) : (
         <div className="space-y-6 print:space-y-0">
           {bundle.tickets.map((ticket) => (
-            <HallTicketDocument
-              key={ticket.studentId}
-              ticket={ticket}
-              settings={bundle.settings}
-              examinationName={bundle.examinationName}
-              institutionName={institutionReportName(institution)}
-              logoCode={institution?.logoFileId ? institution.code : null}
-              showSeat={bundle.includeSeating}
-            />
+            <div key={ticket.studentId} data-ticket-wrap className="space-y-1">
+              <div className="no-print text-right"><DownloadOneImage name={`${ticket.className}_${ticket.admissionNumber ?? ""}_${ticket.name}`} /></div>
+              <HallTicketDocument
+                ticket={ticket}
+                settings={bundle.settings}
+                examinationName={bundle.examinationName}
+                institutionName={institutionReportName(institution)}
+                logoCode={institution?.logoFileId ? institution.code : null}
+                showSeat={bundle.includeSeating}
+              />
+            </div>
           ))}
         </div>
       )}

@@ -21,7 +21,7 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
   const contact = [settings.address, settings.email, settings.phones].filter(Boolean);
 
   return (
-    <article className="report-sheet mx-auto w-full max-w-[210mm] bg-white p-[4mm] shadow-raised sm:min-h-[297mm] sm:p-[10mm] print:p-[10mm]">
+    <article data-hall-ticket={`${ticket.className}_${ticket.admissionNumber ?? ""}_${ticket.name}`} className="report-sheet mx-auto w-full max-w-[210mm] bg-white p-[4mm] shadow-raised sm:min-h-[297mm] sm:p-[10mm] print:p-[10mm]">
       <div className="flex flex-col p-[2mm] sm:min-h-[276mm] print:min-h-[276mm]">
         <FitToPage className="flex flex-1 flex-col">
           <header className="flex items-center gap-[5mm] border-b-[1.5pt] border-[var(--brand)] pb-[3mm]">
