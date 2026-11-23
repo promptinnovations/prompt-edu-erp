@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { getRequestContext } from "../services/request-context";
 import { resolveAppIdentity, resolveAppIdentityByCode } from "../services/branding/app-identity";
-import { Lora, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { headers } from "next/headers";
 import "./globals.css";
 import { getEarlyPalette } from "../services/branding/early-palette";
@@ -12,13 +12,24 @@ import { paletteCssVars } from "../services/branding/palettes";
 // Interface text stays on the system font stack (§80 "optimize for
 // lower-end mobile devices and slower networks" — zero extra requests).
 // Lora is the one display face, reserved for h1 page titles / .display
-// (see globals.css): one weight, Latin only, self-hosted by next/font at
-// build time — served from this app's own origin (CSP font-src 'self'),
-// never fetched from Google at runtime, with a serif fallback stack.
-const lora = Lora({ subsets: ["latin"], weight: "600", display: "swap", preload: false, variable: "--font-lora" });
-// The PROMPT EDU ERP wordmark's own face (Plus Jakarta Sans 800, as in the
-// approved logo sheet) — only the wordmark uses it, not preloaded.
-const brandFont = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["700", "800"], display: "swap", preload: false, variable: "--font-brand" });
+// (see globals.css); Plus Jakarta Sans 800 is the PROMPT EDU ERP wordmark's
+// own face. Both are committed under app/fonts (SIL OFL) and loaded with
+// next/font/local: served from this app's own origin (CSP font-src 'self'),
+// and — unlike next/font/google — the BUILD never has to reach Google Fonts
+// (a Hostinger build failed when that fetch did). Not preloaded.
+const lora = localFont({
+  src: [{ path: "./fonts/lora-latin-600-normal.woff2", weight: "600", style: "normal" }],
+  display: "swap", preload: false, variable: "--font-lora",
+  fallback: ["Iowan Old Style", "Palatino Linotype", "Palatino", "Georgia", "serif"],
+});
+const brandFont = localFont({
+  src: [
+    { path: "./fonts/plus-jakarta-sans-latin-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/plus-jakarta-sans-latin-800-normal.woff2", weight: "800", style: "normal" },
+  ],
+  display: "swap", preload: false, variable: "--font-brand",
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
+});
 const fontClass = `font-sans ${lora.variable} ${brandFont.variable}`;
 
 // §Install-button ("if clicked, app should get installed"). Chrome/Edge fire
