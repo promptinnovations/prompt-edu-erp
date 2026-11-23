@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-/** Keeps the open dashboard fresh: every minute it re-reads the page, and when
+/** Keeps the open dashboard fresh: every two minutes it checks (cheaply) for changes and re-reads the page only if there are some, and when
  *  a NEW unconfirmed substitution appears it beeps and vibrates (best effort —
  *  browsers only allow sound after the person has touched the page once). */
 export default function SubstitutionWatcher({ pendingIds }: { pendingIds: string[] }) {
@@ -31,9 +31,22 @@ export default function SubstitutionWatcher({ pendingIds }: { pendingIds: string
     seen.current = new Set(pendingIds);
   }, [pendingIds]);
 
+  // Poll a tiny endpoint (ids only) and re-render the dashboard ONLY when the
+  // set of pending substitutions actually changed — not blindly every minute.
   useEffect(() => {
-    const id = setInterval(() => { if (document.visibilityState === "visible") router.refresh(); }, 60_000);
+    let last = [...pendingIds].sort().join(",");
+    const id = setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const res = await fetch("/api/substitution/pending", { cache: "no-store" });
+        if (!res.ok) return;
+        const { ids } = (await res.json()) as { ids: string[] };
+        const now = ids.join(",");
+        if (now !== last) { last = now; router.refresh(); }
+      } catch { /* offline — try again next time */ }
+    }, 120_000);
     return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   return null;
