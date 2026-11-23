@@ -62,7 +62,8 @@ export async function getHallTicketSettings(institutionId: string, authUserId: s
     const lines = (r.instructions ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
     return {
       ticketTitle: r.ticket_title, address: r.address ?? "", email: r.email ?? "", phones: r.phones ?? "",
-      instructions: lines.length > 0 ? lines : DEFAULT_HALL_TICKET_INSTRUCTIONS,
+      // null = never edited → the standard list; "" = the institute removed them all.
+      instructions: r.instructions === null ? DEFAULT_HALL_TICKET_INSTRUCTIONS : lines,
       showSignature: r.show_signature, includeSeating: r.include_seating,
     };
   });
@@ -82,7 +83,7 @@ export async function saveHallTicketSettings(
          email = excluded.email, phones = excluded.phones, instructions = excluded.instructions,
          show_signature = excluded.show_signature, include_seating = excluded.include_seating,
          updated_by = excluded.updated_by, updated_at = now()`,
-      [institutionId, d.ticketTitle, d.address || null, d.email || null, d.phones || null, instructions || null, d.showSignature, d.includeSeating, userId]
+      [institutionId, d.ticketTitle, d.address || null, d.email || null, d.phones || null, instructions, d.showSignature, d.includeSeating, userId]
     );
     await recordAudit(scoped, { institutionId, userId, action: "upsert", module: "examination", entityType: "hall_ticket_settings", entityId: institutionId, after: d });
   });

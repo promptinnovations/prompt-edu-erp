@@ -27,7 +27,7 @@ export default function HallTicketSettingsForm({ settings }: { settings: HallTic
         <input name="phones" defaultValue={settings.phones} placeholder="+91-… | +91-…" className={INPUT} />
       </div>
       <div className="md:col-span-2">
-        <label className="mb-1 block text-xs text-zinc-500">Instructions (one per line)</label>
+        <label className="mb-1 block text-xs text-zinc-500">Instructions — one per line. Edit, add or delete lines freely; clear the box to print no instructions.</label>
         <textarea name="instructions" rows={6} defaultValue={settings.instructions.join("\n")} className={INPUT} />
       </div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="showSignature" defaultChecked={settings.showSignature} /> Signature column (invigilator signs each paper)</label>

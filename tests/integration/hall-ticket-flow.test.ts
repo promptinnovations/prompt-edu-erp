@@ -108,5 +108,10 @@ describe("hall tickets", () => {
     await saveHallTicketSettings(inst, auth, userId, { ...before, ticketTitle: "HALL TICKET", showSignature: false, instructions: before.instructions.join("\n") });
     const after = await getHallTicketSettings(inst, auth);
     expect(after).toMatchObject({ ticketTitle: "HALL TICKET", showSignature: false });
+    // the institute can edit the list, and even remove every instruction
+    await saveHallTicketSettings(inst, auth, userId, { ...after, instructions: "Bring a pen.\n\nNo phones." });
+    expect((await getHallTicketSettings(inst, auth)).instructions).toEqual(["Bring a pen.", "No phones."]);
+    await saveHallTicketSettings(inst, auth, userId, { ...after, instructions: "" });
+    expect((await getHallTicketSettings(inst, auth)).instructions).toEqual([]);
   });
 });

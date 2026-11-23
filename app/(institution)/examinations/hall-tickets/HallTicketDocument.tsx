@@ -103,6 +103,7 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
             </tbody>
           </table>
 
+          {settings.instructions.length > 0 ? (
           <section style={{ marginTop: `${k.gap}mm`, fontSize: `${k.base}pt` }}>
             <h2 className="font-bold uppercase underline">Instructions</h2>
             <ul style={{ marginTop: `${k.gapSm}mm`, display: "grid", rowGap: `${k.gapSm}mm`, fontSize: "0.92em" }}>
@@ -111,6 +112,7 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
               ))}
             </ul>
           </section>
+          ) : null}
         </FitToPage>
       </div>
     </article>
