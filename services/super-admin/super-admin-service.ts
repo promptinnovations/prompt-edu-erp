@@ -124,7 +124,7 @@ const SYSTEM_ROLES: Array<[string, string]> = [
  *  seed.ts's own `roleGrants` (same defaults, demo or real) — if one
  *  changes, update the other. */
 const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
-  management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", 
+  management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", 
     "student.view_all", "marks.view", "marks.approve", "attendance.view", "attendance.edit",
     "achievements.verify", "achievements.approve", "skills.approve",
     "discipline.view", "portfolio.view_all", "reports.view", "reports.export", "audit.view",
@@ -150,7 +150,7 @@ const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
   // section_head grant. Migration 0036 also self-heals this onto every
   // EXISTING institution's already-created section_head role, so this
   // entry only matters for institutions created after that migration ran.
-  section_head: ["events.judge", "events.view", "homework.set", "homework.view", "student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "messages.view"],
+  section_head: ["events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", "student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "messages.view"],
   librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "messages.view"],
   parent: ["events.view", "homework.view", "student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "fees.pay_own", "messages.send_to_staff", "kudos.send"],
   student: ["events.view", "events.enrol_self", "homework.view", "student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply"],

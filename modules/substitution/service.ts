@@ -55,7 +55,7 @@ export interface TimetablePeriodRow {
 
 export async function listTimetable(
   institutionId: string, authUserId: string,
-  opts?: { classId?: string; sectionId?: string; dayOfWeek?: number }
+  opts?: { classId?: string; sectionId?: string; dayOfWeek?: number; teacherStaffId?: string }
 ): Promise<TimetablePeriodRow[]> {
   const db = await getDbClient();
   return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
@@ -64,6 +64,7 @@ export async function listTimetable(
     if (opts?.classId) { params.push(opts.classId); conditions.push(`tp.class_id = $${params.length}`); }
     if (opts?.sectionId) { params.push(opts.sectionId); conditions.push(`tp.section_id = $${params.length}`); }
     if (opts?.dayOfWeek) { params.push(opts.dayOfWeek); conditions.push(`tp.day_of_week = $${params.length}`); }
+    if (opts?.teacherStaffId) { params.push(opts.teacherStaffId); conditions.push(`tp.teacher_staff_id = $${params.length}`); }
     const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
     const { rows } = await scoped.query<{
       id: string; class_id: string; class_name: string; section_id: string; section_name: string;
@@ -274,6 +275,8 @@ export interface SubstitutionRow {
   absentStaffId: string; absentStaffName: string;
   coveringStaffId: string | null; coveringStaffName: string | null;
   note: string | null;
+  /** ISO instant (UTC) when the covering teacher tapped the period to confirm; null = not yet. */
+  acknowledgedAt: string | null;
 }
 
 export async function listSubstitutions(
@@ -295,14 +298,15 @@ export async function listSubstitutions(
       subject_id: string | null; subject_name: string | null;
       absent_staff_id: string; absent_staff_name: string;
       covering_staff_id: string | null; covering_staff_name: string | null;
-      note: string | null;
+      note: string | null; acknowledged_at: string | null;
     }>(
-      `select ss.id, ss.date, ss.period_no,
+      `select ss.id, ss.date::text as date, ss.period_no,
               ss.class_id, c.name as class_name, ss.section_id, sec.name as section_name,
               ss.subject_id, sub.name as subject_name,
               ss.absent_staff_id, au.full_name as absent_staff_name,
               ss.covering_staff_id, cu.full_name as covering_staff_name,
-              ss.note
+              ss.note,
+              to_char(ss.acknowledged_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as acknowledged_at
          from staff_substitutions ss
          join classes c on c.id = ss.class_id
          join sections sec on sec.id = ss.section_id
@@ -321,7 +325,7 @@ export async function listSubstitutions(
       subjectId: r.subject_id, subjectName: r.subject_name,
       absentStaffId: r.absent_staff_id, absentStaffName: r.absent_staff_name,
       coveringStaffId: r.covering_staff_id, coveringStaffName: r.covering_staff_name,
-      note: r.note,
+      note: r.note, acknowledgedAt: r.acknowledged_at,
     }));
   });
 }
@@ -362,7 +366,10 @@ export async function confirmSubstitutions(
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          on conflict (institution_id, date, class_id, section_id, period_no)
          do update set subject_id = excluded.subject_id, absent_staff_id = excluded.absent_staff_id,
-                        covering_staff_id = excluded.covering_staff_id, note = excluded.note, updated_at = now()
+                        covering_staff_id = excluded.covering_staff_id, note = excluded.note, updated_at = now(),
+                        -- a different covering teacher has not seen it yet: clear the sign
+                        acknowledged_at = case when staff_substitutions.covering_staff_id is not distinct from excluded.covering_staff_id then staff_substitutions.acknowledged_at else null end,
+                        acknowledged_by = case when staff_substitutions.covering_staff_id is not distinct from excluded.covering_staff_id then staff_substitutions.acknowledged_by else null end
          returning id`,
         [institutionId, data.date, row.periodNo, row.classId, row.sectionId, row.subjectId ?? null, data.absentStaffId, row.coveringStaffId ?? null, row.note ?? null, userId]
       );
@@ -419,5 +426,67 @@ export async function getSubstitutionReport(
       staffId: r.staff_id, staffName: r.full_name,
       subsGiven: Number(r.subs_given), subsNeeded: Number(r.subs_needed),
     }));
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Teacher's own timetable + "I'll take this" acknowledgement (migration 0074)
+// ---------------------------------------------------------------------------
+
+/** The staff record of the signed-in user (null when the account is not linked to one). */
+export async function getMyStaffId(institutionId: string, authUserId: string, userId: string): Promise<string | null> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string }>("select id from staff where user_id = $1 limit 1", [userId]);
+    return rows[0]?.id ?? null;
+  });
+}
+
+export interface TeacherClassScope { classId: string; sectionId: string; label: string }
+
+/** The classes a teacher has access to: every class-division they are timetabled
+ *  in, plus every division they are assigned to in Staff → Assignments. */
+export async function listTeacherClasses(
+  institutionId: string, authUserId: string, userId: string, staffId: string | null
+): Promise<TeacherClassScope[]> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ class_id: string; section_id: string; label: string }>(
+      `select c.id as class_id, sec.id as section_id, c.name || ' ' || sec.name as label
+         from classes c
+         join sections sec on sec.class_id = c.id
+        where exists (select 1 from timetable_periods tp
+                       where tp.class_id = c.id and tp.section_id = sec.id and tp.teacher_staff_id = $1)
+           or exists (select 1 from teacher_assignments ta
+                       where ta.user_id = $2 and ta.class_id = c.id and (ta.section_id is null or ta.section_id = sec.id))
+        order by c.sort_order, sec.name`,
+      [staffId, userId]
+    );
+    return rows.map((r) => ({ classId: r.class_id, sectionId: r.section_id, label: r.label }));
+  });
+}
+
+/** The covering teacher taps a highlighted substitution to sign that they have
+ *  taken it. Only the covering teacher can sign; signing twice keeps the first time. */
+export async function acknowledgeSubstitution(
+  institutionId: string, authUserId: string, userId: string, substitutionId: string
+): Promise<void> {
+  const db = await getDbClient();
+  return db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+    const { rows } = await scoped.query<{ id: string }>(
+      `update staff_substitutions ss
+          set acknowledged_at = coalesce(ss.acknowledged_at, now()),
+              acknowledged_by = coalesce(ss.acknowledged_by, $2),
+              updated_at = now()
+         from staff st
+        where ss.id = $1 and st.id = ss.covering_staff_id and st.user_id = $2
+        returning ss.id`,
+      [substitutionId, userId]
+    );
+    if (!rows[0]) throw new Error("Only the teacher assigned to this substitution can confirm it.");
+    await recordAudit(scoped, {
+      institutionId, userId, action: "acknowledge", module: "substitution",
+      entityType: "staff_substitutions", entityId: substitutionId,
+    });
   });
 }

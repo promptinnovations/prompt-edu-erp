@@ -102,7 +102,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
   );
 
   const roleGrants: Record<string, string[]> = {
-    management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", 
+    management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", 
       // §"there should be an option for editing marks even after submission
       // with the permission of principal" — correctMark()/correctMarkAction()
       // already existed and were already wired into the marks-entry grid's
@@ -150,7 +150,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
     // Result Analysis & Reporting spec "Section Head defaults to own
     // section" (stage) — same reports.view + page-level scoping treatment
     // as teacher above, via getStaffSectionScope().
-    section_head: ["events.judge", "events.view", "homework.set", "homework.view", "student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "reports.view", "messages.view"],
+    section_head: ["events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", "student.view", "attendance.view", "attendance.view_section", "staff.view", "staff.observation.manage_section", "announcements.view", "calendar.view", "reports.view", "messages.view"],
     librarian: ["library.view", "library.issue", "library.return", "library.manage", "student.view", "announcements.view", "calendar.view", "messages.view"],
     parent: ["events.view", "homework.view", "student.view", "portfolio.view_own", "reports.view", "announcements.view", "attendance.leave.apply", "calendar.view", "fees.pay_own", "messages.send_to_staff", "kudos.send"],
     student: ["events.view", "events.enrol_self", "homework.view", "student.view", "portfolio.view_own", "skills.submit", "library.view", "achievements.submit", "announcements.view", "attendance.leave.apply", "calendar.view"],
