@@ -75,6 +75,7 @@ describe("hall tickets", () => {
     const t = b!.tickets.find((x) => x.admissionNumber === "G5-1")!;
     expect(t.days.map((d) => [d.date, d.papers.length])).toEqual([["2026-12-01", 2], ["2026-12-03", 1]]);
     expect(t.seat).toBeNull();
+    expect(t.photoFileId).toBeNull();
     const only6 = await buildHallTickets(inst, auth, { examinationId: examId, classId: g6 });
     expect(only6!.tickets).toHaveLength(3);
   });

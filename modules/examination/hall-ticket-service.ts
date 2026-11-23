@@ -288,6 +288,7 @@ export interface HallTicketPaper { startTime: string; endTime: string | null; su
 export interface HallTicketDay { date: string; papers: HallTicketPaper[] }
 export interface HallTicket {
   studentId: string; name: string; admissionNumber: string | null; rollNumber: number | null;
+  photoFileId: string | null;
   classId: string; className: string; sectionName: string | null;
   days: HallTicketDay[];
   seat: { room: string; bench: number; seat: number } | null;
@@ -313,10 +314,10 @@ export async function buildHallTickets(
     if (!exam[0]) return null;
 
     const { rows: students } = await scoped.query<{
-      student_id: string; full_name: string; admission_number: string | null; roll_number: number | null;
+      student_id: string; full_name: string; admission_number: string | null; roll_number: number | null; photo_file_id: string | null;
       class_id: string; class_name: string; section_name: string | null;
     }>(
-      `select distinct s.id as student_id, s.full_name, s.admission_number, se.roll_number,
+      `select distinct s.id as student_id, s.full_name, s.admission_number, se.roll_number, s.photo_file_id,
               c.id as class_id, c.name as class_name, c.sort_order, sec.name as section_name
          from exam_classes ec
          join classes c on c.id = ec.class_id
@@ -368,7 +369,7 @@ export async function buildHallTickets(
       const days = daysByClass.get(s.class_id);
       if (!days || days.length === 0) { without.add(s.class_name); continue; }
       tickets.push({
-        studentId: s.student_id, name: s.full_name, admissionNumber: s.admission_number, rollNumber: s.roll_number,
+        studentId: s.student_id, name: s.full_name, admissionNumber: s.admission_number, rollNumber: s.roll_number, photoFileId: s.photo_file_id,
         classId: s.class_id, className: s.class_name, sectionName: s.section_name, days,
         seat: includeSeating ? seatByStudent.get(s.student_id) ?? null : null,
       });

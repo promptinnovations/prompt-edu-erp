@@ -40,7 +40,8 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
             <p className="mt-[1mm] text-[11pt] font-bold uppercase tracking-[0.1em]" style={{ color: decorColor(2) }}>{settings.ticketTitle}</p>
           </div>
 
-          <dl className="mt-[6mm] grid grid-cols-[48mm_6mm_1fr] gap-y-[2mm] text-[12pt]">
+          <div className="mt-[6mm] flex items-start justify-between gap-[6mm]">
+          <dl className="grid min-w-0 flex-1 grid-cols-[48mm_6mm_1fr] gap-y-[2mm] text-[12pt]">
             <dt className="font-bold">Name of Candidate</dt><dd className="font-bold">:</dd><dd>{ticket.name}</dd>
             <dt className="font-bold">Admission no</dt><dd className="font-bold">:</dd><dd>{ticket.admissionNumber ?? "—"}</dd>
             <dt className="font-bold">Class &amp; Division</dt><dd className="font-bold">:</dd><dd>{classLine}</dd>
@@ -51,6 +52,11 @@ export default function HallTicketDocument({ ticket, settings, examinationName, 
               </>
             ) : null}
           </dl>
+          {ticket.photoFileId ? (
+            // eslint-disable-next-line @next/next/no-img-element -- served from our own /api/files route
+            <img src={`/api/files/${ticket.photoFileId}`} alt="" className="h-[32mm] w-[26mm] shrink-0 border border-zinc-500 object-cover" />
+          ) : null}
+          </div>
 
           <p className="mt-[6mm] text-center text-[11pt] font-bold uppercase text-[var(--brand)]">Time table for {examinationName}</p>
           <table className="mt-[2mm] w-full border-collapse text-center">
