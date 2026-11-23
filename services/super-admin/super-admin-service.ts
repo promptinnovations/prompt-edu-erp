@@ -124,7 +124,7 @@ const SYSTEM_ROLES: Array<[string, string]> = [
  *  seed.ts's own `roleGrants` (same defaults, demo or real) — if one
  *  changes, update the other. */
 const DEFAULT_ROLE_PERMISSION_GRANTS: Record<string, string[]> = {
-  management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", 
+  management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", "examinations.halltickets.manage", 
     "student.view_all", "marks.view", "marks.approve", "attendance.view", "attendance.edit",
     "achievements.verify", "achievements.approve", "skills.approve",
     "discipline.view", "portfolio.view_all", "reports.view", "reports.export", "audit.view",

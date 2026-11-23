@@ -51,6 +51,8 @@ const ROUTES: Record<string, Crumb[]> = {
   "/examinations/*/daily/*": [EXAMS, ["Exam details", "/examinations/*"], ["Daily assessment"]],
   "/examinations/status": [EXAMS, ["Mark entry status"]],
   "/examinations/seating": [EXAMS, ["Seating arrangement"]],
+  "/examinations/hall-tickets": [EXAMS, ["Hall tickets"]],
+  "/examinations/hall-tickets/print": [EXAMS, ["Hall tickets", "/examinations/hall-tickets"], ["Print"]],
   "/examinations/seating/stickers": [EXAMS, ["Seating arrangement", "/examinations/seating"], ["Desk stickers"]],
   "/results": [RESULTS],
   "/results/cumulative": [RESULTS, ["Cumulative results"]],

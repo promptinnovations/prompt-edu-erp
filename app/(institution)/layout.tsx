@@ -88,7 +88,7 @@ export default async function InstitutionLayout({ children }: { children: React.
   const hasAchievementsAccess = enabledModules.has("achievements")
     && (can(ctx.permissions, "achievements.verify") || can(ctx.permissions, "achievements.approve") || can(ctx.permissions, "achievements.submit"));
   const hasExaminationAccess = enabledModules.has("examination")
-    && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter") || can(ctx.permissions, "examinations.seating.manage"));
+    && (can(ctx.permissions, "marks.view") || can(ctx.permissions, "marks.enter") || can(ctx.permissions, "examinations.seating.manage") || can(ctx.permissions, "examinations.halltickets.manage"));
   const hasAttendanceAccess = enabledModules.has("attendance") && (can(ctx.permissions, "attendance.view") || can(ctx.permissions, "attendance.enter"));
   const hasStudentAccess = can(ctx.permissions, "student.view") || can(ctx.permissions, "student.view_all");
   const hasDisciplineAccess = enabledModules.has("discipline") && (can(ctx.permissions, "discipline.view") || can(ctx.permissions, "discipline.record"));
@@ -224,6 +224,10 @@ export default async function InstitutionLayout({ children }: { children: React.
         // enters marks has no business generating hall seating plans.
         ...(can(ctx.permissions, "examinations.seating.manage")
           ? [{ href: "/examinations/seating", label: "Seating Arrangement" }]
+          : []),
+        // Hall tickets (migration 0076): per-grade exam timetable + printable tickets.
+        ...(can(ctx.permissions, "examinations.halltickets.manage")
+          ? [{ href: "/examinations/hall-tickets", label: "Hall Tickets" }]
           : []),
       ],
     }] : []),

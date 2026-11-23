@@ -102,7 +102,7 @@ export async function seedDemoInstitution(db: DbClient, code = "badrudhuja"): Pr
   );
 
   const roleGrants: Record<string, string[]> = {
-    management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", 
+    management: ["events.manage", "events.judge", "events.view", "homework.set", "homework.view", "timetable.view_all", "examinations.halltickets.manage", 
       // §"there should be an option for editing marks even after submission
       // with the permission of principal" — correctMark()/correctMarkAction()
       // already existed and were already wired into the marks-entry grid's
