@@ -5,7 +5,7 @@ import {
   addTimetableEntryAction, addTimetableTextAction, deleteTimetableEntryAction, copyTimetableAction, type HallState,
 } from "./actions";
 import type { ExamTimetableRow } from "../../../../modules/examination/hall-ticket-service";
-import { formatClock } from "../../../../modules/examination/hall-ticket-service";
+import { formatClock } from "../../../../modules/examination/hall-ticket-format";
 
 const INPUT = "rounded-lg border border-[var(--border-subtle)] bg-white px-3 py-1.5 text-sm focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]";
 const BTN = "rounded-full bg-[var(--brand)] px-4 py-1.5 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50";

@@ -1,5 +1,5 @@
 import type { HallTicket, HallTicketSettings } from "../../../../modules/examination/hall-ticket-service";
-import { formatClock } from "../../../../modules/examination/hall-ticket-service";
+import { formatClock } from "../../../../modules/examination/hall-ticket-format";
 import { formatDateIST } from "../../../../services/datetime/ist";
 import { decorColor, tint } from "../../../components/portal/viz/palette";
 import FitToPage from "../../results/[id]/report-cards/FitToPage";
