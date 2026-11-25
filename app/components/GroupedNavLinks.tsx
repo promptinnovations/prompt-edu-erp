@@ -8,7 +8,9 @@ import { logicalPathname, withInstitutionPrefix } from "./nav-paths";
 
 /** `match`: extra path prefixes whose sub-pages also belong to this item
  *  (e.g. "Student profiles" for /students/<id>). */
-export type NavLeaf = { href: string; label: string; match?: string[] };
+/** `keywords`: other words people use for this page, so "Find a page" finds it
+ *  (e.g. "timetable" or "admission ticket" finds Hall tickets). */
+export type NavLeaf = { href: string; label: string; match?: string[]; keywords?: string };
 // `icon` is a pre-rendered ReactNode (e.g. `<DashboardIcon className="..." />`),
 // NOT a component reference — this is a "use client" component, and a Server
 // Component (the institution/super-admin layouts) cannot pass a bare function
@@ -152,7 +154,7 @@ export default function GroupedNavLinks({ items, institutionCode }: { items: Nav
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Find a page…"
+        placeholder="Search any page or task…"
         autoComplete="off"
         className="w-full rounded-lg border border-[var(--sidebar-border)] bg-transparent px-3 py-1.5 text-sm text-[var(--sidebar-text)] placeholder:text-[var(--sidebar-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-teal)]"
       />
@@ -167,7 +169,7 @@ export default function GroupedNavLinks({ items, institutionCode }: { items: Nav
       } else if (entry.kind === "group") {
         const groupHit = entry.label.toLowerCase().includes(q);
         entry.items.forEach((leaf, n) => {
-          if (groupHit || leaf.label.toLowerCase().includes(q)) {
+          if (groupHit || leaf.label.toLowerCase().includes(q) || (leaf.keywords ?? "").toLowerCase().includes(q)) {
             hits.push({ key: `${entry.label}:${n}`, href: leaf.href, label: leaf.label, context: entry.label });
           }
         });

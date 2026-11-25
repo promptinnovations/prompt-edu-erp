@@ -210,24 +210,26 @@ export default async function InstitutionLayout({ children }: { children: React.
         // the /examinations page's own canManage gate on that section, so
         // this link is never shown to someone who'd just hit a 403 anyway.
         ...(can(ctx.permissions, "settings.manage") ? [{ href: "/examinations#create", label: "Create Exam" }] : []),
-        { href: "/examinations#list", label: "Exams" },
-        { href: "/examinations", label: "Mark entry" },
-        // §CS.3 "Mark entry status visible only for principal/management/
-        // admin not for teachers" -- marks.approve is the institution-wide
-        // "sees everything" signal (held by institution_admin + management,
-        // not teacher), same gate the page itself now enforces.
-        ...(can(ctx.permissions, "marks.approve")
-          ? [{ href: "/examinations/status", label: "Mark entry status" }]
+        { href: "/examinations#list", label: "All exams", keywords: "exam list result marks" },
+        // The items below follow the order the work is done in:
+        // create → timetable & hall tickets → seating → marks → status.
+        // Hall tickets (migration 0076): per-grade exam timetable + printable tickets.
+        ...(can(ctx.permissions, "examinations.halltickets.manage")
+          ? [{ href: "/examinations/hall-tickets", label: "Exam timetable & Hall tickets", keywords: "timetable admission ticket hall ticket schedule date sheet" }]
           : []),
         // Seating Arrangement (migration 0049) gates on its own permission
         // rather than the group's marks.view/marks.enter — a teacher who
         // enters marks has no business generating hall seating plans.
         ...(can(ctx.permissions, "examinations.seating.manage")
-          ? [{ href: "/examinations/seating", label: "Seating Arrangement" }]
+          ? [{ href: "/examinations/seating", label: "Seating arrangement", keywords: "seat bench room stickers" }]
           : []),
-        // Hall tickets (migration 0076): per-grade exam timetable + printable tickets.
-        ...(can(ctx.permissions, "examinations.halltickets.manage")
-          ? [{ href: "/examinations/hall-tickets", label: "Hall Tickets" }]
+        { href: "/examinations", label: "Mark entry", keywords: "enter marks scores" },
+        // §CS.3 "Mark entry status visible only for principal/management/
+        // admin not for teachers" -- marks.approve is the institution-wide
+        // "sees everything" signal (held by institution_admin + management,
+        // not teacher), same gate the page itself now enforces.
+        ...(can(ctx.permissions, "marks.approve")
+          ? [{ href: "/examinations/status", label: "Who has entered marks", keywords: "mark entry status pending" }]
           : []),
       ],
     }] : []),
@@ -261,10 +263,10 @@ export default async function InstitutionLayout({ children }: { children: React.
       // "Reading history" didn't match any actual section.
       items: [
         { href: "/library#catalogue", label: "Catalogue", match: ["/library/books"] },
-        { href: "/library#issue", label: "Issue a book" },
+        { href: "/library#issue", label: "Issue a book", keywords: "lend borrow return" },
         { href: "/library#currently-issued", label: "Currently issued" },
         { href: "/library#reading-reviews", label: "Reading reviews" },
-        { href: "/library#pre-bookings", label: "Pre-bookings (waitlist)" },
+        { href: "/library#pre-bookings", label: "Waitlist", keywords: "pre-booking reserve hold" },
         { href: "/library#review-corner", label: "Review Corner" },
         ...(can(ctx.permissions, "library.manage") ? [{ href: "/library#settings", label: "Library settings" }] : []),
       ],
@@ -307,8 +309,8 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasSkillsAccess || hasAchievementsAccess ? [{
       kind: "group" as const, label: "Skills & Achievements", icon: ni(SkillsIcon),
       items: [
-        ...(hasAchievementsAccess ? [{ href: "/achievements", label: "Student achievements & Recognitions" }] : []),
-        ...(hasSkillsAccess ? [{ href: "/skills", label: "Reading, Writing, Speaking, language activities" }] : []),
+        ...(hasAchievementsAccess ? [{ href: "/achievements", label: "Achievements", keywords: "recognition award certificate" }] : []),
+        ...(hasSkillsAccess ? [{ href: "/skills", label: "Language activities", keywords: "reading writing speaking skills" }] : []),
       ],
     }] : []),
 
