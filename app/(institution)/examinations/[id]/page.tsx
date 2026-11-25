@@ -15,6 +15,9 @@ import { formatMarks } from "../../../../services/format/marks";
 import { ExamScopePlanner, ExamSubjectsSection } from "./ExamDetailForms";
 import { ExamResultSettingsForm, CeComponentsForm, MarkEntryStatusControl } from "./ExamResultSettings";
 import DailyAssessmentSection from "./DailyAssessmentSection";
+import ExamJourney, { type JourneyStep } from "./ExamJourney";
+import { listExamClasses, listExamTimetable } from "../../../../modules/examination/hall-ticket-service";
+import { getSeatingPlan } from "../../../../modules/examination/seating-service";
 
 export default async function ExaminationDetailPage({
   params, searchParams,
@@ -169,6 +172,37 @@ export default async function ExaminationDetailPage({
   }
   const provisionalCount = results.filter((r) => r.is_provisional).length;
 
+  // ---- "What to do next": the whole exam journey in the order it is done ----
+  let journey: JourneyStep[] | null = null;
+  if (canManage) {
+    const canTickets = ctx.isSuperAdmin || can(ctx.permissions, "examinations.halltickets.manage");
+    const canSeating = ctx.isSuperAdmin || can(ctx.permissions, "examinations.seating.manage");
+    const [examClasses, timetable, seatingPlan] = await Promise.all([
+      listExamClasses(institutionId, authUserId, id),
+      listExamTimetable(institutionId, authUserId, id),
+      canSeating ? getSeatingPlan(institutionId, authUserId, id) : Promise.resolve(null),
+    ]);
+    const gradesWithTt = new Set(timetable.map((t) => t.classId));
+    const ttDone = examClasses.filter((c) => gradesWithTt.has(c.id)).length;
+    const complete = results.filter((r) => !r.is_provisional).length;
+    journey = [
+      { title: "Choose grades and subjects", done: examSubjects.length > 0, href: "#scope", action: "Open",
+        detail: examSubjects.length > 0 ? `${examSubjects.length} subject${examSubjects.length === 1 ? "" : "s"} set` : "Tick the subjects each grade writes" },
+      ...(canTickets ? [{ title: "Feed each grade's timetable", done: examClasses.length > 0 && ttDone === examClasses.length, href: `/examinations/hall-tickets?examinationId=${id}`, action: "Add timetable",
+        detail: examClasses.length === 0 ? "Link this exam to its grades first" : `${ttDone} of ${examClasses.length} grades have a timetable` }] : []),
+      ...(canSeating ? [{ title: "Make the seating plan", optional: true, done: Boolean(seatingPlan), href: `/examinations/seating?examinationId=${id}`, action: "Seating",
+        detail: seatingPlan ? "Seating plan is ready" : "Only if hall tickets should show seats" }] : []),
+      ...(canTickets ? [{ title: "Print hall tickets", optional: true, done: false, href: `/examinations/hall-tickets?examinationId=${id}`, action: "Hall tickets",
+        detail: "One ticket per student — print, PDF or image" }] : []),
+      { title: "Enter marks", done: results.length > 0 && provisionalCount === 0, href: "#subjects", action: "Marks",
+        detail: results.length === 0 ? "Teachers enter marks subject by subject" : `${complete} of ${results.length} students fully entered` },
+      { title: "Close marks and publish", done: isPublished, href: "#results", action: "Publish",
+        detail: isPublished ? "Results are published to the portal" : "Use the status control in Results below" },
+      { title: "Print report cards", optional: true, done: false, href: `/results/${id}/report-cards`, action: "Report cards",
+        detail: "After results are ready" },
+    ];
+  }
+
   return (
     <div className="space-y-6">
       <Link href="/examinations" className="text-sm text-zinc-500 underline">
@@ -179,8 +213,10 @@ export default async function ExaminationDetailPage({
         <p className="mt-1 text-sm text-zinc-500">{examTypeName} · {examination.status}</p>
       </div>
 
+      {journey ? <ExamJourney steps={journey} /> : null}
+
       {canManage && scopePlan ? (
-        <section className="rounded-card border bg-white p-5">
+        <section id="scope" className="rounded-card border bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">1. Scope &amp; subjects</h2>
           <p className="mb-3 text-xs text-zinc-500">
             Section › Grade › Division. For each grade, tick only the subjects this exam covers — only those need marks.
@@ -189,7 +225,7 @@ export default async function ExaminationDetailPage({
         </section>
       ) : null}
 
-      <section className="rounded-card border bg-white p-5">
+      <section id="subjects" className="rounded-card border bg-white p-5">
         <h2 className="mb-1 text-sm font-semibold text-[var(--heading)]">{canManage ? "2. Subjects & total marks" : "Subjects & total marks"}</h2>
         <p className="mb-3 text-xs text-zinc-500">
           {canManage
@@ -234,7 +270,7 @@ export default async function ExaminationDetailPage({
         </section>
       ) : null}
 
-      <section className="rounded-card border bg-white p-5">
+      <section id="results" className="rounded-card border bg-white p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-[var(--heading)]">
             Results
