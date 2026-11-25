@@ -129,6 +129,20 @@ export default async function StaffPage({
         );
       })() : null}
 
+      {/* Jump bar to every section of this page (admins see all of them, a
+          teacher only the personal ones), so the sidebar can stay short. */}
+      <nav aria-label="Staff sections" className="no-print sticky top-0 z-10 -mx-1 flex flex-wrap gap-2 bg-zinc-50/95 px-1 py-2 backdrop-blur">
+        {[
+          ...(canViewAllStaff ? [["#directory", "Staff directory"]] : []),
+          ["#staff-attendance", "Attendance"],
+          ["#staff-leave", "Leave"],
+          ["#portion-plans", canViewAllStaff ? "Portion plans" : "My portion plan"],
+          ...(canViewAllStaff ? [["#teacher-observations", "Teacher performance"], ["#teacher-assignments", "Teacher assignments"], ["#section-head-assignments", "Section heads"]] : []),
+        ].map(([href, label]) => (
+          <a key={href} href={href} className="rounded-full border border-[var(--border-subtle)] bg-white px-3 py-1 text-sm text-[var(--foreground)] hover:bg-primary-50">{label}</a>
+        ))}
+      </nav>
+
       <section id="directory" className="rounded-card border bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-[var(--heading)]">Directory</h2>
         {can(ctx.permissions, "staff.create") ? (

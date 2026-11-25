@@ -172,13 +172,13 @@ export default async function InstitutionLayout({ children }: { children: React.
     ...(hasStudentAccess ? [{
       kind: "group" as const, label: "Student Management", icon: ni(StudentIcon),
       items: [
-        { href: "/students/directory", label: "Student profiles", match: ["/students"] },
+        { href: "/students/directory", label: "Student profiles", match: ["/students"], keywords: "student search photo profile record" },
         // §"enrollment of students (student management module) should not
         // be in teachers portal" — gated separately from the group itself
         // (student.view, which a teacher does hold, only unlocks the two
         // read-only views above/below).
-        ...(canManageEnrollment ? [{ href: "/students", label: "Enrollment" }] : []),
-        ...(canCompleteStudentDetails ? [{ href: "/students/details", label: "Complete student details" }] : []),
+        ...(canManageEnrollment ? [{ href: "/students", label: "Enrol students", keywords: "enrollment admission add student class division promote" }] : []),
+        ...(canCompleteStudentDetails ? [{ href: "/students/details", label: "Complete student details", keywords: "blood group address parent details" }] : []),
         { href: "/students/directory?tab=portfolio", label: "Portfolio" },
       ],
     }] : []),
@@ -289,15 +289,12 @@ export default async function InstitutionLayout({ children }: { children: React.
       // (management/admin) keeps the original 9-item admin list unchanged.
       items: canViewAllStaff
         ? [
-            { href: "/staff/directory", label: "Staff profiles", match: ["/staff"] },
-            { href: "/staff#directory", label: "Staff directory" },
-            { href: "/staff#staff-attendance", label: "Staff attendance" },
-            { href: "/staff#staff-leave", label: "Staff leave" },
-            { href: "/staff/register", label: "Monthly register" },
-            { href: "/staff#portion-plans", label: "Portion plans" },
-            { href: "/staff#teacher-observations", label: "Teacher Performance" },
-            { href: "/staff#teacher-assignments", label: "Teacher assignments" },
-            { href: "/staff#section-head-assignments", label: "Section Head assignments" },
+            // Five daily jobs; the Staff page has a jump bar to every section.
+            { href: "/staff/directory", label: "Staff profiles", match: ["/staff"], keywords: "teacher photo profile" },
+            { href: "/staff#directory", label: "Add or manage staff", keywords: "staff directory add teacher login" },
+            { href: "/staff#staff-attendance", label: "Attendance & leave", keywords: "staff attendance staff leave" },
+            { href: "/staff/register", label: "Monthly register", keywords: "attendance register month" },
+            { href: "/staff#portion-plans", label: "Teaching work", keywords: "portion plans teacher performance observation teacher assignments section head" },
           ]
         : [
             { href: "/staff/directory", label: "My profile" },
