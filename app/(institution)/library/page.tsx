@@ -89,6 +89,23 @@ export default async function LibraryPage() {
         );
       })()}
 
+      {/* One row of jump buttons for everything on this page, in the order the
+          librarian works: find a book → lend it → see what is out → waitlist →
+          reviews → settings. Same sections as before; nothing hidden. */}
+      <nav aria-label="Library sections" className="no-print sticky top-0 z-10 -mx-1 flex flex-wrap gap-2 bg-zinc-50/95 px-1 py-2 backdrop-blur">
+        {[
+          ["#catalogue", "Find a book"],
+          ...(canIssue ? [["#issue", "Issue a book"]] : []),
+          ["#currently-issued", "Issued & returns"],
+          ["#pre-bookings", "Waitlist"],
+          ["#reading-reviews", "Reading reviews"],
+          ["#review-corner", "Review corner"],
+          ...(can(ctx.permissions, "library.manage") ? [["#settings", "Settings"]] : []),
+        ].map(([href, label]) => (
+          <a key={href} href={href} className="rounded-full border border-[var(--border-subtle)] bg-white px-3 py-1 text-sm text-[var(--foreground)] hover:bg-primary-50">{label}</a>
+        ))}
+      </nav>
+
       <section id="catalogue" className="rounded-card border bg-white p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-[var(--heading)]">Catalogue</h2>

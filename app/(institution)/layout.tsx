@@ -262,12 +262,13 @@ export default async function InstitutionLayout({ children }: { children: React.
       // real sections (user's explicit go-ahead) — "Issue/return" and
       // "Reading history" didn't match any actual section.
       items: [
-        { href: "/library#catalogue", label: "Catalogue", match: ["/library/books"] },
-        { href: "/library#issue", label: "Issue a book", keywords: "lend borrow return" },
-        { href: "/library#currently-issued", label: "Currently issued" },
-        { href: "/library#reading-reviews", label: "Reading reviews" },
+        // Five links for the library's daily jobs; the page itself has a jump
+        // bar to every section (waitlist, review corner, ...).
+        { href: "/library#catalogue", label: "Find a book", match: ["/library/books"], keywords: "catalogue search books" },
+        { href: "/library#issue", label: "Issue a book", keywords: "lend borrow" },
+        { href: "/library#currently-issued", label: "Issued & returns", keywords: "currently issued return overdue fine" },
         { href: "/library#pre-bookings", label: "Waitlist", keywords: "pre-booking reserve hold" },
-        { href: "/library#review-corner", label: "Review Corner" },
+        { href: "/library#reading-reviews", label: "Reading reviews", keywords: "review corner" },
         ...(can(ctx.permissions, "library.manage") ? [{ href: "/library#settings", label: "Library settings" }] : []),
       ],
     }] : []),
