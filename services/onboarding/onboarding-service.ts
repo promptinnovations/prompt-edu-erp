@@ -40,10 +40,19 @@ type ItemDefinition = {
 };
 
 const ITEM_DEFINITIONS: ItemDefinition[] = [
-  { code: "academic_structure", label: "Add your first class", description: "Set up at least one class and section.", href: "/academic" },
-  { code: "subjects", label: "Add subjects", description: "List the subjects taught at your institution.", href: "/academic" },
-  { code: "students", label: "Enroll a student", description: "Add your first student profile.", href: "/students" },
-  { code: "staff", label: "Add a staff member", description: "Create your first staff account.", href: "/staff", moduleCode: "staff" },
+  // The school set-up path, in the order it is done: year → classes →
+  // divisions → subjects → subjects per class → students → staff → who
+  // teaches what → timetable. Each "done" is read from real data.
+  { code: "academic_year", label: "Set the academic year", description: "The current year the classes and exams belong to.", href: "/academic#academic-years" },
+  { code: "academic_structure", label: "Add your classes", description: "Grade 1, Grade 2 … up to the highest class you run.", href: "/academic#classes" },
+  { code: "divisions", label: "Add divisions", description: "A, B, C … for each class.", href: "/academic#divisions" },
+  { code: "subjects", label: "Add subjects", description: "List the subjects taught at your institution.", href: "/academic#subjects" },
+  { code: "class_subjects", label: "Choose subjects for each class", description: "Which subjects each class studies.", href: "/academic#subjects-per-class" },
+  { code: "students", label: "Enrol your students", description: "Add them one by one, or upload all at once from Import / Export.", href: "/students" },
+  { code: "staff", label: "Add your staff", description: "Create staff accounts and logins.", href: "/staff", moduleCode: "staff" },
+  { code: "teacher_assignments", label: "Say who teaches what", description: "Class teachers and subject teachers — teachers then see only their own classes.", href: "/staff#teacher-assignments", moduleCode: "staff" },
+  { code: "timetable", label: "Add the timetable", description: "Needed for substitutions and each teacher's timetable.", href: "/substitution/timetable", moduleCode: "substitution" },
+  { code: "branding", label: "Add your school logo", description: "Shown on report cards, hall tickets and printouts.", href: "/settings" },
   { code: "users", label: "Invite a colleague", description: "Generate a login for someone else on your team.", href: "/users" },
   { code: "announcements", label: "Publish an announcement", description: "Send your first announcement to staff or everyone.", href: "/announcements" },
   { code: "library", label: "Add a library book", description: "Start your library catalogue.", href: "/library", moduleCode: "library" },
@@ -54,7 +63,7 @@ export async function getOnboardingChecklist(institutionId: string, authUserId: 
   const enabledModules = await getEnabledModuleCodes(institutionId, authUserId);
   const definitions = ITEM_DEFINITIONS.filter((d) => !d.moduleCode || enabledModules.has(d.moduleCode));
 
-  const [classes, subjects, students, staff, announcements, books, users, skipped] = await Promise.all([
+  const [classes, subjects, students, staff, announcements, books, users, counts, skipped] = await Promise.all([
     listClasses(institutionId, authUserId),
     listSubjects(institutionId, authUserId),
     listStudents(institutionId, authUserId),
@@ -62,6 +71,20 @@ export async function getOnboardingChecklist(institutionId: string, authUserId: 
     listAnnouncements(institutionId, authUserId, 1),
     enabledModules.has("library") ? listBooks(institutionId, authUserId) : Promise.resolve([]),
     listInstitutionUsers(institutionId, authUserId),
+    // One cheap query for the extra set-up steps (instead of loading whole lists).
+    db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
+      const one = async (sql: string) => {
+        try { return Number((await scoped.query<{ n: string }>(sql)).rows[0]?.n ?? 0) > 0; } catch { return false; }
+      };
+      return {
+        academic_year: await one("select count(*) n from academic_years"),
+        divisions: await one("select count(*) n from sections"),
+        class_subjects: await one("select count(*) n from class_subjects"),
+        teacher_assignments: await one("select count(*) n from teacher_assignments"),
+        timetable: await one("select count(*) n from timetable_periods"),
+        branding: await one("select count(*) n from institutions where logo_file_id is not null"),
+      } as Record<string, boolean>;
+    }),
     db.withInstitutionContext({ institutionId, authUserId }, async (scoped) => {
       try {
         const { rows } = await scoped.query<{ item_code: string }>(
@@ -87,6 +110,7 @@ export async function getOnboardingChecklist(institutionId: string, authUserId: 
   ]);
 
   const doneByCode: Record<string, boolean> = {
+    ...counts,
     academic_structure: classes.length > 0,
     subjects: subjects.length > 0,
     students: students.length > 0,

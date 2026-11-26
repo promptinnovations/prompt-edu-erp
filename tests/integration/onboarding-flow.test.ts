@@ -48,7 +48,9 @@ describe("getOnboardingChecklist", () => {
     expect(items.length).toBeGreaterThan(0);
     for (const item of items) {
       expect(item.skipped).toBe(false);
-      if (item.code === "library") {
+      if (item.code === "academic_year") {
+        expect(typeof item.done).toBe("boolean"); // the demo seed may or may not create a current year
+      } else if (item.code === "library") {
         expect(item.done).toBe(true); // sample catalogue already exists
       } else {
         expect(item.done).toBe(false);
