@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireRequestContext } from "../../../services/request-context";
 import { requireModuleEnabledOrRedirect } from "../../../services/modules/module-service";
 import { can } from "../../../services/permissions/permission-service";
@@ -104,6 +105,12 @@ export default async function AttendancePage({
   const sections = teacherScope
     ? allSections.filter((s) => scopeIncludesSection(teacherScope, s.class_id, s.id))
     : allSections;
+
+  // Exactly one division to choose from (a class teacher): open it straight
+  // away instead of asking them to pick the only option.
+  if (!effectiveClassId && !effectiveSectionId && !classId && sections.length === 1 && classes.some((c) => c.id === sections[0].class_id)) {
+    redirect(`/attendance?classId=${sections[0].class_id}&sectionId=${sections[0].id}${date ? `&date=${date}` : ""}`);
+  }
 
   const grid = effectiveClassId && effectiveSectionId
     ? await getAttendanceGrid(institutionId, authUserId, effectiveClassId, effectiveSectionId, effectiveDate)
