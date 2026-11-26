@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState, useEffect, useState, type FormEvent } from "react";
+import { Fragment, useActionState, useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { saveMarksAction, deleteMarkAction, correctMarkAction } from "../../../actions";
 import ConfirmSubmitButton from "../../../../../components/ui/ConfirmSubmitButton";
 import { formatMarks } from "../../../../../../services/format/marks";
@@ -169,9 +169,22 @@ export default function MarksGridForm({
   // open; the admin/principal composite (canCorrect) can also fix the grid
   // after it's Closed (only Archived stops them — then canCorrect is false).
   const rowEditable = (canEnter && !examinationClosed) || canCorrect;
+  // How far along the entry is: a student counts once a mark or "absent" is on the row.
+  const entered = students.filter((s) => { const v = values[s.student_id]; return v && (v.te !== "" || v.absent); }).length;
+
+  // Enter moves to the next student's marks box instead of submitting, so a
+  // whole list can be typed from the keyboard without reaching for the mouse.
+  function onGridKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    const t = e.target as HTMLInputElement;
+    if (e.key !== "Enter" || !t.name?.startsWith("marks_")) return;
+    e.preventDefault();
+    const boxes = Array.from(document.querySelectorAll<HTMLInputElement>(`input[form="${gridFormId}"][name^="marks_"]:not(:disabled)`));
+    const next = boxes[boxes.indexOf(t) + 1];
+    if (next) { next.focus(); next.select(); }
+  }
 
   return (
-    <div className="space-y-4" onChange={onGridChange}>
+    <div className="space-y-4" onChange={onGridChange} onKeyDown={onGridKeyDown}>
       <form id={gridFormId} action={formAction}>
         <input type="hidden" name="examinationId" value={examinationId} />
         <input type="hidden" name="examSubjectId" value={examSubjectId} />
@@ -182,7 +195,7 @@ export default function MarksGridForm({
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-[0.08em] text-zinc-500">
             <tr>
-              <th className="py-1.5">Admission #</th>
+              <th className="hidden py-1.5 sm:table-cell">Admission #</th>
               <th className="py-1.5">Student</th>
               <th className="py-1.5">Marks</th>
               <th className="py-1.5">Absent</th>
@@ -219,7 +232,7 @@ export default function MarksGridForm({
                 </tr>
               ) : null}
               <tr key={s.student_id}>
-                <td className="py-1.5">
+                <td className="hidden py-1.5 sm:table-cell">
                   <input type="hidden" form={gridFormId} name="studentId" value={s.student_id} />
                   {s.admission_number}
                 </td>
@@ -227,11 +240,12 @@ export default function MarksGridForm({
                 <td className="py-1.5">
                   <input autoComplete="off" form={gridFormId}
                     name={`marks_${s.student_id}`}
-                    type="number"
+                    type="number" inputMode="decimal" enterKeyHint="next"
                     step="0.01" min={0} max={Number(maxMarks)}
                     defaultValue={formatMarks(s.marks_obtained)}
                     disabled={!teacherCanEdit}
-                    className="w-24 rounded-full border px-2 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
+                    aria-label={`Marks for ${s.student_name}`}
+                    className="min-h-9 w-24 rounded-full border px-3 py-1 text-sm disabled:bg-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400"
                   />
                 </td>
                 <td className="py-1.5">
@@ -291,9 +305,13 @@ export default function MarksGridForm({
         </table>
         </div>
         {rowEditable ? (
-          <button type="submit" form={gridFormId} disabled={pending} className="mt-3 rounded-full bg-[var(--brand)] px-3 py-1.5 text-sm text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
-            Save marks
-          </button>
+          <div className="sticky bottom-0 mt-3 flex flex-wrap items-center gap-3 bg-white/95 py-2 backdrop-blur">
+            <button type="submit" form={gridFormId} disabled={pending} className="rounded-full bg-[var(--brand)] px-6 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)] disabled:opacity-50">
+              {pending ? "Saving…" : "Save marks"}
+            </button>
+            <span className="text-sm text-zinc-600">{entered} of {students.length} entered{entered < students.length ? ` · ${students.length - entered} left` : " ✓"}</span>
+            <span className="text-xs text-zinc-400">Press Enter to go to the next student</span>
+          </div>
         ) : null}
         {canEnter && examinationClosed && !canCorrect ? (
           <p className="mt-2 text-xs text-zinc-500">Mark entry is closed for this examination — ask an admin to reopen it to make changes.</p>
